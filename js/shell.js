@@ -45,7 +45,8 @@ async function buildSettings() {
     el('div', { className: 'settings-body' },
       el('section', {}, el('h3', { textContent: 'Version' }), el('div', { className: 'version-line', textContent: version ? 'v' + version : '—' })),
       el('section', {}, el('h3', { textContent: 'Dernières versions' }), log),
-      el('section', {}, el('h3', { textContent: 'Données' }), exp)));
+      el('section', {}, el('h3', { textContent: 'Données' }), exp),
+      el('section', {}, el('h3', { textContent: 'Atelier' }), el('a', { className: 'btn', href: new URL('factsheet/atelier.html', ROOT).href }, icon('brush'), 'Atelier du Factsheet creator'))));
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
   document.body.append(dlg);
   return dlg;

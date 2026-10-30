@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0 — 2026-10-30
+- Atelier : publie les images (logos, header, colonnes) et les projets dans le dépôt GitHub, pour les retrouver sur tous les appareils
+- Lien « Atelier » dans les réglages et rappel des images à publier dans le Factsheet creator
+
 ## 1.1.0 — 2026-10-30
 - Logo : choix entre 4 versions (défaut, mono, blanc, négatif) dans une liste déroulante
 - Header : bibliothèque d'images (deux au départ, autant qu'on veut ensuite)

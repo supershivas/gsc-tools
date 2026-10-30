@@ -27,6 +27,13 @@ function loadImage(src) {
   return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => rej(new Error('raster')); im.src = src; });
 }
 
+/** Les images publiées (chemins du dépôt) ne se chargent pas dans une image SVG : on les remplace par leur contenu */
+async function inlineImages(root) {
+  await Promise.all([...root.querySelectorAll('img')].filter(i => !/^data:/.test(i.getAttribute('src') || '')).map(async i => {
+    try { i.setAttribute('src', await asDataUrl(await (await fetch(i.src)).blob())); } catch (e) { /* image manquante : laissée vide */ }
+  }));
+}
+
 /** → [{ key, canvas }] pour le recto et le verso, à `scale` × la taille A4 en px CSS */
 export async function rasterizeDocument(doc, scale = 2) {
   if (document.fonts && document.fonts.ready) await document.fonts.ready;
@@ -37,6 +44,7 @@ export async function rasterizeDocument(doc, scale = 2) {
     const result = renderDocument(doc);
     result.pages.forEach(p => stage.append(p.el));
     measure(result);
+    await inlineImages(stage);
     const out = [];
     for (const p of result.pages) {
       const vars = Object.entries(cssVars(doc.theme, doc.colors)).map(([k, v]) => `${k}:${v}`).join(';').replace(/&/g, '&amp;').replace(/"/g, '&quot;');

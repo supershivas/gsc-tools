@@ -80,6 +80,21 @@ const EN = {
   'Courbes': 'Lines', 'Axe vertical démarrant à zéro': 'Vertical axis starts at zero', 'Liste à icônes': 'Icon list', 'Éléments': 'Items', 'Icône': 'Icon', 'Nouvel élément': 'New item', 'Premier élément de liste': 'First list item', 'Deuxième élément de liste': 'Second list item', 'Troisième élément de liste': 'Third list item',
   'Validé': 'Checked', 'Monde': 'World', 'Personnes': 'People', 'Euro': 'Euro', 'Graphique': 'Chart', 'Sécurité': 'Security', 'Environnement': 'Environment', 'Énergie': 'Energy',
   'Logement': 'Housing', 'Protection': 'Protection', 'Objectif': 'Goal', 'Calendrier': 'Calendar', 'Recherche': 'Search', 'Courrier': 'Mail', 'Étoile': 'Star', 'Réglages': 'Settings', 'Envoi': 'Send', 'Rédaction': 'Writing',
+  /* atelier */
+  'Connexion à GitHub': 'GitHub connection', 'Retirer le jeton': 'Remove the token', 'Enregistrer et tester': 'Save and test',
+  'Connecté : vous pouvez publier.': 'Connected: you can publish.', 'Jeton invalide ou expiré.': 'Invalid or expired token.', 'Accès refusé à ce dépôt.': 'Access to this repository denied.',
+  'Ce jeton ne peut pas écrire dans le dépôt (permission « Contents : lecture et écriture » requise).': 'This token cannot write to the repository (“Contents: read and write” permission required).',
+  'accès limité au dépôt': 'access limited to the repository', 'permission': 'permission',
+  'À publier': 'To publish', 'Toutes les images du document sont publiées.': 'All the document images are published.', 'Publier': 'Publish', 'image(s)': 'image(s)', 'Rien à publier': 'Nothing to publish',
+  'Images publiées': 'Published images', 'Aucune image publiée.': 'No published images.', 'Projets': 'Projects', 'Nom du projet': 'Project name', 'Publier le projet en cours': 'Publish the current project',
+  'Aucun projet publié.': 'No published projects.', 'Ouvrir dans l’éditeur': 'Open in the editor', 'Publication…': 'Publishing…', 'Publié': 'Published', 'Projet publié': 'Project published',
+  'Déploiement du site en cours…': 'Site deployment in progress…', 'Échec': 'Failed', 'Image supprimée': 'Image deleted', 'Projet supprimé': 'Project deleted', 'Supprimer ce projet ?': 'Delete this project?',
+  'Remplacer le projet en cours dans ce navigateur ?': 'Replace the current project in this browser?', 'Des images ne sont pas encore publiées.': 'Some images are not published yet.',
+  'Cette image est utilisée par le document en cours. La supprimer quand même ?': 'This image is used by the current document. Delete it anyway?',
+  'Fichiers publiés, mais le site n’est pas encore à jour. Réessayez dans une minute pour finaliser.': 'Files published, but the site is not up to date yet. Try again in a minute to finish.',
+  'Limite de requêtes GitHub atteinte : ajoutez un jeton.': 'GitHub request limit reached: add a token.', 'Impossible de lire le dépôt.': 'Could not read the repository.',
+  'Le jeton reste dans ce navigateur, il n’est jamais exporté.': 'The token stays in this browser and is never exported.',
+  'Créer un jeton :': 'Create a token:', 'Dépôt :': 'Repository:',
   /* aperçu 3D */
   'Aperçu 3D du document': '3D document preview', 'Fermer': 'Close', 'Recto / verso': 'Front / back', 'Retourner': 'Flip', 'Deux pages': 'Both pages', 'Une feuille': 'One sheet', 'Recentrer': 'Reset view',
   'Clic gauche : tourner · clic droit : déplacer · molette : zoomer': 'Left click: orbit · right click: pan · wheel: zoom', 'Préparation de l’aperçu…': 'Preparing the preview…',
@@ -95,6 +110,11 @@ const PATTERNS = [
   [/^Colonne actuelle \((\d+) px\)$/, (_, n) => `Current column (${n} px)`],
   [/^Série (\d+)$/, (_, n) => `Series ${n}`],
   [/^Dataviz · (.+)$/, (_, x) => `Dataviz · ${tr(x)}`],
+  [/^(\d+) images? à publier — ouvrir l’Atelier$/, (_, n) => `${n} image${n === '1' ? '' : 's'} to publish — open the Atelier`],
+  [/^Dépôt : (\S+) \(branche main\)\. Le jeton reste dans ce navigateur, il n’est jamais exporté\.$/, (_, r) => `Repository: ${r} (main branch). The token stays in this browser and is never exported.`],
+  [/^Header — (.+)$/, (_, x) => `Header — ${x}`],
+  [/^Logo — (.+)$/, (_, x) => `Logo — ${tr(x)}`],
+  [/^Supprime /, s => s],
   [/^Image · (.+)$/, (_, x) => `Image · ${x}`],
 ];
 

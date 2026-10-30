@@ -1,5 +1,5 @@
 import { PAGE } from './tokens.js';
-import { loadDoc, saveDoc, migrate, defaultDoc, moveSection, storage } from './state.js';
+import { loadDoc, saveDoc, migrate, defaultDoc, moveSection, storage, localImageCount } from './state.js';
 import { renderDocument, measure, h } from './render.js';
 import { buildTree } from './tree.js';
 import { buildProps } from './props.js';
@@ -46,6 +46,8 @@ function drawPreview() {
   });
   warnEl.innerHTML = '';
   r.warnings.forEach(w => warnEl.append(h('div', { textContent: w })));
+  const nLocal = localImageCount(doc);
+  if (nLocal) warnEl.append(h('a', { class: 'note', href: 'atelier.html', textContent: nLocal === 1 ? '1 image à publier — ouvrir l’Atelier' : `${nLocal} images à publier — ouvrir l’Atelier` }));
   if (!storage.ok) warnEl.append(h('div', { textContent: 'Espace de stockage du navigateur plein : les dernières modifications ne sont pas enregistrées. Enregistrez le projet (.json) et allégez les images.' }));
   if (hover) hover.hide();
   if (selected) stage.querySelectorAll(`[data-sel="${selected}"]`).forEach(n => n.classList.add('is-sel'));

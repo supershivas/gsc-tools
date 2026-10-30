@@ -638,6 +638,45 @@
     "R\xE9glages": "Settings",
     "Envoi": "Send",
     "R\xE9daction": "Writing",
+    /* atelier */
+    "Connexion \xE0 GitHub": "GitHub connection",
+    "Retirer le jeton": "Remove the token",
+    "Enregistrer et tester": "Save and test",
+    "Connect\xE9 : vous pouvez publier.": "Connected: you can publish.",
+    "Jeton invalide ou expir\xE9.": "Invalid or expired token.",
+    "Acc\xE8s refus\xE9 \xE0 ce d\xE9p\xF4t.": "Access to this repository denied.",
+    "Ce jeton ne peut pas \xE9crire dans le d\xE9p\xF4t (permission \xAB Contents : lecture et \xE9criture \xBB requise).": "This token cannot write to the repository (\u201CContents: read and write\u201D permission required).",
+    "acc\xE8s limit\xE9 au d\xE9p\xF4t": "access limited to the repository",
+    "permission": "permission",
+    "\xC0 publier": "To publish",
+    "Toutes les images du document sont publi\xE9es.": "All the document images are published.",
+    "Publier": "Publish",
+    "image(s)": "image(s)",
+    "Rien \xE0 publier": "Nothing to publish",
+    "Images publi\xE9es": "Published images",
+    "Aucune image publi\xE9e.": "No published images.",
+    "Projets": "Projects",
+    "Nom du projet": "Project name",
+    "Publier le projet en cours": "Publish the current project",
+    "Aucun projet publi\xE9.": "No published projects.",
+    "Ouvrir dans l\u2019\xE9diteur": "Open in the editor",
+    "Publication\u2026": "Publishing\u2026",
+    "Publi\xE9": "Published",
+    "Projet publi\xE9": "Project published",
+    "D\xE9ploiement du site en cours\u2026": "Site deployment in progress\u2026",
+    "\xC9chec": "Failed",
+    "Image supprim\xE9e": "Image deleted",
+    "Projet supprim\xE9": "Project deleted",
+    "Supprimer ce projet ?": "Delete this project?",
+    "Remplacer le projet en cours dans ce navigateur ?": "Replace the current project in this browser?",
+    "Des images ne sont pas encore publi\xE9es.": "Some images are not published yet.",
+    "Cette image est utilis\xE9e par le document en cours. La supprimer quand m\xEAme ?": "This image is used by the current document. Delete it anyway?",
+    "Fichiers publi\xE9s, mais le site n\u2019est pas encore \xE0 jour. R\xE9essayez dans une minute pour finaliser.": "Files published, but the site is not up to date yet. Try again in a minute to finish.",
+    "Limite de requ\xEAtes GitHub atteinte : ajoutez un jeton.": "GitHub request limit reached: add a token.",
+    "Impossible de lire le d\xE9p\xF4t.": "Could not read the repository.",
+    "Le jeton reste dans ce navigateur, il n\u2019est jamais export\xE9.": "The token stays in this browser and is never exported.",
+    "Cr\xE9er un jeton :": "Create a token:",
+    "D\xE9p\xF4t :": "Repository:",
     /* aperçu 3D */
     "Aper\xE7u 3D du document": "3D document preview",
     "Fermer": "Close",
@@ -659,6 +698,11 @@
     [/^Colonne actuelle \((\d+) px\)$/, (_, n) => `Current column (${n} px)`],
     [/^Série (\d+)$/, (_, n) => `Series ${n}`],
     [/^Dataviz · (.+)$/, (_, x) => `Dataviz \xB7 ${tr(x)}`],
+    [/^(\d+) images? à publier — ouvrir l’Atelier$/, (_, n) => `${n} image${n === "1" ? "" : "s"} to publish \u2014 open the Atelier`],
+    [/^Dépôt : (\S+) \(branche main\)\. Le jeton reste dans ce navigateur, il n’est jamais exporté\.$/, (_, r) => `Repository: ${r} (main branch). The token stays in this browser and is never exported.`],
+    [/^Header — (.+)$/, (_, x) => `Header \u2014 ${x}`],
+    [/^Logo — (.+)$/, (_, x) => `Logo \u2014 ${tr(x)}`],
+    [/^Supprime /, (s2) => s2],
     [/^Image · (.+)$/, (_, x) => `Image \xB7 ${x}`]
   ];
   function tr(s2) {
@@ -1576,6 +1620,22 @@ ${lorem}` },
     if (!H.images.length) H.images = [newHeaderImage(1), newHeaderImage(2)];
     if (!H.images.some((i) => i.id === H.imageId)) H.imageId = H.images[0].id;
   }
+  function docImages(doc2) {
+    const out = [], H = doc2.header || {};
+    (H.images || []).forEach((i) => out.push({ label: `Header \u2014 ${i.name}`, get: () => i.src, set: (v) => {
+      i.src = v;
+    } }));
+    Object.keys(H.logos || {}).forEach((k) => out.push({ label: `Logo \u2014 ${LOGO_VARIANTS[k] || k}`, get: () => H.logos[k], set: (v) => {
+      H.logos[k] = v;
+    } }));
+    (doc2.sections || []).forEach((sec) => (sec.subs || []).forEach((sub) => (sub.cols || []).forEach((c, ci) => {
+      if (c.type === "image") out.push({ label: `${sec.title || "Section"} \u203A ${sub.title || "Subsection"} \u203A ${ci + 1}`, get: () => c.src, set: (v) => {
+        c.src = v;
+      } });
+    })));
+    return out.filter((x) => x.get());
+  }
+  var localImageCount = (doc2) => docImages(doc2).filter((x) => /^data:/.test(x.get())).length;
 
   // src/render.js
   var ico = (name) => h("i", { class: "ti ti-" + name });
@@ -2776,6 +2836,14 @@ ${lorem}` },
       im.src = src;
     });
   }
+  async function inlineImages(root) {
+    await Promise.all([...root.querySelectorAll("img")].filter((i) => !/^data:/.test(i.getAttribute("src") || "")).map(async (i) => {
+      try {
+        i.setAttribute("src", await asDataUrl(await (await fetch(i.src)).blob()));
+      } catch (e) {
+      }
+    }));
+  }
   async function rasterizeDocument(doc2, scale = 2) {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const css = await documentCss();
@@ -2785,6 +2853,7 @@ ${lorem}` },
       const result = renderDocument(doc2);
       result.pages.forEach((p) => stage2.append(p.el));
       measure(result);
+      await inlineImages(stage2);
       const out = [];
       for (const p of result.pages) {
         const vars = Object.entries(cssVars(doc2.theme, doc2.colors)).map(([k, v]) => `${k}:${v}`).join(";").replace(/&/g, "&amp;").replace(/"/g, "&quot;");
@@ -2847,6 +2916,8 @@ ${lorem}` },
     });
     warnEl.innerHTML = "";
     r.warnings.forEach((w) => warnEl.append(h("div", { textContent: w })));
+    const nLocal = localImageCount(doc);
+    if (nLocal) warnEl.append(h("a", { class: "note", href: "atelier.html", textContent: nLocal === 1 ? "1 image \xE0 publier \u2014 ouvrir l\u2019Atelier" : `${nLocal} images \xE0 publier \u2014 ouvrir l\u2019Atelier` }));
     if (!storage.ok) warnEl.append(h("div", { textContent: "Espace de stockage du navigateur plein : les derni\xE8res modifications ne sont pas enregistr\xE9es. Enregistrez le projet (.json) et all\xE9gez les images." }));
     if (hover) hover.hide();
     if (selected) stage.querySelectorAll(`[data-sel="${selected}"]`).forEach((n) => n.classList.add("is-sel"));

@@ -133,3 +133,16 @@ function migrateHeader(H, src) {
   if (!H.images.length) H.images = [newHeaderImage(1), newHeaderImage(2)];
   if (!H.images.some(i => i.id === H.imageId)) H.imageId = H.images[0].id;
 }
+
+/* ---------- Images du document (pour l'Atelier : publication dans le dépôt) ---------- */
+/** Toutes les images du document : { label, get(), set(v) } — logos, bibliothèque du header, images de colonnes */
+export function docImages(doc) {
+  const out = [], H = doc.header || {};
+  (H.images || []).forEach(i => out.push({ label: `Header — ${i.name}`, get: () => i.src, set: v => { i.src = v; } }));
+  Object.keys(H.logos || {}).forEach(k => out.push({ label: `Logo — ${LOGO_VARIANTS[k] || k}`, get: () => H.logos[k], set: v => { H.logos[k] = v; } }));
+  (doc.sections || []).forEach(sec => (sec.subs || []).forEach(sub => (sub.cols || []).forEach((c, ci) => {
+    if (c.type === 'image') out.push({ label: `${sec.title || 'Section'} › ${sub.title || 'Subsection'} › ${ci + 1}`, get: () => c.src, set: v => { c.src = v; } });
+  })));
+  return out.filter(x => x.get());
+}
+export const localImageCount = doc => docImages(doc).filter(x => /^data:/.test(x.get())).length;

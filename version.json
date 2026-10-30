@@ -1,9 +1,8 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "date": "2026-10-30",
   "changes": [
-    "Logo : choix entre 4 versions (défaut, mono, blanc, négatif) dans une liste déroulante",
-    "Header : bibliothèque d'images (deux au départ, autant qu'on veut ensuite)",
-    "Aperçu 3D du document avec caméra libre, et interface du Factsheet creator en anglais (français en option)"
+    "Atelier : publie les images (logos, header, colonnes) et les projets dans le dépôt GitHub, pour les retrouver sur tous les appareils",
+    "Lien « Atelier » dans les réglages et rappel des images à publier dans le Factsheet creator"
   ]
 }

@@ -20,7 +20,7 @@ JS vanilla statique, hébergé sur GitHub Pages (push sur `main` = déploiement)
 - `js/app-update.js`, `css/mobile.css`, `design-tokens.json` : synchronisés depuis le design system (ne pas modifier).
 - `css/tokens.css` : variables CSS dérivées de `design-tokens.json` ; `css/shell.css` : styles de la coque.
 - `version.json`, `CHANGELOG.md` : version (source unique).
-- `factsheet/` : le Factsheet creator. Sources dans `factsheet/src/`, `factsheet/app.js` est généré : après modification, `cd factsheet && npm install && npm run build` et commiter `app.js` **et** `viewer3d.js` (bundle three.js, chargé à la première ouverture de l'aperçu 3D). Détails dans `factsheet/README.md`.
+- `factsheet/` : le Factsheet creator. Sources dans `factsheet/src/`, `factsheet/app.js` est généré : après modification, `cd factsheet && npm install && npm run build` et commiter `app.js` **et** `viewer3d.js` (bundle three.js, chargé à la première ouverture de l'aperçu 3D) **et** `atelier.js`. Détails dans `factsheet/README.md`.
 
 ## Exceptions aux conventions
 
@@ -29,9 +29,12 @@ JS vanilla statique, hébergé sur GitHub Pages (push sur `main` = déploiement)
 
 - Interface du Factsheet creator : **anglais par défaut**, français en option (sélecteur dans la barre), à la demande du propriétaire ; déroge à « interface en français ». Le reste de la coque (en-tête, réglages) reste en français. Les textes du code sont en français et servent de clés : dictionnaire FR → EN dans `factsheet/src/i18n.js` (toute nouvelle chaîne d'interface doit y être ajoutée ; une valeur créée dans le document doit passer par `t()`).
 
+- **Atelier** (`factsheet/atelier.html`, lien dans les réglages) : publie les images du document dans `factsheet/assets/` et les projets dans `factsheet/projects/` par un commit sur `main` (API Git de GitHub, `src/github.js`). Jeton personnel à droits fins gardé dans le `localStorage` sous `gsc-tools-github-token` (clé volontairement hors du préfixe `factsheet-creator`, donc jamais exportée). Après publication, le document ne garde que le chemin (`assets/<hash>.<ext>`), une fois Pages à jour.
+
 ## Pièges connus
 
 - Le Factsheet creator imprime le PDF via `window.print()` : l'en-tête, le bandeau et le toast sont masqués en `@media print` (`factsheet/css/app.css`) ; tout nouvel élément fixe de la coque doit l'être aussi.
 - L'aperçu 3D dessine chaque page via un SVG `<foreignObject>` (`factsheet/src/raster.js`) : le CSS du document et les polices latin y sont embarqués ; un nouveau style de page doit rester dans `doc.css`. L'overlay `.v3d` est masqué en `@media print`.
+- Les images publiées sont des chemins relatifs : l'aperçu 3D les réinjecte en data URL (`raster.js`), l'export PDF les charge normalement. Le déploiement de Pages prend ~1 min : l'Atelier attend que les fichiers répondent avant de remplacer les data URL du document.
 - Le logo a 4 versions (`header.logos` + `header.logoVariant`) et le header une bibliothèque d'images (`header.images` + `imageId`), stockées en data URL dans le `localStorage` : un avertissement s'affiche si le stockage du navigateur est plein.
 - Les réglages sont un `<dialog>` modal : il bloque les clics sur l'en-tête tant qu'il est ouvert (Échap ou fond pour fermer).

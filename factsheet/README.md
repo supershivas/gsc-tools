@@ -32,6 +32,9 @@ Le donut l'utilise : cliquer un segment/libellé, glisser l'anneau (rotation, or
 ## Logo et images du header
 Le logo a 4 versions de même taille (défaut, mono, white, négatif) : une liste déroulante choisit celle qui s'affiche, chacune s'importe séparément (`header.logos`, `header.logoVariant`). Le header a une bibliothèque d'images sans limite (deux emplacements au départ) : vignettes cliquables, import / renommer / supprimer, la vignette sélectionnée est affichée (`header.images`, `header.imageId`).
 
+## Atelier (publication dans GitHub)
+`atelier.html` : connexion avec un jeton GitHub (droits fins, « Contents » lecture/écriture sur ce dépôt, gardé dans ce navigateur), publication des images du document (logos, header, colonnes) dans `assets/` et des projets `.json` dans `projects/` (un commit sur `main`, noms de fichiers d'après le contenu), liste et suppression des fichiers publiés, ouverture d'un projet publié dans l'éditeur. Le document ne garde alors que le chemin de l'image.
+
 ## Aperçu 3D
 Bouton « Aperçu 3D » : les pages sont dessinées en images (`src/raster.js`) puis posées sur une feuille A4 en three.js (`src/viewer3d.js`, bundle séparé `viewer3d.js` chargé à la demande). Léger balancement tant que la caméra n'est pas touchée, puis caméra libre (clic gauche tourner, clic droit déplacer, molette zoomer) ; boutons Retourner (recto/verso, touche F), Deux pages, Recentrer ; Échap ferme.
 
