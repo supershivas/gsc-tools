@@ -1,7 +1,7 @@
 {
-  "version": "1.7.0",
+  "version": "1.7.1",
   "date": "2026-10-30",
   "changes": [
-    "Éditeur de couleur : saisie en CMJN (en plus de RVB, TSV et hexadécimal) ; valeurs CMJN en info-bulle dans la palette"
+    "Barre au survol : le bouton « Éditer », redondant avec le panneau de droite, est retiré ; « Dataviz… » reste"
   ]
 }

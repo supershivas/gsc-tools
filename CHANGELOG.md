@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.1 — 2026-10-30
+- Barre au survol : le bouton « Éditer », redondant avec le panneau de droite, est retiré ; « Dataviz… » reste
+
 ## 1.7.0 — 2026-10-30
 - Éditeur de couleur : saisie en CMJN (en plus de RVB, TSV et hexadécimal) ; valeurs CMJN en info-bulle dans la palette
 

@@ -3554,26 +3554,24 @@ ${lorem}` },
         hide();
         ctx2.remove(path);
       } }, ico("trash"));
-      const edit = (path) => btn([ico("pencil"), " \xC9diter"], "Afficher les propri\xE9t\xE9s", () => select(path), "primary");
       if (it.kind === "col") {
         const sub = doc2.sections[it.si].subs[it.bi], col = sub.cols[it.ci];
         const grip = h("button", { type: "button", class: "mini grip-btn", title: "Glisser le contenu sur une autre colonne pour l\u2019\xE9changer", onpointerdown: (e) => {
           e.preventDefault();
           ctx2.startColDrag(e, { si: it.si, bi: it.bi, ci: it.ci });
         } }, ico("grip-vertical"));
-        g.push(grp("Colonne", grip, edit(it.path), del(it.path), col.type === "viz" ? btn("Dataviz\u2026", "Ouvrir l\u2019\xE9diteur de dataviz", () => ctx2.editViz({ col, sub, ci: it.ci })) : null));
+        g.push(grp("Colonne", grip, del(it.path), col.type === "viz" ? btn("Dataviz\u2026", "Ouvrir l\u2019\xE9diteur de dataviz", () => ctx2.editViz({ col, sub, ci: it.ci })) : null));
       } else if (it.kind === "sub") {
         const sec = doc2.sections[it.si];
         const mv = (d) => () => {
           const j = it.bi + d;
           if (j >= 0 && j < sec.subs.length) [sec.subs[it.bi], sec.subs[j]] = [sec.subs[j], sec.subs[it.bi]];
         };
-        g.push(grp("Sous-section", edit(`sub:${it.si}:${it.bi}`), del(`sub:${it.si}:${it.bi}`), btn(ico("arrow-up"), "Monter", mv(-1)), btn(ico("arrow-down"), "Descendre", mv(1))));
+        g.push(grp("Sous-section", del(`sub:${it.si}:${it.bi}`), btn(ico("arrow-up"), "Monter", mv(-1)), btn(ico("arrow-down"), "Descendre", mv(1))));
       } else if (it.kind === "sec") {
         const sec = doc2.sections[it.si];
         g.push(grp(
           "Section",
-          edit(`sec:${it.si}`),
           del(`sec:${it.si}`),
           sw("none", !sec.bg || sec.bg === "none", "Sans fond", () => {
             sec.bg = "none";
@@ -3590,7 +3588,7 @@ ${lorem}` },
         ));
       } else if (it.kind === "header") {
         const H = doc2.header;
-        g.push(grp("Header", edit("header"), paletteKeys(doc2).map((k) => sw(k, H.bg === k, t(colorLabel(doc2, k)), () => {
+        g.push(grp("Header", paletteKeys(doc2).map((k) => sw(k, H.bg === k, t(colorLabel(doc2, k)), () => {
           H.bg = k;
         }))));
       }

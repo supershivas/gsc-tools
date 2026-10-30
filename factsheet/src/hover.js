@@ -26,23 +26,22 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
   function groups(chain, doc) {
     const it = chain[0], g = [];
     const del = path => h('button', { type: 'button', class: 'mini danger', title: t('Supprimer (Suppr)'), 'aria-label': t('Supprimer (Suppr)'), onclick: () => { hide(); ctx.remove(path); } }, ico('trash'));
-    const edit = path => btn([ico('pencil'), ' Éditer'], 'Afficher les propriétés', () => select(path), 'primary');
     if (it.kind === 'col') {
       const sub = doc.sections[it.si].subs[it.bi], col = sub.cols[it.ci];
       const grip = h('button', { type: 'button', class: 'mini grip-btn', title: 'Glisser le contenu sur une autre colonne pour l’échanger', onpointerdown: e => { e.preventDefault(); ctx.startColDrag(e, { si: it.si, bi: it.bi, ci: it.ci }); } }, ico('grip-vertical'));
-      g.push(grp('Colonne', grip, edit(it.path), del(it.path), col.type === 'viz' ? btn('Dataviz…', 'Ouvrir l’éditeur de dataviz', () => ctx.editViz({ col, sub, ci: it.ci })) : null));
+      g.push(grp('Colonne', grip, del(it.path), col.type === 'viz' ? btn('Dataviz…', 'Ouvrir l’éditeur de dataviz', () => ctx.editViz({ col, sub, ci: it.ci })) : null));
     } else if (it.kind === 'sub') {
       const sec = doc.sections[it.si];
       const mv = d => () => { const j = it.bi + d; if (j >= 0 && j < sec.subs.length) [sec.subs[it.bi], sec.subs[j]] = [sec.subs[j], sec.subs[it.bi]]; };
-      g.push(grp('Sous-section', edit(`sub:${it.si}:${it.bi}`), del(`sub:${it.si}:${it.bi}`), btn(ico('arrow-up'), 'Monter', mv(-1)), btn(ico('arrow-down'), 'Descendre', mv(1))));
+      g.push(grp('Sous-section', del(`sub:${it.si}:${it.bi}`), btn(ico('arrow-up'), 'Monter', mv(-1)), btn(ico('arrow-down'), 'Descendre', mv(1))));
     } else if (it.kind === 'sec') {
       const sec = doc.sections[it.si];
-      g.push(grp('Section', edit(`sec:${it.si}`), del(`sec:${it.si}`), sw('none', !sec.bg || sec.bg === 'none', 'Sans fond', () => { sec.bg = 'none'; }),
+      g.push(grp('Section', del(`sec:${it.si}`), sw('none', !sec.bg || sec.bg === 'none', 'Sans fond', () => { sec.bg = 'none'; }),
         sectionBgs(doc).map(k => sw(k, sec.bg === k, t(colorLabel(doc, k)), () => { sec.bg = k; })),
         btn(ico('arrow-up'), 'Monter', () => { stepSection(doc, it.si, -1); }), btn(ico('arrow-down'), 'Descendre', () => { stepSection(doc, it.si, 1); })));
     } else if (it.kind === 'header') {
       const H = doc.header;
-      g.push(grp('Header', edit('header'), paletteKeys(doc).map(k => sw(k, H.bg === k, t(colorLabel(doc, k)), () => { H.bg = k; }))));
+      g.push(grp('Header', paletteKeys(doc).map(k => sw(k, H.bg === k, t(colorLabel(doc, k)), () => { H.bg = k; }))));
     }
     return g;
   }
