@@ -571,6 +571,10 @@
     "M\xEAme ic\xF4ne dans une pastille ronde de 0,5 pt, comme dans la liste \xE0 ic\xF4nes.": "Same icon in a round 0.5 pt circle, as in the icon list.",
     "Centr\xE9, sans contour": "Centred, no outline",
     "Chiffre et ic\xF4ne centr\xE9s, pour une bande de plusieurs chiffres.": "Centred figure and icon, for a row of several figures.",
+    /* cmjn */
+    "CMJN": "CMYK",
+    "J": "Y",
+    "N": "K",
     /* suppression */
     "\xC9l\xE9ment supprim\xE9.": "Element deleted.",
     "Colonne supprim\xE9e : les autres s\u2019\xE9tendent.": "Column deleted: the others expand.",
@@ -2386,6 +2390,13 @@ ${lorem}` },
     return { r: n >> 16 & 255, g: n >> 8 & 255, b: n & 255 };
   };
   var toHex = ({ r, g, b }) => "#" + [r, g, b].map((x) => Math.round(clamp(x, 0, 255)).toString(16).padStart(2, "0")).join("").toUpperCase();
+  function rgb2cmyk({ r, g, b }) {
+    const k = 1 - Math.max(r, g, b) / 255;
+    if (k >= 1) return [0, 0, 0, 100];
+    return [(1 - r / 255 - k) / (1 - k), (1 - g / 255 - k) / (1 - k), (1 - b / 255 - k) / (1 - k), k].map((x) => x * 100);
+  }
+  var cmyk2rgb = ([c, m, y, k]) => ({ r: 255 * (1 - c / 100) * (1 - k / 100), g: 255 * (1 - m / 100) * (1 - k / 100), b: 255 * (1 - y / 100) * (1 - k / 100) });
+  var cmykText = (hex) => rgb2cmyk(toRgb(hex)).map((x) => Math.round(x)).join(" \xB7 ");
   function rgb2hsv({ r, g, b }) {
     r /= 255;
     g /= 255;
@@ -2406,7 +2417,7 @@ ${lorem}` },
   function openColorEditor({ anchor, hex, title, onChange, onClose }) {
     if (current) current.close(true);
     const start = normHex(hex) || "#000000";
-    let hsv = rgb2hsv(toRgb(start)), mode = "rgb", done = false;
+    let hsv = rgb2hsv(toRgb(start)), mode = "rgb", done = false, cm = null;
     const rgb = () => hsv2rgb(hsv);
     const sv = h("div", { class: "ce-sv" }, h("i", { class: "ce-knob" }));
     const hue = h("div", { class: "ce-hue" }, h("i", { class: "ce-knob" }));
@@ -2464,7 +2475,11 @@ ${lorem}` },
       const c = rgb();
       c.b = v;
       hsv = rgb2hsv(c);
-    }]] : [["H", 0, 359, hsv.h, (v) => {
+    }]] : mode === "cmyk" ? ["C", "M", "J", "N"].map((l, i) => [t(l), 0, 100, (cm || rgb2cmyk(rgb()))[i], (v) => {
+      cm = (cm || rgb2cmyk(rgb())).slice();
+      cm[i] = v;
+      hsv = rgb2hsv(cmyk2rgb(cm));
+    }]) : [["H", 0, 359, hsv.h, (v) => {
       hsv.h = v;
     }], ["S", 0, 100, hsv.s * 100, (v) => {
       hsv.s = v / 100;
@@ -2473,6 +2488,12 @@ ${lorem}` },
     }]];
     const gradient = (i) => {
       const c = rgb();
+      if (mode === "cmyk") {
+        const base = (cm || rgb2cmyk(c)).slice(), lo2 = base.slice(), hi2 = base.slice();
+        lo2[i] = 0;
+        hi2[i] = 100;
+        return `linear-gradient(90deg,${toHex(cmyk2rgb(lo2))},${toHex(cmyk2rgb(hi2))})`;
+      }
       if (mode === "rgb") {
         const a = { ...c }, b = { ...c };
         ["r", "g", "b"][i] && (a[["r", "g", "b"][i]] = 0, b[["r", "g", "b"][i]] = 255);
@@ -2488,7 +2509,7 @@ ${lorem}` },
         const rng = h("input", { type: "range", min, max, step: 1, value: Math.round(val), class: "ce-range", style: { background: gradient(i) }, "aria-label": label });
         const apply = (v) => {
           set(clamp(+v || 0, min, max));
-          update(true);
+          update(true, mode === "cmyk");
         };
         rng.addEventListener("input", () => apply(rng.value));
         num.addEventListener("input", () => {
@@ -2502,7 +2523,7 @@ ${lorem}` },
       tabs.querySelectorAll(".ce-tab").forEach((b) => b.classList.toggle("on", b.dataset.m === m));
       drawSliders();
     } });
-    const tabs = h("div", { class: "ce-tabs" }, ...[["rgb", "RGB"], ["hsv", "HSV"]].map(([m, l]) => {
+    const tabs = h("div", { class: "ce-tabs" }, ...[["rgb", "RGB"], ["hsv", "HSV"], ["cmyk", "CMJN"]].map(([m, l]) => {
       const b = tab(m, l);
       b.dataset.m = m;
       return b;
@@ -2519,7 +2540,8 @@ ${lorem}` },
       }
     } }, ico("color-picker")) : null;
     let raf2 = 0, last = start;
-    function update(keepSliders) {
+    function update(keepSliders, fromCmyk) {
+      if (!fromCmyk) cm = null;
       const hx = toHex(rgb()), pure = toHex(hsv2rgb({ h: hsv.h, s: 1, v: 1 }));
       sv.style.background = `linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,${pure})`;
       sv.firstChild.style.cssText = `left:${hsv.s * 100}%;top:${(1 - hsv.v) * 100}%;background:${hx}`;
@@ -3069,7 +3091,7 @@ ${lorem}` },
             doc2.colorNames[k] = e.target.value;
             ctx2.changed();
           } }) : h("span", { class: "pal2-name", textContent: t(colorLabel(doc2, k)) }),
-          h("span", { class: "pal2-hex", textContent: pal[k].toUpperCase() }),
+          h("span", { class: "pal2-hex", textContent: pal[k].toUpperCase(), title: `CMJN ${cmykText(pal[k])}` }),
           isExtra ? h("button", { type: "button", class: "mini danger", title: "Supprimer", onclick: () => {
             if (confirm(t("Supprimer cette couleur ? Ce qui l\u2019utilise passera en bleu."))) {
               removeColor(doc2, k);

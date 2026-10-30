@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.0 — 2026-10-30
+- Éditeur de couleur : saisie en CMJN (en plus de RVB, TSV et hexadécimal) ; valeurs CMJN en info-bulle dans la palette
+
 ## 1.6.1 — 2026-10-30
 - Bouton « Ajouter une couleur » aux dimensions et espacements du design system
 

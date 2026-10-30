@@ -2,7 +2,7 @@
 import { h, ico, headerImage, columnWidth } from './render.js';
 import { t } from './i18n.js';
 import { GRID, THEMES, paletteOf, paletteKeys, sectionBgs, colorLabel, cssVars, applyVars } from './tokens.js';
-import { openColorEditor } from './colorpicker.js';
+import { openColorEditor, cmykText } from './colorpicker.js';
 import { newCard, cardPresetFor, CARD_CHECKS } from './cardmodel.js';
 import { COL_TYPES, IMAGE_RATIOS, LOCALES, LOGO_VARIANTS, VALIGNS, ALIGNS, newCol, stepSection, newHeaderImage, swapCols, allCols, moveSub, addColor, removeColor, canAddColor, extraColorKeys, refreshAutoCards } from './state.js';
 import { VIZ_TYPES, VIZ_OPTIONS, newViz } from './viz/index.js';
@@ -89,7 +89,7 @@ export function buildProps(root, ctx) {
       const sw = h('button', { type: 'button', class: 'pal2-sw', title: 'Modifier la couleur', style: { background: pal[k] }, onclick: () => open(k, sw) });
       return h('div', { class: 'pal2-row', dataset: { key: k } }, sw,
         isExtra ? h('input', { type: 'text', value: (doc.colorNames && doc.colorNames[k]) || k, oninput: e => { doc.colorNames[k] = e.target.value; ctx.changed(); } }) : h('span', { class: 'pal2-name', textContent: t(colorLabel(doc, k)) }),
-        h('span', { class: 'pal2-hex', textContent: pal[k].toUpperCase() }),
+        h('span', { class: 'pal2-hex', textContent: pal[k].toUpperCase(), title: `CMJN ${cmykText(pal[k])}` }),
         isExtra ? h('button', { type: 'button', class: 'mini danger', title: 'Supprimer', onclick: () => { if (confirm(t('Supprimer cette couleur ? Ce qui l’utilise passera en bleu.'))) { removeColor(doc, k); ctx.restructure(); } } }, ico('x'))
           : edited ? h('button', { type: 'button', class: 'mini', title: 'Rétablir la couleur du thème', onclick: struct(() => { delete doc.colors[k]; }) }, ico('restore')) : null);
     };

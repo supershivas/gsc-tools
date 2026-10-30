@@ -9,6 +9,13 @@ const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 export const normHex = s => { let x = String(s || '').trim().replace(/^#/, ''); if (/^[0-9a-f]{3}$/i.test(x)) x = x.replace(/./g, c => c + c); return /^[0-9a-f]{6}$/i.test(x) ? '#' + x.toUpperCase() : null; };
 const toRgb = hex => { const n = parseInt(hex.slice(1), 16); return { r: n >> 16 & 255, g: n >> 8 & 255, b: n & 255 }; };
 const toHex = ({ r, g, b }) => '#' + [r, g, b].map(x => Math.round(clamp(x, 0, 255)).toString(16).padStart(2, '0')).join('').toUpperCase();
+/* CMJN « naïf » (sans profil ICC) : suffisant pour choisir une couleur ; le document reste stocké en RVB */
+export function rgb2cmyk({ r, g, b }) {
+  const k = 1 - Math.max(r, g, b) / 255; if (k >= 1) return [0, 0, 0, 100];
+  return [(1 - r / 255 - k) / (1 - k), (1 - g / 255 - k) / (1 - k), (1 - b / 255 - k) / (1 - k), k].map(x => x * 100);
+}
+const cmyk2rgb = ([c, m, y, k]) => ({ r: 255 * (1 - c / 100) * (1 - k / 100), g: 255 * (1 - m / 100) * (1 - k / 100), b: 255 * (1 - y / 100) * (1 - k / 100) });
+export const cmykText = hex => rgb2cmyk(toRgb(hex)).map(x => Math.round(x)).join(' · ');
 function rgb2hsv({ r, g, b }) {
   r /= 255; g /= 255; b /= 255;
   const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; let hh = 0;
@@ -26,7 +33,7 @@ let current = null;
 export function openColorEditor({ anchor, hex, title, onChange, onClose }) {
   if (current) current.close(true);
   const start = normHex(hex) || '#000000';
-  let hsv = rgb2hsv(toRgb(start)), mode = 'rgb', done = false;
+  let hsv = rgb2hsv(toRgb(start)), mode = 'rgb', done = false, cm = null;   // cm : valeurs CMJN en cours de saisie (évite la dérive d'arrondi)
   const rgb = () => hsv2rgb(hsv);
 
   /* carré S/V */
@@ -47,9 +54,12 @@ export function openColorEditor({ anchor, hex, title, onChange, onClose }) {
   const sliders = h('div', { class: 'ce-sliders' });
   const specs = () => mode === 'rgb'
     ? [['R', 0, 255, rgb().r, v => { const c = rgb(); c.r = v; hsv = rgb2hsv(c); }], ['G', 0, 255, rgb().g, v => { const c = rgb(); c.g = v; hsv = rgb2hsv(c); }], ['B', 0, 255, rgb().b, v => { const c = rgb(); c.b = v; hsv = rgb2hsv(c); }]]
+    : mode === 'cmyk'
+    ? ['C', 'M', 'J', 'N'].map((l, i) => [t(l), 0, 100, (cm || rgb2cmyk(rgb()))[i], v => { cm = (cm || rgb2cmyk(rgb())).slice(); cm[i] = v; hsv = rgb2hsv(cmyk2rgb(cm)); }])
     : [['H', 0, 359, hsv.h, v => { hsv.h = v; }], ['S', 0, 100, hsv.s * 100, v => { hsv.s = v / 100; }], ['V', 0, 100, hsv.v * 100, v => { hsv.v = v / 100; }]];
   const gradient = (i) => {
     const c = rgb();
+    if (mode === 'cmyk') { const base = (cm || rgb2cmyk(c)).slice(), lo = base.slice(), hi = base.slice(); lo[i] = 0; hi[i] = 100; return `linear-gradient(90deg,${toHex(cmyk2rgb(lo))},${toHex(cmyk2rgb(hi))})`; }
     if (mode === 'rgb') { const a = { ...c }, b = { ...c }; ['r', 'g', 'b'][i] && (a[['r', 'g', 'b'][i]] = 0, b[['r', 'g', 'b'][i]] = 255); return `linear-gradient(90deg,${toHex(a)},${toHex(b)})`; }
     if (i === 0) return 'linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)';
     const lo = toHex(hsv2rgb({ ...hsv, [i === 1 ? 's' : 'v']: 0 })), hi = toHex(hsv2rgb({ ...hsv, [i === 1 ? 's' : 'v']: 1 }));
@@ -59,17 +69,18 @@ export function openColorEditor({ anchor, hex, title, onChange, onClose }) {
     sliders.replaceChildren(...specs().map(([label, min, max, val, set], i) => {
       const num = h('input', { type: 'number', min, max, step: 1, value: Math.round(val), 'aria-label': label });
       const rng = h('input', { type: 'range', min, max, step: 1, value: Math.round(val), class: 'ce-range', style: { background: gradient(i) }, 'aria-label': label });
-      const apply = v => { set(clamp(+v || 0, min, max)); update(true); };
+      const apply = v => { set(clamp(+v || 0, min, max)); update(true, mode === 'cmyk'); };
       rng.addEventListener('input', () => apply(rng.value)); num.addEventListener('input', () => { if (num.value !== '') apply(num.value); });
       return h('div', { class: 'ce-row' }, h('b', { textContent: label }), rng, num);
     }));
   }
   const tab = (m, label) => h('button', { type: 'button', class: 'ce-tab' + (mode === m ? ' on' : ''), textContent: label, onclick: () => { mode = m; tabs.querySelectorAll('.ce-tab').forEach(b => b.classList.toggle('on', b.dataset.m === m)); drawSliders(); } });
-  const tabs = h('div', { class: 'ce-tabs' }, ...[['rgb', 'RGB'], ['hsv', 'HSV']].map(([m, l]) => { const b = tab(m, l); b.dataset.m = m; return b; }));
+  const tabs = h('div', { class: 'ce-tabs' }, ...[['rgb', 'RGB'], ['hsv', 'HSV'], ['cmyk', 'CMJN']].map(([m, l]) => { const b = tab(m, l); b.dataset.m = m; return b; }));
   const eye = window.EyeDropper ? h('button', { type: 'button', class: 'mini', title: t('Pipette'), 'aria-label': t('Pipette'), onclick: async () => { try { const r = await new window.EyeDropper().open(); const n = normHex(r.sRGBHex); if (n) { hsv = rgb2hsv(toRgb(n)); update(); } } catch (e) { /* annulé */ } } }, ico('color-picker')) : null;
 
   let raf = 0, last = start;
-  function update(keepSliders) {
+  function update(keepSliders, fromCmyk) {
+    if (!fromCmyk) cm = null;
     const hx = toHex(rgb()), pure = toHex(hsv2rgb({ h: hsv.h, s: 1, v: 1 }));
     sv.style.background = `linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,${pure})`;
     sv.firstChild.style.cssText = `left:${hsv.s * 100}%;top:${(1 - hsv.v) * 100}%;background:${hx}`;
