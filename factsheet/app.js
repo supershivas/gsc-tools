@@ -79,9 +79,9 @@
       "1-2": { label: "2 colonnes (1/3 + 2/3)", cols: 3, spans: [1, 2] }
     }
   };
-  function colWidth(layoutKey, i) {
+  function colWidth(layoutKey, i, W = GRID.contentW) {
     const L = GRID.layouts[layoutKey] || GRID.layouts["1"];
-    const unit = (GRID.contentW - (L.cols - 1) * GRID.gutter) / L.cols;
+    const unit = (W - (L.cols - 1) * GRID.gutter) / L.cols;
     const s2 = L.spans[i] || 1;
     return s2 * unit + (s2 - 1) * GRID.gutter;
   }
@@ -111,9 +111,10 @@
     pt: 0.5,
     px: 0.5 * 96 / 72,
     // 0,667 px
-    radius: u(3)
-    // 9 — coins des encadrés
+    radius: u(1)
+    // 3 — coins des contours (sections, sous-sections, colonnes, encadrés)
   };
+  var insetW = (W) => W - 2 * (GAP.boxPad + STROKE.px);
   var HEADER = {
     h: u(80),
     // 240
@@ -641,7 +642,6 @@
     /* menus, réglages, déplacements, alignements */
     "Fichier": "File",
     "Affichage": "View",
-    "R\xE9glages": "Settings",
     "Version": "Version",
     "Derni\xE8res versions": "Latest versions",
     "Exporter mes donn\xE9es (JSON)": "Export my data (JSON)",
@@ -661,6 +661,67 @@
     "Contenu d\xE9plac\xE9. V\xE9rifiez le remplissage des pages.": "Content moved. Check how full the pages are.",
     "Glisser la sous-section (autre section possible)": "Drag the subsection (other sections allowed)",
     "Glisser le contenu sur une autre colonne pour l\u2019\xE9changer": "Drag the content onto another column to swap them",
+    /* contours, images, chiffre clé, labo */
+    "Contour": "Outline",
+    "Couleur du contour": "Outline colour",
+    "Fond blanc": "White background",
+    "Taille de l\u2019image": "Image size",
+    "Format fixe (recadr\xE9e)": "Fixed ratio (cropped)",
+    "Ajust\xE9e au conteneur (proportions conserv\xE9es)": "Fit to container (keeps proportions)",
+    "Taille personnalis\xE9e": "Custom size",
+    "Largeur (% de la colonne)": "Width (% of the column)",
+    "Hauteur (px)": "Height (px)",
+    "Remplissage": "Fill",
+    "Recadrer pour remplir": "Crop to fill",
+    "Image enti\xE8re": "Whole image",
+    "Position dans la colonne": "Position in the column",
+    "Tous les r\xE9glages de la dataviz (type, donn\xE9es, couleurs, options) se font dans l\u2019\xE9diteur.": "All dataviz settings (type, data, colours, options) are in the editor.",
+    "Ic\xF4ne devant le chiffre": "Icon before the figure",
+    "Aucune": "None",
+    "Style de l\u2019ic\xF4ne": "Icon style",
+    "Pictogramme seul": "Icon only",
+    "Dans une pastille": "In a circle",
+    "Cartes": "Cards",
+    "Options": "Options",
+    "Position de l\u2019image": "Image position",
+    "En haut": "Top",
+    "\xC0 gauche": "Left",
+    "\xC0 droite": "Right",
+    "Alignement": "Alignment",
+    "Ic\xF4ne choisie": "Chosen icon",
+    "Image jusqu\u2019au bord du contour": "Image to the outline edge",
+    "Ic\xF4ne dans une pastille": "Icon in a circle",
+    "Ic\xF4ne \xE0 c\xF4t\xE9 du titre": "Icon next to the title",
+    "\xC9tiquette": "Tag",
+    "Chiffre": "Figure",
+    "Puces": "Bullets",
+    "Lien": "Link",
+    "R\xE9initialiser la variante": "Reset the variant",
+    "Largeur de colonne": "Column width",
+    "Sur fond de section teint\xE9": "On a tinted section background",
+    "actuelle": "current",
+    "Pr\xE9c\xE9dente": "Previous",
+    "Suivante": "Next",
+    "Carte simple": "Simple card",
+    "Titre et texte dans un contour : le minimum, point de d\xE9part.": "Title and text in an outline: the minimum, a starting point.",
+    "Image en haut": "Image on top",
+    "Image au-dessus, \xE9tiquette, titre, texte et lien ; l\u2019image reste dans les marges du contour.": "Image above, tag, title, text and link; the image stays inside the outline padding.",
+    "Image jusqu\u2019au bord": "Image to the edge",
+    "Comme B, mais l\u2019image touche le contour (coins hauts arrondis de 3 px).": "Like B, but the image touches the outline (top corners rounded to 3 px).",
+    "Ic\xF4ne en t\xEAte": "Icon first",
+    "Pastille d\u2019ic\xF4ne centr\xE9e au-dessus du titre, avec des puces.": "Icon circle centred above the title, with bullets.",
+    "Image \xE0 c\xF4t\xE9": "Image beside",
+    "Image \xE0 gauche (40 %), contenu \xE0 droite : pour les colonnes larges.": "Image on the left (40 %), content on the right: for wide columns.",
+    "Carte statistique : ic\xF4ne \xE0 c\xF4t\xE9 du titre, grand chiffre, texte.": "Stat card: icon next to the title, big figure, text.",
+    "Compl\xE8te": "Complete",
+    "Toutes les options activ\xE9es ; d\xE9cochez ce que vous ne voulez pas garder.": "All options on; untick what you do not want to keep.",
+    "Sans ic\xF4ne": "No icon",
+    "Le chiffre cl\xE9 actuel : contour, fond blanc, chiffre et texte.": "The current key figure: outline, white background, figure and text.",
+    "Pictogramme au trait \xE0 la hauteur du chiffre.": "Line icon at the height of the figure.",
+    "Ic\xF4ne en pastille": "Icon in a circle",
+    "M\xEAme ic\xF4ne dans une pastille ronde de 0,5 pt, comme dans la liste \xE0 ic\xF4nes.": "Same icon in a round 0.5 pt circle, as in the icon list.",
+    "Centr\xE9, sans contour": "Centred, no outline",
+    "Chiffre et ic\xF4ne centr\xE9s, pour une bande de plusieurs chiffres.": "Centred figure and icon, for a row of several figures.",
     /* atelier */
     "Connexion \xE0 GitHub": "GitHub connection",
     "Retirer le jeton": "Remove the token",
@@ -720,6 +781,7 @@
     [/^Colonne (\d+)$/, (_, n) => `Column ${n}`],
     [/^Colonne actuelle \((\d+) px\)$/, (_, n) => `Current column (${n} px)`],
     [/^Série (\d+)$/, (_, n) => `Series ${n}`],
+    [/^Chiffre clé · (.+)$/, (_, x) => `Key figure \xB7 ${x}`],
     [/^Dataviz · (.+)$/, (_, x) => `Dataviz \xB7 ${tr(x)}`],
     [/^(\d+) images? à publier — ouvrir l’Atelier$/, (_, n) => `${n} image${n === "1" ? "" : "s"} to publish \u2014 open the Atelier`],
     [/^Dépôt : (\S+) \(branche main\)\. Le jeton reste dans ce navigateur, il n’est jamais exporté\.$/, (_, r) => `Repository: ${r} (main branch). The token stays in this browser and is never exported.`],
@@ -1230,27 +1292,6 @@
     }
   };
 
-  // src/viz/figure.js
-  var figure_default = {
-    label: "Chiffre cl\xE9",
-    defaults: () => ({ value: "5 000", text: "Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim" }),
-    fields: [
-      { k: "value", t: "text", label: "Chiffre (texte libre : \xAB 5 000 \xBB, \xAB 64 % \xBB\u2026)" },
-      { k: "text", t: "area", label: "Texte" }
-    ],
-    render(o, W) {
-      const inner = (W || 9999) - 2 * GAP.boxPad - 2 * STROKE.px - 1, base = pxOf(TYPE.figure.size);
-      const fs = fitSize(o.value || "", TYPE.figure.weight, SERIF, base, inner, 0.4);
-      const box = el(
-        "div",
-        { class: "viz-figure" },
-        el("div", { class: "vf-value", textContent: o.value || "", style: fs < base ? { fontSize: fs + "px", whiteSpace: "nowrap" } : {} }),
-        o.text && o.text.trim() ? el("div", { class: "vf-text", innerHTML: o.text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>") }) : null
-      );
-      return { node: box };
-    }
-  };
-
   // src/viz/icons.js
   var ICONS = {
     check: { label: "Valid\xE9", d: "M5 12.5l4.5 4.5L19 7.5" },
@@ -1450,7 +1491,7 @@
   };
 
   // src/viz/index.js
-  var VIZ_TYPES = { donut: donut_default, bars: bars_default, hbars: hbars_default, line: line_default, figure: figure_default, icons: iconlist_default };
+  var VIZ_TYPES = { donut: donut_default, bars: bars_default, hbars: hbars_default, line: line_default, icons: iconlist_default };
   var VIZ_OPTIONS = Object.fromEntries(Object.entries(VIZ_TYPES).map(([k, v]) => [k, v.label]));
   var newViz = (kind = "bars") => ({ kind, opts: VIZ_TYPES[kind].defaults() });
   function renderViz(viz, width, env) {
@@ -1474,12 +1515,56 @@
     }
   }
 
+  // src/figure.js
+  var FIGURE_DEFAULTS = () => ({
+    value: "5 000",
+    icon: "none",
+    iconStyle: "plain",
+    text: "Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim"
+  });
+  var FIGURE_FIELDS = [
+    { k: "value", t: "text", label: "Chiffre (texte libre : \xAB 5 000 \xBB, \xAB 64 % \xBB\u2026)" },
+    { k: "icon", t: "select", label: "Ic\xF4ne devant le chiffre", options: { none: "Aucune", ...ICON_OPTIONS } },
+    { k: "iconStyle", t: "select", label: "Style de l\u2019ic\xF4ne", options: { plain: "Pictogramme seul", circle: "Dans une pastille" } },
+    { k: "text", t: "area", label: "Texte" }
+  ];
+  var esc = (t2) => String(t2 || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+  function figureIcon(key, size, circle) {
+    const ic = ICONS[key];
+    if (!ic) return null;
+    const G = circle ? size * 0.58 : size * 0.82, k = G / 24, o = (size - G) / 2;
+    return s(
+      "svg",
+      { width: size, height: size, viewBox: `0 0 ${size} ${size}`, class: "vi-ic fg-ic" },
+      circle ? s("circle", { cx: size / 2, cy: size / 2, r: size / 2 - SW / 2, fill: "none", stroke: "currentColor", "stroke-width": SW }) : null,
+      s("path", { d: ic.d, fill: "none", stroke: "currentColor", "stroke-width": SW / k, "stroke-linecap": "round", "stroke-linejoin": "round", transform: `translate(${o} ${o}) scale(${k})` })
+    );
+  }
+  function renderFigure(o, W, align) {
+    const base = pxOf(TYPE.figure.size), lh = TYPE.figure.lh, icon = o.icon && o.icon !== "none" ? figureIcon(o.icon, lh, o.iconStyle === "circle") : null;
+    const avail = (W || 9999) - (icon ? lh + VIZ.iconGap : 0) - 1;
+    const fs = fitSize(o.value || "", TYPE.figure.weight, SERIF, base, avail, 0.4);
+    const jc = { center: "center", right: "flex-end" }[align] || "flex-start";
+    const head = el(
+      "div",
+      { class: "fg-head", style: { justifyContent: jc } },
+      icon,
+      el("div", { class: "vf-value", textContent: o.value || "", style: fs < base ? { fontSize: fs + "px", whiteSpace: "nowrap" } : {} })
+    );
+    return el(
+      "div",
+      { class: "fg", style: align && align !== "left" ? { textAlign: align } : {} },
+      head,
+      o.text && o.text.trim() ? el("div", { class: "vf-text", innerHTML: esc(o.text) }) : null
+    );
+  }
+
   // src/state.js
   var SCHEMA = 1;
   var _id = 0;
   var uid = (p) => `${p}${Date.now().toString(36)}${(_id++).toString(36)}`;
   var IMAGE_RATIOS = { "16:9": 16 / 9, "4:3": 4 / 3, "1:1": 1, "3:4": 3 / 4 };
-  var COL_TYPES = { text: "Texte", image: "Image", viz: "Dataviz" };
+  var COL_TYPES = { text: "Texte", image: "Image", figure: "Chiffre cl\xE9", viz: "Dataviz" };
   var LOGO_VARIANTS = { default: "D\xE9faut", mono: "Mono", white: "Blanc (white)", negative: "N\xE9gatif" };
   var newHeaderImage = (n = 1) => ({ id: uid("img"), name: `${t("Image")} ${n}`, src: null });
   var VALIGNS = { top: "align-box-top-center", center: "align-box-center-middle", bottom: "align-box-bottom-center" };
@@ -1495,8 +1580,20 @@
     // alignement vertical du contenu dans sa colonne : top | center | bottom
     align: "left",
     // alignement du texte : left | center | right | justify
-    viz: type === "viz" ? newViz("bars") : null
+    viz: type === "viz" ? newViz("bars") : null,
     // { kind, opts } — voir viz/index.js
+    figure: type === "figure" ? FIGURE_DEFAULTS() : null,
+    // chiffre clé : { value, icon, iconStyle, text }
+    imgMode: "ratio",
+    imgW: 100,
+    imgH: 150,
+    imgFit: "cover",
+    natural: null,
+    // image : ratio | fit (proportions de l'image) | custom (largeur en %, hauteur en px)
+    stroke: false,
+    strokeColor: "text",
+    fill: false
+    // contour (également sur les sections et sous-sections)
   });
   var newSub = (layout = "1") => ({
     id: uid("sub"),
@@ -1514,10 +1611,11 @@
   function defaultDoc() {
     const lorem = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim.";
     const viz = (kind, extra) => ({ ...newCol("viz"), viz: { ...newViz(kind), ...extra || {} } });
+    const fig = () => ({ ...newCol("figure"), stroke: true, fill: true });
     const s1 = newSection("recto");
     s1.title = "Section title";
     s1.subs = [
-      { id: uid("sub"), title: "Subsection title", layout: "1-1", cols: [viz("icons"), viz("figure")] },
+      { id: uid("sub"), title: "Subsection title", layout: "1-1", cols: [viz("icons"), fig()] },
       { id: uid("sub"), title: "Subsection title", layout: "1-1", cols: [
         { ...newCol("text"), text: Array.from({ length: 5 }, () => "Source regular 3 12pt.").join("\n") + "\n" + lorem },
         viz("bars")
@@ -1538,7 +1636,7 @@
 ${lorem}` },
         { ...newCol("image"), ratio: "4:3", caption: "Image caption" }
       ] },
-      { id: uid("sub"), title: "Three columns", layout: "1-1-1", cols: [viz("figure"), viz("icons"), viz("bars", { opts: { ...newViz("bars").opts, callout: { on: false, value: "", text: "" }, style: "grouped" } })] }
+      { id: uid("sub"), title: "Three columns", layout: "1-1-1", cols: [fig(), viz("icons"), viz("bars", { opts: { ...newViz("bars").opts, callout: { on: false, value: "", text: "" }, style: "grouped" } })] }
     ];
     return {
       schema: SCHEMA,
@@ -1596,7 +1694,9 @@ ${lorem}` },
         sub.cols = (sub.cols || []).slice(0, n);
         while (sub.cols.length < n) sub.cols.push(newCol("text"));
         sub.cols = sub.cols.map((c) => {
+          c = oldFigure(c);
           const k = Object.assign(newCol(c.type || "text"), c);
+          if (k.type === "figure" && !k.figure) k.figure = FIGURE_DEFAULTS();
           if (k.type === "viz") {
             if (!k.viz) k.viz = newViz("bars");
             else if (!k.viz.opts) k.viz = newViz(k.viz.kind);
@@ -1606,6 +1706,11 @@ ${lorem}` },
       });
     });
     return d;
+  }
+  function oldFigure(c) {
+    if (c.type !== "viz" || !c.viz || c.viz.kind !== "figure") return c;
+    const o = c.viz.opts || {};
+    return { ...c, type: "figure", viz: null, figure: { ...FIGURE_DEFAULTS(), value: o.value ?? "", text: o.text ?? "" }, stroke: true, fill: true };
   }
   function moveSection(doc2, from, to, after, page) {
     const sec = doc2.sections[from];
@@ -1701,8 +1806,8 @@ ${lorem}` },
     for (const k of kids.flat()) if (k != null && k !== false) e.append(k);
     return e;
   }
-  var esc = (t2) => t2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  var inline = (t2) => esc(t2).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/__(.+?)__/g, "<u>$1</u>").replace(/~~(.+?)~~/g, "<i>$1</i>");
+  var esc2 = (t2) => t2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  var inline = (t2) => esc2(t2).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/__(.+?)__/g, "<u>$1</u>").replace(/~~(.+?)~~/g, "<i>$1</i>");
   function richText(text, align) {
     const root = h("div", { class: "rich", style: align && align !== "left" ? { textAlign: align } : {} });
     let ul = null;
@@ -1750,38 +1855,81 @@ ${lorem}` },
     el2.append(inner);
     return el2;
   }
-  function renderCol(col, layoutKey, i, path, env) {
-    const w = colWidth(layoutKey, i);
-    const wrap = h("div", { class: `col col-${col.type}`, dataset: { sel: path } });
-    wrap.style.alignSelf = { top: "start", center: "center", bottom: "end" }[col.valign] || "start";
-    if (col.type === "text") wrap.append(richText(col.text, col.align));
-    else if (col.type === "image") {
-      const r = IMAGE_RATIOS[col.ratio] || 4 / 3;
+  var strokeStyle = (node, o, th) => {
+    if (!o.stroke) return;
+    node.classList.add("stroked");
+    if (o.fill) node.classList.add("filled");
+    if (o.strokeColor && o.strokeColor !== "text") node.style.setProperty("--stroke-color", `var(--c-${o.strokeColor})`);
+  };
+  function renderImage(col, w) {
+    const mode = col.imgMode || "ratio";
+    const img = col.src ? h("img", { src: col.src, alt: "", onload: (e) => {
+      const n = Math.round(e.target.naturalWidth / e.target.naturalHeight * 1e3) / 1e3;
+      if (n && col.natural !== n) {
+        col.natural = n;
+        document.dispatchEvent(new Event("fs-natural"));
+      }
+    } }) : null;
+    if (mode === "fit") {
+      const box = h("div", { class: "img-box fit" + (col.src ? " has" : ""), style: { aspectRatio: String(col.natural || 4 / 3) } }, img || h("span", { textContent: "image" }));
+      return box;
+    }
+    if (mode === "custom") {
+      const pct = Math.max(5, Math.min(100, +col.imgW || 100)), hgt = Math.max(3, Math.round((+col.imgH || 150) / 3) * 3);
       const box = h(
         "div",
-        { class: "img-box", style: { height: Math.round(w / r / 3) * 3 + "px" } },
-        col.src ? h("img", { src: col.src, alt: "" }) : h("span", { textContent: "image" })
+        { class: "img-box custom", style: { width: pct + "%", height: hgt + "px", marginLeft: col.align === "center" || col.align === "right" ? "auto" : "0", marginRight: col.align === "center" ? "auto" : "0" } },
+        img || h("span", { textContent: "image" })
       );
-      wrap.append(box);
+      if (img) img.style.objectFit = col.imgFit === "contain" ? "contain" : "cover";
+      return box;
+    }
+    const r = IMAGE_RATIOS[col.ratio] || 4 / 3;
+    return h("div", { class: "img-box", style: { height: Math.round(w / r / 3) * 3 + "px" } }, img || h("span", { textContent: "image" }));
+  }
+  function renderCol(col, w, path, env) {
+    const wrap = h("div", { class: `col col-${col.type}`, dataset: { sel: path } });
+    const al = { top: "start", center: "center", bottom: "end" }[col.valign] || "start";
+    if (col.stroke) {
+      strokeStyle(wrap, col);
+      wrap.style.justifyContent = { start: "flex-start", center: "center", end: "flex-end" }[al];
+      w = insetW(w);
+    } else wrap.style.alignSelf = al;
+    if (col.type === "text") wrap.append(richText(col.text, col.align));
+    else if (col.type === "image") {
+      wrap.append(renderImage(col, w));
       if (col.caption && col.caption.trim()) wrap.append(h("div", { class: "cap", textContent: col.caption }));
+    } else if (col.type === "figure") {
+      wrap.append(renderFigure(col.figure || {}, w, col.align));
     } else {
       const node = renderViz(col.viz, w, env);
       wrap.append(node || h("div", { class: "viz-ph" }, h("span", { textContent: "dataviz" })));
     }
     return wrap;
   }
-  function renderSub(sub, si, bi, env) {
+  function renderSub(sub, si, bi, env, W) {
     const L = GRID.layouts[sub.layout];
     const el2 = h("div", { class: "sub", dataset: { sel: `sub:${si}:${bi}` } });
+    strokeStyle(el2, sub);
+    if (sub.stroke) W = insetW(W);
     if (sub.title && sub.title.trim()) el2.append(h("h3", { class: "sub-title", textContent: sub.title }));
     const cols = h("div", { class: "cols", style: { gridTemplateColumns: `repeat(${L.cols}, minmax(0, 1fr))` } });
     sub.cols.forEach((c, i) => {
-      const node = renderCol(c, sub.layout, i, `col:${si}:${bi}:${i}`, env);
+      const node = renderCol(c, colWidth(sub.layout, i, W), `col:${si}:${bi}:${i}`, env);
       node.style.gridColumn = `span ${L.spans[i]}`;
       cols.append(node);
     });
     el2.append(cols);
     return el2;
+  }
+  function columnWidth(doc2, si, bi, ci) {
+    const sec = doc2.sections[si], sub = sec && sec.subs[bi], col = sub && sub.cols[ci];
+    if (!col) return GRID.contentW;
+    let W = GRID.contentW;
+    if (sec.stroke) W = insetW(W);
+    if (sub.stroke) W = insetW(W);
+    const w = colWidth(sub.layout, ci, W);
+    return col.stroke ? insetW(w) : w;
   }
   var isBand = (s2) => !!(s2.bg && s2.bg !== "none");
   function renderSection(sec, si, env, pos) {
@@ -1795,8 +1943,15 @@ ${lorem}` },
     }
     const cls = ["sec", band && "sec-band", pos.first && "sec-first", pos.last && "sec-last"].filter(Boolean).join(" ");
     const el2 = h("section", { class: cls, style, dataset: { sel: `sec:${si}` } });
-    if (sec.title && sec.title.trim()) el2.append(h("h2", { class: "sec-title", textContent: sec.title }));
-    sec.subs.forEach((sub, bi) => el2.append(renderSub(sub, si, bi, env)));
+    let host = el2, W = GRID.contentW;
+    if (sec.stroke) {
+      host = h("div", { class: "sec-box" });
+      strokeStyle(host, sec);
+      el2.append(host);
+      W = insetW(W);
+    }
+    if (sec.title && sec.title.trim()) host.append(h("h2", { class: "sec-title", textContent: sec.title }));
+    sec.subs.forEach((sub, bi) => host.append(renderSub(sub, si, bi, env, W)));
     return el2;
   }
   function renderDocument(doc2) {
@@ -1836,10 +1991,11 @@ ${lorem}` },
 
   // src/tree.js
   var strip = (t2) => String(t2 || "").replace(/\*\*|__|~~/g, "").replace(/^[-•]\s+/gm, "").replace(/\s+/g, " ").trim();
-  var GLYPH = { text: "\xB6", image: "\u25A8", viz: "\u25A6" };
+  var GLYPH = { text: "\xB6", image: "\u25A8", figure: "\u2116", viz: "\u25A6" };
   function colLabel(col) {
     if (col.type === "text") return strip(col.text).slice(0, 34) || "Texte vide";
     if (col.type === "image") return col.caption ? "Image \xB7 " + col.caption : "Image";
+    if (col.type === "figure") return "Chiffre cl\xE9 \xB7 " + (col.figure && col.figure.value || "\u2014");
     const t2 = col.viz && VIZ_TYPES[col.viz.kind];
     return "Dataviz \xB7 " + (t2 ? t2.label : "\u2014");
   }
@@ -2462,6 +2618,21 @@ ${lorem}` },
         ctx2.restructure();
       } }, ico(ic))))
     );
+    const strokeControls = (obj) => h(
+      "div",
+      { class: "f outline" },
+      h("label", { class: "row" }, h("input", { type: "checkbox", checked: !!obj.stroke, onchange: struct(() => {
+        obj.stroke = !obj.stroke;
+      }) }), "Contour"),
+      obj.stroke ? h(
+        "div",
+        {},
+        swatches("Couleur du contour", obj, "strokeColor", Object.keys(th.colors)),
+        h("label", { class: "row" }, h("input", { type: "checkbox", checked: !!obj.fill, onchange: struct(() => {
+          obj.fill = !obj.fill;
+        }) }), "Fond blanc")
+      ) : null
+    );
     const title = (t2, crumbs = []) => root.append(h(
       "div",
       { class: "pr-head" },
@@ -2511,6 +2682,7 @@ ${lorem}` },
       root.append(
         text(sec, "title", "Titre de section"),
         swatches("Fond de la section", sec, "bg", SECTION_BGS, true),
+        strokeControls(sec),
         select(sec, "page", "Page", { recto: "Recto", verso: "Verso" }, () => ctx2.restructure()),
         actions(
           h("button", { type: "button", textContent: "\u2191 Monter", onclick: struct(() => {
@@ -2528,6 +2700,7 @@ ${lorem}` },
       title(sub.title || "Sous-section", [["Document", null], [sec.title || "Section", `sec:${si}`]]);
       root.append(
         text(sub, "title", "Titre de sous-section (vide = masqu\xE9)"),
+        strokeControls(sub),
         select(sub, "layout", "Colonnes", Object.fromEntries(Object.entries(GRID.layouts).map(([k, l]) => [k, l.label])), () => {
           const n = GRID.layouts[sub.layout].spans.length;
           sub.cols = sub.cols.slice(0, n);
@@ -2576,8 +2749,8 @@ ${lorem}` },
         field("Contenu", h(
           "select",
           { onchange: (e) => {
-            const keep = col.text, { valign, align } = col;
-            Object.assign(col, newCol(e.target.value), { valign, align });
+            const keep = col.text, { valign, align, stroke, strokeColor, fill } = col;
+            Object.assign(col, newCol(e.target.value), { valign, align, stroke, strokeColor, fill });
             if (e.target.value === "text" && keep) col.text = keep;
             ctx2.restructure();
           } },
@@ -2607,24 +2780,40 @@ ${lorem}` },
         col.text = v;
         ctx2.changed();
       })));
-      else if (col.type === "image") root.append(
-        imgPicker("Image (recadr\xE9e au format choisi)", () => col.src, (v) => {
-          col.src = v;
-        }, 1600),
-        select(col, "ratio", "Format", Object.fromEntries(Object.keys(IMAGE_RATIOS).map((k) => [k, k]))),
-        text(col, "caption", "L\xE9gende (optionnelle)")
-      );
-      else {
+      else if (col.type === "image") {
+        const mode = col.imgMode || "ratio";
+        root.append(
+          imgPicker("Image", () => col.src, (v) => {
+            col.src = v;
+            col.natural = null;
+          }, 1600),
+          select(col, "imgMode", "Taille de l\u2019image", { ratio: "Format fixe (recadr\xE9e)", fit: "Ajust\xE9e au conteneur (proportions conserv\xE9es)", custom: "Taille personnalis\xE9e" }, () => ctx2.restructure()),
+          mode === "ratio" ? select(col, "ratio", "Format", Object.fromEntries(Object.keys(IMAGE_RATIOS).map((k) => [k, k]))) : null,
+          mode === "custom" ? h(
+            "div",
+            { class: "row2" },
+            field("Largeur (% de la colonne)", h("input", { type: "number", min: 5, max: 100, step: 1, value: col.imgW ?? 100, oninput: live((v) => {
+              col.imgW = Math.max(5, Math.min(100, parseFloat(v) || 100));
+            }) })),
+            field("Hauteur (px)", h("input", { type: "number", min: 3, max: 600, step: 3, value: col.imgH ?? 150, oninput: live((v) => {
+              col.imgH = Math.max(3, parseFloat(v) || 150);
+            }) }))
+          ) : null,
+          mode === "custom" ? select(col, "imgFit", "Remplissage", { cover: "Recadrer pour remplir", contain: "Image enti\xE8re" }) : null,
+          mode === "custom" && (col.imgW ?? 100) < 100 ? segmented("Position dans la colonne", col, "align", { left: ALIGNS.left, center: ALIGNS.center, right: ALIGNS.right }, { left: t("Gauche"), center: t("Centr\xE9"), right: t("Droite") }) : null,
+          text(col, "caption", "L\xE9gende (optionnelle)")
+        );
+      } else if (col.type === "figure") {
+        if (!col.figure) col.figure = FIGURE_DEFAULTS();
+        root.append(...buildFields(FIGURE_FIELDS, col.figure, ctx2, palOpts, h));
+      } else {
         if (!col.viz) col.viz = newViz("bars");
         root.append(
-          h("button", { type: "button", class: "primary", style: { width: "100%", margin: "0 0 10px" }, onclick: () => ctx2.editViz({ col, sub, ci }) }, ico("pencil"), " Ouvrir l\u2019\xE9diteur de dataviz"),
-          field("Type de dataviz", h("select", { onchange: (e) => {
-            col.viz = newViz(e.target.value);
-            ctx2.restructure();
-          } }, Object.entries(VIZ_OPTIONS).map(([v, l]) => h("option", { value: v, textContent: l, selected: col.viz.kind === v })))),
-          ...buildFields((VIZ_TYPES[col.viz.kind] || {}).fields || [], col.viz.opts, ctx2, palOpts, h)
+          h("button", { type: "button", class: "primary", style: { width: "100%" }, onclick: () => ctx2.editViz({ col, sub, ci }) }, ico("pencil"), " Ouvrir l\u2019\xE9diteur de dataviz"),
+          h("p", { class: "hint", textContent: "Tous les r\xE9glages de la dataviz (type, donn\xE9es, couleurs, options) se font dans l\u2019\xE9diteur." })
         );
       }
+      root.append(strokeControls(col));
     } else {
       title("\xC9l\xE9ment introuvable");
     }
@@ -2632,11 +2821,11 @@ ${lorem}` },
 
   // src/vizeditor.js
   var current = null;
-  function openVizEditor({ col, sub, ci, bg, ctx: ctx2 }) {
+  function openVizEditor({ col, sub, ci, bg, width: colW, ctx: ctx2 }) {
     if (current) return;
     const doc2 = ctx2.getDoc();
     const snapshot = JSON.stringify(col.viz);
-    const baseW = colWidth(sub.layout, ci);
+    const baseW = colW || colWidth(sub.layout, ci);
     const ui = { sel: -1, drag: null };
     let width = baseW, zoom = "fit", meta = null, svgW = baseW;
     const root = h("div", { class: "ve" });
@@ -3163,7 +3352,7 @@ ${lorem}` },
     },
     editViz({ col, sub, ci }) {
       const sec = doc.sections.find((x) => x.subs.includes(sub));
-      openVizEditor({ col, sub, ci, bg: sec && sec.bg, ctx });
+      openVizEditor({ col, sub, ci, bg: sec && sec.bg, width: columnWidth(doc, doc.sections.indexOf(sec), sec.subs.indexOf(sub), ci), ctx });
     }
   };
   function undo() {
@@ -3344,6 +3533,10 @@ ${lorem}` },
     } catch (e) {
       alert(t("Fichier de projet invalide."));
     }
+  });
+  document.addEventListener("fs-natural", () => {
+    saveDoc(doc);
+    schedule();
   });
   var langSel = h("select", { "aria-label": "Langue" }, Object.entries(LANGS).map(([k, l]) => h("option", { value: k, textContent: l })));
   langSel.value = getLang();

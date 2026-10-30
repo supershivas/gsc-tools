@@ -35,6 +35,9 @@ Le logo a 4 versions de même taille (défaut, mono, white, négatif) : une list
 ## Atelier (publication dans GitHub)
 `atelier.html` : connexion avec un jeton GitHub (droits fins, « Contents » lecture/écriture sur ce dépôt, gardé dans ce navigateur), publication des images du document (logos, header, colonnes) dans `assets/` et des projets `.json` dans `projects/` (un commit sur `main`, noms de fichiers d'après le contenu), liste et suppression des fichiers publiés, ouverture d'un projet publié dans l'éditeur. Le document ne garde alors que le chemin de l'image.
 
+## Contours, images, chiffre clé, labo
+Contour optionnel (couleur, fond blanc) sur section, sous-section et colonne : trait 0,5 pt, coins de 3 px, cadre sur les marges, contenu en retrait de 12 px (les largeurs des dataviz et images en tiennent compte). Image : format fixe, ajustée au conteneur (proportions de l'image) ou taille personnalisée (largeur en %, hauteur en px, position). Le chiffre clé est un type de contenu (`src/figure.js`) avec icône facultative. Les cartes sont en variantes dans le Labo (`labo.html`) avant d'entrer dans l'éditeur.
+
 ## Déplacements et alignements
 Glisser la poignée de la barre au survol (aperçu) ou celle d'une ligne de la structure sur une autre colonne **échange** les deux contenus ; la liste « Échanger le contenu avec… » du panneau fait la même chose. Une sous-section se glisse dans la structure (avant/après une autre, ou sur une section pour la ranger à la fin) ou via « Déplacer vers la section ». Chaque déplacement propose « Annuler le déplacement ». Alignement vertical du contenu dans la colonne (`valign`) et alignement du texte (`align`) dans le panneau de la colonne.
 

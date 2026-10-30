@@ -1,6 +1,6 @@
 import { PAGE } from './tokens.js';
 import { loadDoc, saveDoc, migrate, defaultDoc, moveSection, storage, localImageCount, swapCols } from './state.js';
-import { renderDocument, measure, h } from './render.js';
+import { renderDocument, measure, h, columnWidth } from './render.js';
 import { buildTree } from './tree.js';
 import { buildProps } from './props.js';
 import { openVizEditor } from './vizeditor.js';
@@ -80,7 +80,7 @@ const ctx = {
   },
   editViz({ col, sub, ci }) {
     const sec = doc.sections.find(x => x.subs.includes(sub));
-    openVizEditor({ col, sub, ci, bg: sec && sec.bg, ctx });
+    openVizEditor({ col, sub, ci, bg: sec && sec.bg, width: columnWidth(doc, doc.sections.indexOf(sec), sec.subs.indexOf(sub), ci), ctx });
   },
 };
 
@@ -198,6 +198,8 @@ file.addEventListener('change', async () => {
   try { const j = JSON.parse(await f.text()); if (!Array.isArray(j.sections)) throw 0; doc = migrate(j); selected = null; ctx.restructure(); }
   catch (e) { alert(t('Fichier de projet invalide.')); }
 });
+
+document.addEventListener('fs-natural', () => { saveDoc(doc); schedule(); });   // proportions d'une image « ajustée » connues après chargement
 
 /* Langue de l'interface (anglais par défaut) */
 const langSel = h('select', { 'aria-label': 'Langue' }, Object.entries(LANGS).map(([k, l]) => h('option', { value: k, textContent: l })));

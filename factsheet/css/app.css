@@ -191,3 +191,5 @@ body.v3d-open{overflow:hidden}
 .seg button{border:0;border-right:1px solid var(--ui-line);border-radius:0;background:#fff;padding:5px 9px;font-size:17px;line-height:1;cursor:pointer;color:var(--ui-ink)}
 .seg button:last-child{border-right:0}
 .seg button.on{background:var(--ui-blue);color:#fff}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.outline{border-top:1px solid var(--ui-line);margin-top:10px;padding-top:8px}

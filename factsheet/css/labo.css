@@ -1,0 +1,58 @@
+/* Labo : écran à hauteur fixe (100dvh) ; en-tête, menu et barre de variantes restent en place, seul le contenu défile. */
+html, body { height: 100%; margin: 0; }
+body.labo { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); color: var(--ink); }
+.labo-head { display: flex; align-items: center; gap: 12px; min-height: var(--header-h); padding: 0 16px 0 20px; background: var(--accent); color: #fff; flex: none; }
+.labo-name { font-family: var(--font-title); font-size: 20px; font-weight: 700; color: #fff; text-decoration: none; }
+.labo-badge { font: 12px var(--font-mono); letter-spacing: .16em; padding: 2px 8px; border: 1px solid rgba(255,255,255,.7); border-radius: 4px; }
+.labo-sub { font: 12px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; opacity: .75; }
+.labo-head .sp { flex: 1; }
+.labo-link { display: inline-flex; width: 44px; height: 44px; align-items: center; justify-content: center; color: #fff; font-size: 22px; border-radius: var(--radius-md); }
+@media (hover: hover) { .labo-link:hover { background: rgba(255,255,255,.15); } }
+#labo { flex: 1; min-height: 0; display: grid; grid-template-columns: 260px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.labo-side { overflow: auto; padding: 14px 10px; border-right: 1px solid var(--line); background: var(--panel); }
+.labo-topic { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 10px; border: 0; border-radius: var(--radius-md); background: transparent; font: 600 14px var(--font-sans); color: var(--ink); text-align: left; cursor: pointer; }
+.labo-topic .ti { font-size: 20px; color: var(--mute); }
+.labo-topic span { flex: 1; } .labo-topic em { font: 11px var(--font-mono); color: var(--mute); font-style: normal; }
+.labo-topic.on { background: var(--bg); }
+@media (hover: hover) { .labo-topic:hover, .labo-var:hover { background: var(--bg); } }
+.labo-vars { display: flex; flex-direction: column; gap: 2px; margin: 2px 0 8px 14px; padding-left: 8px; border-left: 1px solid var(--line); }
+.labo-var { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 8px; border: 0; border-radius: var(--radius-sm); background: transparent; font: 14px var(--font-sans); text-align: left; cursor: pointer; color: var(--ink); }
+.labo-var b { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: var(--bg); font: 600 13px var(--font-mono); flex: none; }
+.labo-var b.on { background: var(--accent); color: #fff; }
+.labo-main { overflow: auto; padding: 22px 26px 40px; min-width: 0; }
+.labo-chips, .labo-bar { display: none; }
+.labo-title { display: flex; align-items: center; gap: 12px; }
+.labo-title h2 { margin: 0; font-size: 20px; }
+.letter { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; background: var(--accent); color: #fff; font: 600 16px var(--font-mono); }
+.mark { font: 11px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--mute); }
+.labo-desc { margin: 8px 0 18px; color: var(--mute); max-width: 70ch; }
+.labo-work { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 20px; align-items: start; }
+.labo-opts { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+.labo-opts h3 { margin: 0 0 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+.labo-check { display: flex; align-items: center; gap: 8px; min-height: 32px; font-size: 14px; cursor: pointer; }
+.labo-check input, .labo-radios input { width: 18px; height: 18px; accent-color: var(--accent); }
+.labo-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; font-size: 14px; }
+.labo-lab { font-size: 12px; color: var(--mute); }
+.labo-radios { display: flex; flex-wrap: wrap; gap: 4px 14px; } .labo-radios label { display: flex; align-items: center; gap: 6px; min-height: 28px; }
+.labo-group select, .labo-tools select { min-height: 36px; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0 8px; font: 14px var(--font-sans); background: #fff; }
+.labo-opts .btn { margin-top: 8px; min-height: 40px; }
+.labo-stage { min-width: 0; }
+.labo-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-bottom: 12px; font-size: 14px; }
+.labo-canvas { overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-lg); background: #fff; }
+.page.labo-sheet { width: auto; height: auto; min-width: min-content; overflow: visible; padding: 28px; transition: background .15s; }
+@media (max-width: 768px) {
+  #labo { display: flex; flex-direction: column; }
+  .labo-side { display: none; }
+  .labo-main { flex: 1; min-height: 0; padding: 14px 16px 16px; }
+  .labo-sub { display: none; }
+  .labo-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; }
+  .labo-chips button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); font: 600 14px var(--font-sans); white-space: nowrap; }
+  .labo-chips button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .labo-work { grid-template-columns: 1fr; }
+  .labo-bar { display: flex; align-items: center; gap: 4px; flex: none; padding: 6px 8px; background: var(--panel); border-top: 1px solid var(--line); }
+  .labo-bar .letters { display: flex; gap: 4px; }
+  .labo-bar .letters button { width: 44px; height: 44px; border: 1px solid var(--line); border-radius: var(--radius-md); background: #fff; font: 600 14px var(--font-mono); }
+  .labo-bar .letters button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .labo-bar .icon-btn { color: var(--ink); } .labo-bar .icon-btn:disabled { opacity: .3; }
+  .labo-bar .bar-title { flex: 1; min-width: 0; margin-left: 8px; font-size: 13px; color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}

@@ -3,13 +3,14 @@
 import { DEFAULT_THEME, GRID } from './tokens.js';
 import { newViz } from './viz/index.js';
 import { t } from './i18n.js';
+import { FIGURE_DEFAULTS } from './figure.js';
 
 export const SCHEMA = 1;
 let _id = 0;
 export const uid = p => `${p}${Date.now().toString(36)}${(_id++).toString(36)}`;
 
 export const IMAGE_RATIOS = { '16:9': 16 / 9, '4:3': 4 / 3, '1:1': 1, '3:4': 3 / 4 };
-export const COL_TYPES = { text: 'Texte', image: 'Image', viz: 'Dataviz' };
+export const COL_TYPES = { text: 'Texte', image: 'Image', figure: 'Chiffre clé', viz: 'Dataviz' };
 /* Les 4 versions du logo ont la même taille (HEADER.logo). `label` = clé de traduction. */
 export const LOGO_VARIANTS = { default: 'Défaut', mono: 'Mono', white: 'Blanc (white)', negative: 'Négatif' };
 export const newHeaderImage = (n = 1) => ({ id: uid('img'), name: `${t('Image')} ${n}`, src: null });
@@ -24,6 +25,9 @@ export const newCol = (type = 'text') => ({
   valign: 'top',     // alignement vertical du contenu dans sa colonne : top | center | bottom
   align: 'left',     // alignement du texte : left | center | right | justify
   viz: type === 'viz' ? newViz('bars') : null,   // { kind, opts } — voir viz/index.js
+  figure: type === 'figure' ? FIGURE_DEFAULTS() : null,   // chiffre clé : { value, icon, iconStyle, text }
+  imgMode: 'ratio', imgW: 100, imgH: 150, imgFit: 'cover', natural: null,   // image : ratio | fit (proportions de l'image) | custom (largeur en %, hauteur en px)
+  stroke: false, strokeColor: 'text', fill: false,   // contour (également sur les sections et sous-sections)
 });
 export const newSub = (layout = '1') => ({
   id: uid('sub'), title: t('Sous-section'), layout,
@@ -36,10 +40,11 @@ export const newSection = (page = 'recto') => ({
 export function defaultDoc() {
   const lorem = 'Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim.';
   const viz = (kind, extra) => ({ ...newCol('viz'), viz: { ...newViz(kind), ...(extra || {}) } });
+  const fig = () => ({ ...newCol('figure'), stroke: true, fill: true });
   const s1 = newSection('recto');
   s1.title = 'Section title';
   s1.subs = [
-    { id: uid('sub'), title: 'Subsection title', layout: '1-1', cols: [viz('icons'), viz('figure')] },
+    { id: uid('sub'), title: 'Subsection title', layout: '1-1', cols: [viz('icons'), fig()] },
     { id: uid('sub'), title: 'Subsection title', layout: '1-1', cols: [
       { ...newCol('text'), text: Array.from({ length: 5 }, () => 'Source regular 3 12pt.').join('\n') + '\n' + lorem },
       viz('bars'),
@@ -55,7 +60,7 @@ export function defaultDoc() {
       { ...newCol('text'), text: `**First point.** ${lorem}\n- First list item\n- Second list item\n${lorem}` },
       { ...newCol('image'), ratio: '4:3', caption: 'Image caption' },
     ] },
-    { id: uid('sub'), title: 'Three columns', layout: '1-1-1', cols: [viz('figure'), viz('icons'), viz('bars', { opts: { ...newViz('bars').opts, callout: { on: false, value: '', text: '' }, style: 'grouped' } })] },
+    { id: uid('sub'), title: 'Three columns', layout: '1-1-1', cols: [fig(), viz('icons'), viz('bars', { opts: { ...newViz('bars').opts, callout: { on: false, value: '', text: '' }, style: 'grouped' } })] },
   ];
   return {
     schema: SCHEMA, name: 'factsheet', locale: 'en-GB',
@@ -95,10 +100,17 @@ export function migrate(j) {
       const n = GRID.layouts[sub.layout].spans.length;
       sub.cols = (sub.cols || []).slice(0, n);
       while (sub.cols.length < n) sub.cols.push(newCol('text'));
-      sub.cols = sub.cols.map(c => { const k = Object.assign(newCol(c.type || 'text'), c); if (k.type === 'viz') { if (!k.viz) k.viz = newViz('bars'); else if (!k.viz.opts) k.viz = newViz(k.viz.kind); } return k; });
+      sub.cols = sub.cols.map(c => { c = oldFigure(c); const k = Object.assign(newCol(c.type || 'text'), c); if (k.type === 'figure' && !k.figure) k.figure = FIGURE_DEFAULTS(); if (k.type === 'viz') { if (!k.viz) k.viz = newViz('bars'); else if (!k.viz.opts) k.viz = newViz(k.viz.kind); } return k; });
     });
   });
   return d;
+}
+
+/** Anciens fichiers : le chiffre clé était une dataviz → type de contenu à part, avec son cadre devenu contour */
+function oldFigure(c) {
+  if (c.type !== 'viz' || !c.viz || c.viz.kind !== 'figure') return c;
+  const o = c.viz.opts || {};
+  return { ...c, type: 'figure', viz: null, figure: { ...FIGURE_DEFAULTS(), value: o.value ?? '', text: o.text ?? '' }, stroke: true, fill: true };
 }
 
 /* ---------- Déplacement de sections (glisser-déposer, flèches) ---------- */

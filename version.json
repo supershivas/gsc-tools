@@ -1,9 +1,9 @@
 {
-  "version": "1.3.0",
+  "version": "1.4.0",
   "date": "2026-10-30",
   "changes": [
-    "Menus Fichier et Affichage dans l'en-tête du Factsheet creator ; la langue passe dans les réglages",
-    "Un contenu de colonne se déplace sur une autre colonne (glisser ou liste), avec annulation ; les sous-sections changent de section",
-    "Alignement vertical du contenu (haut, centre, bas) et alignement du texte (gauche, centré, droite, justifié)"
+    "Contour (coins de 3 px) sur les sections, sous-sections et colonnes ; images ajustées au conteneur ou à taille personnalisée",
+    "Chiffre clé devenu un type de contenu à part, avec icône ; les réglages d'une dataviz sont tous dans son éditeur",
+    "Labo : cartes et chiffres clés en variantes avec options cochables, à valider"
   ]
 }

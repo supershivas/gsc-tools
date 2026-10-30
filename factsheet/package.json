@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "private": true,
   "scripts": {
-    "build": "esbuild src/main.js --bundle --format=iife --outfile=app.js && esbuild src/viewer3d.js --bundle --minify --format=iife --outfile=viewer3d.js && esbuild src/atelier.js --bundle --minify --format=iife --outfile=atelier.js"
+    "build": "esbuild src/main.js --bundle --format=iife --outfile=app.js && esbuild src/viewer3d.js --bundle --minify --format=iife --outfile=viewer3d.js && esbuild src/atelier.js --bundle --minify --format=iife --outfile=atelier.js && esbuild src/labo.js --bundle --minify --format=iife --outfile=labo.js"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",

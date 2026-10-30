@@ -62,9 +62,9 @@ export const GRID = {
 };
 
 /** largeur (px) de la colonne i d'un gabarit — sert aux dataviz */
-export function colWidth(layoutKey, i) {
+export function colWidth(layoutKey, i, W = GRID.contentW) {
   const L = GRID.layouts[layoutKey] || GRID.layouts['1'];
-  const unit = (GRID.contentW - (L.cols - 1) * GRID.gutter) / L.cols;
+  const unit = (W - (L.cols - 1) * GRID.gutter) / L.cols;
   const s = L.spans[i] || 1;
   return s * unit + (s - 1) * GRID.gutter;
 }
@@ -94,8 +94,11 @@ export const TYPE = {
 export const STROKE = {
   pt: 0.5,
   px: 0.5 * 96 / 72,       // 0,667 px
-  radius: u(3),            // 9 — coins des encadrés
+  radius: u(1),            // 3 — coins des contours (sections, sous-sections, colonnes, encadrés)
 };
+
+/** Largeur utile à l'intérieur d'un élément à contour : retrait = padding des encadrés + trait, de chaque côté */
+export const insetW = W => W - 2 * (GAP.boxPad + STROKE.px);
 
 /* ---------- Header ---------- */
 export const HEADER = {

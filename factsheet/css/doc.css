@@ -42,7 +42,6 @@
 /* Dataviz */
 .viz-ph{height:var(--s16);width:100%;border:var(--stroke) solid var(--c-text);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;opacity:.55}
 .col-viz svg{display:block;max-width:none}
-.viz-figure{border:var(--stroke) solid var(--c-text);border-radius:var(--radius);padding:var(--gap-boxPad)}
 .vf-value{font-family:var(--t-figure-family);font-size:var(--t-figure-size);line-height:var(--t-figure-lh);font-weight:var(--t-figure-weight)}
 .vf-text{margin-top:var(--s1)}
 .vf-text b{font-weight:700}
@@ -52,7 +51,6 @@
 .vi-text b{font-weight:700}
 
 /* Section sur fond coloré : fond pleine largeur, le contenu reste aligné sur les marges */
-.viz-figure{background:var(--c-white)}
 
 /* ---------- Export : débord des fonds jusqu'au fond perdu ---------- */
 .print-bleed .page{overflow:visible}
@@ -63,4 +61,13 @@
 .print-bleed .sec-band.sec-last::before{bottom:calc(-1 * var(--bleed))}
 
 .vf-text,.vi-text,.vf-value{overflow-wrap:anywhere;min-width:0}
-.viz-figure{max-width:100%}
+.fg-head{display:flex;align-items:center;gap:var(--viz-iconGap)}
+.fg-ic{flex:none;display:block}
+/* Contours : trait 0,5 pt, coins de 3 px, retrait = padding des encadrés (largeurs déduites dans render.js) */
+.stroked{border:var(--stroke) solid var(--stroke-color,var(--c-text));border-radius:var(--radius);padding:var(--gap-boxPad)}
+.filled{background:var(--c-white)}
+.col.stroked{align-self:stretch;display:flex;flex-direction:column}
+.img-box.fit{aspect-ratio:4/3;height:auto}.img-box.fit.has{background:none}
+.img-box.fit img{width:100%;height:100%;object-fit:contain}
+.img-box.custom{max-width:100%}
+.img-box.fit.has,.img-box.custom{border-radius:var(--radius)}

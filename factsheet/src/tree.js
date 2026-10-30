@@ -6,11 +6,12 @@ import { moveSection, newSection, newSub, COL_TYPES, swapCols, moveSub } from '.
 import { VIZ_TYPES } from './viz/index.js';
 
 const strip = t => String(t || '').replace(/\*\*|__|~~/g, '').replace(/^[-•]\s+/gm, '').replace(/\s+/g, ' ').trim();
-const GLYPH = { text: '¶', image: '▨', viz: '▦' };
+const GLYPH = { text: '¶', image: '▨', figure: '№', viz: '▦' };
 
 function colLabel(col) {
   if (col.type === 'text') return strip(col.text).slice(0, 34) || 'Texte vide';
   if (col.type === 'image') return col.caption ? 'Image · ' + col.caption : 'Image';
+  if (col.type === 'figure') return 'Chiffre clé · ' + ((col.figure && col.figure.value) || '—');
   const t = col.viz && VIZ_TYPES[col.viz.kind];
   return 'Dataviz · ' + (t ? t.label : '—');
 }

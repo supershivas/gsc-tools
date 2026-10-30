@@ -1,8 +1,9 @@
 /* Rendu du document en pages A4 (HTML). Aucune valeur de mise en page en dur :
    tout vient de tokens.js via les variables CSS (--s*, --gap-*, --t-*, --c-*). */
-import { PAGE, GRID, HEADER, GAP, cssVars, applyVars, colWidth } from './tokens.js';
+import { PAGE, GRID, HEADER, GAP, cssVars, applyVars, colWidth, insetW } from './tokens.js';
 import { IMAGE_RATIOS } from './state.js';
 import { renderViz } from './viz/index.js';
+import { renderFigure } from './figure.js';
 
 export const ico = name => h('i', { class: 'ti ti-' + name });
 export function h(tag, props = {}, ...kids) {
@@ -59,17 +60,47 @@ function renderHeader(doc) {
   return el;
 }
 
-function renderCol(col, layoutKey, i, path, env) {
-  const w = colWidth(layoutKey, i);
+/* Contour (trait 0,5 pt, coins de 3 px) : le retrait intérieur est déduit des largeurs transmises aux enfants (voir insetW) */
+const strokeStyle = (node, o, th) => {
+  if (!o.stroke) return;
+  node.classList.add('stroked'); if (o.fill) node.classList.add('filled');
+  if (o.strokeColor && o.strokeColor !== 'text') node.style.setProperty('--stroke-color', `var(--c-${o.strokeColor})`);
+};
+
+/** Image selon le mode choisi : ratio fixe (défaut), « fit » = largeur de la colonne et proportions de l'image, ou taille personnalisée */
+function renderImage(col, w) {
+  const mode = col.imgMode || 'ratio';
+  const img = col.src ? h('img', { src: col.src, alt: '', onload: e => {
+    const n = Math.round(e.target.naturalWidth / e.target.naturalHeight * 1000) / 1000;
+    if (n && col.natural !== n) { col.natural = n; document.dispatchEvent(new Event('fs-natural')); }
+  } }) : null;
+  if (mode === 'fit') {
+    const box = h('div', { class: 'img-box fit' + (col.src ? ' has' : ''), style: { aspectRatio: String(col.natural || 4 / 3) } }, img || h('span', { textContent: 'image' }));
+    return box;
+  }
+  if (mode === 'custom') {
+    const pct = Math.max(5, Math.min(100, +col.imgW || 100)), hgt = Math.max(3, Math.round((+col.imgH || 150) / 3) * 3);
+    const box = h('div', { class: 'img-box custom', style: { width: pct + '%', height: hgt + 'px', marginLeft: col.align === 'center' || col.align === 'right' ? 'auto' : '0', marginRight: col.align === 'center' ? 'auto' : '0' } },
+      img || h('span', { textContent: 'image' }));
+    if (img) img.style.objectFit = col.imgFit === 'contain' ? 'contain' : 'cover';
+    return box;
+  }
+  const r = IMAGE_RATIOS[col.ratio] || 4 / 3;
+  return h('div', { class: 'img-box', style: { height: Math.round(w / r / 3) * 3 + 'px' } }, img || h('span', { textContent: 'image' }));
+}
+
+/** w = largeur de la colonne (avant son propre retrait) */
+function renderCol(col, w, path, env) {
   const wrap = h('div', { class: `col col-${col.type}`, dataset: { sel: path } });
-  wrap.style.alignSelf = { top: 'start', center: 'center', bottom: 'end' }[col.valign] || 'start';
+  const al = { top: 'start', center: 'center', bottom: 'end' }[col.valign] || 'start';
+  if (col.stroke) { strokeStyle(wrap, col); wrap.style.justifyContent = { start: 'flex-start', center: 'center', end: 'flex-end' }[al]; w = insetW(w); }
+  else wrap.style.alignSelf = al;
   if (col.type === 'text') wrap.append(richText(col.text, col.align));
   else if (col.type === 'image') {
-    const r = IMAGE_RATIOS[col.ratio] || 4 / 3;
-    const box = h('div', { class: 'img-box', style: { height: Math.round(w / r / 3) * 3 + 'px' } },
-      col.src ? h('img', { src: col.src, alt: '' }) : h('span', { textContent: 'image' }));
-    wrap.append(box);
+    wrap.append(renderImage(col, w));
     if (col.caption && col.caption.trim()) wrap.append(h('div', { class: 'cap', textContent: col.caption }));
+  } else if (col.type === 'figure') {
+    wrap.append(renderFigure(col.figure || {}, w, col.align));
   } else {
     const node = renderViz(col.viz, w, env);
     wrap.append(node || h('div', { class: 'viz-ph' }, h('span', { textContent: 'dataviz' })));
@@ -77,18 +108,31 @@ function renderCol(col, layoutKey, i, path, env) {
   return wrap;
 }
 
-function renderSub(sub, si, bi, env) {
+/** W = largeur disponible pour la sous-section (déjà réduite par le contour de la section) */
+function renderSub(sub, si, bi, env, W) {
   const L = GRID.layouts[sub.layout];
   const el = h('div', { class: 'sub', dataset: { sel: `sub:${si}:${bi}` } });
+  strokeStyle(el, sub); if (sub.stroke) W = insetW(W);
   if (sub.title && sub.title.trim()) el.append(h('h3', { class: 'sub-title', textContent: sub.title }));
   const cols = h('div', { class: 'cols', style: { gridTemplateColumns: `repeat(${L.cols}, minmax(0, 1fr))` } });
   sub.cols.forEach((c, i) => {
-    const node = renderCol(c, sub.layout, i, `col:${si}:${bi}:${i}`, env);
+    const node = renderCol(c, colWidth(sub.layout, i, W), `col:${si}:${bi}:${i}`, env);
     node.style.gridColumn = `span ${L.spans[i]}`;
     cols.append(node);
   });
   el.append(cols);
   return el;
+}
+
+/** Largeur réelle (px) de la colonne ci de la sous-section bi de la section si : tient compte des contours emboîtés */
+export function columnWidth(doc, si, bi, ci) {
+  const sec = doc.sections[si], sub = sec && sec.subs[bi], col = sub && sub.cols[ci];
+  if (!col) return GRID.contentW;
+  let W = GRID.contentW;
+  if (sec.stroke) W = insetW(W);
+  if (sub.stroke) W = insetW(W);
+  const w = colWidth(sub.layout, ci, W);
+  return col.stroke ? insetW(w) : w;
 }
 
 const isBand = s => !!(s.bg && s.bg !== 'none');
@@ -107,8 +151,10 @@ function renderSection(sec, si, env, pos) {
   }
   const cls = ['sec', band && 'sec-band', pos.first && 'sec-first', pos.last && 'sec-last'].filter(Boolean).join(' ');
   const el = h('section', { class: cls, style, dataset: { sel: `sec:${si}` } });
-  if (sec.title && sec.title.trim()) el.append(h('h2', { class: 'sec-title', textContent: sec.title }));
-  sec.subs.forEach((sub, bi) => el.append(renderSub(sub, si, bi, env)));
+  let host = el, W = GRID.contentW;
+  if (sec.stroke) { host = h('div', { class: 'sec-box' }); strokeStyle(host, sec); el.append(host); W = insetW(W); }
+  if (sec.title && sec.title.trim()) host.append(h('h2', { class: 'sec-title', textContent: sec.title }));
+  sec.subs.forEach((sub, bi) => host.append(renderSub(sub, si, bi, env, W)));
   return el;
 }
 

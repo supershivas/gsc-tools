@@ -5,6 +5,7 @@ import { GRID, THEMES, SECTION_BGS, cssVars, applyVars } from './tokens.js';
 import { COL_TYPES, IMAGE_RATIOS, LOCALES, LOGO_VARIANTS, VALIGNS, ALIGNS, newCol, stepSection, newHeaderImage, swapCols, allCols, moveSub } from './state.js';
 import { VIZ_TYPES, VIZ_OPTIONS, newViz } from './viz/index.js';
 import { buildFields, readImage, richEditor, paletteOptions, PAL_LABELS } from './editor.js';
+import { FIGURE_DEFAULTS, FIGURE_FIELDS } from './figure.js';
 
 export function buildProps(root, ctx) {
   const doc = ctx.getDoc(), path = ctx.getSel();
@@ -70,6 +71,11 @@ export function buildProps(root, ctx) {
   /* Choix d'alignement : boutons à icônes (une valeur parmi plusieurs) */
   const segmented = (label, obj, k, icons, names) => h('div', { class: 'f' }, h('div', { class: 'hint', textContent: label }),
     h('div', { class: 'seg' }, Object.entries(icons).map(([v, ic]) => h('button', { type: 'button', class: v === (obj[k] || Object.keys(icons)[0]) ? 'on' : '', title: names[v], 'aria-label': names[v], 'aria-pressed': String(v === (obj[k] || Object.keys(icons)[0])), onclick: () => { obj[k] = v; ctx.restructure(); } }, ico(ic)))));
+  /* Contour (trait 0,5 pt, coins de 3 px) : sections, sous-sections et colonnes */
+  const strokeControls = obj => h('div', { class: 'f outline' },
+    h('label', { class: 'row' }, h('input', { type: 'checkbox', checked: !!obj.stroke, onchange: struct(() => { obj.stroke = !obj.stroke; }) }), 'Contour'),
+    obj.stroke ? h('div', {}, swatches('Couleur du contour', obj, 'strokeColor', Object.keys(th.colors)),
+      h('label', { class: 'row' }, h('input', { type: 'checkbox', checked: !!obj.fill, onchange: struct(() => { obj.fill = !obj.fill; }) }), 'Fond blanc')) : null);
   const title = (t, crumbs = []) => root.append(h('div', { class: 'pr-head' },
     h('div', { class: 'crumbs' }, crumbs.flatMap(([l, p]) => [h('a', { textContent: l, onclick: () => ctx.select(p) }), ' › '])),
     h('h2', { textContent: t })));
@@ -98,14 +104,14 @@ export function buildProps(root, ctx) {
   } else if (kind === 'sec' && sec) {
     title(sec.title || 'Section', [['Document', null]]);
     root.append(text(sec, 'title', 'Titre de section'),
-      swatches('Fond de la section', sec, 'bg', SECTION_BGS, true),
+      swatches('Fond de la section', sec, 'bg', SECTION_BGS, true), strokeControls(sec),
       select(sec, 'page', 'Page', { recto: 'Recto', verso: 'Verso' }, () => ctx.restructure()),
       actions(h('button', { type: 'button', textContent: '↑ Monter', onclick: struct(() => { stepSection(doc, si, -1); }) }),
         h('button', { type: 'button', textContent: '↓ Descendre', onclick: struct(() => { stepSection(doc, si, 1); }) }),
         h('button', { type: 'button', class: 'danger', textContent: 'Supprimer', onclick: struct(() => { if (confirm(t('Supprimer cette section ?'))) doc.sections.splice(si, 1); }) })));
   } else if (kind === 'sub' && sub) {
     title(sub.title || 'Sous-section', [['Document', null], [sec.title || 'Section', `sec:${si}`]]);
-    root.append(text(sub, 'title', 'Titre de sous-section (vide = masqué)'),
+    root.append(text(sub, 'title', 'Titre de sous-section (vide = masqué)'), strokeControls(sub),
       select(sub, 'layout', 'Colonnes', Object.fromEntries(Object.entries(GRID.layouts).map(([k, l]) => [k, l.label])), () => {
         const n = GRID.layouts[sub.layout].spans.length; sub.cols = sub.cols.slice(0, n); while (sub.cols.length < n) sub.cols.push(newCol('text')); ctx.restructure();
       }),
@@ -120,7 +126,7 @@ export function buildProps(root, ctx) {
         h('button', { type: 'button', class: 'danger', textContent: 'Supprimer', onclick: struct(() => { if (confirm(t('Supprimer cette sous-section ?'))) sec.subs.splice(bi, 1); }) })));
   } else if (kind === 'col' && col) {
     title(`Colonne ${ci + 1}`, [['Document', null], [sec.title || 'Section', `sec:${si}`], [sub.title || 'Sous-section', `sub:${si}:${bi}`]]);
-    root.append(field('Contenu', h('select', { onchange: e => { const keep = col.text, { valign, align } = col; Object.assign(col, newCol(e.target.value), { valign, align }); if (e.target.value === 'text' && keep) col.text = keep; ctx.restructure(); } },
+    root.append(field('Contenu', h('select', { onchange: e => { const keep = col.text, { valign, align, stroke, strokeColor, fill } = col; Object.assign(col, newCol(e.target.value), { valign, align, stroke, strokeColor, fill }); if (e.target.value === 'text' && keep) col.text = keep; ctx.restructure(); } },
       Object.entries(COL_TYPES).map(([v, l]) => h('option', { value: v, textContent: l, selected: col.type === v })))),
       segmented('Alignement vertical dans la colonne', col, 'valign', VALIGNS, { top: t('Haut'), center: t('Centre'), bottom: t('Bas') }),
       col.type === 'text' ? segmented('Alignement du texte', col, 'align', ALIGNS, { left: t('Gauche'), center: t('Centré'), right: t('Droite'), justify: t('Justifié') }) : null,
@@ -130,13 +136,24 @@ export function buildProps(root, ctx) {
         s.value = ''; return s;
       })()));
     if (col.type === 'text') root.append(h('div', { class: 'f' }, h('div', { class: 'hint', textContent: 'Texte' }), richEditor(col.text, v => { col.text = v; ctx.changed(); })));
-    else if (col.type === 'image') root.append(imgPicker('Image (recadrée au format choisi)', () => col.src, v => { col.src = v; }, 1600),
-      select(col, 'ratio', 'Format', Object.fromEntries(Object.keys(IMAGE_RATIOS).map(k => [k, k]))), text(col, 'caption', 'Légende (optionnelle)'));
-    else {
+    else if (col.type === 'image') {
+      const mode = col.imgMode || 'ratio';
+      root.append(imgPicker('Image', () => col.src, v => { col.src = v; col.natural = null; }, 1600),
+        select(col, 'imgMode', 'Taille de l’image', { ratio: 'Format fixe (recadrée)', fit: 'Ajustée au conteneur (proportions conservées)', custom: 'Taille personnalisée' }, () => ctx.restructure()),
+        mode === 'ratio' ? select(col, 'ratio', 'Format', Object.fromEntries(Object.keys(IMAGE_RATIOS).map(k => [k, k]))) : null,
+        mode === 'custom' ? h('div', { class: 'row2' }, field('Largeur (% de la colonne)', h('input', { type: 'number', min: 5, max: 100, step: 1, value: col.imgW ?? 100, oninput: live(v => { col.imgW = Math.max(5, Math.min(100, parseFloat(v) || 100)); }) })),
+          field('Hauteur (px)', h('input', { type: 'number', min: 3, max: 600, step: 3, value: col.imgH ?? 150, oninput: live(v => { col.imgH = Math.max(3, parseFloat(v) || 150); }) }))) : null,
+        mode === 'custom' ? select(col, 'imgFit', 'Remplissage', { cover: 'Recadrer pour remplir', contain: 'Image entière' }) : null,
+        mode === 'custom' && (col.imgW ?? 100) < 100 ? segmented('Position dans la colonne', col, 'align', { left: ALIGNS.left, center: ALIGNS.center, right: ALIGNS.right }, { left: t('Gauche'), center: t('Centré'), right: t('Droite') }) : null,
+        text(col, 'caption', 'Légende (optionnelle)'));
+    } else if (col.type === 'figure') {
+      if (!col.figure) col.figure = FIGURE_DEFAULTS();
+      root.append(...buildFields(FIGURE_FIELDS, col.figure, ctx, palOpts, h));
+    } else {
       if (!col.viz) col.viz = newViz('bars');
-      root.append(h('button', { type: 'button', class: 'primary', style: { width: '100%', margin: '0 0 10px' }, onclick: () => ctx.editViz({ col, sub, ci }) }, ico('pencil'), ' Ouvrir l’éditeur de dataviz'),
-        field('Type de dataviz', h('select', { onchange: e => { col.viz = newViz(e.target.value); ctx.restructure(); } }, Object.entries(VIZ_OPTIONS).map(([v, l]) => h('option', { value: v, textContent: l, selected: col.viz.kind === v })))),
-        ...buildFields((VIZ_TYPES[col.viz.kind] || {}).fields || [], col.viz.opts, ctx, palOpts, h));
+      root.append(h('button', { type: 'button', class: 'primary', style: { width: '100%' }, onclick: () => ctx.editViz({ col, sub, ci }) }, ico('pencil'), ' Ouvrir l’éditeur de dataviz'),
+        h('p', { class: 'hint', textContent: 'Tous les réglages de la dataviz (type, données, couleurs, options) se font dans l’éditeur.' }));
     }
+    root.append(strokeControls(col));
   } else { title('Élément introuvable'); }
 }

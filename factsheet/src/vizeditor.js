@@ -10,11 +10,11 @@ import { VIZ_TYPES, VIZ_OPTIONS, newViz, renderVizFull } from './viz/index.js';
 
 let current = null;
 
-export function openVizEditor({ col, sub, ci, bg, ctx }) {
+export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
   if (current) return;
   const doc = ctx.getDoc();
   const snapshot = JSON.stringify(col.viz);
-  const baseW = colWidth(sub.layout, ci);
+  const baseW = colW || colWidth(sub.layout, ci);
   const ui = { sel: -1, drag: null };
   let width = baseW, zoom = 'fit', meta = null, svgW = baseW;
 
