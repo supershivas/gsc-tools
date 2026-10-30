@@ -5,14 +5,13 @@
 import { initI18n, t } from './i18n.js';
 import { h } from './render.js';
 import { cssVars, applyVars, colWidth, insetW, DEFAULT_THEME } from './tokens.js';
-import { renderCard, CARD_DEFAULTS } from './card.js';
+import { renderCard } from './card.js';
+import { CARD_DEFAULTS, CARD_CHECKS } from './cardmodel.js';
 import { renderFigure, FIGURE_DEFAULTS } from './figure.js';
 import { ICON_OPTIONS } from './viz/icons.js';
 
 const WIDTHS = { '1/3': colWidth('1-1-1', 0), '1/2': colWidth('1-1', 0), '2/3': colWidth('2-1', 0), 'full': colWidth('1', 0) };
 
-const CARD_CHECKS = [['image', 'Image'], ['bleed', 'Image jusqu’au bord du contour'], ['icon', 'Icône'], ['iconCircle', 'Icône dans une pastille'], ['iconInline', 'Icône à côté du titre'],
-  ['tag', 'Étiquette'], ['title', 'Titre'], ['figure', 'Chiffre'], ['text', 'Texte'], ['bullets', 'Puces'], ['link', 'Lien'], ['stroke', 'Contour'], ['fill', 'Fond blanc']];
 const cardControls = [
   { type: 'radio', k: 'layout', label: 'Position de l’image', choices: { vertical: 'En haut', left: 'À gauche', right: 'À droite' } },
   { type: 'radio', k: 'align', label: 'Alignement', choices: { left: 'Gauche', center: 'Centré' } },
@@ -31,10 +30,10 @@ const fig = o => ({ icon: false, iconName: 'globe', iconCircle: false, text: tru
 const TOPICS = [
   { id: 'cartes', icon: 'layout-cards', label: 'Cartes', controls: cardControls, render: (o, W) => renderCard(o, W), variants: [
     { title: 'Carte simple', base: true, desc: 'Titre et texte dans un contour : le minimum, point de départ.', opts: card({}) },
-    { title: 'Image en haut', desc: 'Image au-dessus, étiquette, titre, texte et lien ; l’image reste dans les marges du contour.', opts: card({ image: true, tag: true, link: true }) },
+    { title: 'Image en haut', kept: 'colonnes moyennes', desc: 'Image au-dessus, étiquette, titre, texte et lien ; l’image reste dans les marges du contour.', opts: card({ image: true, tag: true, link: true }) },
     { title: 'Image jusqu’au bord', desc: 'Comme B, mais l’image touche le contour (coins hauts arrondis de 3 px).', opts: card({ image: true, bleed: true, tag: true, link: true }) },
-    { title: 'Icône en tête', desc: 'Pastille d’icône centrée au-dessus du titre, avec des puces.', opts: card({ icon: true, align: 'center', bullets: true }) },
-    { title: 'Image à côté', desc: 'Image à gauche (40 %), contenu à droite : pour les colonnes larges.', opts: card({ image: true, layout: 'left', link: true }) },
+    { title: 'Icône en tête', kept: 'colonnes étroites', desc: 'Pastille d’icône centrée au-dessus du titre, avec des puces.', opts: card({ icon: true, align: 'center', bullets: true }) },
+    { title: 'Image à côté', kept: 'colonnes larges', desc: 'Image à gauche (40 %), contenu à droite : pour les colonnes larges.', opts: card({ image: true, layout: 'left', link: true }) },
     { title: 'Chiffre clé', desc: 'Carte statistique : icône à côté du titre, grand chiffre, texte.', opts: card({ icon: true, iconInline: true, iconCircle: false, figure: true, fill: true }) },
     { title: 'Complète', desc: 'Toutes les options activées ; décochez ce que vous ne voulez pas garder.', opts: card({ image: true, icon: true, iconInline: true, tag: true, figure: true, bullets: true, link: true, fill: true }) },
   ] },
@@ -90,7 +89,7 @@ function control(tp, c, o, redraw) {
 function draw() {
   const tp = TOPICS.find(x => x.id === topicId), v = tp.variants[vi], o = optsOf(tp, vi);
   document.title = `${t('Labo')} — GSC tools`;
-  const sheet = h('div', { class: 'page labo-sheet', style: { background: stage.tint ? 'var(--c-tintSky)' : '#fff' } });
+  const sheet = h('div', { class: 'page labo-sheet', style: { background: stage.tint ? 'var(--c-tint-sky)' : '#fff' } });
   applyVars(sheet, cssVars(DEFAULT_THEME, {}));
   const paint = () => { sheet.replaceChildren(tp.render(o, WIDTHS[stage.width])); };
   paint();
@@ -99,11 +98,11 @@ function draw() {
   const view = h('div', { class: 'labo-stage' },
     h('div', { class: 'labo-tools' },
       h('label', {}, 'Largeur de colonne ', h('select', { onchange: e => { stage.width = e.target.value; paint(); } }, Object.entries(WIDTHS).map(([k, w]) => h('option', { value: k, selected: k === stage.width, textContent: `${k} (${Math.round(w)} px)` })))),
-      h('label', { class: 'labo-check' }, h('input', { type: 'checkbox', checked: stage.tint, onchange: e => { stage.tint = e.target.checked; sheet.style.background = stage.tint ? 'var(--c-tintSky)' : '#fff'; } }), 'Sur fond de section teinté')),
+      h('label', { class: 'labo-check' }, h('input', { type: 'checkbox', checked: stage.tint, onchange: e => { stage.tint = e.target.checked; sheet.style.background = stage.tint ? 'var(--c-tint-sky)' : '#fff'; } }), 'Sur fond de section teinté')),
     h('div', { class: 'labo-canvas' }, sheet));
   const chips = h('div', { class: 'labo-chips' }, TOPICS.map(x => h('button', { type: 'button', class: x.id === topicId ? 'on' : '', onclick: () => go(x.id, 0) }, h('i', { class: 'ti ti-' + x.icon }), x.label)));
   const head = h('div', { class: 'labo-title' }, h('b', { class: 'letter', textContent: LETTERS[vi] }), h('h2', { textContent: v.title }),
-    v.base ? h('span', { class: 'mark', textContent: 'actuelle' }) : null);
+    v.base ? h('span', { class: 'mark', textContent: 'actuelle' }) : null, v.kept ? h('span', { class: 'mark kept', textContent: `retenue — ${v.kept}` }) : null);
   const main = h('main', { class: 'labo-main' }, chips, h('section', { class: 'labo-view' }, head, h('p', { class: 'labo-desc', textContent: v.desc }), h('div', { class: 'labo-work' }, opts, view)));
   const bar = h('div', { class: 'labo-bar' },
     h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Précédente', disabled: vi === 0, onclick: () => go(topicId, vi - 1) }, h('i', { class: 'ti ti-chevron-left' })),

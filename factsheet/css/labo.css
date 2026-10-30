@@ -25,6 +25,7 @@ body.labo { height: 100dvh; display: flex; flex-direction: column; overflow: hid
 .labo-title h2 { margin: 0; font-size: 20px; }
 .letter { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; background: var(--accent); color: #fff; font: 600 16px var(--font-mono); }
 .mark { font: 11px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--mute); }
+.mark.kept { border-color: var(--accent); color: var(--accent); }
 .labo-desc { margin: 8px 0 18px; color: var(--mute); max-width: 70ch; }
 .labo-work { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 20px; align-items: start; }
 .labo-opts { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 14px; display: flex; flex-direction: column; gap: 4px; }

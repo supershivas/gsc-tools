@@ -1,11 +1,10 @@
 /* Panneau d'édition : tout est éditable, mais jamais les tailles / espacements / layout. */
 import { h, inline, ico } from './render.js';
 import { t } from './i18n.js';
-import { GRID, THEMES, SECTION_BGS } from './tokens.js';
+import { GRID, THEMES, paletteKeys, colorLabel } from './tokens.js';
 import { COL_TYPES, IMAGE_RATIOS, LOCALES, newCol, newSub, newSection, uid, moveSection, stepSection } from './state.js';
 import { VIZ_TYPES, VIZ_OPTIONS, newViz } from './viz/index.js';
 
-export const PAL_LABELS = { blue: 'Bleu', deep: 'Bleu profond', sky: 'Bleu ciel', lavender: 'Lavande', yellow: 'Jaune', slate: 'Ardoise', steel: 'Acier', white: 'Blanc', tintSky: 'Teinte ciel', tintLav: 'Teinte lavande', tintYellow: 'Teinte jaune', tintGrey: 'Teinte grise' };
 
 /* Lecture + réduction d'une image (PNG conservé pour la transparence des logos) */
 export function readImage(file, max = 1600) {
@@ -33,7 +32,7 @@ export function readImage(file, max = 1600) {
 /* ---------- Formulaires générés depuis la définition d'une dataviz ---------- */
 const getP = (o, p) => p.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
 const setP = (o, p, v) => { const ks = p.split('.'), last = ks.pop(); const t = ks.reduce((a, k) => (a[k] == null ? (a[k] = {}) : a[k]), o); t[last] = v; };
-const SERIES_COLORS = ['sky', 'yellow', 'blue', 'slate', 'steel', 'lavender'];
+const SERIES_COLORS = ['sky', 'yellow', 'blue', 'slate', 'lavender'];
 
 function parseTable(text) {
   const lines = text.replace(/\r/g, '').split('\n').filter(l => l.trim());
@@ -104,6 +103,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2) {
   for (const f of spec) {
     if (f.t === 'text') out.push(h2('label', { class: 'f' }, f.label, h2('input', { type: 'text', value: getP(obj, f.k) ?? '', oninput: live(t => setP(obj, f.k, t.value)) })));
     else if (f.t === 'area') out.push(h2('div', { class: 'f' }, h2('div', { class: 'hint', textContent: f.label }), richEditor(getP(obj, f.k) ?? '', v => { setP(obj, f.k, v); ctx.changed(); })));
+    else if (f.t === 'lines') out.push(h2('label', { class: 'f' }, f.label, h2('textarea', { value: getP(obj, f.k) ?? '', style: { minHeight: '64px' }, oninput: live(t => setP(obj, f.k, t.value)) })));
     else if (f.t === 'number') out.push(h2('label', { class: 'f' }, f.label, h2('input', { type: 'number', value: getP(obj, f.k) ?? 0, min: f.min, max: f.max, step: f.step || 1, oninput: live(t => { const v = parseFloat(t.value); if (!isNaN(v)) setP(obj, f.k, v); }) })));
     else if (f.t === 'bool') out.push(h2('label', { class: 'row', style: { marginBottom: '8px' } }, h2('input', { type: 'checkbox', checked: !!getP(obj, f.k), onchange: live(t => setP(obj, f.k, t.checked)) }), f.label));
     else if (f.t === 'select' || f.t === 'color') {
@@ -162,5 +162,5 @@ function tableField(f, obj, ctx, palOpts, h2) {
   return box;
 }
 
-export const paletteOptions = doc => { const th = THEMES[doc.theme] || Object.values(THEMES)[0]; return Object.fromEntries(Object.keys(th.colors).map(k => [k, PAL_LABELS[k] || k])); };
+export const paletteOptions = doc => Object.fromEntries(paletteKeys(doc).map(k => [k, t(colorLabel(doc, k))]));
 

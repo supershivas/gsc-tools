@@ -4,6 +4,7 @@ import { PAGE, GRID, HEADER, GAP, cssVars, applyVars, colWidth, insetW } from '.
 import { IMAGE_RATIOS } from './state.js';
 import { renderViz } from './viz/index.js';
 import { renderFigure } from './figure.js';
+import { renderCard } from './card.js';
 
 export const ico = name => h('i', { class: 'ti ti-' + name });
 export function h(tag, props = {}, ...kids) {
@@ -93,12 +94,14 @@ function renderImage(col, w) {
 function renderCol(col, w, path, env) {
   const wrap = h('div', { class: `col col-${col.type}`, dataset: { sel: path } });
   const al = { top: 'start', center: 'center', bottom: 'end' }[col.valign] || 'start';
-  if (col.stroke) { strokeStyle(wrap, col); wrap.style.justifyContent = { start: 'flex-start', center: 'center', end: 'flex-end' }[al]; w = insetW(w); }
+  if (col.stroke && col.type !== 'card') { strokeStyle(wrap, col); wrap.style.justifyContent = { start: 'flex-start', center: 'center', end: 'flex-end' }[al]; w = insetW(w); }
   else wrap.style.alignSelf = al;
   if (col.type === 'text') wrap.append(richText(col.text, col.align));
   else if (col.type === 'image') {
     wrap.append(renderImage(col, w));
     if (col.caption && col.caption.trim()) wrap.append(h('div', { class: 'cap', textContent: col.caption }));
+  } else if (col.type === 'card' && col.card) {
+    wrap.append(renderCard(col.card, w));
   } else if (col.type === 'figure') {
     wrap.append(renderFigure(col.figure || {}, w, col.align));
   } else {

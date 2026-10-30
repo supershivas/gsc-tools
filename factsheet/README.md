@@ -35,6 +35,9 @@ Le logo a 4 versions de même taille (défaut, mono, white, négatif) : une list
 ## Atelier (publication dans GitHub)
 `atelier.html` : connexion avec un jeton GitHub (droits fins, « Contents » lecture/écriture sur ce dépôt, gardé dans ce navigateur), publication des images du document (logos, header, colonnes) dans `assets/` et des projets `.json` dans `projects/` (un commit sur `main`, noms de fichiers d'après le contenu), liste et suppression des fichiers publiés, ouverture d'un projet publié dans l'éditeur. Le document ne garde alors que le chemin de l'image.
 
+## Couleurs et cartes
+Panneau Document : 5 couleurs par thème, un clic ouvre l'éditeur de couleur (aperçu en direct, Annuler remet l'ancienne valeur), « Ajouter une couleur » (jusqu'à 12 au total), rétablir ou supprimer. Les fonds de section sont des teintes calculées de ces couleurs. Contenu « Carte » : contenu (étiquette, titre, chiffre, texte, puces, lien, image) et options cochables (image en haut / à gauche / à droite, jusqu'au bord, icône, pastille, alignement, contour, fond blanc) ; par défaut le type de carte dépend de la largeur de la colonne.
+
 ## Contours, images, chiffre clé, labo
 Contour optionnel (couleur, fond blanc) sur section, sous-section et colonne : trait 0,5 pt, coins de 3 px, cadre sur les marges, contenu en retrait de 12 px (les largeurs des dataviz et images en tiennent compte). Image : format fixe, ajustée au conteneur (proportions de l'image) ou taille personnalisée (largeur en %, hauteur en px, position). Le chiffre clé est un type de contenu (`src/figure.js`) avec icône facultative. Les cartes sont en variantes dans le Labo (`labo.html`) avant d'entrer dans l'éditeur.
 

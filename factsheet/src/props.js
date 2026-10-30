@@ -1,11 +1,14 @@
 /* Colonne de droite : propriétés de l'élément sélectionné (document, header, section, sous-section, colonne). */
-import { h, ico, headerImage } from './render.js';
+import { h, ico, headerImage, columnWidth } from './render.js';
 import { t } from './i18n.js';
-import { GRID, THEMES, SECTION_BGS, cssVars, applyVars } from './tokens.js';
-import { COL_TYPES, IMAGE_RATIOS, LOCALES, LOGO_VARIANTS, VALIGNS, ALIGNS, newCol, stepSection, newHeaderImage, swapCols, allCols, moveSub } from './state.js';
+import { GRID, THEMES, paletteOf, paletteKeys, sectionBgs, colorLabel, cssVars, applyVars } from './tokens.js';
+import { openColorEditor } from './colorpicker.js';
+import { newCard, cardPresetFor, CARD_CHECKS } from './cardmodel.js';
+import { COL_TYPES, IMAGE_RATIOS, LOCALES, LOGO_VARIANTS, VALIGNS, ALIGNS, newCol, stepSection, newHeaderImage, swapCols, allCols, moveSub, addColor, removeColor, canAddColor, extraColorKeys, refreshAutoCards } from './state.js';
 import { VIZ_TYPES, VIZ_OPTIONS, newViz } from './viz/index.js';
-import { buildFields, readImage, richEditor, paletteOptions, PAL_LABELS } from './editor.js';
+import { buildFields, readImage, richEditor, paletteOptions } from './editor.js';
 import { FIGURE_DEFAULTS, FIGURE_FIELDS } from './figure.js';
+import { ICON_OPTIONS } from './viz/icons.js';
 
 export function buildProps(root, ctx) {
   const doc = ctx.getDoc(), path = ctx.getSel();
@@ -23,7 +26,7 @@ export function buildProps(root, ctx) {
   };
   const swatches = (label, obj, k, keys, withNone) => h('div', { class: 'f' }, h('div', { class: 'hint', textContent: label }),
     h('div', { class: 'swrow' }, [withNone ? h('button', { type: 'button', class: 'hv-sw none' + (!obj[k] || obj[k] === 'none' ? ' on' : ''), title: 'Aucun', onclick: struct(() => { obj[k] = 'none'; }) }) : null,
-      ...keys.filter(c => th.colors[c]).map(c => h('button', { type: 'button', class: 'hv-sw' + (obj[k] === c ? ' on' : ''), title: PAL_LABELS[c] || c, style: { background: `var(--c-${c})` }, onclick: struct(() => { obj[k] = c; }) }))]));
+      ...keys.map(c => h('button', { type: 'button', class: 'hv-sw' + (obj[k] === c ? ' on' : ''), title: t(colorLabel(doc, c)), style: { background: `var(--c-${c})` }, onclick: struct(() => { obj[k] = c; }) }))]));
   const imgPicker = (label, get, set, max) => {
     const inp = h('input', { type: 'file', accept: 'image/*', hidden: true, onchange: async () => {
       const f = inp.files[0]; inp.value = ''; if (!f) return;
@@ -74,8 +77,44 @@ export function buildProps(root, ctx) {
   /* Contour (trait 0,5 pt, coins de 3 px) : sections, sous-sections et colonnes */
   const strokeControls = obj => h('div', { class: 'f outline' },
     h('label', { class: 'row' }, h('input', { type: 'checkbox', checked: !!obj.stroke, onchange: struct(() => { obj.stroke = !obj.stroke; }) }), 'Contour'),
-    obj.stroke ? h('div', {}, swatches('Couleur du contour', obj, 'strokeColor', Object.keys(th.colors)),
+    obj.stroke ? h('div', {}, swatches('Couleur du contour', obj, 'strokeColor', paletteKeys(doc)),
       h('label', { class: 'row' }, h('input', { type: 'checkbox', checked: !!obj.fill, onchange: struct(() => { obj.fill = !obj.fill; }) }), 'Fond blanc')) : null);
+  /* Palette : 5 couleurs par thème + couleurs ajoutées ; un clic ouvre l'éditeur de couleur (aperçu en direct) */
+  const paletteEditor = () => {
+    const pal = paletteOf(doc.theme, doc.colors), extras = extraColorKeys(doc);
+    const open = (k, sw) => openColorEditor({ anchor: sw, hex: pal[k], title: t(colorLabel(doc, k)),
+      onChange: hex => { doc.colors[k] = hex; sw.style.background = hex; ctx.changed(); }, onClose: () => ctx.restructure() });
+    const row = k => {
+      const isExtra = extras.includes(k), edited = !isExtra && doc.colors[k] && doc.colors[k].toLowerCase() !== th.colors[k].toLowerCase();
+      const sw = h('button', { type: 'button', class: 'pal2-sw', title: 'Modifier la couleur', style: { background: pal[k] }, onclick: () => open(k, sw) });
+      return h('div', { class: 'pal2-row', dataset: { key: k } }, sw,
+        isExtra ? h('input', { type: 'text', value: (doc.colorNames && doc.colorNames[k]) || k, oninput: e => { doc.colorNames[k] = e.target.value; ctx.changed(); } }) : h('span', { class: 'pal2-name', textContent: t(colorLabel(doc, k)) }),
+        h('span', { class: 'pal2-hex', textContent: pal[k].toUpperCase() }),
+        isExtra ? h('button', { type: 'button', class: 'mini danger', title: 'Supprimer', onclick: () => { if (confirm(t('Supprimer cette couleur ? Ce qui l’utilise passera en bleu.'))) { removeColor(doc, k); ctx.restructure(); } } }, ico('x'))
+          : edited ? h('button', { type: 'button', class: 'mini', title: 'Rétablir la couleur du thème', onclick: struct(() => { delete doc.colors[k]; }) }, ico('restore')) : null);
+    };
+    return h('div', { class: 'f' }, h('div', { class: 'hint', textContent: `${t('Palette du thème')} (${Object.keys(pal).length}/${Object.keys(th.colors).length + 7})` }),
+      h('div', { class: 'pal2' }, Object.keys(pal).map(row)),
+      canAddColor(doc) ? h('button', { type: 'button', onclick: () => { const k = addColor(doc, '#808080'); ctx.restructure(); requestAnimationFrame(() => { const b = root.querySelector(`[data-key="${k}"] .pal2-sw`); if (b) b.click(); }); } }, ico('plus'), ' ', t('Ajouter une couleur')) : null);
+  };
+  /* Carte : le contenu d'abord, puis toutes les options (cochables) ; tant qu'on n'y touche pas, le type de carte suit la largeur de la colonne */
+  const cardPanel = (col, W) => {
+    const C = col.card || (col.card = newCard(W)), ct = C.content;
+    const chosen = fn => { fn(); C.auto = false; ctx.restructure(); };
+    const check = ([k, label]) => h('label', { class: 'row' }, h('input', { type: 'checkbox', checked: !!C[k], onchange: e => chosen(() => { C[k] = e.target.checked; }) }), label);
+    const sel = (k, label, opts) => { const s = h('select', { onchange: e => chosen(() => { C[k] = e.target.value; }) }, Object.entries(opts).map(([v, l]) => h('option', { value: v, textContent: l }))); s.value = C[k]; return field(label, s); };
+    const fields = [{ k: 'tag', t: 'text', label: 'Étiquette' }, { k: 'title', t: 'text', label: 'Titre' }, { k: 'figure', t: 'text', label: 'Chiffre' }, { k: 'text', t: 'area', label: 'Texte' },
+      { k: 'bullets', t: 'lines', label: 'Puces (une par ligne)' }, { k: 'link', t: 'text', label: 'Lien' }];
+    return h('div', {},
+      ...buildFields(fields, ct, ctx, palOpts, h),
+      C.image ? imgPicker('Image de la carte', () => C.src, v => { C.src = v; }, 1200) : null,
+      h('details', { class: 'opts', open: true }, h('summary', { textContent: 'Options de la carte' }),
+        h('label', { class: 'row' }, h('input', { type: 'checkbox', checked: !!C.auto, onchange: e => { C.auto = e.target.checked; if (C.auto) Object.assign(C, cardPresetFor(W)); ctx.restructure(); } }), 'Type de carte selon la largeur de la colonne'),
+        sel('layout', 'Position de l’image', { vertical: t('En haut'), left: t('À gauche'), right: t('À droite') }),
+        sel('align', 'Alignement', { left: t('Gauche'), center: t('Centré') }),
+        C.icon ? sel('iconName', 'Icône choisie', ICON_OPTIONS) : null,
+        CARD_CHECKS.map(check)));
+  };
   const title = (t, crumbs = []) => root.append(h('div', { class: 'pr-head' },
     h('div', { class: 'crumbs' }, crumbs.flatMap(([l, p]) => [h('a', { textContent: l, onclick: () => ctx.select(p) }), ' › '])),
     h('h2', { textContent: t })));
@@ -89,14 +128,12 @@ export function buildProps(root, ctx) {
     root.append(text(doc, 'name', 'Nom du fichier'),
       select(doc, 'theme', 'Thème', Object.fromEntries(Object.entries(THEMES).map(([k, t]) => [k, t.label])), () => ctx.restructure()),
       select(doc, 'locale', 'Format des nombres', LOCALES),
-      h('div', { class: 'hint', textContent: 'Palette du thème' }),
-      h('div', { class: 'pal' }, Object.keys(th.colors).map(k => h('label', { textContent: PAL_LABELS[k] || k },
-        h('input', { type: 'color', value: (doc.colors[k] || th.colors[k]).toLowerCase(), oninput: e => { doc.colors[k] = e.target.value; ctx.changed(); } })))),
+      paletteEditor(),
       h('p', { class: 'hint', textContent: 'Sélectionnez un élément dans la structure (à gauche) ou sur la page pour modifier ses propriétés.' }));
   } else if (kind === 'header') {
     const H = doc.header; title('Header', [['Document', null]]);
     root.append(text(H, 'overline', 'Surtitre'), text(H, 'title', 'Titre (taille fixe)'), text(H, 'subtitle', 'Sous-titre (optionnel — vide = masqué)'),
-      swatches('Couleur de fond', H, 'bg', Object.keys(th.colors)), swatches('Couleur du texte', H, 'fg', Object.keys(th.colors)),
+      swatches('Couleur de fond', H, 'bg', paletteKeys(doc)), swatches('Couleur du texte', H, 'fg', paletteKeys(doc)),
       h('label', { class: 'row' }, h('input', { type: 'checkbox', checked: H.showImage, onchange: struct(() => { H.showImage = !H.showImage; }) }), 'Afficher l’image'),
       H.showImage ? imageLibrary(H) : null,
       h('label', { class: 'row' }, h('input', { type: 'checkbox', checked: H.showLogo, onchange: struct(() => { H.showLogo = !H.showLogo; }) }), 'Afficher le logo'),
@@ -104,7 +141,7 @@ export function buildProps(root, ctx) {
   } else if (kind === 'sec' && sec) {
     title(sec.title || 'Section', [['Document', null]]);
     root.append(text(sec, 'title', 'Titre de section'),
-      swatches('Fond de la section', sec, 'bg', SECTION_BGS, true), strokeControls(sec),
+      swatches('Fond de la section', sec, 'bg', sectionBgs(doc), true), strokeControls(sec),
       select(sec, 'page', 'Page', { recto: 'Recto', verso: 'Verso' }, () => ctx.restructure()),
       actions(h('button', { type: 'button', textContent: '↑ Monter', onclick: struct(() => { stepSection(doc, si, -1); }) }),
         h('button', { type: 'button', textContent: '↓ Descendre', onclick: struct(() => { stepSection(doc, si, 1); }) }),
@@ -113,7 +150,7 @@ export function buildProps(root, ctx) {
     title(sub.title || 'Sous-section', [['Document', null], [sec.title || 'Section', `sec:${si}`]]);
     root.append(text(sub, 'title', 'Titre de sous-section (vide = masqué)'), strokeControls(sub),
       select(sub, 'layout', 'Colonnes', Object.fromEntries(Object.entries(GRID.layouts).map(([k, l]) => [k, l.label])), () => {
-        const n = GRID.layouts[sub.layout].spans.length; sub.cols = sub.cols.slice(0, n); while (sub.cols.length < n) sub.cols.push(newCol('text')); ctx.restructure();
+        const n = GRID.layouts[sub.layout].spans.length; sub.cols = sub.cols.slice(0, n); while (sub.cols.length < n) sub.cols.push(newCol('text')); refreshAutoCards(sub, i => columnWidth(doc, si, bi, i)); ctx.restructure();
       }),
       field('Déplacer vers la section', (() => {
         const s = h('select', { onchange: e => { if (!e.target.value) return; const to = +e.target.value; ctx.moved(() => { const n = moveSub(doc, { si, bi }, { si: to, bi: null }); return `sub:${n.si}:${n.bi}`; }); } },
@@ -126,7 +163,7 @@ export function buildProps(root, ctx) {
         h('button', { type: 'button', class: 'danger', textContent: 'Supprimer', onclick: struct(() => { if (confirm(t('Supprimer cette sous-section ?'))) sec.subs.splice(bi, 1); }) })));
   } else if (kind === 'col' && col) {
     title(`Colonne ${ci + 1}`, [['Document', null], [sec.title || 'Section', `sec:${si}`], [sub.title || 'Sous-section', `sub:${si}:${bi}`]]);
-    root.append(field('Contenu', h('select', { onchange: e => { const keep = col.text, { valign, align, stroke, strokeColor, fill } = col; Object.assign(col, newCol(e.target.value), { valign, align, stroke, strokeColor, fill }); if (e.target.value === 'text' && keep) col.text = keep; ctx.restructure(); } },
+    root.append(field('Contenu', h('select', { onchange: e => { const keep = col.text, { valign, align, stroke, strokeColor, fill } = col; Object.assign(col, newCol(e.target.value), { valign, align, stroke, strokeColor, fill }); if (e.target.value === 'text' && keep) col.text = keep; if (e.target.value === 'card') { col.card = newCard(columnWidth(doc, si, bi, ci)); col.stroke = false; } ctx.restructure(); } },
       Object.entries(COL_TYPES).map(([v, l]) => h('option', { value: v, textContent: l, selected: col.type === v })))),
       segmented('Alignement vertical dans la colonne', col, 'valign', VALIGNS, { top: t('Haut'), center: t('Centre'), bottom: t('Bas') }),
       col.type === 'text' ? segmented('Alignement du texte', col, 'align', ALIGNS, { left: t('Gauche'), center: t('Centré'), right: t('Droite'), justify: t('Justifié') }) : null,
@@ -146,6 +183,8 @@ export function buildProps(root, ctx) {
         mode === 'custom' ? select(col, 'imgFit', 'Remplissage', { cover: 'Recadrer pour remplir', contain: 'Image entière' }) : null,
         mode === 'custom' && (col.imgW ?? 100) < 100 ? segmented('Position dans la colonne', col, 'align', { left: ALIGNS.left, center: ALIGNS.center, right: ALIGNS.right }, { left: t('Gauche'), center: t('Centré'), right: t('Droite') }) : null,
         text(col, 'caption', 'Légende (optionnelle)'));
+    } else if (col.type === 'card') {
+      root.append(cardPanel(col, columnWidth(doc, si, bi, ci)));
     } else if (col.type === 'figure') {
       if (!col.figure) col.figure = FIGURE_DEFAULTS();
       root.append(...buildFields(FIGURE_FIELDS, col.figure, ctx, palOpts, h));
@@ -154,6 +193,6 @@ export function buildProps(root, ctx) {
       root.append(h('button', { type: 'button', class: 'primary', style: { width: '100%' }, onclick: () => ctx.editViz({ col, sub, ci }) }, ico('pencil'), ' Ouvrir l’éditeur de dataviz'),
         h('p', { class: 'hint', textContent: 'Tous les réglages de la dataviz (type, données, couleurs, options) se font dans l’éditeur.' }));
     }
-    root.append(strokeControls(col));
+    if (col.type !== 'card') root.append(strokeControls(col));
   } else { title('Élément introuvable'); }
 }

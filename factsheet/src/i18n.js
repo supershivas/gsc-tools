@@ -107,6 +107,13 @@ const EN = {
   'Pictogramme au trait à la hauteur du chiffre.': 'Line icon at the height of the figure.', 'Icône en pastille': 'Icon in a circle',
   'Même icône dans une pastille ronde de 0,5 pt, comme dans la liste à icônes.': 'Same icon in a round 0.5 pt circle, as in the icon list.',
   'Centré, sans contour': 'Centred, no outline', 'Chiffre et icône centrés, pour une bande de plusieurs chiffres.': 'Centred figure and icon, for a row of several figures.',
+  /* couleurs, cartes */
+  'Modifier la couleur': 'Edit the colour', 'Rétablir la couleur du thème': 'Reset to the theme colour', 'Ajouter une couleur': 'Add a colour', 'Pipette': 'Eyedropper',
+  'Supprimer cette couleur ? Ce qui l’utilise passera en bleu.': 'Delete this colour? Anything using it will turn blue.',
+  'Carte': 'Card', 'Options de la carte': 'Card options', 'Type de carte selon la largeur de la colonne': 'Card type follows the column width', 'Puces (une par ligne)': 'Bullets (one per line)', 'Image de la carte': 'Card image',
+  'NOUVEAU': 'NEW', 'Titre de la carte': 'Card title', 'Texte de la carte. Une ligne = un paragraphe, **gras** avec les astérisques.': 'Card text. One line = one paragraph, **bold** with asterisks.',
+  'Premier point': 'First point', 'Deuxième point': 'Second point', 'Troisième point': 'Third point', 'En savoir plus': 'Read more',
+  'retenue — colonnes moyennes': 'chosen — medium columns', 'retenue — colonnes étroites': 'chosen — narrow columns', 'retenue — colonnes larges': 'chosen — wide columns',
   /* atelier */
   'Connexion à GitHub': 'GitHub connection', 'Retirer le jeton': 'Remove the token', 'Enregistrer et tester': 'Save and test',
   'Connecté : vous pouvez publier.': 'Connected: you can publish.', 'Jeton invalide ou expiré.': 'Invalid or expired token.', 'Accès refusé à ce dépôt.': 'Access to this repository denied.',
@@ -137,6 +144,8 @@ const PATTERNS = [
   [/^Colonne actuelle \((\d+) px\)$/, (_, n) => `Current column (${n} px)`],
   [/^Série (\d+)$/, (_, n) => `Series ${n}`],
   [/^Chiffre clé · (.+)$/, (_, x) => `Key figure · ${x}`],
+  [/^Teinte · (.+)$/, (_, x) => `Tint · ${tr(x)}`],
+  [/^Carte · (.+)$/, (_, x) => `Card · ${x}`],
   [/^Dataviz · (.+)$/, (_, x) => `Dataviz · ${tr(x)}`],
   [/^(\d+) images? à publier — ouvrir l’Atelier$/, (_, n) => `${n} image${n === '1' ? '' : 's'} to publish — open the Atelier`],
   [/^Dépôt : (\S+) \(branche main\)\. Le jeton reste dans ce navigateur, il n’est jamais exporté\.$/, (_, r) => `Repository: ${r} (main branch). The token stays in this browser and is never exported.`],

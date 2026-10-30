@@ -27,7 +27,7 @@ export default {
       { color: 'blue', value: 77.9, title: '€77.9 billion', text: 'in military support from Member States' },
       { color: 'slate', value: 17, title: '€17 billion', text: 'in support for Ukrainian refugees in the EU' },
       { color: 'yellow', value: 15.5, title: '€15.5 billion', text: 'of grants, loans and guarantees provided by EU Member States for non-military support' },
-      { color: 'steel', value: 3.8, title: '€3.8 billion', text: 'in proceeds from immobilised Russian assets' },
+      { color: 'sky', value: 3.8, title: '€3.8 billion', text: 'in proceeds from immobilised Russian assets' },
     ],
   }),
   fields: [

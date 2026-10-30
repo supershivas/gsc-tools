@@ -186,31 +186,40 @@
       label: "Bleu UE",
       colors: {
         blue: "#0434F8",
-        // texte, traits, séries principales
-        deep: "#041CEC",
-        // fond de header
+        // texte, traits, fond de header, séries principales
         sky: "#A4CCFC",
         // séries claires
-        lavender: "#BCCCFC",
         yellow: "#FCDC0C",
         slate: "#5E6566",
-        steel: "#8FA3AD",
-        white: "#FFFFFF",
-        /* teintes claires — fonds de section */
-        tintSky: "#ECF4FF",
-        tintLav: "#E6EAFB",
-        tintYellow: "#FFF7C4",
-        tintGrey: "#EEF0F1"
+        lavender: "#BCCCFC"
       },
+      names: { blue: "Bleu", sky: "Bleu ciel", yellow: "Jaune", slate: "Ardoise", lavender: "Lavande" },
       text: "blue"
       // couleur des textes et traits par défaut
     }
   };
   var DEFAULT_THEME = "eu";
-  var SECTION_BGS = ["tintSky", "tintLav", "tintYellow", "tintGrey"];
+  var WHITE = "#FFFFFF";
+  var MAX_EXTRA_COLORS = 7;
+  var TINT = 0.2;
+  var hex2rgb = (h2) => {
+    const n = parseInt(h2.replace("#", ""), 16);
+    return [n >> 16 & 255, n >> 8 & 255, n & 255];
+  };
+  var rgb2hex = (r, g, b) => "#" + [r, g, b].map((x) => Math.round(x).toString(16).padStart(2, "0")).join("").toUpperCase();
+  var tintOf = (hex) => rgb2hex(...hex2rgb(hex).map((c) => c * TINT + 255 * (1 - TINT)));
+  var paletteOf = (themeKey, colors) => Object.assign({}, (THEMES[themeKey] || THEMES[DEFAULT_THEME]).colors, colors || {});
+  var paletteKeys = (doc2, white = true) => [...Object.keys(paletteOf(doc2.theme, doc2.colors)), ...white ? ["white"] : []];
+  var sectionBgs = (doc2) => Object.keys(paletteOf(doc2.theme, doc2.colors)).map((k) => "tint-" + k);
+  function colorLabel(doc2, key) {
+    const th = THEMES[doc2.theme] || THEMES[DEFAULT_THEME];
+    if (key === "white") return "Blanc";
+    if (key.startsWith("tint-")) return "Teinte \xB7 " + colorLabel(doc2, key.slice(5));
+    return doc2.colorNames && doc2.colorNames[key] || th.names[key] || key;
+  }
   function cssVars(themeKey, colors) {
     const th = THEMES[themeKey] || THEMES[DEFAULT_THEME];
-    const pal = Object.assign({}, th.colors, colors || {});
+    const pal = paletteOf(themeKey, colors);
     const v = {};
     for (const [k, n] of Object.entries(SPACE)) v[`--s${k}`] = n + "px";
     for (const [k, val] of Object.entries(GAP)) v[`--gap-${k}`] = val + "px";
@@ -220,7 +229,11 @@
       v[`--t-${k}-weight`] = t2.weight;
       v[`--t-${k}-family`] = FONT[t2.family];
     }
-    for (const [k, c] of Object.entries(pal)) v[`--c-${k}`] = c;
+    for (const [k, c] of Object.entries(pal)) {
+      v[`--c-${k}`] = c;
+      v[`--c-tint-${k}`] = tintOf(c);
+    }
+    v["--c-white"] = WHITE;
     for (const [k, val] of Object.entries(VIZ)) if (typeof val === "number") v[`--viz-${k}`] = val + "px";
     v["--c-text"] = pal[th.text];
     v["--stroke"] = STROKE.pt + "pt";
@@ -234,170 +247,6 @@
   function applyVars(el2, vars) {
     for (const [k, val] of Object.entries(vars)) el2.style.setProperty(k, val);
   }
-
-  // src/viz/util.js
-  var NS = "http://www.w3.org/2000/svg";
-  function s(tag, attrs = {}, ...kids) {
-    const e = document.createElementNS(NS, tag);
-    if (tag === "svg") e.setAttribute("fill", "currentColor");
-    for (const [k, v] of Object.entries(attrs)) {
-      if (v == null || v === false) continue;
-      if (k === "style" && typeof v === "object") Object.assign(e.style, v);
-      else e.setAttribute(k, v);
-    }
-    for (const c of kids.flat()) if (c != null && c !== false) e.append(typeof c === "string" ? document.createTextNode(c) : c);
-    return e;
-  }
-  function el(tag, props = {}, ...kids) {
-    const e = document.createElement(tag);
-    for (const [k, v] of Object.entries(props)) {
-      if (v == null || v === false) continue;
-      if (k === "class") e.className = v;
-      else if (k === "style" && typeof v === "object") Object.assign(e.style, v);
-      else if (k in e) e[k] = v;
-      else e.setAttribute(k, v);
-    }
-    for (const c of kids.flat()) if (c != null && c !== false) e.append(c);
-    return e;
-  }
-  var pxOf = (pt) => pt * 96 / 72;
-  var SW = STROKE.px;
-  var colorRef = (c) => /^(#|rgb|var\()/.test(c || "") ? c : `var(--c-${c || "blue"})`;
-  var round3 = (n) => Math.round(n / 3) * 3;
-  var mctx = document.createElement("canvas").getContext("2d");
-  function mw(text, weight, family, sizePx) {
-    mctx.font = `${weight} ${sizePx * 100}px ${family}`;
-    return mctx.measureText(text).width / 100;
-  }
-  var SANS = FONT.sans;
-  var SERIF = FONT.serif;
-  function fitSize(text, weight, family, size, maxW, minK = 0.6) {
-    const w = mw(text, weight, family, size);
-    return !w || w <= maxW ? size : Math.max(size * minK, size * maxW / w * 0.98);
-  }
-  function ellipsize(text, weight, family, size, maxW) {
-    if (mw(text, weight, family, size) <= maxW + 0.5) return text;
-    let t2 = String(text);
-    while (t2.length > 1 && mw(t2 + "\u2026", weight, family, size) > maxW) t2 = t2.slice(0, -1);
-    return t2 + "\u2026";
-  }
-  function fitText(text, weight, family, size, maxW, minK = 0.6) {
-    const sz = fitSize(text, weight, family, size, maxW, minK);
-    return { size: sz, text: ellipsize(text, weight, family, sz, maxW) };
-  }
-  function paragraphs(text) {
-    const paras = [[]];
-    let cur = [];
-    const flush2 = () => {
-      if (cur.length) {
-        paras[paras.length - 1].push(cur);
-        cur = [];
-      }
-    };
-    let b = false, i = false, u2 = false;
-    String(text || "").replace(/\r\n?/g, "\n").split(/(\*\*|__|~~)/).forEach((seg) => {
-      if (seg === "**") {
-        b = !b;
-        return;
-      }
-      if (seg === "__") {
-        u2 = !u2;
-        return;
-      }
-      if (seg === "~~") {
-        i = !i;
-        return;
-      }
-      for (const part of seg.match(/\n|[^\S\n]+|\S+/g) || []) {
-        if (part === "\n") {
-          flush2();
-          paras.push([]);
-        } else if (/^\s+$/.test(part)) flush2();
-        else cur.push({ t: part, b, i, u: u2 });
-      }
-    });
-    flush2();
-    return paras;
-  }
-  var runsW = (runs, size) => runs.reduce((a, r) => a + mw(r.t, r.b ? 700 : 400, SANS, size), 0);
-  function splitWord(runs, size, maxW) {
-    const out = [];
-    let cur = [], cw = 0;
-    for (const r of runs) for (const ch of r.t) {
-      const c = mw(ch, r.b ? 700 : 400, SANS, size);
-      if (cur.length && cw + c > maxW) {
-        out.push(cur);
-        cur = [];
-        cw = 0;
-      }
-      const l = cur[cur.length - 1];
-      if (l && l.b === r.b && l.i === r.i && l.u === r.u) l.t += ch;
-      else cur.push({ ...r, t: ch });
-      cw += c;
-    }
-    if (cur.length) out.push(cur);
-    return out;
-  }
-  function textLines(title, text, size, maxW) {
-    const out = [], sp = mw(" ", 400, SANS, size);
-    const add = (src, head) => {
-      for (const words of paragraphs(src)) {
-        if (!words.length) continue;
-        let cur = [], cw = 0;
-        for (let w of words.flatMap((x) => maxW > 0 && runsW(x, size) > maxW ? splitWord(x, size, maxW) : [x])) {
-          const w1 = runsW(w, size);
-          if (!cur.length) {
-            cur = [...w];
-            cw = w1;
-          } else if (cw + sp + w1 <= maxW) {
-            cur.push({ t: " ", b: false }, ...w);
-            cw += sp + w1;
-          } else {
-            out.push({ runs: cur, head });
-            cur = [...w];
-            cw = w1;
-          }
-        }
-        out.push({ runs: cur, head });
-      }
-    };
-    if (title && title.trim()) add("**" + title.replace(/\*\*|__|~~/g, "") + "**", true);
-    if (text && text.trim()) add(text, false);
-    return out;
-  }
-  function drawLines(lines, x, y0, lh, size, align = "start") {
-    const g = s("g", { "font-size": size });
-    lines.forEach((l, i) => {
-      const t2 = s("text", { x, y: y0 + i * lh + lh / 2 + 0.33 * size, "text-anchor": align, style: { whiteSpace: "pre" } });
-      for (const r of l.runs) t2.append(s("tspan", { "font-weight": r.b ? 700 : 400, "font-style": r.i ? "italic" : null, "text-decoration": r.u ? "underline" : null }, r.t));
-      g.append(t2);
-    });
-    return g;
-  }
-  function fmt(v, locale, decimals) {
-    const d = Math.max(0, Math.min(6, Math.round(+decimals || 0)));
-    try {
-      return new Intl.NumberFormat(locale || "en-GB", { minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
-    } catch (e) {
-      return String(v);
-    }
-  }
-  function drawLegend(svg, series, y, W = Infinity) {
-    const base = pxOf(TYPE.caption.size), fixed = VIZ.legendSwatch + VIZ.barGap * 2, gap = VIZ.legendH * 1.2;
-    const names = series.map((sr) => sr.name || "");
-    const need = (size) => names.reduce((a, t2) => a + fixed + mw(t2, TYPE.caption.weight, SANS, size), 0) + gap * Math.max(0, names.length - 1);
-    let capPx = base;
-    if (need(base) > W) capPx = Math.max(base * 0.7, base * (W - names.length * fixed - gap * (names.length - 1)) / (need(base) - names.length * fixed - gap * (names.length - 1)));
-    const room = names.length ? Math.max(20, (W - gap * (names.length - 1)) / names.length - fixed) : 0;
-    let x = 0;
-    series.forEach((sr, i) => {
-      svg.append(s("rect", { x: x + SW / 2, y: y + (VIZ.legendH - VIZ.legendSwatch) / 2 + SW / 2, width: VIZ.legendSwatch - SW, height: VIZ.legendSwatch - SW, rx: VIZ.barRadius, fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW }));
-      const lx = x + fixed, t2 = need(base) > W ? ellipsize(names[i], TYPE.caption.weight, SANS, capPx, room) : names[i];
-      svg.append(s("text", { x: lx, y: y + VIZ.legendH / 2 + 0.33 * capPx, "font-size": capPx, "font-weight": TYPE.caption.weight }, t2));
-      x = lx + mw(t2, TYPE.caption.weight, SANS, capPx) + gap;
-    });
-  }
-  var numVal = (r, j) => Math.max(0, +(r.v || [])[j] || 0);
 
   // src/i18n.js
   var LANGS = { en: "English", fr: "Fran\xE7ais" };
@@ -722,6 +571,27 @@
     "M\xEAme ic\xF4ne dans une pastille ronde de 0,5 pt, comme dans la liste \xE0 ic\xF4nes.": "Same icon in a round 0.5 pt circle, as in the icon list.",
     "Centr\xE9, sans contour": "Centred, no outline",
     "Chiffre et ic\xF4ne centr\xE9s, pour une bande de plusieurs chiffres.": "Centred figure and icon, for a row of several figures.",
+    /* couleurs, cartes */
+    "Modifier la couleur": "Edit the colour",
+    "R\xE9tablir la couleur du th\xE8me": "Reset to the theme colour",
+    "Ajouter une couleur": "Add a colour",
+    "Pipette": "Eyedropper",
+    "Supprimer cette couleur ? Ce qui l\u2019utilise passera en bleu.": "Delete this colour? Anything using it will turn blue.",
+    "Carte": "Card",
+    "Options de la carte": "Card options",
+    "Type de carte selon la largeur de la colonne": "Card type follows the column width",
+    "Puces (une par ligne)": "Bullets (one per line)",
+    "Image de la carte": "Card image",
+    "NOUVEAU": "NEW",
+    "Titre de la carte": "Card title",
+    "Texte de la carte. Une ligne = un paragraphe, **gras** avec les ast\xE9risques.": "Card text. One line = one paragraph, **bold** with asterisks.",
+    "Premier point": "First point",
+    "Deuxi\xE8me point": "Second point",
+    "Troisi\xE8me point": "Third point",
+    "En savoir plus": "Read more",
+    "retenue \u2014 colonnes moyennes": "chosen \u2014 medium columns",
+    "retenue \u2014 colonnes \xE9troites": "chosen \u2014 narrow columns",
+    "retenue \u2014 colonnes larges": "chosen \u2014 wide columns",
     /* atelier */
     "Connexion \xE0 GitHub": "GitHub connection",
     "Retirer le jeton": "Remove the token",
@@ -782,6 +652,8 @@
     [/^Colonne actuelle \((\d+) px\)$/, (_, n) => `Current column (${n} px)`],
     [/^Série (\d+)$/, (_, n) => `Series ${n}`],
     [/^Chiffre clé · (.+)$/, (_, x) => `Key figure \xB7 ${x}`],
+    [/^Teinte · (.+)$/, (_, x) => `Tint \xB7 ${tr(x)}`],
+    [/^Carte · (.+)$/, (_, x) => `Card \xB7 ${x}`],
     [/^Dataviz · (.+)$/, (_, x) => `Dataviz \xB7 ${tr(x)}`],
     [/^(\d+) images? à publier — ouvrir l’Atelier$/, (_, n) => `${n} image${n === "1" ? "" : "s"} to publish \u2014 open the Atelier`],
     [/^Dépôt : (\S+) \(branche main\)\. Le jeton reste dans ce navigateur, il n’est jamais exporté\.$/, (_, r) => `Repository: ${r} (main branch). The token stays in this browser and is never exported.`],
@@ -885,6 +757,234 @@
     };
   }
 
+  // src/cardmodel.js
+  var CARD_DEFAULTS = () => ({
+    layout: "vertical",
+    // vertical | left | right (position de l'image)
+    image: false,
+    bleed: false,
+    // bleed : l'image va jusqu'au bord du contour
+    icon: false,
+    iconName: "globe",
+    iconCircle: true,
+    iconInline: false,
+    tag: false,
+    title: true,
+    figure: false,
+    text: true,
+    bullets: false,
+    link: false,
+    stroke: true,
+    fill: false,
+    align: "left"
+  });
+  var SAMPLE = {
+    tag: "NEW",
+    title: "Digital Europe Programme",
+    figure: "\u20AC7.5 billion",
+    text: "Lorem ipsum dolor sit amet, **consectetuer** adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat.",
+    bullets: "First key point\nSecond key point\nThird key point",
+    link: "Read more"
+  };
+  function cardPresetFor(W) {
+    if (W >= 450) return { layout: "left", image: true, bleed: false, icon: false, tag: false, link: true, bullets: false, figure: false, align: "left" };
+    if (W >= 300) return { layout: "vertical", image: true, bleed: false, icon: false, tag: true, link: true, bullets: false, figure: false, align: "left" };
+    return { layout: "vertical", image: false, bleed: false, icon: true, iconCircle: true, iconInline: false, tag: false, link: false, bullets: false, figure: false, align: "left" };
+  }
+  var newCard = (W = 336) => ({
+    ...CARD_DEFAULTS(),
+    ...cardPresetFor(W),
+    auto: true,
+    src: null,
+    content: {
+      tag: t("NOUVEAU"),
+      title: t("Titre de la carte"),
+      figure: "5 000",
+      text: t("Texte de la carte. Une ligne = un paragraphe, **gras** avec les ast\xE9risques."),
+      bullets: [t("Premier point"), t("Deuxi\xE8me point"), t("Troisi\xE8me point")].join("\n"),
+      link: t("En savoir plus")
+    }
+  });
+  var CARD_CHECKS = [
+    ["image", "Image"],
+    ["bleed", "Image jusqu\u2019au bord du contour"],
+    ["icon", "Ic\xF4ne"],
+    ["iconCircle", "Ic\xF4ne dans une pastille"],
+    ["iconInline", "Ic\xF4ne \xE0 c\xF4t\xE9 du titre"],
+    ["tag", "\xC9tiquette"],
+    ["title", "Titre"],
+    ["figure", "Chiffre"],
+    ["text", "Texte"],
+    ["bullets", "Puces"],
+    ["link", "Lien"],
+    ["stroke", "Contour"],
+    ["fill", "Fond blanc"]
+  ];
+
+  // src/viz/util.js
+  var NS = "http://www.w3.org/2000/svg";
+  function s(tag, attrs = {}, ...kids) {
+    const e = document.createElementNS(NS, tag);
+    if (tag === "svg") e.setAttribute("fill", "currentColor");
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === "style" && typeof v === "object") Object.assign(e.style, v);
+      else e.setAttribute(k, v);
+    }
+    for (const c of kids.flat()) if (c != null && c !== false) e.append(typeof c === "string" ? document.createTextNode(c) : c);
+    return e;
+  }
+  function el(tag, props = {}, ...kids) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+      if (v == null || v === false) continue;
+      if (k === "class") e.className = v;
+      else if (k === "style" && typeof v === "object") Object.assign(e.style, v);
+      else if (k in e) e[k] = v;
+      else e.setAttribute(k, v);
+    }
+    for (const c of kids.flat()) if (c != null && c !== false) e.append(c);
+    return e;
+  }
+  var pxOf = (pt) => pt * 96 / 72;
+  var SW = STROKE.px;
+  var colorRef = (c) => /^(#|rgb|var\()/.test(c || "") ? c : `var(--c-${c || "blue"})`;
+  var round3 = (n) => Math.round(n / 3) * 3;
+  var mctx = document.createElement("canvas").getContext("2d");
+  function mw(text, weight, family, sizePx) {
+    mctx.font = `${weight} ${sizePx * 100}px ${family}`;
+    return mctx.measureText(text).width / 100;
+  }
+  var SANS = FONT.sans;
+  var SERIF = FONT.serif;
+  function fitSize(text, weight, family, size, maxW, minK = 0.6) {
+    const w = mw(text, weight, family, size);
+    return !w || w <= maxW ? size : Math.max(size * minK, size * maxW / w * 0.98);
+  }
+  function ellipsize(text, weight, family, size, maxW) {
+    if (mw(text, weight, family, size) <= maxW + 0.5) return text;
+    let t2 = String(text);
+    while (t2.length > 1 && mw(t2 + "\u2026", weight, family, size) > maxW) t2 = t2.slice(0, -1);
+    return t2 + "\u2026";
+  }
+  function fitText(text, weight, family, size, maxW, minK = 0.6) {
+    const sz = fitSize(text, weight, family, size, maxW, minK);
+    return { size: sz, text: ellipsize(text, weight, family, sz, maxW) };
+  }
+  function paragraphs(text) {
+    const paras = [[]];
+    let cur = [];
+    const flush2 = () => {
+      if (cur.length) {
+        paras[paras.length - 1].push(cur);
+        cur = [];
+      }
+    };
+    let b = false, i = false, u2 = false;
+    String(text || "").replace(/\r\n?/g, "\n").split(/(\*\*|__|~~)/).forEach((seg) => {
+      if (seg === "**") {
+        b = !b;
+        return;
+      }
+      if (seg === "__") {
+        u2 = !u2;
+        return;
+      }
+      if (seg === "~~") {
+        i = !i;
+        return;
+      }
+      for (const part of seg.match(/\n|[^\S\n]+|\S+/g) || []) {
+        if (part === "\n") {
+          flush2();
+          paras.push([]);
+        } else if (/^\s+$/.test(part)) flush2();
+        else cur.push({ t: part, b, i, u: u2 });
+      }
+    });
+    flush2();
+    return paras;
+  }
+  var runsW = (runs, size) => runs.reduce((a, r) => a + mw(r.t, r.b ? 700 : 400, SANS, size), 0);
+  function splitWord(runs, size, maxW) {
+    const out = [];
+    let cur = [], cw = 0;
+    for (const r of runs) for (const ch of r.t) {
+      const c = mw(ch, r.b ? 700 : 400, SANS, size);
+      if (cur.length && cw + c > maxW) {
+        out.push(cur);
+        cur = [];
+        cw = 0;
+      }
+      const l = cur[cur.length - 1];
+      if (l && l.b === r.b && l.i === r.i && l.u === r.u) l.t += ch;
+      else cur.push({ ...r, t: ch });
+      cw += c;
+    }
+    if (cur.length) out.push(cur);
+    return out;
+  }
+  function textLines(title, text, size, maxW) {
+    const out = [], sp = mw(" ", 400, SANS, size);
+    const add = (src, head) => {
+      for (const words of paragraphs(src)) {
+        if (!words.length) continue;
+        let cur = [], cw = 0;
+        for (let w of words.flatMap((x) => maxW > 0 && runsW(x, size) > maxW ? splitWord(x, size, maxW) : [x])) {
+          const w1 = runsW(w, size);
+          if (!cur.length) {
+            cur = [...w];
+            cw = w1;
+          } else if (cw + sp + w1 <= maxW) {
+            cur.push({ t: " ", b: false }, ...w);
+            cw += sp + w1;
+          } else {
+            out.push({ runs: cur, head });
+            cur = [...w];
+            cw = w1;
+          }
+        }
+        out.push({ runs: cur, head });
+      }
+    };
+    if (title && title.trim()) add("**" + title.replace(/\*\*|__|~~/g, "") + "**", true);
+    if (text && text.trim()) add(text, false);
+    return out;
+  }
+  function drawLines(lines, x, y0, lh, size, align = "start") {
+    const g = s("g", { "font-size": size });
+    lines.forEach((l, i) => {
+      const t2 = s("text", { x, y: y0 + i * lh + lh / 2 + 0.33 * size, "text-anchor": align, style: { whiteSpace: "pre" } });
+      for (const r of l.runs) t2.append(s("tspan", { "font-weight": r.b ? 700 : 400, "font-style": r.i ? "italic" : null, "text-decoration": r.u ? "underline" : null }, r.t));
+      g.append(t2);
+    });
+    return g;
+  }
+  function fmt(v, locale, decimals) {
+    const d = Math.max(0, Math.min(6, Math.round(+decimals || 0)));
+    try {
+      return new Intl.NumberFormat(locale || "en-GB", { minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
+    } catch (e) {
+      return String(v);
+    }
+  }
+  function drawLegend(svg, series, y, W = Infinity) {
+    const base = pxOf(TYPE.caption.size), fixed = VIZ.legendSwatch + VIZ.barGap * 2, gap = VIZ.legendH * 1.2;
+    const names = series.map((sr) => sr.name || "");
+    const need = (size) => names.reduce((a, t2) => a + fixed + mw(t2, TYPE.caption.weight, SANS, size), 0) + gap * Math.max(0, names.length - 1);
+    let capPx = base;
+    if (need(base) > W) capPx = Math.max(base * 0.7, base * (W - names.length * fixed - gap * (names.length - 1)) / (need(base) - names.length * fixed - gap * (names.length - 1)));
+    const room = names.length ? Math.max(20, (W - gap * (names.length - 1)) / names.length - fixed) : 0;
+    let x = 0;
+    series.forEach((sr, i) => {
+      svg.append(s("rect", { x: x + SW / 2, y: y + (VIZ.legendH - VIZ.legendSwatch) / 2 + SW / 2, width: VIZ.legendSwatch - SW, height: VIZ.legendSwatch - SW, rx: VIZ.barRadius, fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW }));
+      const lx = x + fixed, t2 = need(base) > W ? ellipsize(names[i], TYPE.caption.weight, SANS, capPx, room) : names[i];
+      svg.append(s("text", { x: lx, y: y + VIZ.legendH / 2 + 0.33 * capPx, "font-size": capPx, "font-weight": TYPE.caption.weight }, t2));
+      x = lx + mw(t2, TYPE.caption.weight, SANS, capPx) + gap;
+    });
+  }
+  var numVal = (r, j) => Math.max(0, +(r.v || [])[j] || 0);
+
   // src/viz/donut.js
   var BODY = pxOf(TYPE.body.size);
   var LH = TYPE.body.lh;
@@ -921,7 +1021,7 @@
         { color: "blue", value: 77.9, title: "\u20AC77.9 billion", text: "in military support from Member States" },
         { color: "slate", value: 17, title: "\u20AC17 billion", text: "in support for Ukrainian refugees in the EU" },
         { color: "yellow", value: 15.5, title: "\u20AC15.5 billion", text: "of grants, loans and guarantees provided by EU Member States for non-military support" },
-        { color: "steel", value: 3.8, title: "\u20AC3.8 billion", text: "in proceeds from immobilised Russian assets" }
+        { color: "sky", value: 3.8, title: "\u20AC3.8 billion", text: "in proceeds from immobilised Russian assets" }
       ]
     }),
     fields: [
@@ -1564,7 +1664,7 @@
   var _id = 0;
   var uid = (p) => `${p}${Date.now().toString(36)}${(_id++).toString(36)}`;
   var IMAGE_RATIOS = { "16:9": 16 / 9, "4:3": 4 / 3, "1:1": 1, "3:4": 3 / 4 };
-  var COL_TYPES = { text: "Texte", image: "Image", figure: "Chiffre cl\xE9", viz: "Dataviz" };
+  var COL_TYPES = { text: "Texte", image: "Image", figure: "Chiffre cl\xE9", card: "Carte", viz: "Dataviz" };
   var LOGO_VARIANTS = { default: "D\xE9faut", mono: "Mono", white: "Blanc (white)", negative: "N\xE9gatif" };
   var newHeaderImage = (n = 1) => ({ id: uid("img"), name: `${t("Image")} ${n}`, src: null });
   var VALIGNS = { top: "align-box-top-center", center: "align-box-center-middle", bottom: "align-box-bottom-center" };
@@ -1583,7 +1683,8 @@
     viz: type === "viz" ? newViz("bars") : null,
     // { kind, opts } — voir viz/index.js
     figure: type === "figure" ? FIGURE_DEFAULTS() : null,
-    // chiffre clé : { value, icon, iconStyle, text }
+    card: type === "card" ? newCard() : null,
+    // carte : options + contenu (voir cardmodel.js)   // chiffre clé : { value, icon, iconStyle, text }
     imgMode: "ratio",
     imgW: 100,
     imgH: 150,
@@ -1623,11 +1724,11 @@
     ];
     const s2 = newSection("verso");
     s2.title = "Second section";
-    s2.bg = "tintSky";
+    s2.bg = "tint-sky";
     s2.subs = [{ id: uid("sub"), title: "EU support", layout: "1", cols: [viz("donut")] }];
     const s3 = newSection("verso");
     s3.title = "Back-page section";
-    s3.bg = "tintYellow";
+    s3.bg = "tint-yellow";
     s3.subs = [
       { id: uid("sub"), title: "Text and image", layout: "2-1", cols: [
         { ...newCol("text"), text: `**First point.** ${lorem}
@@ -1644,8 +1745,9 @@ ${lorem}` },
       locale: "en-GB",
       theme: DEFAULT_THEME,
       colors: {},
+      colorNames: {},
       header: {
-        bg: "deep",
+        bg: "blue",
         fg: "white",
         overline: "FACTSHEET - MONTH 20YY",
         title: "MAIN TITLE",
@@ -1697,6 +1799,7 @@ ${lorem}` },
           c = oldFigure(c);
           const k = Object.assign(newCol(c.type || "text"), c);
           if (k.type === "figure" && !k.figure) k.figure = FIGURE_DEFAULTS();
+          if (k.type === "card" && !k.card) k.card = newCard();
           if (k.type === "viz") {
             if (!k.viz) k.viz = newViz("bars");
             else if (!k.viz.opts) k.viz = newViz(k.viz.kind);
@@ -1705,6 +1808,7 @@ ${lorem}` },
         });
       });
     });
+    oldColors(d);
     return d;
   }
   function oldFigure(c) {
@@ -1788,6 +1892,83 @@ ${lorem}` },
     if (ref) dst.subs.splice(dst.subs.indexOf(ref) + (after ? 1 : 0), 0, sub);
     else dst.subs.push(sub);
     return { si: to.si, bi: dst.subs.indexOf(sub) };
+  }
+  function remapColors(doc2, fn, bg = fn) {
+    const H = doc2.header || {};
+    H.bg = fn(H.bg);
+    H.fg = fn(H.fg);
+    const walk2 = (o) => {
+      if (o && typeof o === "object") for (const k of Object.keys(o)) {
+        if (k === "color" && typeof o[k] === "string") o[k] = fn(o[k]);
+        else walk2(o[k]);
+      }
+    };
+    (doc2.sections || []).forEach((sec) => {
+      sec.bg = bg(sec.bg);
+      if (sec.strokeColor) sec.strokeColor = fn(sec.strokeColor);
+      (sec.subs || []).forEach((sub) => {
+        if (sub.strokeColor) sub.strokeColor = fn(sub.strokeColor);
+        (sub.cols || []).forEach((c) => {
+          if (c.strokeColor) c.strokeColor = fn(c.strokeColor);
+          walk2(c.viz);
+        });
+      });
+    });
+  }
+  var OLD_COLORS = { deep: "blue", steel: "slate", tintSky: "tint-sky", tintLav: "tint-blue", tintYellow: "tint-yellow", tintGrey: "tint-slate" };
+  function oldColors(d) {
+    const f = (k) => OLD_COLORS[k] || k;
+    remapColors(d, f);
+    d.colors = Object.fromEntries(Object.entries(d.colors || {}).filter(([k]) => !OLD_COLORS[k] && !/^tint/.test(k) && k !== "white"));
+    d.colorNames = d.colorNames || {};
+  }
+  var extraColorKeys = (doc2) => Object.keys(doc2.colors || {}).filter((k) => /^x\d+$/.test(k));
+  var canAddColor = (doc2) => extraColorKeys(doc2).length < MAX_EXTRA_COLORS;
+  function addColor(doc2, hex) {
+    let n = 1;
+    while ((doc2.colors || {})["x" + n]) n++;
+    const k = "x" + n;
+    doc2.colors = doc2.colors || {};
+    doc2.colorNames = doc2.colorNames || {};
+    doc2.colors[k] = hex;
+    doc2.colorNames[k] = `${t("Couleur")} ${5 + extraColorKeys(doc2).length}`;
+    return k;
+  }
+  function removeColor(doc2, key) {
+    delete doc2.colors[key];
+    delete (doc2.colorNames || {})[key];
+    remapColors(doc2, (k) => k === key ? "blue" : k, (k) => k === "tint-" + key ? "none" : k);
+  }
+  function refreshAutoCards(sub, widthOf) {
+    sub.cols.forEach((c, i) => {
+      if (c.type === "card" && c.card && c.card.auto) Object.assign(c.card, cardPresetFor(widthOf(i)));
+    });
+  }
+
+  // src/card.js
+  var SAMPLE_IMG = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice"><rect width="400" height="300" fill="#A4CCFC"/><circle cx="300" cy="80" r="34" fill="#FCDC0C"/><path d="M0 300V210c60-50 120-50 190-10s140 40 210-20v120z" fill="#0434F8"/><path d="M0 300v-50c80-40 150-30 230 5s120 20 170-10v55z" fill="#041CEC"/></svg>');
+  function renderCard(o, W) {
+    const C = o.content || SAMPLE, src = o.src || SAMPLE_IMG;
+    const bullets = (Array.isArray(C.bullets) ? C.bullets : String(C.bullets || "").split("\n")).map((x) => x.trim()).filter(Boolean);
+    const card = h("div", { class: `card card-${o.layout}` + (o.stroke ? " stroked" + (o.fill ? " filled" : "") : "") + (o.align === "center" ? " center" : "") + (o.bleed && o.stroke ? " bleed" : "") });
+    const pic = o.image ? h("div", { class: "card-img" }, h("img", { src, alt: "" })) : null;
+    const iconAbove = o.icon && !o.iconInline ? h("div", { class: "card-ico" }, figureIcon(o.iconName, GAP.boxPad * 4, o.iconCircle)) : null;
+    const iconInline = o.icon && o.iconInline ? figureIcon(o.iconName, GAP.boxPad * 2, o.iconCircle) : null;
+    const body = h(
+      "div",
+      { class: "card-body" },
+      o.tag ? h("div", { class: "card-tag", textContent: C.tag }) : null,
+      iconAbove,
+      o.title || iconInline ? h("div", { class: "card-head" }, iconInline, o.title ? h("h3", { class: "card-title", textContent: C.title }) : null) : null,
+      o.figure ? h("div", { class: "vf-value", textContent: C.figure }) : null,
+      o.text ? richText(C.text, o.align === "center" ? "center" : "left") : null,
+      o.bullets ? h("ul", { class: "card-list" }, bullets.map((b) => h("li", { textContent: b }))) : null,
+      o.link ? h("div", { class: "card-link" }, C.link, h("i", { class: "ti ti-arrow-right" })) : null
+    );
+    if (o.layout === "vertical" || !pic) card.append(...[pic, body].filter(Boolean));
+    else card.append(...o.layout === "left" ? [pic, body] : [body, pic]);
+    card.style.width = W + "px";
+    return card;
   }
 
   // src/render.js
@@ -1890,7 +2071,7 @@ ${lorem}` },
   function renderCol(col, w, path, env) {
     const wrap = h("div", { class: `col col-${col.type}`, dataset: { sel: path } });
     const al = { top: "start", center: "center", bottom: "end" }[col.valign] || "start";
-    if (col.stroke) {
+    if (col.stroke && col.type !== "card") {
       strokeStyle(wrap, col);
       wrap.style.justifyContent = { start: "flex-start", center: "center", end: "flex-end" }[al];
       w = insetW(w);
@@ -1899,6 +2080,8 @@ ${lorem}` },
     else if (col.type === "image") {
       wrap.append(renderImage(col, w));
       if (col.caption && col.caption.trim()) wrap.append(h("div", { class: "cap", textContent: col.caption }));
+    } else if (col.type === "card" && col.card) {
+      wrap.append(renderCard(col.card, w));
     } else if (col.type === "figure") {
       wrap.append(renderFigure(col.figure || {}, w, col.align));
     } else {
@@ -1991,10 +2174,11 @@ ${lorem}` },
 
   // src/tree.js
   var strip = (t2) => String(t2 || "").replace(/\*\*|__|~~/g, "").replace(/^[-•]\s+/gm, "").replace(/\s+/g, " ").trim();
-  var GLYPH = { text: "\xB6", image: "\u25A8", figure: "\u2116", viz: "\u25A6" };
+  var GLYPH = { text: "\xB6", image: "\u25A8", figure: "\u2116", card: "\u25AD", viz: "\u25A6" };
   function colLabel(col) {
     if (col.type === "text") return strip(col.text).slice(0, 34) || "Texte vide";
     if (col.type === "image") return col.caption ? "Image \xB7 " + col.caption : "Image";
+    if (col.type === "card") return "Carte \xB7 " + (strip(col.card && col.card.content && col.card.content.title) || "\u2014");
     if (col.type === "figure") return "Chiffre cl\xE9 \xB7 " + (col.figure && col.figure.value || "\u2014");
     const t2 = col.viz && VIZ_TYPES[col.viz.kind];
     return "Dataviz \xB7 " + (t2 ? t2.label : "\u2014");
@@ -2174,8 +2358,222 @@ ${lorem}` },
     }
   }
 
+  // src/colorpicker.js
+  var clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  var normHex = (s2) => {
+    let x = String(s2 || "").trim().replace(/^#/, "");
+    if (/^[0-9a-f]{3}$/i.test(x)) x = x.replace(/./g, (c) => c + c);
+    return /^[0-9a-f]{6}$/i.test(x) ? "#" + x.toUpperCase() : null;
+  };
+  var toRgb = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    return { r: n >> 16 & 255, g: n >> 8 & 255, b: n & 255 };
+  };
+  var toHex = ({ r, g, b }) => "#" + [r, g, b].map((x) => Math.round(clamp(x, 0, 255)).toString(16).padStart(2, "0")).join("").toUpperCase();
+  function rgb2hsv({ r, g, b }) {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    let hh = 0;
+    if (d) hh = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return { h: hh * 60, s: mx ? d / mx : 0, v: mx };
+  }
+  function hsv2rgb({ h: hh, s: s2, v }) {
+    const f = (n) => {
+      const k = (n + hh / 60) % 6;
+      return v - v * s2 * Math.max(0, Math.min(k, 4 - k, 1));
+    };
+    return { r: f(5) * 255, g: f(3) * 255, b: f(1) * 255 };
+  }
+  var current = null;
+  function openColorEditor({ anchor, hex, title, onChange, onClose }) {
+    if (current) current.close(true);
+    const start = normHex(hex) || "#000000";
+    let hsv = rgb2hsv(toRgb(start)), mode = "rgb", done = false;
+    const rgb = () => hsv2rgb(hsv);
+    const sv = h("div", { class: "ce-sv" }, h("i", { class: "ce-knob" }));
+    const hue = h("div", { class: "ce-hue" }, h("i", { class: "ce-knob" }));
+    const drag = (el2, fn) => {
+      const at = (e) => {
+        const r = el2.getBoundingClientRect();
+        fn(clamp((e.clientX - r.left) / r.width, 0, 1), clamp((e.clientY - r.top) / r.height, 0, 1));
+      };
+      el2.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        el2.setPointerCapture(e.pointerId);
+        at(e);
+        const mv = (ev) => at(ev), up = () => {
+          el2.removeEventListener("pointermove", mv);
+          el2.removeEventListener("pointerup", up);
+        };
+        el2.addEventListener("pointermove", mv);
+        el2.addEventListener("pointerup", up);
+      });
+    };
+    drag(sv, (x, y) => {
+      hsv.s = x;
+      hsv.v = 1 - y;
+      update();
+    });
+    drag(hue, (x) => {
+      hsv.h = x * 359.999;
+      update();
+    });
+    const hexIn = h("input", {
+      type: "text",
+      class: "ce-hex",
+      maxlength: 7,
+      spellcheck: false,
+      "aria-label": "Hex",
+      onchange: () => {
+        const n = normHex(hexIn.value);
+        if (n) {
+          hsv = rgb2hsv(toRgb(n));
+          update();
+        } else update();
+      }
+    });
+    const before = h("i", { class: "ce-before", style: { background: start }, title: start }), after = h("i", { class: "ce-after" });
+    const sliders = h("div", { class: "ce-sliders" });
+    const specs = () => mode === "rgb" ? [["R", 0, 255, rgb().r, (v) => {
+      const c = rgb();
+      c.r = v;
+      hsv = rgb2hsv(c);
+    }], ["G", 0, 255, rgb().g, (v) => {
+      const c = rgb();
+      c.g = v;
+      hsv = rgb2hsv(c);
+    }], ["B", 0, 255, rgb().b, (v) => {
+      const c = rgb();
+      c.b = v;
+      hsv = rgb2hsv(c);
+    }]] : [["H", 0, 359, hsv.h, (v) => {
+      hsv.h = v;
+    }], ["S", 0, 100, hsv.s * 100, (v) => {
+      hsv.s = v / 100;
+    }], ["V", 0, 100, hsv.v * 100, (v) => {
+      hsv.v = v / 100;
+    }]];
+    const gradient = (i) => {
+      const c = rgb();
+      if (mode === "rgb") {
+        const a = { ...c }, b = { ...c };
+        ["r", "g", "b"][i] && (a[["r", "g", "b"][i]] = 0, b[["r", "g", "b"][i]] = 255);
+        return `linear-gradient(90deg,${toHex(a)},${toHex(b)})`;
+      }
+      if (i === 0) return "linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)";
+      const lo = toHex(hsv2rgb({ ...hsv, [i === 1 ? "s" : "v"]: 0 })), hi = toHex(hsv2rgb({ ...hsv, [i === 1 ? "s" : "v"]: 1 }));
+      return `linear-gradient(90deg,${lo},${hi})`;
+    };
+    function drawSliders() {
+      sliders.replaceChildren(...specs().map(([label, min, max, val, set], i) => {
+        const num = h("input", { type: "number", min, max, step: 1, value: Math.round(val), "aria-label": label });
+        const rng = h("input", { type: "range", min, max, step: 1, value: Math.round(val), class: "ce-range", style: { background: gradient(i) }, "aria-label": label });
+        const apply = (v) => {
+          set(clamp(+v || 0, min, max));
+          update(true);
+        };
+        rng.addEventListener("input", () => apply(rng.value));
+        num.addEventListener("input", () => {
+          if (num.value !== "") apply(num.value);
+        });
+        return h("div", { class: "ce-row" }, h("b", { textContent: label }), rng, num);
+      }));
+    }
+    const tab = (m, label) => h("button", { type: "button", class: "ce-tab" + (mode === m ? " on" : ""), textContent: label, onclick: () => {
+      mode = m;
+      tabs.querySelectorAll(".ce-tab").forEach((b) => b.classList.toggle("on", b.dataset.m === m));
+      drawSliders();
+    } });
+    const tabs = h("div", { class: "ce-tabs" }, ...[["rgb", "RGB"], ["hsv", "HSV"]].map(([m, l]) => {
+      const b = tab(m, l);
+      b.dataset.m = m;
+      return b;
+    }));
+    const eye = window.EyeDropper ? h("button", { type: "button", class: "mini", title: t("Pipette"), "aria-label": t("Pipette"), onclick: async () => {
+      try {
+        const r = await new window.EyeDropper().open();
+        const n = normHex(r.sRGBHex);
+        if (n) {
+          hsv = rgb2hsv(toRgb(n));
+          update();
+        }
+      } catch (e) {
+      }
+    } }, ico("color-picker")) : null;
+    let raf2 = 0, last = start;
+    function update(keepSliders) {
+      const hx = toHex(rgb()), pure = toHex(hsv2rgb({ h: hsv.h, s: 1, v: 1 }));
+      sv.style.background = `linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,${pure})`;
+      sv.firstChild.style.cssText = `left:${hsv.s * 100}%;top:${(1 - hsv.v) * 100}%;background:${hx}`;
+      hue.firstChild.style.cssText = `left:${hsv.h / 359.999 * 100}%;background:${pure}`;
+      after.style.background = hx;
+      if (document.activeElement !== hexIn) hexIn.value = hx;
+      if (!keepSliders) drawSliders();
+      else if (mode === "hsv" || true) {
+        const rs = sliders.querySelectorAll("input[type=range]"), ns = sliders.querySelectorAll("input[type=number]");
+        specs().forEach(([, , , v], i) => {
+          if (document.activeElement !== ns[i]) ns[i].value = Math.round(v);
+          if (document.activeElement !== rs[i]) rs[i].value = Math.round(v);
+          rs[i].style.background = gradient(i);
+        });
+      }
+      if (hx !== last) {
+        last = hx;
+        cancelAnimationFrame(raf2);
+        raf2 = requestAnimationFrame(() => onChange(hx));
+      }
+    }
+    const pop = h(
+      "div",
+      { class: "ce", role: "dialog", "aria-label": title || t("Couleur") },
+      h("div", { class: "ce-head" }, h("strong", { textContent: title || t("Couleur") }), h("button", { type: "button", class: "mini", "aria-label": t("Annuler"), onclick: () => close(false) }, ico("x"))),
+      sv,
+      hue,
+      h("div", { class: "ce-cmp" }, h("span", { class: "ce-pair" }, before, after), hexIn, eye),
+      tabs,
+      sliders,
+      h("div", { class: "row ce-act" }, h("button", { type: "button", textContent: "Annuler", onclick: () => close(false) }), h("button", { type: "button", class: "primary", textContent: "OK", onclick: () => close(true) }))
+    );
+    document.body.append(pop);
+    const place = () => {
+      const a = anchor ? anchor.getBoundingClientRect() : { left: window.innerWidth - 20, top: 80, bottom: 80 }, w = pop.offsetWidth, hh = pop.offsetHeight;
+      let left = a.left - w - 14;
+      if (left < 8) left = Math.min(window.innerWidth - w - 8, a.left);
+      pop.style.left = left + "px";
+      pop.style.top = clamp(a.top - 20, 8, window.innerHeight - hh - 8) + "px";
+    };
+    update();
+    place();
+    function close(commit) {
+      if (done) return;
+      done = true;
+      cancelAnimationFrame(raf2);
+      document.removeEventListener("pointerdown", outside, true);
+      window.removeEventListener("keydown", onKey, true);
+      if (!commit) onChange(start);
+      else onChange(toHex(rgb()));
+      pop.remove();
+      current = null;
+      if (onClose) onClose(commit);
+    }
+    const outside = (e) => {
+      if (!pop.contains(e.target) && !(anchor && anchor.contains(e.target))) close(true);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        close(false);
+      } else if (e.key === "Enter" && e.target.tagName !== "BUTTON") close(true);
+    };
+    setTimeout(() => document.addEventListener("pointerdown", outside, true));
+    window.addEventListener("keydown", onKey, true);
+    current = { close };
+    return current;
+  }
+
   // src/editor.js
-  var PAL_LABELS = { blue: "Bleu", deep: "Bleu profond", sky: "Bleu ciel", lavender: "Lavande", yellow: "Jaune", slate: "Ardoise", steel: "Acier", white: "Blanc", tintSky: "Teinte ciel", tintLav: "Teinte lavande", tintYellow: "Teinte jaune", tintGrey: "Teinte grise" };
   function readImage(file2, max = 1600) {
     return new Promise((res, rej) => {
       const fr = new FileReader();
@@ -2203,7 +2601,7 @@ ${lorem}` },
     const t2 = ks.reduce((a, k) => a[k] == null ? a[k] = {} : a[k], o);
     t2[last] = v;
   };
-  var SERIES_COLORS = ["sky", "yellow", "blue", "slate", "steel", "lavender"];
+  var SERIES_COLORS = ["sky", "yellow", "blue", "slate", "lavender"];
   function parseTable(text) {
     const lines = text.replace(/\r/g, "").split("\n").filter((l) => l.trim());
     if (!lines.length) return null;
@@ -2333,6 +2731,7 @@ ${lorem}` },
         setP(obj, f.k, v);
         ctx2.changed();
       })));
+      else if (f.t === "lines") out.push(h2("label", { class: "f" }, f.label, h2("textarea", { value: getP(obj, f.k) ?? "", style: { minHeight: "64px" }, oninput: live((t2) => setP(obj, f.k, t2.value)) })));
       else if (f.t === "number") out.push(h2("label", { class: "f" }, f.label, h2("input", { type: "number", value: getP(obj, f.k) ?? 0, min: f.min, max: f.max, step: f.step || 1, oninput: live((t2) => {
         const v = parseFloat(t2.value);
         if (!isNaN(v)) setP(obj, f.k, v);
@@ -2450,10 +2849,7 @@ ${lorem}` },
     )));
     return box;
   }
-  var paletteOptions = (doc2) => {
-    const th = THEMES[doc2.theme] || Object.values(THEMES)[0];
-    return Object.fromEntries(Object.keys(th.colors).map((k) => [k, PAL_LABELS[k] || k]));
-  };
+  var paletteOptions = (doc2) => Object.fromEntries(paletteKeys(doc2).map((k) => [k, t(colorLabel(doc2, k))]));
 
   // src/props.js
   function buildProps(root, ctx2) {
@@ -2491,7 +2887,7 @@ ${lorem}` },
         withNone ? h("button", { type: "button", class: "hv-sw none" + (!obj[k] || obj[k] === "none" ? " on" : ""), title: "Aucun", onclick: struct(() => {
           obj[k] = "none";
         }) }) : null,
-        ...keys.filter((c) => th.colors[c]).map((c) => h("button", { type: "button", class: "hv-sw" + (obj[k] === c ? " on" : ""), title: PAL_LABELS[c] || c, style: { background: `var(--c-${c})` }, onclick: struct(() => {
+        ...keys.map((c) => h("button", { type: "button", class: "hv-sw" + (obj[k] === c ? " on" : ""), title: t(colorLabel(doc2, c)), style: { background: `var(--c-${c})` }, onclick: struct(() => {
           obj[k] = c;
         }) }))
       ])
@@ -2627,12 +3023,110 @@ ${lorem}` },
       obj.stroke ? h(
         "div",
         {},
-        swatches("Couleur du contour", obj, "strokeColor", Object.keys(th.colors)),
+        swatches("Couleur du contour", obj, "strokeColor", paletteKeys(doc2)),
         h("label", { class: "row" }, h("input", { type: "checkbox", checked: !!obj.fill, onchange: struct(() => {
           obj.fill = !obj.fill;
         }) }), "Fond blanc")
       ) : null
     );
+    const paletteEditor = () => {
+      const pal = paletteOf(doc2.theme, doc2.colors), extras = extraColorKeys(doc2);
+      const open = (k, sw) => openColorEditor({
+        anchor: sw,
+        hex: pal[k],
+        title: t(colorLabel(doc2, k)),
+        onChange: (hex) => {
+          doc2.colors[k] = hex;
+          sw.style.background = hex;
+          ctx2.changed();
+        },
+        onClose: () => ctx2.restructure()
+      });
+      const row = (k) => {
+        const isExtra = extras.includes(k), edited = !isExtra && doc2.colors[k] && doc2.colors[k].toLowerCase() !== th.colors[k].toLowerCase();
+        const sw = h("button", { type: "button", class: "pal2-sw", title: "Modifier la couleur", style: { background: pal[k] }, onclick: () => open(k, sw) });
+        return h(
+          "div",
+          { class: "pal2-row", dataset: { key: k } },
+          sw,
+          isExtra ? h("input", { type: "text", value: doc2.colorNames && doc2.colorNames[k] || k, oninput: (e) => {
+            doc2.colorNames[k] = e.target.value;
+            ctx2.changed();
+          } }) : h("span", { class: "pal2-name", textContent: t(colorLabel(doc2, k)) }),
+          h("span", { class: "pal2-hex", textContent: pal[k].toUpperCase() }),
+          isExtra ? h("button", { type: "button", class: "mini danger", title: "Supprimer", onclick: () => {
+            if (confirm(t("Supprimer cette couleur ? Ce qui l\u2019utilise passera en bleu."))) {
+              removeColor(doc2, k);
+              ctx2.restructure();
+            }
+          } }, ico("x")) : edited ? h("button", { type: "button", class: "mini", title: "R\xE9tablir la couleur du th\xE8me", onclick: struct(() => {
+            delete doc2.colors[k];
+          }) }, ico("restore")) : null
+        );
+      };
+      return h(
+        "div",
+        { class: "f" },
+        h("div", { class: "hint", textContent: `${t("Palette du th\xE8me")} (${Object.keys(pal).length}/${Object.keys(th.colors).length + 7})` }),
+        h("div", { class: "pal2" }, Object.keys(pal).map(row)),
+        canAddColor(doc2) ? h("button", { type: "button", onclick: () => {
+          const k = addColor(doc2, "#808080");
+          ctx2.restructure();
+          requestAnimationFrame(() => {
+            const b = root.querySelector(`[data-key="${k}"] .pal2-sw`);
+            if (b) b.click();
+          });
+        } }, ico("plus"), " ", t("Ajouter une couleur")) : null
+      );
+    };
+    const cardPanel = (col2, W) => {
+      const C = col2.card || (col2.card = newCard(W)), ct = C.content;
+      const chosen = (fn) => {
+        fn();
+        C.auto = false;
+        ctx2.restructure();
+      };
+      const check = ([k, label]) => h("label", { class: "row" }, h("input", { type: "checkbox", checked: !!C[k], onchange: (e) => chosen(() => {
+        C[k] = e.target.checked;
+      }) }), label);
+      const sel = (k, label, opts) => {
+        const s2 = h("select", { onchange: (e) => chosen(() => {
+          C[k] = e.target.value;
+        }) }, Object.entries(opts).map(([v, l]) => h("option", { value: v, textContent: l })));
+        s2.value = C[k];
+        return field(label, s2);
+      };
+      const fields = [
+        { k: "tag", t: "text", label: "\xC9tiquette" },
+        { k: "title", t: "text", label: "Titre" },
+        { k: "figure", t: "text", label: "Chiffre" },
+        { k: "text", t: "area", label: "Texte" },
+        { k: "bullets", t: "lines", label: "Puces (une par ligne)" },
+        { k: "link", t: "text", label: "Lien" }
+      ];
+      return h(
+        "div",
+        {},
+        ...buildFields(fields, ct, ctx2, palOpts, h),
+        C.image ? imgPicker("Image de la carte", () => C.src, (v) => {
+          C.src = v;
+        }, 1200) : null,
+        h(
+          "details",
+          { class: "opts", open: true },
+          h("summary", { textContent: "Options de la carte" }),
+          h("label", { class: "row" }, h("input", { type: "checkbox", checked: !!C.auto, onchange: (e) => {
+            C.auto = e.target.checked;
+            if (C.auto) Object.assign(C, cardPresetFor(W));
+            ctx2.restructure();
+          } }), "Type de carte selon la largeur de la colonne"),
+          sel("layout", "Position de l\u2019image", { vertical: t("En haut"), left: t("\xC0 gauche"), right: t("\xC0 droite") }),
+          sel("align", "Alignement", { left: t("Gauche"), center: t("Centr\xE9") }),
+          C.icon ? sel("iconName", "Ic\xF4ne choisie", ICON_OPTIONS) : null,
+          CARD_CHECKS.map(check)
+        )
+      );
+    };
     const title = (t2, crumbs = []) => root.append(h(
       "div",
       { class: "pr-head" },
@@ -2648,15 +3142,7 @@ ${lorem}` },
         text(doc2, "name", "Nom du fichier"),
         select(doc2, "theme", "Th\xE8me", Object.fromEntries(Object.entries(THEMES).map(([k, t2]) => [k, t2.label])), () => ctx2.restructure()),
         select(doc2, "locale", "Format des nombres", LOCALES),
-        h("div", { class: "hint", textContent: "Palette du th\xE8me" }),
-        h("div", { class: "pal" }, Object.keys(th.colors).map((k) => h(
-          "label",
-          { textContent: PAL_LABELS[k] || k },
-          h("input", { type: "color", value: (doc2.colors[k] || th.colors[k]).toLowerCase(), oninput: (e) => {
-            doc2.colors[k] = e.target.value;
-            ctx2.changed();
-          } })
-        ))),
+        paletteEditor(),
         h("p", { class: "hint", textContent: "S\xE9lectionnez un \xE9l\xE9ment dans la structure (\xE0 gauche) ou sur la page pour modifier ses propri\xE9t\xE9s." })
       );
     } else if (kind === "header") {
@@ -2666,8 +3152,8 @@ ${lorem}` },
         text(H, "overline", "Surtitre"),
         text(H, "title", "Titre (taille fixe)"),
         text(H, "subtitle", "Sous-titre (optionnel \u2014 vide = masqu\xE9)"),
-        swatches("Couleur de fond", H, "bg", Object.keys(th.colors)),
-        swatches("Couleur du texte", H, "fg", Object.keys(th.colors)),
+        swatches("Couleur de fond", H, "bg", paletteKeys(doc2)),
+        swatches("Couleur du texte", H, "fg", paletteKeys(doc2)),
         h("label", { class: "row" }, h("input", { type: "checkbox", checked: H.showImage, onchange: struct(() => {
           H.showImage = !H.showImage;
         }) }), "Afficher l\u2019image"),
@@ -2681,7 +3167,7 @@ ${lorem}` },
       title(sec.title || "Section", [["Document", null]]);
       root.append(
         text(sec, "title", "Titre de section"),
-        swatches("Fond de la section", sec, "bg", SECTION_BGS, true),
+        swatches("Fond de la section", sec, "bg", sectionBgs(doc2), true),
         strokeControls(sec),
         select(sec, "page", "Page", { recto: "Recto", verso: "Verso" }, () => ctx2.restructure()),
         actions(
@@ -2705,6 +3191,7 @@ ${lorem}` },
           const n = GRID.layouts[sub.layout].spans.length;
           sub.cols = sub.cols.slice(0, n);
           while (sub.cols.length < n) sub.cols.push(newCol("text"));
+          refreshAutoCards(sub, (i) => columnWidth(doc2, si, bi, i));
           ctx2.restructure();
         }),
         field("D\xE9placer vers la section", (() => {
@@ -2752,6 +3239,10 @@ ${lorem}` },
             const keep = col.text, { valign, align, stroke, strokeColor, fill } = col;
             Object.assign(col, newCol(e.target.value), { valign, align, stroke, strokeColor, fill });
             if (e.target.value === "text" && keep) col.text = keep;
+            if (e.target.value === "card") {
+              col.card = newCard(columnWidth(doc2, si, bi, ci));
+              col.stroke = false;
+            }
             ctx2.restructure();
           } },
           Object.entries(COL_TYPES).map(([v, l]) => h("option", { value: v, textContent: l, selected: col.type === v }))
@@ -2803,6 +3294,8 @@ ${lorem}` },
           mode === "custom" && (col.imgW ?? 100) < 100 ? segmented("Position dans la colonne", col, "align", { left: ALIGNS.left, center: ALIGNS.center, right: ALIGNS.right }, { left: t("Gauche"), center: t("Centr\xE9"), right: t("Droite") }) : null,
           text(col, "caption", "L\xE9gende (optionnelle)")
         );
+      } else if (col.type === "card") {
+        root.append(cardPanel(col, columnWidth(doc2, si, bi, ci)));
       } else if (col.type === "figure") {
         if (!col.figure) col.figure = FIGURE_DEFAULTS();
         root.append(...buildFields(FIGURE_FIELDS, col.figure, ctx2, palOpts, h));
@@ -2813,16 +3306,16 @@ ${lorem}` },
           h("p", { class: "hint", textContent: "Tous les r\xE9glages de la dataviz (type, donn\xE9es, couleurs, options) se font dans l\u2019\xE9diteur." })
         );
       }
-      root.append(strokeControls(col));
+      if (col.type !== "card") root.append(strokeControls(col));
     } else {
       title("\xC9l\xE9ment introuvable");
     }
   }
 
   // src/vizeditor.js
-  var current = null;
+  var current2 = null;
   function openVizEditor({ col, sub, ci, bg, width: colW, ctx: ctx2 }) {
-    if (current) return;
+    if (current2) return;
     const doc2 = ctx2.getDoc();
     const snapshot = JSON.stringify(col.viz);
     const baseW = colW || colWidth(sub.layout, ci);
@@ -2961,7 +3454,7 @@ ${lorem}` },
       }
       window.removeEventListener("keydown", onKey);
       root.remove();
-      current = null;
+      current2 = null;
       document.body.classList.remove("ve-open");
       ctx2.restructure();
     };
@@ -2984,14 +3477,14 @@ ${lorem}` },
     );
     document.body.append(root);
     document.body.classList.add("ve-open");
-    current = root;
+    current2 = root;
     new ResizeObserver(() => {
       if (zoom === "fit") draw();
     }).observe(stage2);
     buildForm();
     draw();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => {
-      if (current === root) draw();
+      if (current2 === root) draw();
     });
   }
 
@@ -3045,7 +3538,7 @@ ${lorem}` },
           sw("none", !sec.bg || sec.bg === "none", "Sans fond", () => {
             sec.bg = "none";
           }),
-          SECTION_BGS.map((k) => sw(k, sec.bg === k, "Fond " + k, () => {
+          sectionBgs(doc2).map((k) => sw(k, sec.bg === k, t(colorLabel(doc2, k)), () => {
             sec.bg = k;
           })),
           btn(ico("arrow-up"), "Monter", () => {
@@ -3057,7 +3550,7 @@ ${lorem}` },
         ));
       } else if (it.kind === "header") {
         const H = doc2.header;
-        g.push(grp("Header", edit("header"), ["blue", "deep", "yellow", "sky", "lavender", "slate"].map((k) => sw(k, H.bg === k, k, () => {
+        g.push(grp("Header", edit("header"), paletteKeys(doc2).map((k) => sw(k, H.bg === k, t(colorLabel(doc2, k)), () => {
           H.bg = k;
         }))));
       }

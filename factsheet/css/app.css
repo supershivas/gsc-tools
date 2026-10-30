@@ -193,3 +193,31 @@ body.v3d-open{overflow:hidden}
 .seg button.on{background:var(--ui-blue);color:#fff}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .outline{border-top:1px solid var(--ui-line);margin-top:10px;padding-top:8px}
+
+/* ---------- Éditeur de couleur ---------- */
+.ce{position:fixed;z-index:80;width:260px;background:#fff;border:1px solid var(--ui-line);border-radius:12px;box-shadow:0 12px 40px #0004;padding:12px;display:flex;flex-direction:column;gap:10px;font-size:13px}
+.ce-head{display:flex;align-items:center;justify-content:space-between}
+.ce-sv{position:relative;height:150px;border-radius:6px;cursor:crosshair;touch-action:none}
+.ce-hue{position:relative;height:14px;border-radius:7px;cursor:pointer;touch-action:none;background:linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)}
+.ce-knob{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #0007;pointer-events:none}
+.ce-hue .ce-knob{top:50%}
+.ce-cmp{display:flex;align-items:center;gap:8px}
+.ce-pair{display:flex;width:56px;height:30px;border-radius:6px;overflow:hidden;border:1px solid var(--ui-line);flex:none}
+.ce-pair i{flex:1}
+.ce-hex{flex:1;min-width:0;font-family:var(--font-mono,monospace);text-transform:uppercase}
+.ce-tabs{display:flex;gap:4px}
+.ce-tab{flex:1;padding:3px 0;border-radius:6px}.ce-tab.on{background:var(--ui-blue);border-color:var(--ui-blue);color:#fff}
+.ce-sliders{display:flex;flex-direction:column;gap:6px}
+.ce-row{display:grid;grid-template-columns:14px 1fr 54px;align-items:center;gap:8px}
+.ce-row input[type=number]{padding:2px 4px}
+.ce-range{-webkit-appearance:none;appearance:none;height:12px;border-radius:6px;border:1px solid var(--ui-line);padding:0}
+.ce-range::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;border:2px solid #fff;background:#333;box-shadow:0 0 0 1px #0007}
+.ce-range::-moz-range-thumb{width:12px;height:12px;border-radius:50%;border:2px solid #fff;background:#333}
+.ce-act{justify-content:flex-end}
+/* palette du document */
+.pal2{display:flex;flex-direction:column;gap:6px}
+.pal2-row{display:flex;align-items:center;gap:8px}
+.pal2-sw{width:30px;height:30px;border-radius:7px;border:1px solid #0003;padding:0;cursor:pointer;flex:none}
+.pal2-name{flex:1;min-width:0;font-size:13px}
+.pal2-row input[type=text]{flex:1;min-width:0;padding:3px 6px}
+.pal2-hex{font:11px var(--font-mono,monospace);color:var(--ui-mute)}

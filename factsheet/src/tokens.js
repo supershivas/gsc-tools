@@ -140,36 +140,51 @@ export const VIZ = {
 };
 
 /* ---------- Thèmes (palettes) ----------
-   Teintes relevées sur les captures du design system. */
+   Cinq couleurs par thème (teintes relevées sur les captures du design system) ; le blanc est toujours disponible et n'est pas
+   compté. Un document peut en ajouter (doc.colors : clés `x1`, `x2`… + doc.colorNames). Les fonds de section sont des teintes
+   calculées de chaque couleur (`tint-<clé>`), pas des couleurs en plus. */
 export const THEMES = {
   eu: {
     label: 'Bleu UE',
     colors: {
-      blue:     '#0434F8',   // texte, traits, séries principales
-      deep:     '#041CEC',   // fond de header
+      blue:     '#0434F8',   // texte, traits, fond de header, séries principales
       sky:      '#A4CCFC',   // séries claires
-      lavender: '#BCCCFC',
       yellow:   '#FCDC0C',
       slate:    '#5E6566',
-      steel:    '#8FA3AD',
-      white:    '#FFFFFF',
-      /* teintes claires — fonds de section */
-      tintSky:    '#ECF4FF',
-      tintLav:    '#E6EAFB',
-      tintYellow: '#FFF7C4',
-      tintGrey:   '#EEF0F1',
+      lavender: '#BCCCFC',
     },
+    names: { blue: 'Bleu', sky: 'Bleu ciel', yellow: 'Jaune', slate: 'Ardoise', lavender: 'Lavande' },
     text: 'blue',            // couleur des textes et traits par défaut
   },
 };
 export const DEFAULT_THEME = 'eu';
-/** Couleurs proposées comme fond de section (clés de palette) */
-export const SECTION_BGS = ['tintSky', 'tintLav', 'tintYellow', 'tintGrey'];
+export const WHITE = '#FFFFFF';
+export const MAX_EXTRA_COLORS = 7;       // 5 couleurs du thème + 7 ajoutées au plus
+export const TINT = 0.2;                 // part de couleur dans une teinte (fond de section)
+
+const hex2rgb = h => { const n = parseInt(h.replace('#', ''), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+const rgb2hex = (r, g, b) => '#' + [r, g, b].map(x => Math.round(x).toString(16).padStart(2, '0')).join('').toUpperCase();
+/** teinte claire d'une couleur : mélange avec du blanc */
+export const tintOf = hex => rgb2hex(...hex2rgb(hex).map(c => c * TINT + 255 * (1 - TINT)));
+
+/** palette effective d'un document : couleurs du thème (éventuellement modifiées) + couleurs ajoutées */
+export const paletteOf = (themeKey, colors) => Object.assign({}, (THEMES[themeKey] || THEMES[DEFAULT_THEME]).colors, colors || {});
+/** clés de couleur proposées (sans les teintes) ; `white` ajoute le blanc */
+export const paletteKeys = (doc, white = true) => [...Object.keys(paletteOf(doc.theme, doc.colors)), ...(white ? ['white'] : [])];
+/** fonds de section proposés : une teinte par couleur */
+export const sectionBgs = doc => Object.keys(paletteOf(doc.theme, doc.colors)).map(k => 'tint-' + k);
+/** libellé (clé française, à passer par t()) d'une couleur ou d'une teinte */
+export function colorLabel(doc, key) {
+  const th = THEMES[doc.theme] || THEMES[DEFAULT_THEME];
+  if (key === 'white') return 'Blanc';
+  if (key.startsWith('tint-')) return 'Teinte · ' + colorLabel(doc, key.slice(5));
+  return (doc.colorNames && doc.colorNames[key]) || th.names[key] || key;
+}
 
 /* ---------- Application en variables CSS ---------- */
 export function cssVars(themeKey, colors) {
   const th = THEMES[themeKey] || THEMES[DEFAULT_THEME];
-  const pal = Object.assign({}, th.colors, colors || {});
+  const pal = paletteOf(themeKey, colors);
   const v = {};
   for (const [k, n] of Object.entries(SPACE)) v[`--s${k}`] = n + 'px';
   for (const [k, val] of Object.entries(GAP)) v[`--gap-${k}`] = val + 'px';
@@ -179,7 +194,8 @@ export function cssVars(themeKey, colors) {
     v[`--t-${k}-weight`] = t.weight;
     v[`--t-${k}-family`] = FONT[t.family];
   }
-  for (const [k, c] of Object.entries(pal)) v[`--c-${k}`] = c;
+  for (const [k, c] of Object.entries(pal)) { v[`--c-${k}`] = c; v[`--c-tint-${k}`] = tintOf(c); }
+  v['--c-white'] = WHITE;
   for (const [k, val] of Object.entries(VIZ)) if (typeof val === 'number') v[`--viz-${k}`] = val + 'px';
   v['--c-text'] = pal[th.text];
   v['--stroke'] = STROKE.pt + 'pt';

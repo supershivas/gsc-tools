@@ -1,13 +1,12 @@
 /* Boutons contextuels au survol de l'aperçu : une barre flottante regroupe les actions de l'élément
    survolé (colonne → sous-section → section, ou header). Elle vit hors des pages : jamais exportée. */
 import { h, ico } from './render.js';
-import { GRID, THEMES, SECTION_BGS, cssVars, applyVars } from './tokens.js';
+import { GRID, THEMES, sectionBgs, paletteKeys, colorLabel, cssVars, applyVars } from './tokens.js';
+import { t } from './i18n.js';
 import { COL_TYPES, newCol, newSub, stepSection } from './state.js';
 import { readImage } from './editor.js';
 
 const TYPE_LABELS = COL_TYPES;
-const HEAD_BG = ['blue', 'deep', 'sky', 'lavender', 'yellow', 'slate', 'steel', 'white'];
-const HEAD_FG = ['white', 'blue', 'yellow'];
 
 export function initHover({ stage, getDoc, ctx, select, canShow }) {
   const bar = h('div', { class: 'hv-bar', style: { display: 'none' } });
@@ -38,11 +37,11 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
     } else if (it.kind === 'sec') {
       const sec = doc.sections[it.si];
       g.push(grp('Section', edit(`sec:${it.si}`), sw('none', !sec.bg || sec.bg === 'none', 'Sans fond', () => { sec.bg = 'none'; }),
-        SECTION_BGS.map(k => sw(k, sec.bg === k, 'Fond ' + k, () => { sec.bg = k; })),
+        sectionBgs(doc).map(k => sw(k, sec.bg === k, t(colorLabel(doc, k)), () => { sec.bg = k; })),
         btn(ico('arrow-up'), 'Monter', () => { stepSection(doc, it.si, -1); }), btn(ico('arrow-down'), 'Descendre', () => { stepSection(doc, it.si, 1); })));
     } else if (it.kind === 'header') {
       const H = doc.header;
-      g.push(grp('Header', edit('header'), ['blue', 'deep', 'yellow', 'sky', 'lavender', 'slate'].map(k => sw(k, H.bg === k, k, () => { H.bg = k; }))));
+      g.push(grp('Header', edit('header'), paletteKeys(doc).map(k => sw(k, H.bg === k, t(colorLabel(doc, k)), () => { H.bg = k; }))));
     }
     return g;
   }

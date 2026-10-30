@@ -38,6 +38,9 @@ JS vanilla statique, hébergé sur GitHub Pages (push sur `main` = déploiement)
 - **Contours** (`stroke`, `strokeColor`, `fill` sur sections, sous-sections et colonnes) : trait 0,5 pt, coins de 3 px (`STROKE.radius`), le cadre est aligné sur les marges et le contenu est en retrait de `GAP.boxPad` ; les largeurs transmises aux dataviz/images sont réduites par `insetW` (`columnWidth()` dans `render.js` pour la largeur réelle).
 - **Dataviz** : toute modification passe par l'éditeur de dataviz ; le panneau de droite ne garde que le bouton qui l'ouvre. Le chiffre clé n'est plus une dataviz (`col.type = 'figure'`) ; les anciens fichiers sont migrés dans `state.js`.
 
+- **Couleurs** : 5 couleurs par thème (`THEMES` dans `tokens.js`), blanc toujours disponible, jusqu'à 7 couleurs ajoutées par document (`doc.colors` clés `x1`…, noms dans `doc.colorNames`). Les fonds de section sont des teintes calculées (`tint-<clé>`, `tintOf`). Édition par `src/colorpicker.js`. Les anciennes clés (`deep`, `steel`, `tint*`) sont migrées dans `state.js` (`oldColors`) ; supprimer une couleur ajoutée fait passer ses usages en bleu (`removeColor`).
+- **Cartes** : type de contenu `card` (`src/card.js` rendu, `src/cardmodel.js` options et contenu). Le type par défaut suit la largeur de la colonne (`cardPresetFor` : ≥ 450 px image à côté, ≥ 300 px image en haut, sinon icône en tête) tant que `card.auto` est vrai ; toucher à une option le passe à faux. Le contour d'une carte est une option de la carte (pas le contour de colonne).
+
 ## Pièges connus
 
 - Le Factsheet creator imprime le PDF via `window.print()` : l'en-tête, le bandeau et le toast sont masqués en `@media print` (`factsheet/css/app.css`) ; tout nouvel élément fixe de la coque doit l'être aussi.

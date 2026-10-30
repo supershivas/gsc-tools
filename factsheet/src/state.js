@@ -1,6 +1,7 @@
 /* Modèle de document — un JSON, source unique de tous les exports.
    Les textes acceptent **gras**, une ligne = un paragraphe, "- " = puce. */
-import { DEFAULT_THEME, GRID } from './tokens.js';
+import { DEFAULT_THEME, GRID, MAX_EXTRA_COLORS } from './tokens.js';
+import { newCard, cardPresetFor } from './cardmodel.js';
 import { newViz } from './viz/index.js';
 import { t } from './i18n.js';
 import { FIGURE_DEFAULTS } from './figure.js';
@@ -10,7 +11,7 @@ let _id = 0;
 export const uid = p => `${p}${Date.now().toString(36)}${(_id++).toString(36)}`;
 
 export const IMAGE_RATIOS = { '16:9': 16 / 9, '4:3': 4 / 3, '1:1': 1, '3:4': 3 / 4 };
-export const COL_TYPES = { text: 'Texte', image: 'Image', figure: 'Chiffre clé', viz: 'Dataviz' };
+export const COL_TYPES = { text: 'Texte', image: 'Image', figure: 'Chiffre clé', card: 'Carte', viz: 'Dataviz' };
 /* Les 4 versions du logo ont la même taille (HEADER.logo). `label` = clé de traduction. */
 export const LOGO_VARIANTS = { default: 'Défaut', mono: 'Mono', white: 'Blanc (white)', negative: 'Négatif' };
 export const newHeaderImage = (n = 1) => ({ id: uid('img'), name: `${t('Image')} ${n}`, src: null });
@@ -25,7 +26,8 @@ export const newCol = (type = 'text') => ({
   valign: 'top',     // alignement vertical du contenu dans sa colonne : top | center | bottom
   align: 'left',     // alignement du texte : left | center | right | justify
   viz: type === 'viz' ? newViz('bars') : null,   // { kind, opts } — voir viz/index.js
-  figure: type === 'figure' ? FIGURE_DEFAULTS() : null,   // chiffre clé : { value, icon, iconStyle, text }
+  figure: type === 'figure' ? FIGURE_DEFAULTS() : null,
+  card: type === 'card' ? newCard() : null,          // carte : options + contenu (voir cardmodel.js)   // chiffre clé : { value, icon, iconStyle, text }
   imgMode: 'ratio', imgW: 100, imgH: 150, imgFit: 'cover', natural: null,   // image : ratio | fit (proportions de l'image) | custom (largeur en %, hauteur en px)
   stroke: false, strokeColor: 'text', fill: false,   // contour (également sur les sections et sous-sections)
 });
@@ -51,10 +53,10 @@ export function defaultDoc() {
     ] },
   ];
   const s2 = newSection('verso');
-  s2.title = 'Second section'; s2.bg = 'tintSky';
+  s2.title = 'Second section'; s2.bg = 'tint-sky';
   s2.subs = [{ id: uid('sub'), title: 'EU support', layout: '1', cols: [viz('donut')] }];
   const s3 = newSection('verso');
-  s3.title = 'Back-page section'; s3.bg = 'tintYellow';
+  s3.title = 'Back-page section'; s3.bg = 'tint-yellow';
   s3.subs = [
     { id: uid('sub'), title: 'Text and image', layout: '2-1', cols: [
       { ...newCol('text'), text: `**First point.** ${lorem}\n- First list item\n- Second list item\n${lorem}` },
@@ -64,9 +66,9 @@ export function defaultDoc() {
   ];
   return {
     schema: SCHEMA, name: 'factsheet', locale: 'en-GB',
-    theme: DEFAULT_THEME, colors: {},
+    theme: DEFAULT_THEME, colors: {}, colorNames: {},
     header: {
-      bg: 'deep', fg: 'white',
+      bg: 'blue', fg: 'white',
       overline: 'FACTSHEET - MONTH 20YY', title: 'MAIN TITLE', subtitle: 'Subtitle',
       images: [newHeaderImage(1), newHeaderImage(2)], imageId: null,   // bibliothèque d'images du header (autant que l'on veut)
       logos: { default: null, mono: null, white: null, negative: null }, logoVariant: 'default',
@@ -100,9 +102,10 @@ export function migrate(j) {
       const n = GRID.layouts[sub.layout].spans.length;
       sub.cols = (sub.cols || []).slice(0, n);
       while (sub.cols.length < n) sub.cols.push(newCol('text'));
-      sub.cols = sub.cols.map(c => { c = oldFigure(c); const k = Object.assign(newCol(c.type || 'text'), c); if (k.type === 'figure' && !k.figure) k.figure = FIGURE_DEFAULTS(); if (k.type === 'viz') { if (!k.viz) k.viz = newViz('bars'); else if (!k.viz.opts) k.viz = newViz(k.viz.kind); } return k; });
+      sub.cols = sub.cols.map(c => { c = oldFigure(c); const k = Object.assign(newCol(c.type || 'text'), c); if (k.type === 'figure' && !k.figure) k.figure = FIGURE_DEFAULTS(); if (k.type === 'card' && !k.card) k.card = newCard(); if (k.type === 'viz') { if (!k.viz) k.viz = newViz('bars'); else if (!k.viz.opts) k.viz = newViz(k.viz.kind); } return k; });
     });
   });
+  oldColors(d);
   return d;
 }
 
@@ -186,4 +189,45 @@ export function moveSub(doc, from, to, after) {
   src.subs.splice(from.bi, 1);
   if (ref) dst.subs.splice(dst.subs.indexOf(ref) + (after ? 1 : 0), 0, sub); else dst.subs.push(sub);
   return { si: to.si, bi: dst.subs.indexOf(sub) };
+}
+
+/* ---------- Couleurs : migration, ajout, suppression ---------- */
+/** Parcourt toutes les références de couleur du document (header, fonds et contours, séries des dataviz) ; fn(clé) → nouvelle clé, bg(clé) pour les fonds de section */
+export function remapColors(doc, fn, bg = fn) {
+  const H = doc.header || {}; H.bg = fn(H.bg); H.fg = fn(H.fg);
+  const walk = o => { if (o && typeof o === 'object') for (const k of Object.keys(o)) { if (k === 'color' && typeof o[k] === 'string') o[k] = fn(o[k]); else walk(o[k]); } };
+  (doc.sections || []).forEach(sec => {
+    sec.bg = bg(sec.bg); if (sec.strokeColor) sec.strokeColor = fn(sec.strokeColor);
+    (sec.subs || []).forEach(sub => {
+      if (sub.strokeColor) sub.strokeColor = fn(sub.strokeColor);
+      (sub.cols || []).forEach(c => { if (c.strokeColor) c.strokeColor = fn(c.strokeColor); walk(c.viz); });
+    });
+  });
+}
+/** Anciennes palettes (12 couleurs) → 5 couleurs : les clés supprimées prennent la plus proche */
+const OLD_COLORS = { deep: 'blue', steel: 'slate', tintSky: 'tint-sky', tintLav: 'tint-blue', tintYellow: 'tint-yellow', tintGrey: 'tint-slate' };
+function oldColors(d) {
+  const f = k => OLD_COLORS[k] || k;
+  remapColors(d, f);
+  d.colors = Object.fromEntries(Object.entries(d.colors || {}).filter(([k]) => !OLD_COLORS[k] && !/^tint/.test(k) && k !== 'white'));
+  d.colorNames = d.colorNames || {};
+}
+export const extraColorKeys = doc => Object.keys(doc.colors || {}).filter(k => /^x\d+$/.test(k));
+export const canAddColor = doc => extraColorKeys(doc).length < MAX_EXTRA_COLORS;
+/** Ajoute une couleur au document ; retourne sa clé */
+export function addColor(doc, hex) {
+  let n = 1; while ((doc.colors || {})['x' + n]) n++;
+  const k = 'x' + n; doc.colors = doc.colors || {}; doc.colorNames = doc.colorNames || {};
+  doc.colors[k] = hex; doc.colorNames[k] = `${t('Couleur')} ${5 + extraColorKeys(doc).length}`;
+  return k;
+}
+/** Retire une couleur ajoutée : ce qui l'utilisait passe en bleu (les fonds de section en « aucun ») */
+export function removeColor(doc, key) {
+  delete doc.colors[key]; delete (doc.colorNames || {})[key];
+  remapColors(doc, k => (k === key ? 'blue' : k), k => (k === 'tint-' + key ? 'none' : k));
+}
+
+/** Cartes « automatiques » : suivent la largeur de leur colonne tant qu'on n'a pas touché à leurs options (voir cardPresetFor) */
+export function refreshAutoCards(sub, widthOf) {
+  sub.cols.forEach((c, i) => { if (c.type === 'card' && c.card && c.card.auto) Object.assign(c.card, cardPresetFor(widthOf(i))); });
 }

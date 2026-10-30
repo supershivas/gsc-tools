@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.0 — 2026-10-30
+- Vrai éditeur de couleur (carré, teinte, RGB/HSV, hexadécimal, pipette) ; palette limitée à 5 couleurs par thème, avec ajout possible
+- Les fonds de section sont des teintes calculées des couleurs de la palette
+- Nouveau contenu « Carte » avec toutes les options au choix ; son type par défaut dépend de la largeur de la colonne
+
 ## 1.4.0 — 2026-10-30
 - Contour (coins de 3 px) sur les sections, sous-sections et colonnes ; images ajustées au conteneur ou à taille personnalisée
 - Chiffre clé devenu un type de contenu à part, avec icône ; les réglages d'une dataviz sont tous dans son éditeur
