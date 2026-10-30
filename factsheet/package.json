@@ -1,0 +1,9 @@
+{
+  "name": "factsheet-creator",
+  "version": "0.3.0",
+  "private": true,
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --format=iife --outfile=app.js"
+  },
+  "devDependencies": { "esbuild": "^0.25.0" }
+}

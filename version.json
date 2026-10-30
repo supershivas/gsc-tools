@@ -1,0 +1,5 @@
+{
+  "version": "1.0.0",
+  "date": "2026-10-30",
+  "changes": ["Crée l'app GSC tools avec une page d'accueil des outils", "Intègre le Factsheet creator"]
+}

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Factsheet creator — GSC tools</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono&family=Inter:wght@400;500;600&family=Playfair+Display:wght@700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/mobile.css">
+<link rel="stylesheet" href="../css/shell.css">
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/doc.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header id="app-header"></header>
+<div class="app">
+  <aside class="panel tree" id="tree"></aside>
+  <main class="stage-wrap">
+    <div class="bar">
+      <div class="gauges" id="gauges"></div>
+      <label class="zoom">Zoom
+        <select id="zoom">
+          <option value="fit">Ajuster</option>
+          <option value="0.5">50 %</option><option value="0.75">75 %</option>
+          <option value="1">100 %</option>
+        </select>
+      </label>
+    </div>
+    <div id="warnings" class="warnings"></div>
+    <div class="stage" id="stage"></div>
+  </main>
+  <aside class="panel props" id="props"></aside>
+</div>
+<dialog id="exportDlg">
+  <h3>Exporter en PDF</h3>
+  <div id="exportOpts"></div>
+  <p class="tip">Le navigateur ouvre sa fenêtre d’impression : choisissez <b>Enregistrer au format PDF</b> comme destination, <b>Marges : aucune</b>, et cochez <b>Graphiques d’arrière-plan</b>. Le PDF contient 2 pages (recto, verso) en vectoriel avec polices incorporées.</p>
+  <div class="row"><button type="button" id="exportCancel">Annuler</button><button type="button" class="primary" id="exportGo">Exporter</button></div>
+</dialog>
+<script src="app.js"></script>
+<script type="module">
+import { initShell } from '../js/shell.js';
+initShell({ sub: 'Factsheet creator' });
+</script>
+</body>
+</html>

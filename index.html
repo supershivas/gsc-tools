@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GSC tools</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono&family=Inter:wght@400;500;600&family=Playfair+Display:wght@700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/mobile.css">
+<link rel="stylesheet" href="css/shell.css">
+</head>
+<body>
+<header id="app-header"></header>
+<main class="home">
+  <h1>GSC tools</h1>
+  <p class="lead">Les outils de design développés pour le GSC.</p>
+  <div class="tools">
+    <a class="tool-card" href="factsheet/">
+      <i class="ti ti-file-text"></i>
+      <h2>Factsheet creator</h2>
+      <p>Éditeur de fiche A4 recto-verso avec dataviz et export PDF.</p>
+    </a>
+  </div>
+</main>
+<script type="module">
+import { initShell } from './js/shell.js';
+initShell();
+</script>
+</body>
+</html>

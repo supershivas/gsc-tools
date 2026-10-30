@@ -1,0 +1,27 @@
+/* Variables dérivées de design-tokens.json (synchronisé depuis supershivas/design-system).
+   Si une valeur change dans le design system, la reporter ici. */
+:root {
+  --accent: #C0392B;
+  --accent-hover: #9B2D22;
+  --accent-fg: #ffffff;
+  --dark: #1C1C1E;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 12px;
+  --font-sans: 'Inter', sans-serif;
+  --font-title: 'Playfair Display', Georgia, serif;
+  --font-mono: 'DM Mono', monospace;
+  --modal-overlay: rgba(0, 0, 0, 0.40);
+  --modal-max-width: 480px;
+  --modal-padding: 20px;
+  --modal-gap: 16px;
+  --header-h: 52px;
+
+  /* Neutres de l'app (absents des tokens partagés) */
+  --bg: #f5f5f4;
+  --panel: #ffffff;
+  --line: #e2e2e0;
+  --ink: #1C1C1E;
+  --mute: #6b6b70;
+}
