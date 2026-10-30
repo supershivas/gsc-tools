@@ -31,6 +31,9 @@ JS vanilla statique, hébergé sur GitHub Pages (push sur `main` = déploiement)
 
 - **Atelier** (`factsheet/atelier.html`, lien dans les réglages) : publie les images du document dans `factsheet/assets/` et les projets dans `factsheet/projects/` par un commit sur `main` (API Git de GitHub, `src/github.js`). Jeton personnel à droits fins gardé dans le `localStorage` sous `gsc-tools-github-token` (clé volontairement hors du préfixe `factsheet-creator`, donc jamais exportée). Après publication, le document ne garde que le chemin (`assets/<hash>.<ext>`), une fois Pages à jour.
 
+- **Menus de l'en-tête** : `initShell({ menus, settingsExtra })` (`js/shell.js`) ; le Factsheet creator les déclare dans `window.FS_UI` (`factsheet/src/main.js`), lu par `factsheet/index.html`. Les réglages (roue crantée) restent l'unique accès aux réglages ; la langue y est une section ajoutée par `settingsExtra`.
+- **Déplacements** : déposer un contenu sur une colonne **échange** les deux contenus (alignements inclus) ; une sous-section se range dans n'importe quelle section. Tout passe par `ctx.moved()` (`main.js`) qui garde un instantané pour « Annuler le déplacement » (effacé à la modification suivante). Effets de bord : largeur de colonne différente (dataviz et images se redessinent), page de destination qui déborde (avertissements existants), section laissée vide (conservée).
+
 ## Pièges connus
 
 - Le Factsheet creator imprime le PDF via `window.print()` : l'en-tête, le bandeau et le toast sont masqués en `@media print` (`factsheet/css/app.css`) ; tout nouvel élément fixe de la coque doit l'être aussi.

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0 — 2026-10-30
+- Menus Fichier et Affichage dans l'en-tête du Factsheet creator ; la langue passe dans les réglages
+- Un contenu de colonne se déplace sur une autre colonne (glisser ou liste), avec annulation ; les sous-sections changent de section
+- Alignement vertical du contenu (haut, centre, bas) et alignement du texte (gauche, centré, droite, justifié)
+
 ## 1.2.0 — 2026-10-30
 - Atelier : publie les images (logos, header, colonnes) et les projets dans le dépôt GitHub, pour les retrouver sur tous les appareils
 - Lien « Atelier » dans les réglages et rappel des images à publier dans le Factsheet creator

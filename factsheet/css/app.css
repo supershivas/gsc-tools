@@ -179,3 +179,15 @@ body.v3d-open{overflow:hidden}
 .imgtile-name{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .imgtile-act{gap:4px}
 .imgtile-add{min-height:84px;border:1px dashed var(--ui-line);background:transparent;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;color:var(--ui-mute)}
+
+/* ---------- Déplacements, alignements, menus ---------- */
+.tn.drop-before{box-shadow:0 -3px 0 var(--ui-blue)}.tn.drop-after{box-shadow:0 3px 0 var(--ui-blue)}
+.tn.drop-swap,.tn.drop-zone{outline:2px dashed var(--ui-blue);outline-offset:-2px;background:#f3f8ff}
+.stage .page .drop-col{outline:2px dashed #F28C28;outline-offset:2px;background:#F28C2814}
+.stage .page .drag-src{opacity:.45}
+.grip-btn{cursor:grab;touch-action:none}
+.warnings div.note{display:flex;align-items:center;gap:10px;background:#eef1fb;color:var(--ui-blue)}
+.seg{display:inline-flex;border:1px solid var(--ui-line);border-radius:7px;overflow:hidden;margin-top:4px}
+.seg button{border:0;border-right:1px solid var(--ui-line);border-radius:0;background:#fff;padding:5px 9px;font-size:17px;line-height:1;cursor:pointer;color:var(--ui-ink)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--ui-blue);color:#fff}

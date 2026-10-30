@@ -35,6 +35,9 @@ Le logo a 4 versions de même taille (défaut, mono, white, négatif) : une list
 ## Atelier (publication dans GitHub)
 `atelier.html` : connexion avec un jeton GitHub (droits fins, « Contents » lecture/écriture sur ce dépôt, gardé dans ce navigateur), publication des images du document (logos, header, colonnes) dans `assets/` et des projets `.json` dans `projects/` (un commit sur `main`, noms de fichiers d'après le contenu), liste et suppression des fichiers publiés, ouverture d'un projet publié dans l'éditeur. Le document ne garde alors que le chemin de l'image.
 
+## Déplacements et alignements
+Glisser la poignée de la barre au survol (aperçu) ou celle d'une ligne de la structure sur une autre colonne **échange** les deux contenus ; la liste « Échanger le contenu avec… » du panneau fait la même chose. Une sous-section se glisse dans la structure (avant/après une autre, ou sur une section pour la ranger à la fin) ou via « Déplacer vers la section ». Chaque déplacement propose « Annuler le déplacement ». Alignement vertical du contenu dans la colonne (`valign`) et alignement du texte (`align`) dans le panneau de la colonne.
+
 ## Aperçu 3D
 Bouton « Aperçu 3D » : les pages sont dessinées en images (`src/raster.js`) puis posées sur une feuille A4 en three.js (`src/viewer3d.js`, bundle séparé `viewer3d.js` chargé à la demande). Léger balancement tant que la caméra n'est pas touchée, puis caméra libre (clic gauche tourner, clic droit déplacer, molette zoomer) ; boutons Retourner (recto/verso, touche F), Deux pages, Recentrer ; Échap ferme.
 

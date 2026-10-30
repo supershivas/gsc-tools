@@ -24,8 +24,8 @@ const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&
 export const inline = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/__(.+?)__/g, '<u>$1</u>').replace(/~~(.+?)~~/g, '<i>$1</i>');
 
 /** Texte à balisage léger → éléments <p> / <ul> */
-export function richText(text) {
-  const root = h('div', { class: 'rich' });
+export function richText(text, align) {
+  const root = h('div', { class: 'rich', style: align && align !== 'left' ? { textAlign: align } : {} });
   let ul = null;
   for (const raw of String(text || '').replace(/\r\n?/g, '\n').split('\n')) {
     const line = raw.trim();
@@ -62,7 +62,8 @@ function renderHeader(doc) {
 function renderCol(col, layoutKey, i, path, env) {
   const w = colWidth(layoutKey, i);
   const wrap = h('div', { class: `col col-${col.type}`, dataset: { sel: path } });
-  if (col.type === 'text') wrap.append(richText(col.text));
+  wrap.style.alignSelf = { top: 'start', center: 'center', bottom: 'end' }[col.valign] || 'start';
+  if (col.type === 'text') wrap.append(richText(col.text, col.align));
   else if (col.type === 'image') {
     const r = IMAGE_RATIOS[col.ratio] || 4 / 3;
     const box = h('div', { class: 'img-box', style: { height: Math.round(w / r / 3) * 3 + 'px' } },

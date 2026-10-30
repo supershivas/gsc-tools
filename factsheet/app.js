@@ -638,6 +638,29 @@
     "R\xE9glages": "Settings",
     "Envoi": "Send",
     "R\xE9daction": "Writing",
+    /* menus, réglages, déplacements, alignements */
+    "Fichier": "File",
+    "Affichage": "View",
+    "R\xE9glages": "Settings",
+    "Version": "Version",
+    "Derni\xE8res versions": "Latest versions",
+    "Exporter mes donn\xE9es (JSON)": "Export my data (JSON)",
+    "Atelier du Factsheet creator": "Factsheet creator Atelier",
+    "Cette app est pr\xE9vue pour un \xE9cran d\u2019ordinateur": "This app is designed for a computer screen",
+    "Fermer le bandeau": "Close the banner",
+    "Alignement vertical dans la colonne": "Vertical alignment in the column",
+    "Alignement du texte": "Text alignment",
+    "Haut": "Top",
+    "Centre": "Middle",
+    "Bas": "Bottom",
+    "Centr\xE9": "Centred",
+    "Justifi\xE9": "Justified",
+    "\xC9changer le contenu avec\u2026": "Swap content with\u2026",
+    "D\xE9placer vers la section": "Move to section",
+    "Annuler le d\xE9placement": "Undo move",
+    "Contenu d\xE9plac\xE9. V\xE9rifiez le remplissage des pages.": "Content moved. Check how full the pages are.",
+    "Glisser la sous-section (autre section possible)": "Drag the subsection (other sections allowed)",
+    "Glisser le contenu sur une autre colonne pour l\u2019\xE9changer": "Drag the content onto another column to swap them",
     /* atelier */
     "Connexion \xE0 GitHub": "GitHub connection",
     "Retirer le jeton": "Remove the token",
@@ -1173,7 +1196,7 @@
         svg.append(s("text", { x: tx, y: top + TYPE.callout.lh / 2 + 0.33 * cv.size, "font-size": cv.size, "font-weight": TYPE.callout.weight }, cv.text));
         svg.append(drawLines(tl.map((l) => ({ ...l, runs: l.runs.map((r) => ({ ...r, b: false })) })), tx, top + TYPE.callout.lh, TYPE.caption.lh, capPx));
       }
-      const bar2 = (x, y, h2, color, round) => s("path", { d: round ? barPath(x, y, bw, Math.max(h2, 1e-4), VIZ.barRadius) : `M${x},${y}h${bw}v${h2}h${-bw}Z`, fill: colorRef(color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" });
+      const bar = (x, y, h2, color, round) => s("path", { d: round ? barPath(x, y, bw, Math.max(h2, 1e-4), VIZ.barRadius) : `M${x},${y}h${bw}v${h2}h${-bw}Z`, fill: colorRef(color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" });
       rows.forEach((r, i) => {
         if (stacked) {
           let acc = 0;
@@ -1182,11 +1205,11 @@
             if (!v) return;
             const y0 = yOf(acc + v), h2 = yOf(acc) - y0;
             acc += v;
-            svg.append(bar2(barX[i][j], y0, h2, sr.color, j === series.length - 1 || acc >= total(r)));
+            svg.append(bar(barX[i][j], y0, h2, sr.color, j === series.length - 1 || acc >= total(r)));
           });
         } else series.forEach((sr, j) => {
           const y = yOf(numVal(r, j));
-          svg.append(bar2(barX[i][j], y, baseY - y, sr.color, true));
+          svg.append(bar(barX[i][j], y, baseY - y, sr.color, true));
         });
       });
       const vMax = slot / (stacked ? 1 : k) - 2;
@@ -1459,6 +1482,8 @@
   var COL_TYPES = { text: "Texte", image: "Image", viz: "Dataviz" };
   var LOGO_VARIANTS = { default: "D\xE9faut", mono: "Mono", white: "Blanc (white)", negative: "N\xE9gatif" };
   var newHeaderImage = (n = 1) => ({ id: uid("img"), name: `${t("Image")} ${n}`, src: null });
+  var VALIGNS = { top: "align-box-top-center", center: "align-box-center-middle", bottom: "align-box-bottom-center" };
+  var ALIGNS = { left: "align-left", center: "align-center", right: "align-right", justify: "align-justified" };
   var LOCALES = { "en-GB": "EN \u2014 1,227.5", "fr-BE": "FR \u2014 1 227,5", "de-DE": "DE \u2014 1.227,5", "nl-BE": "NL \u2014 1.227,5", "es-ES": "ES \u2014 1227,5", "it-IT": "IT \u2014 1.227,5" };
   var newCol = (type = "text") => ({
     type,
@@ -1466,6 +1491,10 @@
     src: null,
     ratio: "4:3",
     caption: "",
+    valign: "top",
+    // alignement vertical du contenu dans sa colonne : top | center | bottom
+    align: "left",
+    // alignement du texte : left | center | right | justify
     viz: type === "viz" ? newViz("bars") : null
     // { kind, opts } — voir viz/index.js
   });
@@ -1636,6 +1665,25 @@ ${lorem}` },
     return out.filter((x) => x.get());
   }
   var localImageCount = (doc2) => docImages(doc2).filter((x) => /^data:/.test(x.get())).length;
+  function swapCols(doc2, a, b) {
+    const ca = doc2.sections[a.si].subs[a.bi].cols, cb = doc2.sections[b.si].subs[b.bi].cols;
+    [ca[a.ci], cb[b.ci]] = [cb[b.ci], ca[a.ci]];
+  }
+  function allCols(doc2) {
+    const out = [];
+    doc2.sections.forEach((sec, si) => sec.subs.forEach((sub, bi) => sub.cols.forEach((col, ci) => out.push({ si, bi, ci, page: sec.page, label: `${sec.title || "Section"} \u203A ${sub.title || "Subsection"} \u203A ${ci + 1}` }))));
+    return out;
+  }
+  function moveSub(doc2, from, to, after) {
+    const src = doc2.sections[from.si], sub = src.subs[from.bi], dst = doc2.sections[to.si];
+    if (!sub || !dst) return from;
+    const ref = to.bi == null ? null : dst.subs[to.bi];
+    if (ref === sub) return from;
+    src.subs.splice(from.bi, 1);
+    if (ref) dst.subs.splice(dst.subs.indexOf(ref) + (after ? 1 : 0), 0, sub);
+    else dst.subs.push(sub);
+    return { si: to.si, bi: dst.subs.indexOf(sub) };
+  }
 
   // src/render.js
   var ico = (name) => h("i", { class: "ti ti-" + name });
@@ -1655,8 +1703,8 @@ ${lorem}` },
   }
   var esc = (t2) => t2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   var inline = (t2) => esc(t2).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/__(.+?)__/g, "<u>$1</u>").replace(/~~(.+?)~~/g, "<i>$1</i>");
-  function richText(text) {
-    const root = h("div", { class: "rich" });
+  function richText(text, align) {
+    const root = h("div", { class: "rich", style: align && align !== "left" ? { textAlign: align } : {} });
     let ul = null;
     for (const raw of String(text || "").replace(/\r\n?/g, "\n").split("\n")) {
       const line = raw.trim();
@@ -1705,7 +1753,8 @@ ${lorem}` },
   function renderCol(col, layoutKey, i, path, env) {
     const w = colWidth(layoutKey, i);
     const wrap = h("div", { class: `col col-${col.type}`, dataset: { sel: path } });
-    if (col.type === "text") wrap.append(richText(col.text));
+    wrap.style.alignSelf = { top: "start", center: "center", bottom: "end" }[col.valign] || "start";
+    if (col.type === "text") wrap.append(richText(col.text, col.align));
     else if (col.type === "image") {
       const r = IMAGE_RATIOS[col.ratio] || 4 / 3;
       const box = h(
@@ -1816,8 +1865,76 @@ ${lorem}` },
       ctx2.restructure();
     } });
     root.append(row(null, 0, [h("span", { class: "tn-ico", textContent: "\u25A4" }), h("strong", { textContent: doc2.name || "Document" }), h("span", { class: "tn-sub", textContent: "document" })]));
-    let dragFrom = null;
-    const clearDrop = () => root.querySelectorAll(".drop-before,.drop-after,.drop-zone").forEach((n) => n.classList.remove("drop-before", "drop-after", "drop-zone"));
+    let dragFrom = null, drag = null;
+    const clearDrop = () => root.querySelectorAll(".drop-before,.drop-after,.drop-zone,.drop-swap").forEach((n) => n.classList.remove("drop-before", "drop-after", "drop-zone", "drop-swap"));
+    const gripFor = (d) => h("span", {
+      class: "grip",
+      draggable: true,
+      title: d.kind === "sub" ? "Glisser la sous-section (autre section possible)" : "Glisser le contenu sur une autre colonne pour l\u2019\xE9changer",
+      ondragstart: (e) => {
+        e.stopPropagation();
+        drag = d;
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", d.kind);
+      },
+      ondragend: () => {
+        drag = null;
+        clearDrop();
+      }
+    }, ico("grip-vertical"));
+    const dropOn = (rowEl, target) => {
+      rowEl.addEventListener("dragover", (ev) => {
+        if (!drag) return;
+        if (target.kind === "col" && drag.kind === "col") {
+          ev.preventDefault();
+          ev.stopPropagation();
+          clearDrop();
+          rowEl.classList.add("drop-swap");
+        } else if (target.kind === "sub" && drag.kind === "sub") {
+          ev.preventDefault();
+          ev.stopPropagation();
+          const r = rowEl.getBoundingClientRect(), after = ev.clientY > r.top + r.height / 2;
+          clearDrop();
+          rowEl.classList.add(after ? "drop-after" : "drop-before");
+          rowEl.dataset.after = after ? "1" : "";
+        } else if (target.kind === "sec" && drag.kind === "sub") {
+          ev.preventDefault();
+          ev.stopPropagation();
+          clearDrop();
+          rowEl.classList.add("drop-zone");
+        }
+      });
+      rowEl.addEventListener("drop", (ev) => {
+        if (!drag) return;
+        const d = drag;
+        drag = null;
+        clearDrop();
+        if (target.kind === "col" && d.kind === "col") {
+          ev.preventDefault();
+          ev.stopPropagation();
+          ctx2.moved(() => {
+            swapCols(doc2, d, target);
+            return `col:${target.si}:${target.bi}:${target.ci}`;
+          });
+        } else if (target.kind === "sub" && d.kind === "sub") {
+          ev.preventDefault();
+          ev.stopPropagation();
+          const after = !!rowEl.dataset.after;
+          ctx2.moved(() => {
+            const n = moveSub(doc2, d, target, after);
+            return `sub:${n.si}:${n.bi}`;
+          });
+        } else if (target.kind === "sec" && d.kind === "sub") {
+          ev.preventDefault();
+          ev.stopPropagation();
+          ctx2.moved(() => {
+            const n = moveSub(doc2, d, { si: target.si, bi: null });
+            return `sub:${n.si}:${n.bi}`;
+          });
+        }
+      });
+      return rowEl;
+    };
     const secNode = (sec, si) => {
       const key = sec.id || "sec" + si, closed = collapsed2.has(key);
       const grip = h("span", {
@@ -1834,12 +1951,12 @@ ${lorem}` },
           clearDrop();
         }
       }, ico("grip-vertical"));
-      const node = h("div", { class: "tn-sec" }, row(`sec:${si}`, 0, [grip, tog(key), h("span", { class: "tn-ico", textContent: sec.bg && sec.bg !== "none" ? "\u25FC" : "\u25FB", style: sec.bg && sec.bg !== "none" ? { color: `var(--c-${sec.bg})`, textShadow: "0 0 0 #0005", WebkitTextStroke: "1px #0004" } : {} }), h("strong", { textContent: sec.title || "Section sans titre" })]));
+      const node = h("div", { class: "tn-sec" }, dropOn(row(`sec:${si}`, 0, [grip, tog(key), h("span", { class: "tn-ico", textContent: sec.bg && sec.bg !== "none" ? "\u25FC" : "\u25FB", style: sec.bg && sec.bg !== "none" ? { color: `var(--c-${sec.bg})`, textShadow: "0 0 0 #0005", WebkitTextStroke: "1px #0004" } : {} }), h("strong", { textContent: sec.title || "Section sans titre" })]), { kind: "sec", si }));
       if (!closed) {
         sec.subs.forEach((sub, bi) => {
           const sk = sub.id || `sub${si}${bi}`, sClosed = collapsed2.has(sk);
-          node.append(row(`sub:${si}:${bi}`, 1, [tog(sk), h("span", { textContent: sub.title || "Sous-section" }), h("span", { class: "tn-sub", textContent: sub.layout })]));
-          if (!sClosed) sub.cols.forEach((col, ci) => node.append(row(`col:${si}:${bi}:${ci}`, 2, [h("span", { class: "tn-ico", textContent: GLYPH[col.type] || "\xB7" }), h("span", { class: "tn-lab", textContent: colLabel(col) })])));
+          node.append(dropOn(row(`sub:${si}:${bi}`, 1, [gripFor({ kind: "sub", si, bi }), tog(sk), h("span", { textContent: sub.title || "Sous-section" }), h("span", { class: "tn-sub", textContent: sub.layout })]), { kind: "sub", si, bi }));
+          if (!sClosed) sub.cols.forEach((col, ci) => node.append(dropOn(row(`col:${si}:${bi}:${ci}`, 2, [gripFor({ kind: "col", si, bi, ci }), h("span", { class: "tn-ico", textContent: GLYPH[col.type] || "\xB7" }), h("span", { class: "tn-lab", textContent: colLabel(col) })]), { kind: "col", si, bi, ci })));
         });
         node.append(add("+ sous-section", () => {
           sec.subs.push(newSub("1"));
@@ -2025,12 +2142,12 @@ ${lorem}` },
       const b = h("button", { type: "button", class: "mini", textContent: label, title, style, dataset: { cmd: c }, onmousedown: (e) => e.preventDefault(), onclick: cmd(c) });
       return b;
     };
-    const bar2 = h("div", { class: "row fmt" }, mk("B", "Gras", "bold", { fontWeight: 800 }), mk("I", "Italique", "italic", { fontStyle: "italic" }), mk("U", "Soulign\xE9", "underline", { textDecoration: "underline" }), (() => {
+    const bar = h("div", { class: "row fmt" }, mk("B", "Gras", "bold", { fontWeight: 800 }), mk("I", "Italique", "italic", { fontStyle: "italic" }), mk("U", "Soulign\xE9", "underline", { textDecoration: "underline" }), (() => {
       const b = mk("", "Liste \xE0 puces", "insertUnorderedList");
       b.append(ico("list"));
       return b;
     })());
-    const sync = () => bar2.querySelectorAll("[data-cmd]").forEach((b) => {
+    const sync = () => bar.querySelectorAll("[data-cmd]").forEach((b) => {
       let on = false;
       try {
         on = document.queryCommandState(b.dataset.cmd);
@@ -2046,7 +2163,7 @@ ${lorem}` },
       e.preventDefault();
       document.execCommand("insertText", false, (e.clipboardData || window.clipboardData).getData("text/plain"));
     });
-    return h("div", { class: "re-wrap" }, bar2, ed);
+    return h("div", { class: "re-wrap" }, bar, ed);
   }
   function buildFields(spec, obj, ctx2, palOpts, h2) {
     const out = [];
@@ -2186,6 +2303,8 @@ ${lorem}` },
   function buildProps(root, ctx2) {
     const doc2 = ctx2.getDoc(), path = ctx2.getSel();
     root.innerHTML = "";
+    const append = root.append.bind(root);
+    root.append = (...k) => append(...k.filter((x) => x != null && x !== false));
     applyVars(root, cssVars(doc2.theme, doc2.colors));
     const th = THEMES[doc2.theme] || THEMES.eu, palOpts = paletteOptions(doc2);
     const live = (fn) => (e) => {
@@ -2334,6 +2453,15 @@ ${lorem}` },
         )
       );
     };
+    const segmented = (label, obj, k, icons, names) => h(
+      "div",
+      { class: "f" },
+      h("div", { class: "hint", textContent: label }),
+      h("div", { class: "seg" }, Object.entries(icons).map(([v, ic]) => h("button", { type: "button", class: v === (obj[k] || Object.keys(icons)[0]) ? "on" : "", title: names[v], "aria-label": names[v], "aria-pressed": String(v === (obj[k] || Object.keys(icons)[0])), onclick: () => {
+        obj[k] = v;
+        ctx2.restructure();
+      } }, ico(ic))))
+    );
     const title = (t2, crumbs = []) => root.append(h(
       "div",
       { class: "pr-head" },
@@ -2406,6 +2534,23 @@ ${lorem}` },
           while (sub.cols.length < n) sub.cols.push(newCol("text"));
           ctx2.restructure();
         }),
+        field("D\xE9placer vers la section", (() => {
+          const s2 = h(
+            "select",
+            { onchange: (e) => {
+              if (!e.target.value) return;
+              const to = +e.target.value;
+              ctx2.moved(() => {
+                const n = moveSub(doc2, { si, bi }, { si: to, bi: null });
+                return `sub:${n.si}:${n.bi}`;
+              });
+            } },
+            h("option", { value: "", textContent: "\u2014" }),
+            doc2.sections.map((x, i) => h("option", { value: i, textContent: `${x.title || t("Section")} (${x.page === "recto" ? t("Recto") : t("Verso")})` }))
+          );
+          s2.value = "";
+          return s2;
+        })()),
         actions(
           h("button", { type: "button", textContent: "\u2191 Monter", onclick: struct(() => {
             const j = bi - 1;
@@ -2427,16 +2572,37 @@ ${lorem}` },
       );
     } else if (kind === "col" && col) {
       title(`Colonne ${ci + 1}`, [["Document", null], [sec.title || "Section", `sec:${si}`], [sub.title || "Sous-section", `sub:${si}:${bi}`]]);
-      root.append(field("Contenu", h(
-        "select",
-        { onchange: (e) => {
-          const keep = col.text;
-          Object.assign(col, newCol(e.target.value));
-          if (e.target.value === "text" && keep) col.text = keep;
-          ctx2.restructure();
-        } },
-        Object.entries(COL_TYPES).map(([v, l]) => h("option", { value: v, textContent: l, selected: col.type === v }))
-      )));
+      root.append(
+        field("Contenu", h(
+          "select",
+          { onchange: (e) => {
+            const keep = col.text, { valign, align } = col;
+            Object.assign(col, newCol(e.target.value), { valign, align });
+            if (e.target.value === "text" && keep) col.text = keep;
+            ctx2.restructure();
+          } },
+          Object.entries(COL_TYPES).map(([v, l]) => h("option", { value: v, textContent: l, selected: col.type === v }))
+        )),
+        segmented("Alignement vertical dans la colonne", col, "valign", VALIGNS, { top: t("Haut"), center: t("Centre"), bottom: t("Bas") }),
+        col.type === "text" ? segmented("Alignement du texte", col, "align", ALIGNS, { left: t("Gauche"), center: t("Centr\xE9"), right: t("Droite"), justify: t("Justifi\xE9") }) : null,
+        field("\xC9changer le contenu avec\u2026", (() => {
+          const s2 = h(
+            "select",
+            { onchange: (e) => {
+              if (!e.target.value) return;
+              const [a, b, c] = e.target.value.split(":").map(Number);
+              ctx2.moved(() => {
+                swapCols(doc2, { si, bi, ci }, { si: a, bi: b, ci: c });
+                return `col:${a}:${b}:${c}`;
+              });
+            } },
+            h("option", { value: "", textContent: "\u2014" }),
+            allCols(doc2).filter((c) => !(c.si === si && c.bi === bi && c.ci === ci)).map((c) => h("option", { value: `${c.si}:${c.bi}:${c.ci}`, textContent: c.label + (doc2.sections[c.si].page !== sec.page ? ` (${c.page === "recto" ? t("Recto") : t("Verso")})` : "") }))
+          );
+          s2.value = "";
+          return s2;
+        })())
+      );
       if (col.type === "text") root.append(h("div", { class: "f" }, h("div", { class: "hint", textContent: "Texte" }), richEditor(col.text, (v) => {
         col.text = v;
         ctx2.changed();
@@ -2642,19 +2808,19 @@ ${lorem}` },
 
   // src/hover.js
   function initHover({ stage: stage2, getDoc, ctx: ctx2, select, canShow }) {
-    const bar2 = h("div", { class: "hv-bar", style: { display: "none" } });
+    const bar = h("div", { class: "hv-bar", style: { display: "none" } });
     const out = h("div", { class: "hv-out", style: { display: "none" } });
-    document.body.append(out, bar2);
+    document.body.append(out, bar);
     let timer = 0, cur = null;
     const hide = () => {
       clearTimeout(timer);
-      bar2.style.display = out.style.display = "none";
+      bar.style.display = out.style.display = "none";
       cur = null;
     };
     const later = () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
-        if (!bar2.contains(document.activeElement)) hide();
+        if (!bar.contains(document.activeElement)) hide();
       }, 250);
     };
     const act = (fn) => () => {
@@ -2670,7 +2836,11 @@ ${lorem}` },
       const edit = (path) => btn([ico("pencil"), " \xC9diter"], "Afficher les propri\xE9t\xE9s", () => select(path), "primary");
       if (it.kind === "col") {
         const sub = doc2.sections[it.si].subs[it.bi], col = sub.cols[it.ci];
-        g.push(grp("Colonne", edit(it.path), col.type === "viz" ? btn("Dataviz\u2026", "Ouvrir l\u2019\xE9diteur de dataviz", () => ctx2.editViz({ col, sub, ci: it.ci })) : null));
+        const grip = h("button", { type: "button", class: "mini grip-btn", title: "Glisser le contenu sur une autre colonne pour l\u2019\xE9changer", onpointerdown: (e) => {
+          e.preventDefault();
+          ctx2.startColDrag(e, { si: it.si, bi: it.bi, ci: it.ci });
+        } }, ico("grip-vertical"));
+        g.push(grp("Colonne", grip, edit(it.path), col.type === "viz" ? btn("Dataviz\u2026", "Ouvrir l\u2019\xE9diteur de dataviz", () => ctx2.editViz({ col, sub, ci: it.ci })) : null));
       } else if (it.kind === "sub") {
         const sec = doc2.sections[it.si];
         const mv = (d) => () => {
@@ -2732,21 +2902,21 @@ ${lorem}` },
       if (key === cur) return;
       cur = key;
       const doc2 = getDoc();
-      applyVars(bar2, cssVars(doc2.theme, doc2.colors));
-      bar2.innerHTML = "";
-      bar2.append(...groups(chain, doc2));
-      bar2.style.display = "flex";
-      const r = chain[0].el.getBoundingClientRect(), st = stage2.getBoundingClientRect(), bw = bar2.offsetWidth, bh = bar2.offsetHeight;
+      applyVars(bar, cssVars(doc2.theme, doc2.colors));
+      bar.innerHTML = "";
+      bar.append(...groups(chain, doc2));
+      bar.style.display = "flex";
+      const r = chain[0].el.getBoundingClientRect(), st = stage2.getBoundingClientRect(), bw = bar.offsetWidth, bh = bar.offsetHeight;
       let top = r.top - bh + 6;
       if (top < st.top - 12) top = r.top + 4;
       let left = Math.min(r.right - bw, window.innerWidth - bw - 8);
       left = Math.max(left, st.left + 4);
-      Object.assign(bar2.style, { left: left + "px", top: top + "px" });
+      Object.assign(bar.style, { left: left + "px", top: top + "px" });
       Object.assign(out.style, { display: "block", left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px" });
     });
     stage2.addEventListener("pointerleave", later);
-    bar2.addEventListener("pointerenter", () => clearTimeout(timer));
-    bar2.addEventListener("pointerleave", later);
+    bar.addEventListener("pointerenter", () => clearTimeout(timer));
+    bar.addEventListener("pointerleave", later);
     stage2.addEventListener("scroll", hide, true);
     return { hide };
   }
@@ -2881,11 +3051,12 @@ ${lorem}` },
   var stage = document.getElementById("stage");
   var gauges = document.getElementById("gauges");
   var warnEl = document.getElementById("warnings");
-  var zoomSel = document.getElementById("zoom");
+  var zoomMode = "fit";
   var raf = 0;
   var hover = null;
+  var undoSnap = null;
   function scaleValue() {
-    if (zoomSel.value !== "fit") return parseFloat(zoomSel.value);
+    if (zoomMode !== "fit") return parseFloat(zoomMode);
     const avail = stage.clientWidth - 44;
     return Math.max(0.4, Math.min(1, (avail - 24) / (2 * PAGE.w)));
   }
@@ -2916,6 +3087,7 @@ ${lorem}` },
     });
     warnEl.innerHTML = "";
     r.warnings.forEach((w) => warnEl.append(h("div", { textContent: w })));
+    if (undoSnap) warnEl.append(h("div", { class: "note moved" }, h("span", { textContent: undoSnap.label }), h("button", { type: "button", class: "mini", textContent: "Annuler le d\xE9placement", onclick: undo })));
     const nLocal = localImageCount(doc);
     if (nLocal) warnEl.append(h("a", { class: "note", href: "atelier.html", textContent: nLocal === 1 ? "1 image \xE0 publier \u2014 ouvrir l\u2019Atelier" : `${nLocal} images \xE0 publier \u2014 ouvrir l\u2019Atelier` }));
     if (!storage.ok) warnEl.append(h("div", { textContent: "Espace de stockage du navigateur plein : les derni\xE8res modifications ne sont pas enregistr\xE9es. Enregistrez le projet (.json) et all\xE9gez les images." }));
@@ -2958,11 +3130,21 @@ ${lorem}` },
     getSel: () => selected,
     collapsed,
     changed() {
+      undoSnap = null;
       saveDoc(doc);
       schedule();
       drawTree();
     },
     refreshTree: drawTree,
+    /* Déplacement de contenu : `fn` modifie le document et renvoie le chemin à sélectionner ensuite.
+       L'état d'avant est gardé pour « Annuler le déplacement » (jusqu'à la prochaine modification). */
+    moved(fn, label = "Contenu d\xE9plac\xE9. V\xE9rifiez le remplissage des pages.") {
+      const snap = JSON.stringify(doc), to = fn();
+      undoSnap = { snap, label };
+      selected = to || null;
+      ctx.restructure();
+      ctx.select(selected);
+    },
     restructure() {
       fixSelection();
       saveDoc(doc);
@@ -2984,6 +3166,13 @@ ${lorem}` },
       openVizEditor({ col, sub, ci, bg: sec && sec.bg, ctx });
     }
   };
+  function undo() {
+    if (!undoSnap) return;
+    doc = migrate(JSON.parse(undoSnap.snap));
+    undoSnap = null;
+    selected = null;
+    ctx.restructure();
+  }
   hover = initHover({
     stage,
     getDoc: () => doc,
@@ -3076,6 +3265,53 @@ ${lorem}` },
     ctx.select(`sec:${ni}`);
   }
   window.addEventListener("pointerup", endSectionDrag);
+  var cdrag = null;
+  var colAt = (x, y) => {
+    const n = document.elementFromPoint(x, y), c = n && n.closest && n.closest('.stage .col[data-sel^="col:"]');
+    return c || null;
+  };
+  ctx.startColDrag = (e, from) => {
+    const src = stage.querySelector(`.col[data-sel="col:${from.si}:${from.bi}:${from.ci}"]`);
+    cdrag = { from, src, target: null, ghost: h("div", { class: "drag-ghost", textContent: "Contenu" }) };
+    hover.hide();
+    document.body.classList.add("dragging");
+    document.body.append(cdrag.ghost);
+    if (src) src.classList.add("drag-src");
+    moveColDrag(e);
+  };
+  function moveColDrag(e) {
+    if (!cdrag) return;
+    cdrag.ghost.style.left = e.clientX + 14 + "px";
+    cdrag.ghost.style.top = e.clientY + 10 + "px";
+    const c = colAt(e.clientX, e.clientY), ok = c && c !== cdrag.src ? c : null;
+    if (ok !== cdrag.target) {
+      if (cdrag.target) cdrag.target.classList.remove("drop-col");
+      if (ok) ok.classList.add("drop-col");
+      cdrag.target = ok;
+    }
+  }
+  window.addEventListener("pointermove", moveColDrag);
+  function endColDrag(commit) {
+    if (!cdrag) return;
+    const d = cdrag;
+    cdrag = null;
+    d.ghost.remove();
+    document.body.classList.remove("dragging");
+    if (d.src) d.src.classList.remove("drag-src");
+    if (d.target) d.target.classList.remove("drop-col");
+    if (commit && d.target) {
+      const [, si, bi, ci] = d.target.dataset.sel.split(":").map(Number);
+      ctx.moved(() => {
+        swapCols(doc, d.from, { si, bi, ci });
+        return `col:${si}:${bi}:${ci}`;
+      });
+    }
+  }
+  window.addEventListener("pointerup", () => endColDrag(true));
+  window.addEventListener("pointercancel", () => endColDrag(false));
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") endColDrag(false);
+  });
   window.addEventListener("pointercancel", () => {
     if (sdrag && sdrag.active) {
       sdrag.line.remove();
@@ -3085,22 +3321,16 @@ ${lorem}` },
     sdrag = null;
     schedule();
   });
-  var bar = document.querySelector(".bar");
   var file = h("input", { type: "file", accept: ".json,application/json", hidden: true });
-  bar.append(
-    h("button", { type: "button", textContent: "Enregistrer (.json)", onclick: () => {
-      const url = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 2)], { type: "application/json" }));
-      const a = h("a", { href: url, download: (doc.name || "factsheet").replace(/[\\/:*?"<>|]+/g, "_") + ".json" });
-      document.body.append(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 2e3);
-    } }),
-    h("button", { type: "button", textContent: "Ouvrir\u2026", onclick: () => file.click() }),
-    h("button", { type: "button", textContent: "Aper\xE7u 3D", onclick: () => open3d() }),
-    h("button", { type: "button", class: "primary", textContent: "Exporter PDF\u2026", onclick: () => openExport() }),
-    file
-  );
+  document.body.append(file);
+  var saveProject = () => {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 2)], { type: "application/json" }));
+    const a = h("a", { href: url, download: (doc.name || "factsheet").replace(/[\\/:*?"<>|]+/g, "_") + ".json" });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2e3);
+  };
   file.addEventListener("change", async () => {
     const f = file.files[0];
     file.value = "";
@@ -3115,12 +3345,35 @@ ${lorem}` },
       alert(t("Fichier de projet invalide."));
     }
   });
-  zoomSel.addEventListener("change", schedule);
-  var langSel = document.getElementById("lang");
-  for (const [k, l] of Object.entries(LANGS)) langSel.append(h("option", { value: k, textContent: l }));
+  var langSel = h("select", { "aria-label": "Langue" }, Object.entries(LANGS).map(([k, l]) => h("option", { value: k, textContent: l })));
   langSel.value = getLang();
   var i18n = initI18n(() => ctx.restructure());
   langSel.addEventListener("change", () => i18n.set(langSel.value));
+  var zoomItem = (label, v) => ({ label, checked: () => zoomMode === v, run: () => {
+    zoomMode = v;
+    schedule();
+  } });
+  window.FS_UI = {
+    menus: [
+      { label: "Fichier", items: [
+        { label: "Enregistrer (.json)", icon: "device-floppy", run: saveProject },
+        { label: "Ouvrir\u2026", icon: "folder-open", run: () => file.click() },
+        { label: "Exporter PDF\u2026", icon: "file-type-pdf", run: () => openExport() },
+        "-",
+        { label: "Atelier", icon: "brush", href: "atelier.html" }
+      ] },
+      { label: "Affichage", items: [
+        { heading: "Zoom" },
+        zoomItem("Ajuster", "fit"),
+        zoomItem("50 %", "0.5"),
+        zoomItem("75 %", "0.75"),
+        zoomItem("100 %", "1"),
+        "-",
+        { label: "Aper\xE7u 3D", icon: "3d-cube-sphere", run: () => open3d() }
+      ] }
+    ],
+    settings: [{ title: "Langue", node: langSel }]
+  };
   var viewerLoad = null;
   var loadViewer = () => window.FS3D ? Promise.resolve(window.FS3D) : viewerLoad = viewerLoad || new Promise((res, rej) => {
     const s2 = h("script", { src: "viewer3d.js", onload: () => res(window.FS3D), onerror: () => {

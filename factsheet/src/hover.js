@@ -29,7 +29,8 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
     const edit = path => btn([ico('pencil'), ' Éditer'], 'Afficher les propriétés', () => select(path), 'primary');
     if (it.kind === 'col') {
       const sub = doc.sections[it.si].subs[it.bi], col = sub.cols[it.ci];
-      g.push(grp('Colonne', edit(it.path), col.type === 'viz' ? btn('Dataviz…', 'Ouvrir l’éditeur de dataviz', () => ctx.editViz({ col, sub, ci: it.ci })) : null));
+      const grip = h('button', { type: 'button', class: 'mini grip-btn', title: 'Glisser le contenu sur une autre colonne pour l’échanger', onpointerdown: e => { e.preventDefault(); ctx.startColDrag(e, { si: it.si, bi: it.bi, ci: it.ci }); } }, ico('grip-vertical'));
+      g.push(grp('Colonne', grip, edit(it.path), col.type === 'viz' ? btn('Dataviz…', 'Ouvrir l’éditeur de dataviz', () => ctx.editViz({ col, sub, ci: it.ci })) : null));
     } else if (it.kind === 'sub') {
       const sec = doc.sections[it.si];
       const mv = d => () => { const j = it.bi + d; if (j >= 0 && j < sec.subs.length) [sec.subs[it.bi], sec.subs[j]] = [sec.subs[j], sec.subs[it.bi]]; };

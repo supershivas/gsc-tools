@@ -45,3 +45,20 @@ dialog.settings::backdrop { background: var(--modal-overlay); }
 .tool-card h2 { margin: 0; font-size: 17px; }
 .tool-card p { margin: 0; color: var(--mute); }
 @media (hover: hover) { .tool-card:hover { border-color: var(--accent); } }
+
+/* Menus déroulants de l'en-tête */
+.app-left { display: flex; align-items: center; min-width: 0; }
+.app-menus { display: flex; gap: 2px; margin-left: 18px; }
+.menu { position: relative; }
+.menu-btn { min-height: 44px; padding: 0 12px; border: 0; border-radius: var(--radius-md); background: transparent; color: rgba(255,255,255,.85); font: 500 14px var(--font-sans); cursor: pointer; }
+.menu-btn[aria-expanded="true"] { background: rgba(255,255,255,.14); color: #fff; }
+@media (hover: hover) { .menu-btn:hover { background: rgba(255,255,255,.1); color: #fff; } }
+.menu-pop { position: absolute; left: 0; top: calc(100% + 2px); z-index: 60; min-width: 220px; padding: 6px; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: 0 8px 28px rgba(0,0,0,.22); }
+.menu-pop[hidden] { display: none; }
+.menu-item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 0 10px; border: 0; border-radius: var(--radius-sm); background: transparent; color: inherit; font: 14px var(--font-sans); text-align: left; text-decoration: none; cursor: pointer; }
+.menu-item .ti { width: 18px; font-size: 18px; color: var(--mute); }
+.menu-item .ti.off { visibility: hidden; }
+@media (hover: hover) { .menu-item:hover { background: var(--bg); } }
+.menu-sep { height: 1px; margin: 5px 4px; background: var(--line); }
+.menu-head { padding: 6px 10px 2px; font: 11px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+@media print { .app-menus { display: none; } }

@@ -31,6 +31,9 @@ function exportData(version) {
   downloadJSON({ app: 'gsc-tools', version, exportedAt: new Date().toISOString(), data }, 'gsc-tools-export.json');
 }
 
+/* Sections ajoutées par la page dans les réglages (ex. la langue) : [{ title, node }] */
+let settingsExtra = [];
+
 async function buildSettings() {
   const version = await loadVersion(VERSION_URL);
   const entries = await loadChangelog(CHANGELOG_URL);
@@ -43,16 +46,46 @@ async function buildSettings() {
   dlg.append(
     el('div', { className: 'panel-head' }, el('h2', { textContent: 'Réglages' }), close),
     el('div', { className: 'settings-body' },
+      ...settingsExtra.map(x => el('section', {}, el('h3', { textContent: x.title }), x.node)),
+      el('section', {}, el('h3', { textContent: 'Atelier' }), el('a', { className: 'btn', href: new URL('factsheet/atelier.html', ROOT).href }, icon('brush'), 'Atelier du Factsheet creator')),
       el('section', {}, el('h3', { textContent: 'Version' }), el('div', { className: 'version-line', textContent: version ? 'v' + version : '—' })),
       el('section', {}, el('h3', { textContent: 'Dernières versions' }), log),
-      el('section', {}, el('h3', { textContent: 'Données' }), exp),
-      el('section', {}, el('h3', { textContent: 'Atelier' }), el('a', { className: 'btn', href: new URL('factsheet/atelier.html', ROOT).href }, icon('brush'), 'Atelier du Factsheet creator'))));
+      el('section', {}, el('h3', { textContent: 'Données' }), exp)));
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
   document.body.append(dlg);
   return dlg;
 }
 
-export function initShell({ sub = '', homeUrl = new URL('./', ROOT).href } = {}) {
+/* Menus déroulants de l'en-tête : [{ label, items: [{ label, icon?, href?, run?, checked?() } | { heading } | '-'] }] */
+function buildMenus(menus) {
+  const nav = el('nav', { className: 'app-menus', ariaLabel: 'Menu' });
+  const pops = [];
+  const closeAll = () => pops.forEach(({ btn, pop }) => { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); });
+  const open = m => { closeAll(); m.fill(); m.pop.hidden = false; m.btn.setAttribute('aria-expanded', 'true'); };
+  for (const def of menus) {
+    const btn = el('button', { type: 'button', className: 'menu-btn', textContent: def.label, ariaHasPopup: 'menu', ariaExpanded: 'false' });
+    const pop = el('div', { className: 'menu-pop', role: 'menu', hidden: true });
+    const m = { btn, pop, fill() {
+      pop.replaceChildren(...def.items.map(it => {
+        if (it === '-') return el('div', { className: 'menu-sep', role: 'separator' });
+        if (it.heading) return el('div', { className: 'menu-head', textContent: it.heading });
+        const mark = it.checked ? el('i', { className: 'ti ti-check' + (it.checked() ? '' : ' off') }) : it.icon ? icon(it.icon) : el('i', { className: 'ti' });
+        return el(it.href ? 'a' : 'button', { className: 'menu-item', role: it.checked ? 'menuitemradio' : 'menuitem', ariaChecked: it.checked ? String(it.checked()) : null,
+          ...(it.href ? { href: it.href } : { type: 'button' }), onclick: () => { closeAll(); if (it.run) it.run(); } }, mark, el('span', { textContent: it.label }));
+      }));
+    } };
+    pops.push(m);
+    btn.addEventListener('click', () => (pop.hidden ? open(m) : closeAll()));
+    btn.addEventListener('pointerenter', () => { if (pops.some(x => !x.pop.hidden) && pop.hidden) open(m); });
+    nav.append(el('div', { className: 'menu' }, btn, pop));
+  }
+  document.addEventListener('pointerdown', e => { if (!nav.contains(e.target)) closeAll(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
+  return nav;
+}
+
+export function initShell({ sub = '', homeUrl = new URL('./', ROOT).href, menus = [], settingsExtra: extra = [] } = {}) {
+  settingsExtra = extra;
   const host = document.getElementById('app-header');
   const name = el('a', { className: 'app-name', href: homeUrl, textContent: 'GSC tools' });
   let dlgPromise;
@@ -61,7 +94,7 @@ export function initShell({ sub = '', homeUrl = new URL('./', ROOT).href } = {})
   // Le nom ramène à l'accueil et referme les modales ouvertes.
   name.addEventListener('click', () => document.querySelectorAll('dialog[open]').forEach(d => d.close()));
   host.className = 'app-header';
-  host.append(el('div', {}, name, sub ? el('span', { className: 'app-sub', textContent: sub }) : null), gear);
+  host.append(el('div', { className: 'app-left' }, name, sub ? el('span', { className: 'app-sub', textContent: sub }) : null, menus.length ? buildMenus(menus) : null), gear);
 
   // App uniquement bureau : bandeau refermable sur téléphone.
   let hidden = false;

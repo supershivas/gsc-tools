@@ -1,5 +1,5 @@
 import { PAGE } from './tokens.js';
-import { loadDoc, saveDoc, migrate, defaultDoc, moveSection, storage, localImageCount } from './state.js';
+import { loadDoc, saveDoc, migrate, defaultDoc, moveSection, storage, localImageCount, swapCols } from './state.js';
 import { renderDocument, measure, h } from './render.js';
 import { buildTree } from './tree.js';
 import { buildProps } from './props.js';
@@ -16,11 +16,11 @@ const treeEl = document.getElementById('tree'), propsEl = document.getElementByI
 const stage = document.getElementById('stage');
 const gauges = document.getElementById('gauges');
 const warnEl = document.getElementById('warnings');
-const zoomSel = document.getElementById('zoom');
-let raf = 0, hover = null;
+let zoomMode = 'fit';
+let raf = 0, hover = null, undoSnap = null;
 
 function scaleValue() {
-  if (zoomSel.value !== 'fit') return parseFloat(zoomSel.value);
+  if (zoomMode !== 'fit') return parseFloat(zoomMode);
   const avail = stage.clientWidth - 44;
   return Math.max(0.4, Math.min(1, (avail - 24) / (2 * PAGE.w)));
 }
@@ -46,6 +46,7 @@ function drawPreview() {
   });
   warnEl.innerHTML = '';
   r.warnings.forEach(w => warnEl.append(h('div', { textContent: w })));
+  if (undoSnap) warnEl.append(h('div', { class: 'note moved' }, h('span', { textContent: undoSnap.label }), h('button', { type: 'button', class: 'mini', textContent: 'Annuler le déplacement', onclick: undo })));
   const nLocal = localImageCount(doc);
   if (nLocal) warnEl.append(h('a', { class: 'note', href: 'atelier.html', textContent: nLocal === 1 ? '1 image à publier — ouvrir l’Atelier' : `${nLocal} images à publier — ouvrir l’Atelier` }));
   if (!storage.ok) warnEl.append(h('div', { textContent: 'Espace de stockage du navigateur plein : les dernières modifications ne sont pas enregistrées. Enregistrez le projet (.json) et allégez les images.' }));
@@ -64,8 +65,14 @@ function drawProps() { const top = propsEl.scrollTop; buildProps(propsEl, ctx); 
 
 const ctx = {
   getDoc: () => doc, getSel: () => selected, collapsed,
-  changed() { saveDoc(doc); schedule(); drawTree(); },
+  changed() { undoSnap = null; saveDoc(doc); schedule(); drawTree(); },
   refreshTree: drawTree,
+  /* Déplacement de contenu : `fn` modifie le document et renvoie le chemin à sélectionner ensuite.
+     L'état d'avant est gardé pour « Annuler le déplacement » (jusqu'à la prochaine modification). */
+  moved(fn, label = 'Contenu déplacé. Vérifiez le remplissage des pages.') {
+    const snap = JSON.stringify(doc), to = fn();
+    undoSnap = { snap, label }; selected = to || null; ctx.restructure(); ctx.select(selected);
+  },
   restructure() { fixSelection(); saveDoc(doc); drawTree(); drawProps(); schedule(); },
   select(path) {
     selected = path || null; fixSelection(); drawTree(); drawProps(); schedule();
@@ -77,6 +84,10 @@ const ctx = {
   },
 };
 
+function undo() {
+  if (!undoSnap) return;
+  doc = migrate(JSON.parse(undoSnap.snap)); undoSnap = null; selected = null; ctx.restructure();
+}
 hover = initHover({ stage, getDoc: () => doc, ctx, canShow: () => !sdrag && !document.body.classList.contains('ve-open') && !document.body.classList.contains('dragging'),
   select: path => ctx.select(path) });
 
@@ -143,35 +154,73 @@ function endSectionDrag() {
   ctx.restructure(); ctx.select(`sec:${ni}`);
 }
 window.addEventListener('pointerup', endSectionDrag);
+
+/* Glisser le contenu d'une colonne (poignée de la barre au survol) sur une autre colonne : les deux contenus s'échangent */
+let cdrag = null;
+const colAt = (x, y) => { const n = document.elementFromPoint(x, y), c = n && n.closest && n.closest('.stage .col[data-sel^="col:"]'); return c || null; };
+ctx.startColDrag = (e, from) => {
+  const src = stage.querySelector(`.col[data-sel="col:${from.si}:${from.bi}:${from.ci}"]`);
+  cdrag = { from, src, target: null, ghost: h('div', { class: 'drag-ghost', textContent: 'Contenu' }) };
+  hover.hide(); document.body.classList.add('dragging'); document.body.append(cdrag.ghost);
+  if (src) src.classList.add('drag-src'); moveColDrag(e);
+};
+function moveColDrag(e) {
+  if (!cdrag) return;
+  cdrag.ghost.style.left = e.clientX + 14 + 'px'; cdrag.ghost.style.top = e.clientY + 10 + 'px';
+  const c = colAt(e.clientX, e.clientY), ok = c && c !== cdrag.src ? c : null;
+  if (ok !== cdrag.target) { if (cdrag.target) cdrag.target.classList.remove('drop-col'); if (ok) ok.classList.add('drop-col'); cdrag.target = ok; }
+}
+window.addEventListener('pointermove', moveColDrag);
+function endColDrag(commit) {
+  if (!cdrag) return; const d = cdrag; cdrag = null;
+  d.ghost.remove(); document.body.classList.remove('dragging');
+  if (d.src) d.src.classList.remove('drag-src'); if (d.target) d.target.classList.remove('drop-col');
+  if (commit && d.target) {
+    const [, si, bi, ci] = d.target.dataset.sel.split(':').map(Number);
+    ctx.moved(() => { swapCols(doc, d.from, { si, bi, ci }); return `col:${si}:${bi}:${ci}`; });
+  }
+}
+window.addEventListener('pointerup', () => endColDrag(true));
+window.addEventListener('pointercancel', () => endColDrag(false));
+window.addEventListener('keydown', e => { if (e.key === 'Escape') endColDrag(false); });
 window.addEventListener('pointercancel', () => { if (sdrag && sdrag.active) { sdrag.line.remove(); sdrag.ghost.remove(); document.body.classList.remove('dragging'); } sdrag = null; schedule(); });
 
-/* Barre d'outils : projet + impression */
-const bar = document.querySelector('.bar');
+/* Fichier / Affichage : menus de l'en-tête (rendus par js/shell.js) ; la langue est dans les réglages */
 const file = h('input', { type: 'file', accept: '.json,application/json', hidden: true });
-bar.append(
-  h('button', { type: 'button', textContent: 'Enregistrer (.json)', onclick: () => {
-    const url = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' }));
-    const a = h('a', { href: url, download: (doc.name || 'factsheet').replace(/[\\/:*?"<>|]+/g, '_') + '.json' });
-    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
-  } }),
-  h('button', { type: 'button', textContent: 'Ouvrir…', onclick: () => file.click() }),
-  h('button', { type: 'button', textContent: 'Aperçu 3D', onclick: () => open3d() }),
-  h('button', { type: 'button', class: 'primary', textContent: 'Exporter PDF…', onclick: () => openExport() }),
-  file);
+document.body.append(file);
+const saveProject = () => {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' }));
+  const a = h('a', { href: url, download: (doc.name || 'factsheet').replace(/[\\/:*?"<>|]+/g, '_') + '.json' });
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+};
 file.addEventListener('change', async () => {
   const f = file.files[0]; file.value = ''; if (!f) return;
   try { const j = JSON.parse(await f.text()); if (!Array.isArray(j.sections)) throw 0; doc = migrate(j); selected = null; ctx.restructure(); }
   catch (e) { alert(t('Fichier de projet invalide.')); }
 });
 
-zoomSel.addEventListener('change', schedule);
-
 /* Langue de l'interface (anglais par défaut) */
-const langSel = document.getElementById('lang');
-for (const [k, l] of Object.entries(LANGS)) langSel.append(h('option', { value: k, textContent: l }));
+const langSel = h('select', { 'aria-label': 'Langue' }, Object.entries(LANGS).map(([k, l]) => h('option', { value: k, textContent: l })));
 langSel.value = getLang();
 const i18n = initI18n(() => ctx.restructure());
 langSel.addEventListener('change', () => i18n.set(langSel.value));
+
+const zoomItem = (label, v) => ({ label, checked: () => zoomMode === v, run: () => { zoomMode = v; schedule(); } });
+window.FS_UI = {
+  menus: [
+    { label: 'Fichier', items: [
+      { label: 'Enregistrer (.json)', icon: 'device-floppy', run: saveProject },
+      { label: 'Ouvrir…', icon: 'folder-open', run: () => file.click() },
+      { label: 'Exporter PDF…', icon: 'file-type-pdf', run: () => openExport() },
+      '-',
+      { label: 'Atelier', icon: 'brush', href: 'atelier.html' }] },
+    { label: 'Affichage', items: [
+      { heading: 'Zoom' }, zoomItem('Ajuster', 'fit'), zoomItem('50 %', '0.5'), zoomItem('75 %', '0.75'), zoomItem('100 %', '1'),
+      '-',
+      { label: 'Aperçu 3D', icon: '3d-cube-sphere', run: () => open3d() }] },
+  ],
+  settings: [{ title: 'Langue', node: langSel }],
+};
 
 /* Aperçu 3D : les pages sont dessinées ici, la scène three.js est dans viewer3d.js (chargé à la première ouverture) */
 let viewerLoad = null;

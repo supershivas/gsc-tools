@@ -13,12 +13,16 @@ export const COL_TYPES = { text: 'Texte', image: 'Image', viz: 'Dataviz' };
 /* Les 4 versions du logo ont la même taille (HEADER.logo). `label` = clé de traduction. */
 export const LOGO_VARIANTS = { default: 'Défaut', mono: 'Mono', white: 'Blanc (white)', negative: 'Négatif' };
 export const newHeaderImage = (n = 1) => ({ id: uid('img'), name: `${t('Image')} ${n}`, src: null });
+export const VALIGNS = { top: 'align-box-top-center', center: 'align-box-center-middle', bottom: 'align-box-bottom-center' };
+export const ALIGNS = { left: 'align-left', center: 'align-center', right: 'align-right', justify: 'align-justified' };
 export const LOCALES = { 'en-GB': 'EN — 1,227.5', 'fr-BE': 'FR — 1 227,5', 'de-DE': 'DE — 1.227,5', 'nl-BE': 'NL — 1.227,5', 'es-ES': 'ES — 1227,5', 'it-IT': 'IT — 1.227,5' };
 
 export const newCol = (type = 'text') => ({
   type,
   text: type === 'text' ? t('Votre texte ici. Une ligne = un paragraphe, **gras** avec les astérisques.') : '',
   src: null, ratio: '4:3', caption: '',
+  valign: 'top',     // alignement vertical du contenu dans sa colonne : top | center | bottom
+  align: 'left',     // alignement du texte : left | center | right | justify
   viz: type === 'viz' ? newViz('bars') : null,   // { kind, opts } — voir viz/index.js
 });
 export const newSub = (layout = '1') => ({
@@ -146,3 +150,28 @@ export function docImages(doc) {
   return out.filter(x => x.get());
 }
 export const localImageCount = doc => docImages(doc).filter(x => /^data:/.test(x.get())).length;
+
+/* ---------- Déplacement de contenus (colonnes) et de sous-sections ---------- */
+/** Échange le contenu de deux colonnes (n'importe où dans le document). L'alignement voyage avec le contenu. */
+export function swapCols(doc, a, b) {
+  const ca = doc.sections[a.si].subs[a.bi].cols, cb = doc.sections[b.si].subs[b.bi].cols;
+  [ca[a.ci], cb[b.ci]] = [cb[b.ci], ca[a.ci]];
+}
+/** Toutes les colonnes du document : { si, bi, ci, label, page } — pour les listes « échanger avec… » */
+export function allCols(doc) {
+  const out = [];
+  doc.sections.forEach((sec, si) => sec.subs.forEach((sub, bi) => sub.cols.forEach((col, ci) =>
+    out.push({ si, bi, ci, page: sec.page, label: `${sec.title || 'Section'} › ${sub.title || 'Subsection'} › ${ci + 1}` }))));
+  return out;
+}
+/** Déplace la sous-section `from` avant/après la sous-section `to` (autre section possible), ou en fin de la section `to.si` si `to.bi` est null.
+    Retourne son nouveau chemin { si, bi }. Une section laissée vide reste en place (titre seul). */
+export function moveSub(doc, from, to, after) {
+  const src = doc.sections[from.si], sub = src.subs[from.bi], dst = doc.sections[to.si];
+  if (!sub || !dst) return from;
+  const ref = to.bi == null ? null : dst.subs[to.bi];
+  if (ref === sub) return from;
+  src.subs.splice(from.bi, 1);
+  if (ref) dst.subs.splice(dst.subs.indexOf(ref) + (after ? 1 : 0), 0, sub); else dst.subs.push(sub);
+  return { si: to.si, bi: dst.subs.indexOf(sub) };
+}

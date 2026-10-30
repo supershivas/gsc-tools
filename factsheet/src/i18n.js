@@ -80,6 +80,13 @@ const EN = {
   'Courbes': 'Lines', 'Axe vertical démarrant à zéro': 'Vertical axis starts at zero', 'Liste à icônes': 'Icon list', 'Éléments': 'Items', 'Icône': 'Icon', 'Nouvel élément': 'New item', 'Premier élément de liste': 'First list item', 'Deuxième élément de liste': 'Second list item', 'Troisième élément de liste': 'Third list item',
   'Validé': 'Checked', 'Monde': 'World', 'Personnes': 'People', 'Euro': 'Euro', 'Graphique': 'Chart', 'Sécurité': 'Security', 'Environnement': 'Environment', 'Énergie': 'Energy',
   'Logement': 'Housing', 'Protection': 'Protection', 'Objectif': 'Goal', 'Calendrier': 'Calendar', 'Recherche': 'Search', 'Courrier': 'Mail', 'Étoile': 'Star', 'Réglages': 'Settings', 'Envoi': 'Send', 'Rédaction': 'Writing',
+  /* menus, réglages, déplacements, alignements */
+  'Fichier': 'File', 'Affichage': 'View', 'Réglages': 'Settings', 'Version': 'Version', 'Dernières versions': 'Latest versions', 'Exporter mes données (JSON)': 'Export my data (JSON)',
+  'Atelier du Factsheet creator': 'Factsheet creator Atelier', 'Cette app est prévue pour un écran d’ordinateur': 'This app is designed for a computer screen', 'Fermer le bandeau': 'Close the banner',
+  'Alignement vertical dans la colonne': 'Vertical alignment in the column', 'Alignement du texte': 'Text alignment', 'Haut': 'Top', 'Centre': 'Middle', 'Bas': 'Bottom', 'Centré': 'Centred', 'Justifié': 'Justified',
+  'Échanger le contenu avec…': 'Swap content with…', 'Déplacer vers la section': 'Move to section', 'Annuler le déplacement': 'Undo move',
+  'Contenu déplacé. Vérifiez le remplissage des pages.': 'Content moved. Check how full the pages are.',
+  'Glisser la sous-section (autre section possible)': 'Drag the subsection (other sections allowed)', 'Glisser le contenu sur une autre colonne pour l’échanger': 'Drag the content onto another column to swap them',
   /* atelier */
   'Connexion à GitHub': 'GitHub connection', 'Retirer le jeton': 'Remove the token', 'Enregistrer et tester': 'Save and test',
   'Connecté : vous pouvez publier.': 'Connected: you can publish.', 'Jeton invalide ou expiré.': 'Invalid or expired token.', 'Accès refusé à ce dépôt.': 'Access to this repository denied.',
