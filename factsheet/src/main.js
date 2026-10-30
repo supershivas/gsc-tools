@@ -1,5 +1,5 @@
 import { PAGE } from './tokens.js';
-import { loadDoc, saveDoc, migrate, defaultDoc, moveSection, storage, localImageCount, swapCols } from './state.js';
+import { loadDoc, saveDoc, migrate, defaultDoc, moveSection, storage, localImageCount, swapCols, removeCol } from './state.js';
 import { renderDocument, measure, h, columnWidth } from './render.js';
 import { buildTree } from './tree.js';
 import { buildProps } from './props.js';
@@ -46,7 +46,7 @@ function drawPreview() {
   });
   warnEl.innerHTML = '';
   r.warnings.forEach(w => warnEl.append(h('div', { textContent: w })));
-  if (undoSnap) warnEl.append(h('div', { class: 'note moved' }, h('span', { textContent: undoSnap.label }), h('button', { type: 'button', class: 'mini', textContent: 'Annuler le déplacement', onclick: undo })));
+  if (undoSnap) warnEl.append(h('div', { class: 'note moved' }, h('span', { textContent: undoSnap.label }), h('button', { type: 'button', class: 'mini', textContent: undoSnap.undoLabel, onclick: undo })));
   const nLocal = localImageCount(doc);
   if (nLocal) warnEl.append(h('a', { class: 'note', href: 'atelier.html', textContent: nLocal === 1 ? '1 image à publier — ouvrir l’Atelier' : `${nLocal} images à publier — ouvrir l’Atelier` }));
   if (!storage.ok) warnEl.append(h('div', { textContent: 'Espace de stockage du navigateur plein : les dernières modifications ne sont pas enregistrées. Enregistrez le projet (.json) et allégez les images.' }));
@@ -69,9 +69,16 @@ const ctx = {
   refreshTree: drawTree,
   /* Déplacement de contenu : `fn` modifie le document et renvoie le chemin à sélectionner ensuite.
      L'état d'avant est gardé pour « Annuler le déplacement » (jusqu'à la prochaine modification). */
-  moved(fn, label = 'Contenu déplacé. Vérifiez le remplissage des pages.') {
+  moved(fn, label = 'Contenu déplacé. Vérifiez le remplissage des pages.', undoLabel = 'Annuler le déplacement') {
     const snap = JSON.stringify(doc), to = fn();
-    undoSnap = { snap, label }; selected = to || null; ctx.restructure(); ctx.select(selected);
+    undoSnap = { snap, label, undoLabel }; selected = to || null; ctx.restructure(); ctx.select(selected);
+  },
+  /* Supprime l'élément sélectionné (section, sous-section ou colonne) — annulable */
+  remove(path) {
+    const q = String(path || '').split(':'), si = +q[1], bi = +q[2], ci = +q[3], sec = doc.sections[si], sub = sec && sec.subs[bi];
+    if (q[0] === 'sec' && sec) ctx.moved(() => { doc.sections.splice(si, 1); return null; }, 'Élément supprimé.', 'Annuler la suppression');
+    else if (q[0] === 'sub' && sub) ctx.moved(() => { sec.subs.splice(bi, 1); return `sec:${si}`; }, 'Élément supprimé.', 'Annuler la suppression');
+    else if (q[0] === 'col' && sub && sub.cols[ci]) ctx.moved(() => removeCol(doc, si, bi, ci), sub.cols.length > 1 ? 'Colonne supprimée : les autres s’étendent.' : 'Élément supprimé.', 'Annuler la suppression');
   },
   restructure() { fixSelection(); saveDoc(doc); drawTree(); drawProps(); schedule(); },
   select(path) {
@@ -88,6 +95,15 @@ function undo() {
   if (!undoSnap) return;
   doc = migrate(JSON.parse(undoSnap.snap)); undoSnap = null; selected = null; ctx.restructure();
 }
+/* Suppr / Retour arrière : supprime l'élément sélectionné, sauf pendant une saisie ou quand une fenêtre est ouverte */
+window.addEventListener('keydown', e => {
+  if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+  const a = document.activeElement, tag = (e.target.tagName || '');
+  if (/INPUT|TEXTAREA|SELECT/.test(tag) || e.target.isContentEditable || (a && a.isContentEditable)) return;
+  if (document.querySelector('dialog[open], .ve, .v3d, .ce') || !selected || selected === 'header') return;
+  e.preventDefault(); ctx.remove(selected);
+});
+
 hover = initHover({ stage, getDoc: () => doc, ctx, canShow: () => !sdrag && !document.body.classList.contains('ve-open') && !document.body.classList.contains('dragging'),
   select: path => ctx.select(path) });
 

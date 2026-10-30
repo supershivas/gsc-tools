@@ -107,6 +107,8 @@ const EN = {
   'Pictogramme au trait à la hauteur du chiffre.': 'Line icon at the height of the figure.', 'Icône en pastille': 'Icon in a circle',
   'Même icône dans une pastille ronde de 0,5 pt, comme dans la liste à icônes.': 'Same icon in a round 0.5 pt circle, as in the icon list.',
   'Centré, sans contour': 'Centred, no outline', 'Chiffre et icône centrés, pour une bande de plusieurs chiffres.': 'Centred figure and icon, for a row of several figures.',
+  /* suppression */
+  'Élément supprimé.': 'Element deleted.', 'Colonne supprimée : les autres s’étendent.': 'Column deleted: the others expand.', 'Annuler la suppression': 'Undo delete', 'Supprimer (Suppr)': 'Delete (Del)', 'Supprimer la colonne': 'Delete the column',
   /* couleurs, cartes */
   'Modifier la couleur': 'Edit the colour', 'Rétablir la couleur du thème': 'Reset to the theme colour', 'Ajouter une couleur': 'Add a colour', 'Pipette': 'Eyedropper',
   'Supprimer cette couleur ? Ce qui l’utilise passera en bleu.': 'Delete this colour? Anything using it will turn blue.',

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0 — 2026-10-30
+- Suppression d'une section, sous-section ou colonne (touche Suppr, bouton au survol ou dans le panneau), avec annulation ; les autres colonnes s'étendent
+- Palette de couleurs : espacements revus
+
 ## 1.5.0 — 2026-10-30
 - Vrai éditeur de couleur (carré, teinte, RGB/HSV, hexadécimal, pipette) ; palette limitée à 5 couleurs par thème, avec ajout possible
 - Les fonds de section sont des teintes calculées des couleurs de la palette

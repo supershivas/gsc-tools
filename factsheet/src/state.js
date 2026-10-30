@@ -231,3 +231,14 @@ export function removeColor(doc, key) {
 export function refreshAutoCards(sub, widthOf) {
   sub.cols.forEach((c, i) => { if (c.type === 'card' && c.card && c.card.auto) Object.assign(c.card, cardPresetFor(widthOf(i))); });
 }
+
+/* ---------- Suppression ---------- */
+/** Supprime la colonne ci ; les autres s'étendent (3 → 2 colonnes égales, 2 → 1 pleine largeur). Si c'était la seule, la sous-section disparaît.
+    Retourne le chemin à sélectionner ensuite. */
+export function removeCol(doc, si, bi, ci) {
+  const sec = doc.sections[si], sub = sec.subs[bi];
+  if (sub.cols.length <= 1) { sec.subs.splice(bi, 1); return `sec:${si}`; }
+  sub.cols.splice(ci, 1);
+  sub.layout = sub.cols.length === 2 ? '1-1' : '1';
+  return `col:${si}:${bi}:${Math.min(ci, sub.cols.length - 1)}`;
+}

@@ -215,9 +215,12 @@ body.v3d-open{overflow:hidden}
 .ce-range::-moz-range-thumb{width:12px;height:12px;border-radius:50%;border:2px solid #fff;background:#333}
 .ce-act{justify-content:flex-end}
 /* palette du document */
-.pal2{display:flex;flex-direction:column;gap:6px}
-.pal2-row{display:flex;align-items:center;gap:8px}
-.pal2-sw{width:30px;height:30px;border-radius:7px;border:1px solid #0003;padding:0;cursor:pointer;flex:none}
-.pal2-name{flex:1;min-width:0;font-size:13px}
-.pal2-row input[type=text]{flex:1;min-width:0;padding:3px 6px}
-.pal2-hex{font:11px var(--font-mono,monospace);color:var(--ui-mute)}
+.pal2{display:flex;flex-direction:column;gap:2px;margin:6px 0 12px}
+.pal2-row{display:grid;grid-template-columns:32px minmax(0,1fr) auto 28px;align-items:center;gap:10px;min-height:40px;padding:2px 6px;border-radius:8px}
+@media (hover:hover){.pal2-row:hover{background:var(--ui-bg)}}
+.pal2-sw{width:32px;height:32px;border-radius:8px;border:1px solid #0003;padding:0;cursor:pointer}
+.pal2-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.pal2-row input[type=text]{min-width:0;padding:4px 8px}
+.pal2-row .mini{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.pal2-hex{font:11px var(--font-mono,monospace);color:var(--ui-mute);letter-spacing:.02em}
+.pal2 + button{margin:2px 0 14px 6px}

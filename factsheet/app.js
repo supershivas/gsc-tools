@@ -571,6 +571,12 @@
     "M\xEAme ic\xF4ne dans une pastille ronde de 0,5 pt, comme dans la liste \xE0 ic\xF4nes.": "Same icon in a round 0.5 pt circle, as in the icon list.",
     "Centr\xE9, sans contour": "Centred, no outline",
     "Chiffre et ic\xF4ne centr\xE9s, pour une bande de plusieurs chiffres.": "Centred figure and icon, for a row of several figures.",
+    /* suppression */
+    "\xC9l\xE9ment supprim\xE9.": "Element deleted.",
+    "Colonne supprim\xE9e : les autres s\u2019\xE9tendent.": "Column deleted: the others expand.",
+    "Annuler la suppression": "Undo delete",
+    "Supprimer (Suppr)": "Delete (Del)",
+    "Supprimer la colonne": "Delete the column",
     /* couleurs, cartes */
     "Modifier la couleur": "Edit the colour",
     "R\xE9tablir la couleur du th\xE8me": "Reset to the theme colour",
@@ -1944,6 +1950,16 @@ ${lorem}` },
       if (c.type === "card" && c.card && c.card.auto) Object.assign(c.card, cardPresetFor(widthOf(i)));
     });
   }
+  function removeCol(doc2, si, bi, ci) {
+    const sec = doc2.sections[si], sub = sec.subs[bi];
+    if (sub.cols.length <= 1) {
+      sec.subs.splice(bi, 1);
+      return `sec:${si}`;
+    }
+    sub.cols.splice(ci, 1);
+    sub.layout = sub.cols.length === 2 ? "1-1" : "1";
+    return `col:${si}:${bi}:${Math.min(ci, sub.cols.length - 1)}`;
+  }
 
   // src/card.js
   var SAMPLE_IMG = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice"><rect width="400" height="300" fill="#A4CCFC"/><circle cx="300" cy="80" r="34" fill="#FCDC0C"/><path d="M0 300V210c60-50 120-50 190-10s140 40 210-20v120z" fill="#0434F8"/><path d="M0 300v-50c80-40 150-30 230 5s120 20 170-10v55z" fill="#041CEC"/></svg>');
@@ -3177,9 +3193,7 @@ ${lorem}` },
           h("button", { type: "button", textContent: "\u2193 Descendre", onclick: struct(() => {
             stepSection(doc2, si, 1);
           }) }),
-          h("button", { type: "button", class: "danger", textContent: "Supprimer", onclick: struct(() => {
-            if (confirm(t("Supprimer cette section ?"))) doc2.sections.splice(si, 1);
-          }) })
+          h("button", { type: "button", class: "danger", textContent: "Supprimer", title: "Supprimer (Suppr)", onclick: () => ctx2.remove(`sec:${si}`) })
         )
       );
     } else if (kind === "sub" && sub) {
@@ -3225,9 +3239,7 @@ ${lorem}` },
             c.id = (sub.id || "sub") + "c" + Date.now() % 1e5;
             sec.subs.splice(bi + 1, 0, c);
           }) }),
-          h("button", { type: "button", class: "danger", textContent: "Supprimer", onclick: struct(() => {
-            if (confirm(t("Supprimer cette sous-section ?"))) sec.subs.splice(bi, 1);
-          }) })
+          h("button", { type: "button", class: "danger", textContent: "Supprimer", title: "Supprimer (Suppr)", onclick: () => ctx2.remove(`sub:${si}:${bi}`) })
         )
       );
     } else if (kind === "col" && col) {
@@ -3265,7 +3277,8 @@ ${lorem}` },
           );
           s2.value = "";
           return s2;
-        })())
+        })()),
+        h("button", { type: "button", class: "danger", title: "Supprimer (Suppr)", textContent: "Supprimer la colonne", onclick: () => ctx2.remove(`col:${si}:${bi}:${ci}`) })
       );
       if (col.type === "text") root.append(h("div", { class: "f" }, h("div", { class: "hint", textContent: "Texte" }), richEditor(col.text, (v) => {
         col.text = v;
@@ -3515,6 +3528,10 @@ ${lorem}` },
     const grp = (label, ...kids) => h("div", { class: "hv-grp" }, h("span", { class: "hv-lab", textContent: label }), ...kids.flat().filter(Boolean));
     function groups(chain, doc2) {
       const it = chain[0], g = [];
+      const del = (path) => h("button", { type: "button", class: "mini danger", title: t("Supprimer (Suppr)"), "aria-label": t("Supprimer (Suppr)"), onclick: () => {
+        hide();
+        ctx2.remove(path);
+      } }, ico("trash"));
       const edit = (path) => btn([ico("pencil"), " \xC9diter"], "Afficher les propri\xE9t\xE9s", () => select(path), "primary");
       if (it.kind === "col") {
         const sub = doc2.sections[it.si].subs[it.bi], col = sub.cols[it.ci];
@@ -3522,19 +3539,20 @@ ${lorem}` },
           e.preventDefault();
           ctx2.startColDrag(e, { si: it.si, bi: it.bi, ci: it.ci });
         } }, ico("grip-vertical"));
-        g.push(grp("Colonne", grip, edit(it.path), col.type === "viz" ? btn("Dataviz\u2026", "Ouvrir l\u2019\xE9diteur de dataviz", () => ctx2.editViz({ col, sub, ci: it.ci })) : null));
+        g.push(grp("Colonne", grip, edit(it.path), del(it.path), col.type === "viz" ? btn("Dataviz\u2026", "Ouvrir l\u2019\xE9diteur de dataviz", () => ctx2.editViz({ col, sub, ci: it.ci })) : null));
       } else if (it.kind === "sub") {
         const sec = doc2.sections[it.si];
         const mv = (d) => () => {
           const j = it.bi + d;
           if (j >= 0 && j < sec.subs.length) [sec.subs[it.bi], sec.subs[j]] = [sec.subs[j], sec.subs[it.bi]];
         };
-        g.push(grp("Sous-section", edit(`sub:${it.si}:${it.bi}`), btn(ico("arrow-up"), "Monter", mv(-1)), btn(ico("arrow-down"), "Descendre", mv(1))));
+        g.push(grp("Sous-section", edit(`sub:${it.si}:${it.bi}`), del(`sub:${it.si}:${it.bi}`), btn(ico("arrow-up"), "Monter", mv(-1)), btn(ico("arrow-down"), "Descendre", mv(1))));
       } else if (it.kind === "sec") {
         const sec = doc2.sections[it.si];
         g.push(grp(
           "Section",
           edit(`sec:${it.si}`),
+          del(`sec:${it.si}`),
           sw("none", !sec.bg || sec.bg === "none", "Sans fond", () => {
             sec.bg = "none";
           }),
@@ -3769,7 +3787,7 @@ ${lorem}` },
     });
     warnEl.innerHTML = "";
     r.warnings.forEach((w) => warnEl.append(h("div", { textContent: w })));
-    if (undoSnap) warnEl.append(h("div", { class: "note moved" }, h("span", { textContent: undoSnap.label }), h("button", { type: "button", class: "mini", textContent: "Annuler le d\xE9placement", onclick: undo })));
+    if (undoSnap) warnEl.append(h("div", { class: "note moved" }, h("span", { textContent: undoSnap.label }), h("button", { type: "button", class: "mini", textContent: undoSnap.undoLabel, onclick: undo })));
     const nLocal = localImageCount(doc);
     if (nLocal) warnEl.append(h("a", { class: "note", href: "atelier.html", textContent: nLocal === 1 ? "1 image \xE0 publier \u2014 ouvrir l\u2019Atelier" : `${nLocal} images \xE0 publier \u2014 ouvrir l\u2019Atelier` }));
     if (!storage.ok) warnEl.append(h("div", { textContent: "Espace de stockage du navigateur plein : les derni\xE8res modifications ne sont pas enregistr\xE9es. Enregistrez le projet (.json) et all\xE9gez les images." }));
@@ -3820,12 +3838,25 @@ ${lorem}` },
     refreshTree: drawTree,
     /* Déplacement de contenu : `fn` modifie le document et renvoie le chemin à sélectionner ensuite.
        L'état d'avant est gardé pour « Annuler le déplacement » (jusqu'à la prochaine modification). */
-    moved(fn, label = "Contenu d\xE9plac\xE9. V\xE9rifiez le remplissage des pages.") {
+    moved(fn, label = "Contenu d\xE9plac\xE9. V\xE9rifiez le remplissage des pages.", undoLabel = "Annuler le d\xE9placement") {
       const snap = JSON.stringify(doc), to = fn();
-      undoSnap = { snap, label };
+      undoSnap = { snap, label, undoLabel };
       selected = to || null;
       ctx.restructure();
       ctx.select(selected);
+    },
+    /* Supprime l'élément sélectionné (section, sous-section ou colonne) — annulable */
+    remove(path) {
+      const q = String(path || "").split(":"), si = +q[1], bi = +q[2], ci = +q[3], sec = doc.sections[si], sub = sec && sec.subs[bi];
+      if (q[0] === "sec" && sec) ctx.moved(() => {
+        doc.sections.splice(si, 1);
+        return null;
+      }, "\xC9l\xE9ment supprim\xE9.", "Annuler la suppression");
+      else if (q[0] === "sub" && sub) ctx.moved(() => {
+        sec.subs.splice(bi, 1);
+        return `sec:${si}`;
+      }, "\xC9l\xE9ment supprim\xE9.", "Annuler la suppression");
+      else if (q[0] === "col" && sub && sub.cols[ci]) ctx.moved(() => removeCol(doc, si, bi, ci), sub.cols.length > 1 ? "Colonne supprim\xE9e : les autres s\u2019\xE9tendent." : "\xC9l\xE9ment supprim\xE9.", "Annuler la suppression");
     },
     restructure() {
       fixSelection();
@@ -3855,6 +3886,14 @@ ${lorem}` },
     selected = null;
     ctx.restructure();
   }
+  window.addEventListener("keydown", (e) => {
+    if (e.key !== "Delete" && e.key !== "Backspace") return;
+    const a = document.activeElement, tag = e.target.tagName || "";
+    if (/INPUT|TEXTAREA|SELECT/.test(tag) || e.target.isContentEditable || a && a.isContentEditable) return;
+    if (document.querySelector("dialog[open], .ve, .v3d, .ce") || !selected || selected === "header") return;
+    e.preventDefault();
+    ctx.remove(selected);
+  });
   hover = initHover({
     stage,
     getDoc: () => doc,

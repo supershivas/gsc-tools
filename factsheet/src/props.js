@@ -145,7 +145,7 @@ export function buildProps(root, ctx) {
       select(sec, 'page', 'Page', { recto: 'Recto', verso: 'Verso' }, () => ctx.restructure()),
       actions(h('button', { type: 'button', textContent: '↑ Monter', onclick: struct(() => { stepSection(doc, si, -1); }) }),
         h('button', { type: 'button', textContent: '↓ Descendre', onclick: struct(() => { stepSection(doc, si, 1); }) }),
-        h('button', { type: 'button', class: 'danger', textContent: 'Supprimer', onclick: struct(() => { if (confirm(t('Supprimer cette section ?'))) doc.sections.splice(si, 1); }) })));
+        h('button', { type: 'button', class: 'danger', textContent: 'Supprimer', title: 'Supprimer (Suppr)', onclick: () => ctx.remove(`sec:${si}`) })));
   } else if (kind === 'sub' && sub) {
     title(sub.title || 'Sous-section', [['Document', null], [sec.title || 'Section', `sec:${si}`]]);
     root.append(text(sub, 'title', 'Titre de sous-section (vide = masqué)'), strokeControls(sub),
@@ -160,7 +160,7 @@ export function buildProps(root, ctx) {
       actions(h('button', { type: 'button', textContent: '↑ Monter', onclick: struct(() => { const j = bi - 1; if (j >= 0) [sec.subs[bi], sec.subs[j]] = [sec.subs[j], sec.subs[bi]]; }) }),
         h('button', { type: 'button', textContent: '↓ Descendre', onclick: struct(() => { const j = bi + 1; if (j < sec.subs.length) [sec.subs[bi], sec.subs[j]] = [sec.subs[j], sec.subs[bi]]; }) }),
         h('button', { type: 'button', textContent: 'Dupliquer', onclick: struct(() => { const c = JSON.parse(JSON.stringify(sub)); c.id = (sub.id || 'sub') + 'c' + Date.now() % 1e5; sec.subs.splice(bi + 1, 0, c); }) }),
-        h('button', { type: 'button', class: 'danger', textContent: 'Supprimer', onclick: struct(() => { if (confirm(t('Supprimer cette sous-section ?'))) sec.subs.splice(bi, 1); }) })));
+        h('button', { type: 'button', class: 'danger', textContent: 'Supprimer', title: 'Supprimer (Suppr)', onclick: () => ctx.remove(`sub:${si}:${bi}`) })));
   } else if (kind === 'col' && col) {
     title(`Colonne ${ci + 1}`, [['Document', null], [sec.title || 'Section', `sec:${si}`], [sub.title || 'Sous-section', `sub:${si}:${bi}`]]);
     root.append(field('Contenu', h('select', { onchange: e => { const keep = col.text, { valign, align, stroke, strokeColor, fill } = col; Object.assign(col, newCol(e.target.value), { valign, align, stroke, strokeColor, fill }); if (e.target.value === 'text' && keep) col.text = keep; if (e.target.value === 'card') { col.card = newCard(columnWidth(doc, si, bi, ci)); col.stroke = false; } ctx.restructure(); } },
@@ -171,7 +171,8 @@ export function buildProps(root, ctx) {
         const s = h('select', { onchange: e => { if (!e.target.value) return; const [a, b, c] = e.target.value.split(':').map(Number); ctx.moved(() => { swapCols(doc, { si, bi, ci }, { si: a, bi: b, ci: c }); return `col:${a}:${b}:${c}`; }); } },
           h('option', { value: '', textContent: '—' }), allCols(doc).filter(c => !(c.si === si && c.bi === bi && c.ci === ci)).map(c => h('option', { value: `${c.si}:${c.bi}:${c.ci}`, textContent: c.label + (doc.sections[c.si].page !== sec.page ? ` (${c.page === 'recto' ? t('Recto') : t('Verso')})` : '') })));
         s.value = ''; return s;
-      })()));
+      })()),
+      h('button', { type: 'button', class: 'danger', title: 'Supprimer (Suppr)', textContent: 'Supprimer la colonne', onclick: () => ctx.remove(`col:${si}:${bi}:${ci}`) }));
     if (col.type === 'text') root.append(h('div', { class: 'f' }, h('div', { class: 'hint', textContent: 'Texte' }), richEditor(col.text, v => { col.text = v; ctx.changed(); })));
     else if (col.type === 'image') {
       const mode = col.imgMode || 'ratio';
