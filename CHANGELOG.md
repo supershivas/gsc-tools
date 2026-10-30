@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.6.1 — 2026-10-30
+- Bouton « Ajouter une couleur » aux dimensions et espacements du design system
+
 ## 1.6.0 — 2026-10-30
 - Suppression d'une section, sous-section ou colonne (touche Suppr, bouton au survol ou dans le panneau), avec annulation ; les autres colonnes s'étendent
 - Palette de couleurs : espacements revus

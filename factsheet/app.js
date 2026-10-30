@@ -3085,14 +3085,14 @@ ${lorem}` },
         { class: "f" },
         h("div", { class: "hint", textContent: `${t("Palette du th\xE8me")} (${Object.keys(pal).length}/${Object.keys(th.colors).length + 7})` }),
         h("div", { class: "pal2" }, Object.keys(pal).map(row)),
-        canAddColor(doc2) ? h("button", { type: "button", onclick: () => {
+        canAddColor(doc2) ? h("button", { type: "button", class: "btn", onclick: () => {
           const k = addColor(doc2, "#808080");
           ctx2.restructure();
           requestAnimationFrame(() => {
             const b = root.querySelector(`[data-key="${k}"] .pal2-sw`);
             if (b) b.click();
           });
-        } }, ico("plus"), " ", t("Ajouter une couleur")) : null
+        } }, ico("plus"), h("span", { textContent: "Ajouter une couleur" })) : null
       );
     };
     const cardPanel = (col2, W) => {

@@ -1,8 +1,7 @@
 {
-  "version": "1.6.0",
+  "version": "1.6.1",
   "date": "2026-10-30",
   "changes": [
-    "Suppression d'une section, sous-section ou colonne (touche Suppr, bouton au survol ou dans le panneau), avec annulation ; les autres colonnes s'étendent",
-    "Palette de couleurs : espacements revus"
+    "Bouton « Ajouter une couleur » aux dimensions et espacements du design system"
   ]
 }

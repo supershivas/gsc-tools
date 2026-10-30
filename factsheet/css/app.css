@@ -223,4 +223,4 @@ body.v3d-open{overflow:hidden}
 .pal2-row input[type=text]{min-width:0;padding:4px 8px}
 .pal2-row .mini{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center}
 .pal2-hex{font:11px var(--font-mono,monospace);color:var(--ui-mute);letter-spacing:.02em}
-.pal2 + button{margin:2px 0 14px 6px}
+.pal2 + .btn{margin:var(--modal-gap) 0}   /* bouton du design system (44 px, gap 8) ; écart = --modal-gap */

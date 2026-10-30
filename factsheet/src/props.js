@@ -95,7 +95,7 @@ export function buildProps(root, ctx) {
     };
     return h('div', { class: 'f' }, h('div', { class: 'hint', textContent: `${t('Palette du thème')} (${Object.keys(pal).length}/${Object.keys(th.colors).length + 7})` }),
       h('div', { class: 'pal2' }, Object.keys(pal).map(row)),
-      canAddColor(doc) ? h('button', { type: 'button', onclick: () => { const k = addColor(doc, '#808080'); ctx.restructure(); requestAnimationFrame(() => { const b = root.querySelector(`[data-key="${k}"] .pal2-sw`); if (b) b.click(); }); } }, ico('plus'), ' ', t('Ajouter une couleur')) : null);
+      canAddColor(doc) ? h('button', { type: 'button', class: 'btn', onclick: () => { const k = addColor(doc, '#808080'); ctx.restructure(); requestAnimationFrame(() => { const b = root.querySelector(`[data-key="${k}"] .pal2-sw`); if (b) b.click(); }); } }, ico('plus'), h('span', { textContent: 'Ajouter une couleur' })) : null);
   };
   /* Carte : le contenu d'abord, puis toutes les options (cochables) ; tant qu'on n'y touche pas, le type de carte suit la largeur de la colonne */
   const cardPanel = (col, W) => {
