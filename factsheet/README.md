@@ -2,7 +2,7 @@
 
 Éditeur de fiche A4 recto-verso à design system strict (Source Sans 3 / Source Serif 4).
 Ouvrir `index.html` via un serveur local ou GitHub Pages — le code est empaqueté dans `app.js`, les polices sont locales (`fonts/`).
-Après modification de `src/` : `npm install` (une fois) puis `npm run build` pour régénérer `app.js`.
+Après modification de `src/` : `npm install` (une fois) puis `npm run build` pour régénérer `app.js` et `viewer3d.js`.
 
 ## Architecture
 - `src/tokens.js` — **seule source des valeurs de mise en page** : base 3 px, espacements nommés, grille, typo (pt + interlignes multiples de 3), trait 0,5 pt, header, dataviz, thèmes/palettes.
@@ -28,6 +28,15 @@ Un type peut ajouter :
 - `actions: [{ label, run(opts) }]` — boutons au-dessus du formulaire ;
 - `edit.start(hit, opts, meta, api, pt)` — interactions souris : `render()` pose des `data-hit="kind:index"` quand `env.ui` est présent (éditeur seulement, jamais à l'export) et renvoie `meta` (géométrie) ; `start` renvoie `{ move(pt), end() }` ; `api` = `{ ui, select(i), redraw() }`.
 Le donut l'utilise : cliquer un segment/libellé, glisser l'anneau (rotation, orientation « manuelle »), glisser un libellé (position verticale, ou de l'autre côté de l'anneau), glisser le point blanc (ancrage du trait), « Positions auto », « Plus grand en premier ».
+
+## Logo et images du header
+Le logo a 4 versions de même taille (défaut, mono, white, négatif) : une liste déroulante choisit celle qui s'affiche, chacune s'importe séparément (`header.logos`, `header.logoVariant`). Le header a une bibliothèque d'images sans limite (deux emplacements au départ) : vignettes cliquables, import / renommer / supprimer, la vignette sélectionnée est affichée (`header.images`, `header.imageId`).
+
+## Aperçu 3D
+Bouton « Aperçu 3D » : les pages sont dessinées en images (`src/raster.js`) puis posées sur une feuille A4 en three.js (`src/viewer3d.js`, bundle séparé `viewer3d.js` chargé à la demande). Léger balancement tant que la caméra n'est pas touchée, puis caméra libre (clic gauche tourner, clic droit déplacer, molette zoomer) ; boutons Retourner (recto/verso, touche F), Deux pages, Recentrer ; Échap ferme.
+
+## Langue de l'interface
+Anglais par défaut, français en option (`src/i18n.js`). Les textes du code sont en français et servent de clés du dictionnaire FR → EN ; une passe sur le DOM traduit l'interface (jamais le document ni les champs de saisie) et `t()` sert pour les alertes et les valeurs créées dans le document. Ajouter une langue = ajouter un dictionnaire dans `i18n.js`.
 
 ## Interface
 Trois colonnes : **structure** à gauche (header, sections, sous-sections, colonnes ; clic = sélection, poignée ⠿ = réordonner / changer de page), **aperçu** au centre, **propriétés** à droite (document, header, section, sous-section ou colonne selon la sélection, avec fil d'Ariane). Sélectionner dans la structure ou sur la page revient au même (`src/tree.js`, `src/props.js`).

@@ -2,16 +2,17 @@
 import { VIZ } from '../tokens.js';
 import { s, el, SW } from './util.js';
 import { ICONS, ICON_OPTIONS } from './icons.js';
+import { t } from '../i18n.js';
 
 export default {
   label: 'Liste à icônes',
   defaults: () => ({ items: [
-    { icon: 'sliders', text: 'Premier élément de liste' },
-    { icon: 'send', text: 'Deuxième élément de liste' },
-    { icon: 'pencil', text: 'Troisième élément de liste' },
+    { icon: 'sliders', text: t('Premier élément de liste') },
+    { icon: 'send', text: t('Deuxième élément de liste') },
+    { icon: 'pencil', text: t('Troisième élément de liste') },
   ] }),
   fields: [
-    { k: 'items', t: 'list', label: 'Éléments', min: 1, max: 8, item: () => ({ icon: 'check', text: 'Nouvel élément' }),
+    { k: 'items', t: 'list', label: 'Éléments', min: 1, max: 8, item: () => ({ icon: 'check', text: t('Nouvel élément') }),
       fields: [{ k: 'icon', t: 'select', label: 'Icône', options: ICON_OPTIONS }, { k: 'text', t: 'text', label: 'Texte' }] },
   ],
   render(o) {

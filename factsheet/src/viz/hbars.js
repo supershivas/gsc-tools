@@ -1,6 +1,7 @@
 /* Barres horizontales : libellés à gauche, valeur au bout de la barre. Groupées ou empilées. */
 import { VIZ, TYPE } from '../tokens.js';
 import { s, SW, colorRef, pxOf, fmt, mw, SANS, SERIF, drawLegend, numVal, fitText } from './util.js';
+import { t } from '../i18n.js';
 
 const hPath = (x, y, w, h, r) => { r = Math.max(0, Math.min(r, h / 2, w)); return `M${x},${y}H${x + w - r}A${r},${r} 0 0 1 ${x + w},${y + r}V${y + h - r}A${r},${r} 0 0 1 ${x + w - r},${y + h}H${x}Z`; };
 
@@ -8,8 +9,8 @@ export default {
   label: 'Barres horizontales',
   defaults: () => ({
     style: 'grouped', legend: false, showValues: true, decimals: 0, suffix: '%',
-    series: [{ name: 'Valeur', color: 'blue' }],
-    rows: [{ label: 'Premier critère', v: [72] }, { label: 'Deuxième critère', v: [58] }, { label: 'Troisième critère', v: [41] }, { label: 'Quatrième critère', v: [23] }],
+    series: [{ name: t('Valeur'), color: 'blue' }],
+    rows: [{ label: t('Premier critère'), v: [72] }, { label: t('Deuxième critère'), v: [58] }, { label: t('Troisième critère'), v: [41] }, { label: t('Quatrième critère'), v: [23] }],
   }),
   fields: [
     { k: 'style', t: 'select', label: 'Plusieurs séries', options: { grouped: 'Côte à côte', stacked: 'Empilées' } },

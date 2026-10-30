@@ -1,11 +1,13 @@
 import { PAGE } from './tokens.js';
-import { loadDoc, saveDoc, migrate, defaultDoc, moveSection } from './state.js';
+import { loadDoc, saveDoc, migrate, defaultDoc, moveSection, storage } from './state.js';
 import { renderDocument, measure, h } from './render.js';
 import { buildTree } from './tree.js';
 import { buildProps } from './props.js';
 import { openVizEditor } from './vizeditor.js';
 import { initHover } from './hover.js';
 import { EXPORT_MODES, preparePrint, cleanupPrint } from './export.js';
+import { t, initI18n, getLang, LANGS } from './i18n.js';
+import { rasterizeDocument } from './raster.js';
 
 let doc = loadDoc();
 let selected = null;
@@ -44,6 +46,7 @@ function drawPreview() {
   });
   warnEl.innerHTML = '';
   r.warnings.forEach(w => warnEl.append(h('div', { textContent: w })));
+  if (!storage.ok) warnEl.append(h('div', { textContent: 'Espace de stockage du navigateur plein : les dernières modifications ne sont pas enregistrées. Enregistrez le projet (.json) et allégez les images.' }));
   if (hover) hover.hide();
   if (selected) stage.querySelectorAll(`[data-sel="${selected}"]`).forEach(n => n.classList.add('is-sel'));
 }
@@ -150,15 +153,40 @@ bar.append(
     document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
   } }),
   h('button', { type: 'button', textContent: 'Ouvrir…', onclick: () => file.click() }),
+  h('button', { type: 'button', textContent: 'Aperçu 3D', onclick: () => open3d() }),
   h('button', { type: 'button', class: 'primary', textContent: 'Exporter PDF…', onclick: () => openExport() }),
   file);
 file.addEventListener('change', async () => {
   const f = file.files[0]; file.value = ''; if (!f) return;
   try { const j = JSON.parse(await f.text()); if (!Array.isArray(j.sections)) throw 0; doc = migrate(j); selected = null; ctx.restructure(); }
-  catch (e) { alert('Fichier de projet invalide.'); }
+  catch (e) { alert(t('Fichier de projet invalide.')); }
 });
 
 zoomSel.addEventListener('change', schedule);
+
+/* Langue de l'interface (anglais par défaut) */
+const langSel = document.getElementById('lang');
+for (const [k, l] of Object.entries(LANGS)) langSel.append(h('option', { value: k, textContent: l }));
+langSel.value = getLang();
+const i18n = initI18n(() => ctx.restructure());
+langSel.addEventListener('change', () => i18n.set(langSel.value));
+
+/* Aperçu 3D : les pages sont dessinées ici, la scène three.js est dans viewer3d.js (chargé à la première ouverture) */
+let viewerLoad = null;
+const loadViewer = () => window.FS3D ? Promise.resolve(window.FS3D) : (viewerLoad = viewerLoad || new Promise((res, rej) => {
+  const s = h('script', { src: 'viewer3d.js', onload: () => res(window.FS3D), onerror: () => { viewerLoad = null; rej(new Error('viewer3d')); } });
+  document.head.append(s);
+}));
+async function open3d() {
+  hover.hide();
+  let viewer;
+  try { viewer = await loadViewer(); } catch (e) { alert(t('Impossible de générer l’aperçu 3D dans ce navigateur.')); return; }
+  viewer.open({
+    labels: { title: t('Aperçu 3D du document'), loading: t('Préparation de l’aperçu…'), flip: t('Retourner'), spread: t('Deux pages'), single: t('Une feuille'),
+      reset: t('Recentrer'), close: t('Fermer'), hint: t('Clic gauche : tourner · clic droit : déplacer · molette : zoomer'), error: t('Impossible de générer l’aperçu 3D dans ce navigateur.'), noWebgl: t('WebGL indisponible.') },
+    load: () => rasterizeDocument(doc, 2),
+  });
+}
 new ResizeObserver(schedule).observe(stage);
 
 drawTree(); drawProps();

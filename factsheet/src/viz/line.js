@@ -1,12 +1,13 @@
 /* Courbes : trait 0,5 pt (design system), points remplis de la couleur de la série et cerclés 0,5 pt. */
 import { VIZ, TYPE } from '../tokens.js';
 import { s, SW, colorRef, pxOf, fmt, round3, drawLegend, numVal, fitText, SANS, SERIF } from './util.js';
+import { t } from '../i18n.js';
 
 export default {
   label: 'Courbes',
   defaults: () => ({
     ratio: '16:9', legend: true, showValues: false, decimals: 0, suffix: '', zero: true,
-    series: [{ name: 'Série 1', color: 'blue' }, { name: 'Série 2', color: 'yellow' }],
+    series: [{ name: `${t('Série')} 1`, color: 'blue' }, { name: `${t('Série')} 2`, color: 'yellow' }],
     rows: [{ label: '2021', v: [20, 45] }, { label: '2022', v: [34, 40] }, { label: '2023', v: [52, 38] }, { label: '2024', v: [60, 49] }, { label: '2025', v: [78, 55] }],
   }),
   fields: [

@@ -39,18 +39,22 @@ export function richText(text) {
   return root;
 }
 
+/** Image du header actuellement choisie dans la bibliothèque */
+export const headerImage = H => (H.images || []).find(i => i.id === H.imageId) || (H.images || [])[0] || null;
+
 function renderHeader(doc) {
   const H = doc.header, sel = { 'data-sel': 'header' };
   const el = h('header', { class: 'hd', style: { background: `var(--c-${H.bg})`, color: `var(--c-${H.fg})` }, dataset: { sel: 'header' } });
   const inner = h('div', { class: 'hd-inner' });
-  if (H.showImage) inner.append(H.image ? h('img', { class: 'hd-img', src: H.image, alt: '' }) : h('div', { class: 'hd-img ph', textContent: 'image' }));
+  const img = headerImage(H), logo = (H.logos || {})[H.logoVariant];
+  if (H.showImage) inner.append(img && img.src ? h('img', { class: 'hd-img', src: img.src, alt: '' }) : h('div', { class: 'hd-img ph', textContent: 'image' }));
   const top = h('div', { class: 'hd-top' },
     h('div', { class: 'hd-over', textContent: H.overline }), h('div', { class: 'hd-rule' }));
   const bottom = h('div', { class: 'hd-bottom' },
     h('div', { class: 'hd-title', textContent: H.title }),
     H.subtitle && H.subtitle.trim() ? h('div', { class: 'hd-sub', textContent: H.subtitle }) : null);
   inner.append(h('div', { class: 'hd-text' }, top, bottom));
-  if (H.showLogo) inner.append(H.logo ? h('img', { class: 'hd-logo', src: H.logo, alt: '' }) : h('div', { class: 'hd-logo ph', textContent: 'logo' }));
+  if (H.showLogo) inner.append(logo ? h('img', { class: 'hd-logo', src: logo, alt: '' }) : h('div', { class: 'hd-logo ph', textContent: 'logo' }));
   el.append(inner);
   return el;
 }

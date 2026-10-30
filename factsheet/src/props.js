@@ -1,7 +1,8 @@
 /* Colonne de droite : propriétés de l'élément sélectionné (document, header, section, sous-section, colonne). */
-import { h, ico } from './render.js';
+import { h, ico, headerImage } from './render.js';
+import { t } from './i18n.js';
 import { GRID, THEMES, SECTION_BGS, cssVars, applyVars } from './tokens.js';
-import { COL_TYPES, IMAGE_RATIOS, LOCALES, newCol, stepSection } from './state.js';
+import { COL_TYPES, IMAGE_RATIOS, LOCALES, LOGO_VARIANTS, newCol, stepSection, newHeaderImage } from './state.js';
 import { VIZ_TYPES, VIZ_OPTIONS, newViz } from './viz/index.js';
 import { buildFields, readImage, richEditor, paletteOptions, PAL_LABELS } from './editor.js';
 
@@ -24,12 +25,46 @@ export function buildProps(root, ctx) {
   const imgPicker = (label, get, set, max) => {
     const inp = h('input', { type: 'file', accept: 'image/*', hidden: true, onchange: async () => {
       const f = inp.files[0]; inp.value = ''; if (!f) return;
-      try { set(await readImage(f, max)); ctx.restructure(); } catch (e) { alert('Image illisible.'); }
+      try { set(await readImage(f, max)); ctx.restructure(); } catch (e) { alert(t('Image illisible.')); }
     } });
     return h('div', { class: 'f' }, h('div', { class: 'hint', textContent: label }),
       h('div', { class: 'row' }, get() ? h('img', { class: 'thumb', src: get() }) : null,
         h('button', { type: 'button', textContent: get() ? 'Remplacer…' : 'Importer…', onclick: () => inp.click() }),
         get() ? h('button', { type: 'button', class: 'danger', textContent: 'Retirer', onclick: struct(() => set(null)) }) : null, inp));
+  };
+
+  /* Logo : 4 versions de même taille, une liste déroulante choisit celle qui s'affiche */
+  const logoPicker = H => {
+    const sel = h('select', { onchange: e => { H.logoVariant = e.target.value; ctx.restructure(); } },
+      Object.entries(LOGO_VARIANTS).map(([v, l]) => h('option', { value: v, textContent: `${t(l)} — ${t(H.logos[v] ? 'importé' : 'vide')}`, selected: H.logoVariant === v })));
+    return h('div', {}, field('Version du logo', sel),
+      imgPicker(`Logo — ${t(LOGO_VARIANTS[H.logoVariant])}`, () => H.logos[H.logoVariant], v => { H.logos[H.logoVariant] = v; }, 800),
+      h('p', { class: 'hint', textContent: 'Les 4 versions ont la même taille (138 × 42 px). PNG transparent ou SVG.' }));
+  };
+
+  /* Images du header : une bibliothèque sans limite (on démarre avec deux), la vignette cliquée est affichée */
+  const imageLibrary = H => {
+    const cur = headerImage(H);
+    const pick = e => async () => {
+      const inp = e.input; const f = inp.files[0]; inp.value = ''; if (!f) return;
+      try { e.img.src = await readImage(f, 800); H.imageId = e.img.id; ctx.restructure(); } catch (x) { alert(t('Image illisible.')); }
+    };
+    const tile = img => {
+      const inp = h('input', { type: 'file', accept: 'image/*', hidden: true });
+      inp.addEventListener('change', pick({ input: inp, img }));
+      return h('div', { class: 'imgtile' + (cur && cur.id === img.id ? ' on' : '') },
+        h('button', { type: 'button', class: 'imgtile-pic', title: img.name, onclick: () => { H.imageId = img.id; ctx.restructure(); } },
+          img.src ? h('img', { src: img.src, alt: '' }) : h('span', { textContent: 'Pas d’image' })),
+        h('div', { class: 'imgtile-name', textContent: img.name }),
+        h('div', { class: 'row imgtile-act' },
+          h('button', { type: 'button', class: 'mini', title: img.src ? 'Remplacer…' : 'Importer…', onclick: () => inp.click() }, ico('upload')),
+          h('button', { type: 'button', class: 'mini', title: 'Renommer', onclick: () => { const n = prompt(t('Nom de l’image :'), img.name); if (n && n.trim()) { img.name = n.trim(); ctx.restructure(); } } }, ico('pencil')),
+          H.images.length > 1 ? h('button', { type: 'button', class: 'mini danger', title: 'Supprimer', onclick: () => { if (!confirm(t('Supprimer cette image ?'))) return; H.images.splice(H.images.indexOf(img), 1); if (H.imageId === img.id) H.imageId = H.images[0].id; ctx.restructure(); } }, ico('x')) : null),
+        inp);
+    };
+    return h('div', { class: 'f' }, h('div', { class: 'hint', textContent: 'Image affichée (96 × 132 px) — choisissez dans la bibliothèque :' }),
+      h('div', { class: 'imggrid' }, H.images.map(tile),
+        h('button', { type: 'button', class: 'imgtile-add', onclick: () => { const n = newHeaderImage(H.images.length + 1); H.images.push(n); H.imageId = n.id; ctx.restructure(); } }, ico('plus'), h('span', { textContent: 'Ajouter une image' }))));
   };
   const title = (t, crumbs = []) => root.append(h('div', { class: 'pr-head' },
     h('div', { class: 'crumbs' }, crumbs.flatMap(([l, p]) => [h('a', { textContent: l, onclick: () => ctx.select(p) }), ' › '])),
@@ -53,9 +88,9 @@ export function buildProps(root, ctx) {
     root.append(text(H, 'overline', 'Surtitre'), text(H, 'title', 'Titre (taille fixe)'), text(H, 'subtitle', 'Sous-titre (optionnel — vide = masqué)'),
       swatches('Couleur de fond', H, 'bg', Object.keys(th.colors)), swatches('Couleur du texte', H, 'fg', Object.keys(th.colors)),
       h('label', { class: 'row' }, h('input', { type: 'checkbox', checked: H.showImage, onchange: struct(() => { H.showImage = !H.showImage; }) }), 'Afficher l’image'),
-      H.showImage ? imgPicker('Image (96 × 132 px dans le header)', () => H.image, v => { H.image = v; }, 800) : null,
+      H.showImage ? imageLibrary(H) : null,
       h('label', { class: 'row' }, h('input', { type: 'checkbox', checked: H.showLogo, onchange: struct(() => { H.showLogo = !H.showLogo; }) }), 'Afficher le logo'),
-      H.showLogo ? imgPicker('Logo (PNG transparent ou SVG)', () => H.logo, v => { H.logo = v; }, 800) : null);
+      H.showLogo ? logoPicker(H) : null);
   } else if (kind === 'sec' && sec) {
     title(sec.title || 'Section', [['Document', null]]);
     root.append(text(sec, 'title', 'Titre de section'),
@@ -63,7 +98,7 @@ export function buildProps(root, ctx) {
       select(sec, 'page', 'Page', { recto: 'Recto', verso: 'Verso' }, () => ctx.restructure()),
       actions(h('button', { type: 'button', textContent: '↑ Monter', onclick: struct(() => { stepSection(doc, si, -1); }) }),
         h('button', { type: 'button', textContent: '↓ Descendre', onclick: struct(() => { stepSection(doc, si, 1); }) }),
-        h('button', { type: 'button', class: 'danger', textContent: 'Supprimer', onclick: struct(() => { if (confirm('Supprimer cette section ?')) doc.sections.splice(si, 1); }) })));
+        h('button', { type: 'button', class: 'danger', textContent: 'Supprimer', onclick: struct(() => { if (confirm(t('Supprimer cette section ?'))) doc.sections.splice(si, 1); }) })));
   } else if (kind === 'sub' && sub) {
     title(sub.title || 'Sous-section', [['Document', null], [sec.title || 'Section', `sec:${si}`]]);
     root.append(text(sub, 'title', 'Titre de sous-section (vide = masqué)'),
@@ -73,7 +108,7 @@ export function buildProps(root, ctx) {
       actions(h('button', { type: 'button', textContent: '↑ Monter', onclick: struct(() => { const j = bi - 1; if (j >= 0) [sec.subs[bi], sec.subs[j]] = [sec.subs[j], sec.subs[bi]]; }) }),
         h('button', { type: 'button', textContent: '↓ Descendre', onclick: struct(() => { const j = bi + 1; if (j < sec.subs.length) [sec.subs[bi], sec.subs[j]] = [sec.subs[j], sec.subs[bi]]; }) }),
         h('button', { type: 'button', textContent: 'Dupliquer', onclick: struct(() => { const c = JSON.parse(JSON.stringify(sub)); c.id = (sub.id || 'sub') + 'c' + Date.now() % 1e5; sec.subs.splice(bi + 1, 0, c); }) }),
-        h('button', { type: 'button', class: 'danger', textContent: 'Supprimer', onclick: struct(() => { if (confirm('Supprimer cette sous-section ?')) sec.subs.splice(bi, 1); }) })));
+        h('button', { type: 'button', class: 'danger', textContent: 'Supprimer', onclick: struct(() => { if (confirm(t('Supprimer cette sous-section ?'))) sec.subs.splice(bi, 1); }) })));
   } else if (kind === 'col' && col) {
     title(`Colonne ${ci + 1}`, [['Document', null], [sec.title || 'Section', `sec:${si}`], [sub.title || 'Sous-section', `sub:${si}:${bi}`]]);
     root.append(field('Contenu', h('select', { onchange: e => { const keep = col.text; Object.assign(col, newCol(e.target.value)); if (e.target.value === 'text' && keep) col.text = keep; ctx.restructure(); } },

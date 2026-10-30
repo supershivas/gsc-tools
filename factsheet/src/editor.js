@@ -1,5 +1,6 @@
 /* Panneau d'édition : tout est éditable, mais jamais les tailles / espacements / layout. */
 import { h, inline, ico } from './render.js';
+import { t } from './i18n.js';
 import { GRID, THEMES, SECTION_BGS } from './tokens.js';
 import { COL_TYPES, IMAGE_RATIOS, LOCALES, newCol, newSub, newSection, uid, moveSection, stepSection } from './state.js';
 import { VIZ_TYPES, VIZ_OPTIONS, newViz } from './viz/index.js';
@@ -136,10 +137,10 @@ function tableField(f, obj, ctx, palOpts, h2) {
     const cs = h2('select', { onchange: e => { sr.color = e.target.value; ctx.changed(); } }, Object.entries(palOpts).map(([v, l]) => h2('option', { value: v, textContent: l })));
     cs.value = sr.color;
     box.append(h2('div', { class: 'row', style: { marginBottom: '6px' } }, cs,
-      h2('input', { type: 'text', value: sr.name || '', placeholder: `Série ${j + 1}`, oninput: e => { sr.name = e.target.value; ctx.changed(); } }),
+      h2('input', { type: 'text', value: sr.name || '', placeholder: `${t('Série')} ${j + 1}`, oninput: e => { sr.name = e.target.value; ctx.changed(); } }),
       series.length > 1 ? h2('button', { type: 'button', class: 'mini danger', title: 'Supprimer', onclick: () => { series.splice(j, 1); fix(); ctx.restructure(); } }, ico('x')) : null));
   });
-  if (series.length < (f.maxSeries || 4)) box.append(h2('button', { type: 'button', textContent: '+ Série', onclick: () => { series.push({ name: `Série ${series.length + 1}`, color: SERIES_COLORS[series.length % SERIES_COLORS.length] }); fix(); ctx.restructure(); } }));
+  if (series.length < (f.maxSeries || 4)) box.append(h2('button', { type: 'button', textContent: '+ Série', onclick: () => { series.push({ name: `${t('Série')} ${series.length + 1}`, color: SERIES_COLORS[series.length % SERIES_COLORS.length] }); fix(); ctx.restructure(); } }));
   const grid = h2('div', { class: 'tgrid', style: { gridTemplateColumns: `1fr ${series.map(() => '58px').join(' ')} 24px` } });
   grid.append(h2('span', { class: 'hint', textContent: 'Libellé' }), ...series.map(sr => h2('span', { class: 'hint', textContent: sr.name || '—' })), h2('span'));
   rows.forEach((r, i) => {
@@ -153,7 +154,7 @@ function tableField(f, obj, ctx, palOpts, h2) {
     h2('button', { type: 'button', textContent: 'Remplacer les données', onclick: () => {
       const p = parseTable(ta.value); if (!p) return;
       const max = f.maxSeries || 4, n = Math.min(p.nser, max);
-      const ns = Array.from({ length: n }, (_, j) => ({ name: (p.header && p.header[j + 1]) || (series[j] && series[j].name) || `Série ${j + 1}`, color: (series[j] && series[j].color) || SERIES_COLORS[j % SERIES_COLORS.length] }));
+      const ns = Array.from({ length: n }, (_, j) => ({ name: (p.header && p.header[j + 1]) || (series[j] && series[j].name) || `${t('Série')} ${j + 1}`, color: (series[j] && series[j].color) || SERIES_COLORS[j % SERIES_COLORS.length] }));
       series.splice(0, series.length, ...ns);
       rows.splice(0, rows.length, ...p.rows.map(r => ({ label: r.label, v: r.v.slice(0, n) })));
       ctx.restructure();

@@ -3,6 +3,7 @@
    ou en légende sous l'anneau (colonnes étroites). Logique reprise de donut-export. */
 import { VIZ, TYPE, GAP } from '../tokens.js';
 import { s, SW, colorRef, pxOf, fmt, mw, SERIF, round3, textLines, drawLines } from './util.js';
+import { t } from '../i18n.js';
 
 const BODY = pxOf(TYPE.body.size), LH = TYPE.body.lh;
 const rad = d => d * Math.PI / 180;
@@ -38,7 +39,7 @@ export default {
     { k: 'largestAngle', t: 'number', label: 'Angle du plus grand segment (° — 0 = haut, 210 = bas gauche)', min: 0, max: 359 },
     { k: 'startAngle', t: 'number', label: 'Angle de départ du 1er segment (° — mode manuel)', min: 0, max: 359, step: 'any' },
     { k: 'segments', t: 'list', label: 'Segments (sens horaire)', min: 1, max: 10,
-      item: () => ({ color: 'sky', value: 10, title: 'Titre', text: 'Texte' }),
+      item: () => ({ color: 'sky', value: 10, title: t('Titre'), text: t('Texte') }),
       fields: [{ k: 'color', t: 'color', label: 'Couleur' }, { k: 'value', t: 'number', label: 'Valeur', min: 0, step: 'any' },
         { k: 'title', t: 'text', label: 'Titre (gras)' }, { k: 'text', t: 'area', label: 'Texte' },
         { k: 'side', t: 'select', label: 'Côté du libellé', options: { auto: 'Auto', left: 'Gauche', right: 'Droite' } }] },

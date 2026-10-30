@@ -213,11 +213,11 @@
     const v = {};
     for (const [k, n] of Object.entries(SPACE)) v[`--s${k}`] = n + "px";
     for (const [k, val] of Object.entries(GAP)) v[`--gap-${k}`] = val + "px";
-    for (const [k, t] of Object.entries(TYPE)) {
-      v[`--t-${k}-size`] = t.size + "pt";
-      v[`--t-${k}-lh`] = t.lh + "px";
-      v[`--t-${k}-weight`] = t.weight;
-      v[`--t-${k}-family`] = FONT[t.family];
+    for (const [k, t2] of Object.entries(TYPE)) {
+      v[`--t-${k}-size`] = t2.size + "pt";
+      v[`--t-${k}-lh`] = t2.lh + "px";
+      v[`--t-${k}-weight`] = t2.weight;
+      v[`--t-${k}-family`] = FONT[t2.family];
     }
     for (const [k, c] of Object.entries(pal)) v[`--c-${k}`] = c;
     for (const [k, val] of Object.entries(VIZ)) if (typeof val === "number") v[`--viz-${k}`] = val + "px";
@@ -276,9 +276,9 @@
   }
   function ellipsize(text, weight, family, size, maxW) {
     if (mw(text, weight, family, size) <= maxW + 0.5) return text;
-    let t = String(text);
-    while (t.length > 1 && mw(t + "\u2026", weight, family, size) > maxW) t = t.slice(0, -1);
-    return t + "\u2026";
+    let t2 = String(text);
+    while (t2.length > 1 && mw(t2 + "\u2026", weight, family, size) > maxW) t2 = t2.slice(0, -1);
+    return t2 + "\u2026";
   }
   function fitText(text, weight, family, size, maxW, minK = 0.6) {
     const sz = fitSize(text, weight, family, size, maxW, minK);
@@ -287,7 +287,7 @@
   function paragraphs(text) {
     const paras = [[]];
     let cur = [];
-    const flush = () => {
+    const flush2 = () => {
       if (cur.length) {
         paras[paras.length - 1].push(cur);
         cur = [];
@@ -309,13 +309,13 @@
       }
       for (const part of seg.match(/\n|[^\S\n]+|\S+/g) || []) {
         if (part === "\n") {
-          flush();
+          flush2();
           paras.push([]);
-        } else if (/^\s+$/.test(part)) flush();
+        } else if (/^\s+$/.test(part)) flush2();
         else cur.push({ t: part, b, i, u: u2 });
       }
     });
-    flush();
+    flush2();
     return paras;
   }
   var runsW = (runs, size) => runs.reduce((a, r) => a + mw(r.t, r.b ? 700 : 400, SANS, size), 0);
@@ -367,9 +367,9 @@
   function drawLines(lines, x, y0, lh, size, align = "start") {
     const g = s("g", { "font-size": size });
     lines.forEach((l, i) => {
-      const t = s("text", { x, y: y0 + i * lh + lh / 2 + 0.33 * size, "text-anchor": align, style: { whiteSpace: "pre" } });
-      for (const r of l.runs) t.append(s("tspan", { "font-weight": r.b ? 700 : 400, "font-style": r.i ? "italic" : null, "text-decoration": r.u ? "underline" : null }, r.t));
-      g.append(t);
+      const t2 = s("text", { x, y: y0 + i * lh + lh / 2 + 0.33 * size, "text-anchor": align, style: { whiteSpace: "pre" } });
+      for (const r of l.runs) t2.append(s("tspan", { "font-weight": r.b ? 700 : 400, "font-style": r.i ? "italic" : null, "text-decoration": r.u ? "underline" : null }, r.t));
+      g.append(t2);
     });
     return g;
   }
@@ -384,19 +384,377 @@
   function drawLegend(svg, series, y, W = Infinity) {
     const base = pxOf(TYPE.caption.size), fixed = VIZ.legendSwatch + VIZ.barGap * 2, gap = VIZ.legendH * 1.2;
     const names = series.map((sr) => sr.name || "");
-    const need = (size) => names.reduce((a, t) => a + fixed + mw(t, TYPE.caption.weight, SANS, size), 0) + gap * Math.max(0, names.length - 1);
+    const need = (size) => names.reduce((a, t2) => a + fixed + mw(t2, TYPE.caption.weight, SANS, size), 0) + gap * Math.max(0, names.length - 1);
     let capPx = base;
     if (need(base) > W) capPx = Math.max(base * 0.7, base * (W - names.length * fixed - gap * (names.length - 1)) / (need(base) - names.length * fixed - gap * (names.length - 1)));
     const room = names.length ? Math.max(20, (W - gap * (names.length - 1)) / names.length - fixed) : 0;
     let x = 0;
     series.forEach((sr, i) => {
       svg.append(s("rect", { x: x + SW / 2, y: y + (VIZ.legendH - VIZ.legendSwatch) / 2 + SW / 2, width: VIZ.legendSwatch - SW, height: VIZ.legendSwatch - SW, rx: VIZ.barRadius, fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW }));
-      const lx = x + fixed, t = need(base) > W ? ellipsize(names[i], TYPE.caption.weight, SANS, capPx, room) : names[i];
-      svg.append(s("text", { x: lx, y: y + VIZ.legendH / 2 + 0.33 * capPx, "font-size": capPx, "font-weight": TYPE.caption.weight }, t));
-      x = lx + mw(t, TYPE.caption.weight, SANS, capPx) + gap;
+      const lx = x + fixed, t2 = need(base) > W ? ellipsize(names[i], TYPE.caption.weight, SANS, capPx, room) : names[i];
+      svg.append(s("text", { x: lx, y: y + VIZ.legendH / 2 + 0.33 * capPx, "font-size": capPx, "font-weight": TYPE.caption.weight }, t2));
+      x = lx + mw(t2, TYPE.caption.weight, SANS, capPx) + gap;
     });
   }
   var numVal = (r, j) => Math.max(0, +(r.v || [])[j] || 0);
+
+  // src/i18n.js
+  var LANGS = { en: "English", fr: "Fran\xE7ais" };
+  var KEY = "factsheet-creator-lang";
+  var lang = "en";
+  try {
+    const v = localStorage.getItem(KEY);
+    if (v && LANGS[v]) lang = v;
+  } catch (e) {
+  }
+  var getLang = () => lang;
+  var EN = {
+    /* page */
+    "Zoom": "Zoom",
+    "Ajuster": "Fit",
+    "Langue": "Language",
+    "Enregistrer (.json)": "Save (.json)",
+    "Ouvrir\u2026": "Open\u2026",
+    "Exporter PDF\u2026": "Export PDF\u2026",
+    "Aper\xE7u 3D": "3D preview",
+    "Fichier de projet invalide.": "Invalid project file.",
+    "Image illisible.": "Unreadable image.",
+    "Recto": "Front",
+    "Verso": "Back",
+    "recto": "front",
+    "verso": "back",
+    "Exporter en PDF": "Export to PDF",
+    "Annuler": "Cancel",
+    "Exporter": "Export",
+    "Terminer": "Done",
+    "Le navigateur ouvre sa fen\xEAtre d\u2019impression : choisissez": "The browser opens its print window: choose",
+    "Enregistrer au format PDF": "Save as PDF",
+    "comme destination,": "as destination,",
+    "Marges : aucune": "Margins: none",
+    ", et cochez": ", and tick",
+    "Graphiques d\u2019arri\xE8re-plan": "Background graphics",
+    ". Le PDF contient 2 pages (recto, verso) en vectoriel avec polices incorpor\xE9es.": ". The PDF has 2 pages (front, back), vector, with embedded fonts.",
+    "A4 net \u2014 210 \xD7 297 mm": "A4 trimmed \u2014 210 \xD7 297 mm",
+    "Sans fond perdu ni rep\xE8res.": "No bleed or marks.",
+    "Fond perdu 3 mm \u2014 216 \xD7 303 mm": "3 mm bleed \u2014 216 \xD7 303 mm",
+    "Les fonds color\xE9s d\xE9bordent de 3 mm sur les 4 c\xF4t\xE9s.": "Coloured backgrounds extend 3 mm past all four edges.",
+    "Fond perdu 3 mm + traits de coupe \u2014 228 \xD7 315 mm": "3 mm bleed + crop marks \u2014 228 \xD7 315 mm",
+    "Pour l\u2019imprimeur : fond perdu et rep\xE8res de coupe (feuille de 228 \xD7 315 mm).": "For the printer: bleed and crop marks (228 \xD7 315 mm sheet).",
+    "Espace de stockage du navigateur plein : les derni\xE8res modifications ne sont pas enregistr\xE9es. Enregistrez le projet (.json) et all\xE9gez les images.": "Browser storage is full: the latest changes are not saved. Save the project (.json) and use lighter images.",
+    /* panneau document */
+    "Document": "Document",
+    "document": "document",
+    "Nom du fichier": "File name",
+    "Th\xE8me": "Theme",
+    "Bleu UE": "EU blue",
+    "Format des nombres": "Number format",
+    "Palette du th\xE8me": "Theme palette",
+    "S\xE9lectionnez un \xE9l\xE9ment dans la structure (\xE0 gauche) ou sur la page pour modifier ses propri\xE9t\xE9s.": "Select an element in the structure (left) or on the page to edit its properties.",
+    "Bleu": "Blue",
+    "Bleu profond": "Deep blue",
+    "Bleu ciel": "Sky blue",
+    "Lavande": "Lavender",
+    "Jaune": "Yellow",
+    "Ardoise": "Slate",
+    "Acier": "Steel",
+    "Blanc": "White",
+    "Teinte ciel": "Sky tint",
+    "Teinte lavande": "Lavender tint",
+    "Teinte jaune": "Yellow tint",
+    "Teinte grise": "Grey tint",
+    /* header */
+    "Surtitre": "Overline",
+    "Titre (taille fixe)": "Title (fixed size)",
+    "Sous-titre (optionnel \u2014 vide = masqu\xE9)": "Subtitle (optional \u2014 empty = hidden)",
+    "Couleur de fond": "Background colour",
+    "Couleur du texte": "Text colour",
+    "Afficher l\u2019image": "Show image",
+    "Afficher le logo": "Show logo",
+    "Logo": "Logo",
+    "Version du logo": "Logo version",
+    "Les 4 versions ont la m\xEAme taille (138 \xD7 42 px). PNG transparent ou SVG.": "The 4 versions share the same size (138 \xD7 42 px). Transparent PNG or SVG.",
+    "D\xE9faut": "Default",
+    "Mono": "Mono",
+    "Blanc (white)": "White",
+    "N\xE9gatif": "Negative",
+    "import\xE9": "uploaded",
+    "vide": "empty",
+    "Images du header": "Header images",
+    "Image affich\xE9e (96 \xD7 132 px) \u2014 choisissez dans la biblioth\xE8que :": "Image shown (96 \xD7 132 px) \u2014 pick one from the library:",
+    "Ajouter une image": "Add an image",
+    "Renommer": "Rename",
+    "Nom de l\u2019image :": "Image name:",
+    "Supprimer cette image ?": "Delete this image?",
+    "Image du header": "Header image",
+    "Image": "Image",
+    "Remplacer\u2026": "Replace\u2026",
+    "Importer\u2026": "Import\u2026",
+    "Retirer": "Remove",
+    "Aucun": "None",
+    "Pas d\u2019image": "No image",
+    /* section / sous-section / colonne */
+    "Section": "Section",
+    "Titre de section": "Section title",
+    "Fond de la section": "Section background",
+    "Page": "Page",
+    "\u2191 Monter": "\u2191 Move up",
+    "\u2193 Descendre": "\u2193 Move down",
+    "Supprimer": "Delete",
+    "Supprimer cette section ?": "Delete this section?",
+    "Sous-section": "Subsection",
+    "Titre de sous-section": "Subsection title",
+    "Titre de sous-section (vide = masqu\xE9)": "Subsection title (empty = hidden)",
+    "Colonnes": "Columns",
+    "Dupliquer": "Duplicate",
+    "Supprimer cette sous-section ?": "Delete this subsection?",
+    "1 colonne": "1 column",
+    "2 colonnes": "2 columns",
+    "3 colonnes": "3 columns",
+    "2 colonnes (2/3 + 1/3)": "2 columns (2/3 + 1/3)",
+    "2 colonnes (1/3 + 2/3)": "2 columns (1/3 + 2/3)",
+    "Contenu": "Content",
+    "Texte": "Text",
+    "Dataviz": "Dataviz",
+    "Image (recadr\xE9e au format choisi)": "Image (cropped to the chosen ratio)",
+    "Format": "Ratio",
+    "L\xE9gende (optionnelle)": "Caption (optional)",
+    "Ouvrir l\u2019\xE9diteur de dataviz": "Open the dataviz editor",
+    "Type de dataviz": "Dataviz type",
+    "\xC9l\xE9ment introuvable": "Element not found",
+    "Votre texte ici. Une ligne = un paragraphe, **gras** avec les ast\xE9risques.": "Your text here. One line = one paragraph, **bold** with asterisks.",
+    /* structure */
+    "Header": "Header",
+    "Aucune section \u2014 glissez-en une ici.": "No sections \u2014 drag one here.",
+    "+ sous-section": "+ subsection",
+    "+ section": "+ section",
+    "Section sans titre": "Untitled section",
+    "Texte vide": "Empty text",
+    "Glisser pour r\xE9ordonner ou changer de page": "Drag to reorder or change page",
+    /* survol */
+    "\xC9diter": "Edit",
+    "Afficher les propri\xE9t\xE9s": "Show properties",
+    "Colonne": "Column",
+    "Dataviz\u2026": "Dataviz\u2026",
+    "Monter": "Move up",
+    "Descendre": "Move down",
+    "Sans fond": "No background",
+    /* éditeur de texte et de tableaux */
+    "Gras": "Bold",
+    "Italique": "Italic",
+    "Soulign\xE9": "Underline",
+    "Liste \xE0 puces": "Bullet list",
+    "+ Ajouter": "+ Add",
+    "+ S\xE9rie": "+ Series",
+    "Libell\xE9": "Label",
+    "+ Ligne": "+ Row",
+    "S\xE9rie": "Series",
+    "Coller un tableau": "Paste a table",
+    "Remplacer les donn\xE9es": "Replace data",
+    "Collez un tableau depuis Excel ou un CSV : libell\xE9 \u21E5 s\xE9rie 1 \u21E5 s\xE9rie 2\u2026  (la 1re ligne peut contenir les noms de s\xE9ries)": "Paste a table from Excel or a CSV: label \u21E5 series 1 \u21E5 series 2\u2026  (the first row may hold the series names)",
+    /* éditeur de dataviz */
+    "\xC9diteur de dataviz": "Dataviz editor",
+    "Aper\xE7u \xE0 la largeur": "Preview at width",
+    "Pleine largeur": "Full width",
+    "Cliquer un segment ou un libell\xE9 pour le s\xE9lectionner \xB7 glisser l\u2019anneau pour le tourner \xB7 glisser un libell\xE9 (verticalement, ou de l\u2019autre c\xF4t\xE9) \xB7 glisser le point blanc pour d\xE9placer l\u2019ancrage du trait": "Click a segment or a label to select it \xB7 drag the ring to rotate it \xB7 drag a label (vertically, or to the other side) \xB7 drag the white dot to move the leader line anchor",
+    "Les modifications du formulaire s\u2019appliquent en direct.": "Changes made in the form apply live.",
+    /* types de dataviz */
+    "Barres (jumel\xE9es, group\xE9es, empil\xE9es)": "Bars (overlapping, grouped, stacked)",
+    "Plusieurs s\xE9ries": "Multiple series",
+    "Jumel\xE9es (2 s\xE9ries qui se chevauchent)": "Overlapping (2 series overlap)",
+    "C\xF4te \xE0 c\xF4te": "Side by side",
+    "Empil\xE9es": "Stacked",
+    "Format du graphique": "Chart ratio",
+    "2:1 (large)": "2:1 (wide)",
+    "1:1 (carr\xE9)": "1:1 (square)",
+    "Afficher la l\xE9gende": "Show legend",
+    "Afficher les valeurs": "Show values",
+    "Afficher les valeurs (empil\xE9es : total)": "Show values (stacked: total)",
+    "D\xE9cimales des valeurs": "Value decimals",
+    "Unit\xE9 apr\xE8s la valeur (%, M\u20AC\u2026)": "Unit after the value (%, M\u20AC\u2026)",
+    "Afficher l\u2019accolade \xAB \xE9volution \xBB": "Show the \u201Cchange\u201D bracket",
+    "Valeur de l\u2019accolade (ex. +64 %)": "Bracket value (e.g. +64 %)",
+    "Texte de l\u2019accolade": "Bracket text",
+    "Donn\xE9es": "Data",
+    "Anneau / camembert": "Donut / pie",
+    "Forme": "Shape",
+    "Anneau (total au centre)": "Donut (total in the centre)",
+    "Camembert": "Pie",
+    "Texte du centre ({total} = somme des valeurs)": "Centre text ({total} = sum of the values)",
+    "D\xE9cimales du total": "Total decimals",
+    "Libell\xE9s": "Labels",
+    "Auto (selon la largeur)": "Auto (depends on the width)",
+    "Autour de l\u2019anneau": "Around the ring",
+    "L\xE9gende sous l\u2019anneau": "Legend below the ring",
+    "Orientation de l\u2019anneau": "Ring orientation",
+    "Plus grand segment \xE0 un angle donn\xE9": "Largest segment at a given angle",
+    "1er segment en haut": "1st segment at the top",
+    "Manuelle (glisser l\u2019anneau dans l\u2019\xE9diteur)": "Manual (drag the ring in the editor)",
+    "Angle du plus grand segment (\xB0 \u2014 0 = haut, 210 = bas gauche)": "Largest segment angle (\xB0 \u2014 0 = top, 210 = bottom left)",
+    "Angle de d\xE9part du 1er segment (\xB0 \u2014 mode manuel)": "Start angle of the 1st segment (\xB0 \u2014 manual mode)",
+    "Segments (sens horaire)": "Segments (clockwise)",
+    "Couleur": "Colour",
+    "Valeur": "Value",
+    "Titre (gras)": "Title (bold)",
+    "C\xF4t\xE9 du libell\xE9": "Label side",
+    "Auto": "Auto",
+    "Gauche": "Left",
+    "Droite": "Right",
+    "\u21BA Positions auto": "\u21BA Auto positions",
+    "Efface les positions manuelles des libell\xE9s, points d\u2019ancrage et c\xF4t\xE9s": "Clears the manual positions of labels, anchor points and sides",
+    "Plus grand en premier": "Largest first",
+    "Fait tourner la liste pour que le plus grand segment soit le 1er": "Rotates the list so the largest segment comes first",
+    "Titre": "Title",
+    "Chiffre cl\xE9": "Key figure",
+    "Chiffre (texte libre : \xAB 5 000 \xBB, \xAB 64 % \xBB\u2026)": "Figure (free text: \u201C5,000\u201D, \u201C64 %\u201D\u2026)",
+    "Barres horizontales": "Horizontal bars",
+    "Premier crit\xE8re": "First criterion",
+    "Deuxi\xE8me crit\xE8re": "Second criterion",
+    "Troisi\xE8me crit\xE8re": "Third criterion",
+    "Quatri\xE8me crit\xE8re": "Fourth criterion",
+    "Courbes": "Lines",
+    "Axe vertical d\xE9marrant \xE0 z\xE9ro": "Vertical axis starts at zero",
+    "Liste \xE0 ic\xF4nes": "Icon list",
+    "\xC9l\xE9ments": "Items",
+    "Ic\xF4ne": "Icon",
+    "Nouvel \xE9l\xE9ment": "New item",
+    "Premier \xE9l\xE9ment de liste": "First list item",
+    "Deuxi\xE8me \xE9l\xE9ment de liste": "Second list item",
+    "Troisi\xE8me \xE9l\xE9ment de liste": "Third list item",
+    "Valid\xE9": "Checked",
+    "Monde": "World",
+    "Personnes": "People",
+    "Euro": "Euro",
+    "Graphique": "Chart",
+    "S\xE9curit\xE9": "Security",
+    "Environnement": "Environment",
+    "\xC9nergie": "Energy",
+    "Logement": "Housing",
+    "Protection": "Protection",
+    "Objectif": "Goal",
+    "Calendrier": "Calendar",
+    "Recherche": "Search",
+    "Courrier": "Mail",
+    "\xC9toile": "Star",
+    "R\xE9glages": "Settings",
+    "Envoi": "Send",
+    "R\xE9daction": "Writing",
+    /* aperçu 3D */
+    "Aper\xE7u 3D du document": "3D document preview",
+    "Fermer": "Close",
+    "Recto / verso": "Front / back",
+    "Retourner": "Flip",
+    "Deux pages": "Both pages",
+    "Une feuille": "One sheet",
+    "Recentrer": "Reset view",
+    "Clic gauche : tourner \xB7 clic droit : d\xE9placer \xB7 molette : zoomer": "Left click: orbit \xB7 right click: pan \xB7 wheel: zoom",
+    "Pr\xE9paration de l\u2019aper\xE7u\u2026": "Preparing the preview\u2026",
+    "Impossible de g\xE9n\xE9rer l\u2019aper\xE7u 3D dans ce navigateur.": "The 3D preview could not be generated in this browser.",
+    "WebGL indisponible.": "WebGL unavailable."
+  };
+  var DICT = { en: EN };
+  var PATTERNS = [
+    [/^(Recto|Verso) : le contenu dépasse de (\d+) px — déplacez une section vers l’autre page ou raccourcissez-la\.$/, (_, p, n) => `${p === "Recto" ? "Front" : "Back"}: content overflows by ${n} px \u2014 move a section to the other page or shorten it.`],
+    [/^Header : titre trop long, il ne tient pas dans la hauteur du header\.$/, () => "Header: title too long, it does not fit in the header height."],
+    [/^Colonne (\d+)$/, (_, n) => `Column ${n}`],
+    [/^Colonne actuelle \((\d+) px\)$/, (_, n) => `Current column (${n} px)`],
+    [/^Série (\d+)$/, (_, n) => `Series ${n}`],
+    [/^Dataviz · (.+)$/, (_, x) => `Dataviz \xB7 ${tr(x)}`],
+    [/^Image · (.+)$/, (_, x) => `Image \xB7 ${x}`]
+  ];
+  function tr(s2) {
+    if (lang === "fr") return s2;
+    const d = DICT[lang];
+    if (!d) return s2;
+    const core = s2.trim();
+    if (!core) return s2;
+    let out = d[core];
+    if (out == null) for (const [re, fn] of PATTERNS) {
+      const m = core.match(re);
+      if (m) {
+        out = fn(...m);
+        break;
+      }
+    }
+    if (out == null) return s2;
+    return s2.slice(0, s2.indexOf(core)) + out + s2.slice(s2.indexOf(core) + core.length);
+  }
+  var t = (s2) => tr(s2);
+  var ATTRS = ["placeholder", "title", "aria-label"];
+  var SKIP = ".page, [contenteditable], textarea, input, script, style, .no-i18n";
+  var seen = /* @__PURE__ */ new WeakMap();
+  function fixValue(rec, cur) {
+    return rec && rec.out === cur ? rec.src : cur;
+  }
+  function fixText(n) {
+    const el2 = n.parentElement;
+    if (!el2 || el2.closest(SKIP)) return;
+    const src = fixValue(seen.get(n), n.nodeValue), out = lang === "fr" ? src : tr(src);
+    seen.set(n, { src, out });
+    if (out !== n.nodeValue) n.nodeValue = out;
+  }
+  function fixAttrs(el2) {
+    if (el2.closest(SKIP) && el2.tagName !== "TEXTAREA" && el2.tagName !== "INPUT") return;
+    if (el2.closest(".page, [contenteditable]")) return;
+    let recs = seen.get(el2);
+    if (!recs) seen.set(el2, recs = {});
+    for (const a of ATTRS) {
+      if (!el2.hasAttribute(a)) continue;
+      const src = fixValue(recs[a], el2.getAttribute(a)), out = lang === "fr" ? src : tr(src);
+      recs[a] = { src, out };
+      if (out !== el2.getAttribute(a)) el2.setAttribute(a, out);
+    }
+  }
+  function walk(root) {
+    if (root.nodeType === 3) return fixText(root);
+    if (root.nodeType !== 1 || root.closest && root.closest(".page, [contenteditable]") && !root.matches(".page")) return;
+    if (root.matches && root.matches(".page, [contenteditable], script, style")) return;
+    fixAttrs(root);
+    for (const c of root.childNodes) walk(c);
+  }
+  var observer = null;
+  var pending = /* @__PURE__ */ new Set();
+  var queued = false;
+  function flush() {
+    queued = false;
+    const batch = pending;
+    pending = /* @__PURE__ */ new Set();
+    observer.disconnect();
+    for (const n of batch) if (n.isConnected) walk(n);
+    observe();
+  }
+  function observe() {
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTRS });
+  }
+  function initI18n(onChange) {
+    document.documentElement.lang = lang;
+    walk(document.body);
+    observer = new MutationObserver((list) => {
+      for (const m of list) {
+        if (m.type === "childList") m.addedNodes.forEach((n) => pending.add(n));
+        else pending.add(m.type === "attributes" ? m.target : m.target);
+      }
+      if (!queued) {
+        queued = true;
+        queueMicrotask(flush);
+      }
+    });
+    observe();
+    return {
+      set(l) {
+        if (!LANGS[l] || l === lang) return;
+        lang = l;
+        try {
+          localStorage.setItem(KEY, l);
+        } catch (e) {
+        }
+        document.documentElement.lang = l;
+        observer.disconnect();
+        walk(document.body);
+        observe();
+        if (onChange) onChange(l);
+      }
+    };
+  }
 
   // src/viz/donut.js
   var BODY = pxOf(TYPE.body.size);
@@ -451,7 +809,7 @@
         label: "Segments (sens horaire)",
         min: 1,
         max: 10,
-        item: () => ({ color: "sky", value: 10, title: "Titre", text: "Texte" }),
+        item: () => ({ color: "sky", value: 10, title: t("Titre"), text: t("Texte") }),
         fields: [
           { k: "color", t: "color", label: "Couleur" },
           { k: "value", t: "number", label: "Valeur", min: 0, step: "any" },
@@ -525,9 +883,9 @@
             if (!moved && dist(pt) < 2) return;
             moved = true;
             const rel = norm(ang(pt) - arc.a0);
-            let t = rel / sw;
-            if (t > 1) t = rel - sw < 360 - rel ? 1 : 0;
-            seg.anchorT = Math.round(Math.min(0.96, Math.max(0.04, t)) * 1e3) / 1e3;
+            let t2 = rel / sw;
+            if (t2 > 1) t2 = rel - sw < 360 - rel ? 1 : 0;
+            seg.anchorT = Math.round(Math.min(0.96, Math.max(0.04, t2)) * 1e3) / 1e3;
             api.redraw();
           } };
         }
@@ -574,8 +932,8 @@
           const out = [];
           let cur = "";
           for (const w of txt.split(/ +/)) {
-            const t = cur ? cur + " " + w : w;
-            if (!cur || mw(t, 700, SERIF, z) <= maxC) cur = t;
+            const t2 = cur ? cur + " " + w : w;
+            if (!cur || mw(t2, 700, SERIF, z) <= maxC) cur = t2;
             else {
               out.push(cur);
               cur = w;
@@ -588,7 +946,7 @@
         const fits = (ls, z) => {
           const tot2 = ls.length * z;
           return ls.every((l, i) => {
-            const t = -tot2 / 2 + i * z, y = Math.max(Math.abs(t), Math.abs(t + z));
+            const t2 = -tot2 / 2 + i * z, y = Math.max(Math.abs(t2), Math.abs(t2 + z));
             return mw(l, 700, SERIF, z) <= chord(y);
           });
         };
@@ -854,9 +1212,9 @@
   var iconlist_default = {
     label: "Liste \xE0 ic\xF4nes",
     defaults: () => ({ items: [
-      { icon: "sliders", text: "Premier \xE9l\xE9ment de liste" },
-      { icon: "send", text: "Deuxi\xE8me \xE9l\xE9ment de liste" },
-      { icon: "pencil", text: "Troisi\xE8me \xE9l\xE9ment de liste" }
+      { icon: "sliders", text: t("Premier \xE9l\xE9ment de liste") },
+      { icon: "send", text: t("Deuxi\xE8me \xE9l\xE9ment de liste") },
+      { icon: "pencil", text: t("Troisi\xE8me \xE9l\xE9ment de liste") }
     ] }),
     fields: [
       {
@@ -865,7 +1223,7 @@
         label: "\xC9l\xE9ments",
         min: 1,
         max: 8,
-        item: () => ({ icon: "check", text: "Nouvel \xE9l\xE9ment" }),
+        item: () => ({ icon: "check", text: t("Nouvel \xE9l\xE9ment") }),
         fields: [{ k: "icon", t: "select", label: "Ic\xF4ne", options: ICON_OPTIONS }, { k: "text", t: "text", label: "Texte" }]
       }
     ],
@@ -908,8 +1266,8 @@
       showValues: true,
       decimals: 0,
       suffix: "%",
-      series: [{ name: "Valeur", color: "blue" }],
-      rows: [{ label: "Premier crit\xE8re", v: [72] }, { label: "Deuxi\xE8me crit\xE8re", v: [58] }, { label: "Troisi\xE8me crit\xE8re", v: [41] }, { label: "Quatri\xE8me crit\xE8re", v: [23] }]
+      series: [{ name: t("Valeur"), color: "blue" }],
+      rows: [{ label: t("Premier crit\xE8re"), v: [72] }, { label: t("Deuxi\xE8me crit\xE8re"), v: [58] }, { label: t("Troisi\xE8me crit\xE8re"), v: [41] }, { label: t("Quatri\xE8me crit\xE8re"), v: [23] }]
     }),
     fields: [
       { k: "style", t: "select", label: "Plusieurs s\xE9ries", options: { grouped: "C\xF4te \xE0 c\xF4te", stacked: "Empil\xE9es" } },
@@ -977,7 +1335,7 @@
       decimals: 0,
       suffix: "",
       zero: true,
-      series: [{ name: "S\xE9rie 1", color: "blue" }, { name: "S\xE9rie 2", color: "yellow" }],
+      series: [{ name: `${t("S\xE9rie")} 1`, color: "blue" }, { name: `${t("S\xE9rie")} 2`, color: "yellow" }],
       rows: [{ label: "2021", v: [20, 45] }, { label: "2022", v: [34, 40] }, { label: "2023", v: [52, 38] }, { label: "2024", v: [60, 49] }, { label: "2025", v: [78, 55] }]
     }),
     fields: [
@@ -1029,20 +1387,20 @@
   var VIZ_OPTIONS = Object.fromEntries(Object.entries(VIZ_TYPES).map(([k, v]) => [k, v.label]));
   var newViz = (kind = "bars") => ({ kind, opts: VIZ_TYPES[kind].defaults() });
   function renderViz(viz, width, env) {
-    const t = viz && VIZ_TYPES[viz.kind];
-    if (!t) return null;
+    const t2 = viz && VIZ_TYPES[viz.kind];
+    if (!t2) return null;
     try {
-      return t.render(viz.opts || t.defaults(), width, env || {}).node;
+      return t2.render(viz.opts || t2.defaults(), width, env || {}).node;
     } catch (e) {
       console.error("dataviz", viz.kind, e);
       return null;
     }
   }
   function renderVizFull(viz, width, env) {
-    const t = viz && VIZ_TYPES[viz.kind];
-    if (!t) return null;
+    const t2 = viz && VIZ_TYPES[viz.kind];
+    if (!t2) return null;
     try {
-      return t.render(viz.opts || t.defaults(), width, env || {});
+      return t2.render(viz.opts || t2.defaults(), width, env || {});
     } catch (e) {
       console.error("dataviz", viz.kind, e);
       return null;
@@ -1055,10 +1413,12 @@
   var uid = (p) => `${p}${Date.now().toString(36)}${(_id++).toString(36)}`;
   var IMAGE_RATIOS = { "16:9": 16 / 9, "4:3": 4 / 3, "1:1": 1, "3:4": 3 / 4 };
   var COL_TYPES = { text: "Texte", image: "Image", viz: "Dataviz" };
+  var LOGO_VARIANTS = { default: "D\xE9faut", mono: "Mono", white: "Blanc (white)", negative: "N\xE9gatif" };
+  var newHeaderImage = (n = 1) => ({ id: uid("img"), name: `${t("Image")} ${n}`, src: null });
   var LOCALES = { "en-GB": "EN \u2014 1,227.5", "fr-BE": "FR \u2014 1 227,5", "de-DE": "DE \u2014 1.227,5", "nl-BE": "NL \u2014 1.227,5", "es-ES": "ES \u2014 1227,5", "it-IT": "IT \u2014 1.227,5" };
   var newCol = (type = "text") => ({
     type,
-    text: type === "text" ? "Votre texte ici. Une ligne = un paragraphe, **gras** avec les ast\xE9risques." : "",
+    text: type === "text" ? t("Votre texte ici. Une ligne = un paragraphe, **gras** avec les ast\xE9risques.") : "",
     src: null,
     ratio: "4:3",
     caption: "",
@@ -1067,13 +1427,13 @@
   });
   var newSub = (layout = "1") => ({
     id: uid("sub"),
-    title: "Sous-section",
+    title: t("Sous-section"),
     layout,
     cols: Array.from({ length: GRID.layouts[layout].spans.length }, () => newCol("text"))
   });
   var newSection = (page = "recto") => ({
     id: uid("sec"),
-    title: "Titre de section",
+    title: t("Titre de section"),
     page,
     bg: "none",
     subs: [newSub("1")]
@@ -1082,30 +1442,30 @@
     const lorem = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim.";
     const viz = (kind, extra) => ({ ...newCol("viz"), viz: { ...newViz(kind), ...extra || {} } });
     const s1 = newSection("recto");
-    s1.title = "Titre de section";
+    s1.title = "Section title";
     s1.subs = [
-      { id: uid("sub"), title: "Titre de sous-section", layout: "1-1", cols: [viz("icons"), viz("figure")] },
-      { id: uid("sub"), title: "Titre de sous-section", layout: "1-1", cols: [
+      { id: uid("sub"), title: "Subsection title", layout: "1-1", cols: [viz("icons"), viz("figure")] },
+      { id: uid("sub"), title: "Subsection title", layout: "1-1", cols: [
         { ...newCol("text"), text: Array.from({ length: 5 }, () => "Source regular 3 12pt.").join("\n") + "\n" + lorem },
         viz("bars")
       ] }
     ];
     const s2 = newSection("verso");
-    s2.title = "Deuxi\xE8me section";
+    s2.title = "Second section";
     s2.bg = "tintSky";
     s2.subs = [{ id: uid("sub"), title: "EU support", layout: "1", cols: [viz("donut")] }];
     const s3 = newSection("verso");
-    s3.title = "Section au verso";
+    s3.title = "Back-page section";
     s3.bg = "tintYellow";
     s3.subs = [
-      { id: uid("sub"), title: "Texte et image", layout: "2-1", cols: [
-        { ...newCol("text"), text: `**Premier point.** ${lorem}
-- Premier \xE9l\xE9ment de liste
-- Deuxi\xE8me \xE9l\xE9ment de liste
+      { id: uid("sub"), title: "Text and image", layout: "2-1", cols: [
+        { ...newCol("text"), text: `**First point.** ${lorem}
+- First list item
+- Second list item
 ${lorem}` },
-        { ...newCol("image"), ratio: "4:3", caption: "L\xE9gende de l\u2019image" }
+        { ...newCol("image"), ratio: "4:3", caption: "Image caption" }
       ] },
-      { id: uid("sub"), title: "Trois colonnes", layout: "1-1-1", cols: [viz("figure"), viz("icons"), viz("bars", { opts: { ...newViz("bars").opts, callout: { on: false, value: "", text: "" }, style: "grouped" } })] }
+      { id: uid("sub"), title: "Three columns", layout: "1-1-1", cols: [viz("figure"), viz("icons"), viz("bars", { opts: { ...newViz("bars").opts, callout: { on: false, value: "", text: "" }, style: "grouped" } })] }
     ];
     return {
       schema: SCHEMA,
@@ -1119,32 +1479,39 @@ ${lorem}` },
         overline: "FACTSHEET - MONTH 20YY",
         title: "MAIN TITLE",
         subtitle: "Subtitle",
-        image: null,
-        logo: null,
+        images: [newHeaderImage(1), newHeaderImage(2)],
+        imageId: null,
+        // bibliothèque d'images du header (autant que l'on veut)
+        logos: { default: null, mono: null, white: null, negative: null },
+        logoVariant: "default",
         showImage: true,
         showLogo: true
       },
       sections: [s1, s2, s3]
     };
   }
-  var KEY = "factsheet-creator-v1";
+  var KEY2 = "factsheet-creator-v1";
   function loadDoc() {
     try {
-      const j = JSON.parse(localStorage.getItem(KEY));
+      const j = JSON.parse(localStorage.getItem(KEY2));
       if (j && Array.isArray(j.sections) && j.header) return migrate(j);
     } catch (e) {
     }
     return defaultDoc();
   }
+  var storage = { ok: true };
   function saveDoc(doc2) {
     try {
-      localStorage.setItem(KEY, JSON.stringify(doc2));
+      localStorage.setItem(KEY2, JSON.stringify(doc2));
+      storage.ok = true;
     } catch (e) {
+      storage.ok = false;
     }
   }
   function migrate(j) {
     const d = Object.assign(defaultDoc(), j);
     d.header = Object.assign(defaultDoc().header, j.header || {});
+    migrateHeader(d.header, j.header || {});
     d.sections.forEach((s2) => {
       s2.id = s2.id || uid("sec");
       s2.page = s2.page === "verso" ? "verso" : "recto";
@@ -1195,6 +1562,20 @@ ${lorem}` },
     [doc2.sections[si], doc2.sections[j]] = [doc2.sections[j], doc2.sections[si]];
     return j;
   }
+  function migrateHeader(H, src) {
+    if (src.image && !Array.isArray(src.images)) {
+      H.images[0].src = src.image;
+      H.imageId = H.images[0].id;
+    }
+    delete H.image;
+    if (src.logo && !src.logos) H.logos.default = src.logo;
+    delete H.logo;
+    H.logos = Object.assign({ default: null, mono: null, white: null, negative: null }, H.logos);
+    if (!LOGO_VARIANTS[H.logoVariant]) H.logoVariant = "default";
+    H.images = (H.images || []).filter((i) => i && typeof i === "object").map((i, k) => ({ id: i.id || uid("img"), name: i.name || `${t("Image")} ${k + 1}`, src: i.src || null }));
+    if (!H.images.length) H.images = [newHeaderImage(1), newHeaderImage(2)];
+    if (!H.images.some((i) => i.id === H.imageId)) H.imageId = H.images[0].id;
+  }
 
   // src/render.js
   var ico = (name) => h("i", { class: "ti ti-" + name });
@@ -1212,8 +1593,8 @@ ${lorem}` },
     for (const k of kids.flat()) if (k != null && k !== false) e.append(k);
     return e;
   }
-  var esc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  var inline = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/__(.+?)__/g, "<u>$1</u>").replace(/~~(.+?)~~/g, "<i>$1</i>");
+  var esc = (t2) => t2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  var inline = (t2) => esc(t2).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/__(.+?)__/g, "<u>$1</u>").replace(/~~(.+?)~~/g, "<i>$1</i>");
   function richText(text) {
     const root = h("div", { class: "rich" });
     let ul = null;
@@ -1237,11 +1618,13 @@ ${lorem}` },
     }
     return root;
   }
+  var headerImage = (H) => (H.images || []).find((i) => i.id === H.imageId) || (H.images || [])[0] || null;
   function renderHeader(doc2) {
     const H = doc2.header, sel = { "data-sel": "header" };
     const el2 = h("header", { class: "hd", style: { background: `var(--c-${H.bg})`, color: `var(--c-${H.fg})` }, dataset: { sel: "header" } });
     const inner = h("div", { class: "hd-inner" });
-    if (H.showImage) inner.append(H.image ? h("img", { class: "hd-img", src: H.image, alt: "" }) : h("div", { class: "hd-img ph", textContent: "image" }));
+    const img = headerImage(H), logo = (H.logos || {})[H.logoVariant];
+    if (H.showImage) inner.append(img && img.src ? h("img", { class: "hd-img", src: img.src, alt: "" }) : h("div", { class: "hd-img ph", textContent: "image" }));
     const top = h(
       "div",
       { class: "hd-top" },
@@ -1255,7 +1638,7 @@ ${lorem}` },
       H.subtitle && H.subtitle.trim() ? h("div", { class: "hd-sub", textContent: H.subtitle }) : null
     );
     inner.append(h("div", { class: "hd-text" }, top, bottom));
-    if (H.showLogo) inner.append(H.logo ? h("img", { class: "hd-logo", src: H.logo, alt: "" }) : h("div", { class: "hd-logo ph", textContent: "logo" }));
+    if (H.showLogo) inner.append(logo ? h("img", { class: "hd-logo", src: logo, alt: "" }) : h("div", { class: "hd-logo ph", textContent: "logo" }));
     el2.append(inner);
     return el2;
   }
@@ -1343,13 +1726,13 @@ ${lorem}` },
   }
 
   // src/tree.js
-  var strip = (t) => String(t || "").replace(/\*\*|__|~~/g, "").replace(/^[-•]\s+/gm, "").replace(/\s+/g, " ").trim();
+  var strip = (t2) => String(t2 || "").replace(/\*\*|__|~~/g, "").replace(/^[-•]\s+/gm, "").replace(/\s+/g, " ").trim();
   var GLYPH = { text: "\xB6", image: "\u25A8", viz: "\u25A6" };
   function colLabel(col) {
     if (col.type === "text") return strip(col.text).slice(0, 34) || "Texte vide";
     if (col.type === "image") return col.caption ? "Image \xB7 " + col.caption : "Image";
-    const t = col.viz && VIZ_TYPES[col.viz.kind];
-    return "Dataviz \xB7 " + (t ? t.label : "\u2014");
+    const t2 = col.viz && VIZ_TYPES[col.viz.kind];
+    return "Dataviz \xB7 " + (t2 ? t2.label : "\u2014");
   }
   function buildTree(root, ctx2) {
     const doc2 = ctx2.getDoc(), sel = ctx2.getSel(), collapsed2 = ctx2.collapsed;
@@ -1484,8 +1867,8 @@ ${lorem}` },
   var getP = (o, p) => p.split(".").reduce((a, k) => a == null ? a : a[k], o);
   var setP = (o, p, v) => {
     const ks = p.split("."), last = ks.pop();
-    const t = ks.reduce((a, k) => a[k] == null ? a[k] = {} : a[k], o);
-    t[last] = v;
+    const t2 = ks.reduce((a, k) => a[k] == null ? a[k] = {} : a[k], o);
+    t2[last] = v;
   };
   var SERIES_COLORS = ["sky", "yellow", "blue", "slate", "steel", "lavender"];
   function parseTable(text) {
@@ -1502,8 +1885,8 @@ ${lorem}` },
     const nser = Math.max(1, ...cells.map((c) => c.length - 1));
     return { header, nser, rows: cells.map((c) => ({ label: c[0] || "", v: Array.from({ length: nser }, (_, j) => num(c[j + 1]) ?? 0) })) };
   }
-  var mkToHtml = (t) => {
-    const lines = String(t || "").replace(/\r\n?/g, "\n").split("\n").filter((l) => l.trim());
+  var mkToHtml = (t2) => {
+    const lines = String(t2 || "").replace(/\r\n?/g, "\n").split("\n").filter((l) => l.trim());
     let html = "", ul = false;
     for (const l of lines) {
       const m = l.trim().match(/^[-•]\s+(.*)$/);
@@ -1529,20 +1912,20 @@ ${lorem}` },
         else runs.push({ ...r });
       }
       return runs.filter((r) => r.t !== "").map((r) => {
-        let t = r.t;
-        if (!t.trim()) return t;
-        if (r.i) t = `~~${t}~~`;
-        if (r.b) t = `**${t}**`;
-        if (r.u) t = `__${t}__`;
-        return t;
+        let t2 = r.t;
+        if (!t2.trim()) return t2;
+        if (r.i) t2 = `~~${t2}~~`;
+        if (r.b) t2 = `**${t2}**`;
+        if (r.u) t2 = `__${t2}__`;
+        return t2;
       }).join("");
     };
-    const flush = (bullet) => {
-      const t = emit().trim();
+    const flush2 = (bullet) => {
+      const t2 = emit().trim();
       cur = [];
-      if (t) lines.push((bullet ? "- " : "") + t);
+      if (t2) lines.push((bullet ? "- " : "") + t2);
     };
-    const walk = (n, st, bullet) => {
+    const walk2 = (n, st, bullet) => {
       if (n.nodeType === 3) {
         cur.push({ t: n.nodeValue.replace(/[ \n]/g, " "), ...st });
         return;
@@ -1550,24 +1933,24 @@ ${lorem}` },
       if (n.nodeType !== 1) return;
       const tag = n.tagName, fw = n.style.fontWeight, s2 = { ...st };
       if (tag === "BR") {
-        flush(bullet);
+        flush2(bullet);
         return;
       }
       if (tag === "B" || tag === "STRONG" || fw === "bold" || +fw >= 600) s2.b = true;
       if (tag === "I" || tag === "EM" || n.style.fontStyle === "italic") s2.i = true;
       if (tag === "U" || /underline/.test(n.style.textDecoration)) s2.u = true;
       if (tag === "UL" || tag === "OL") {
-        for (const c of n.childNodes) walk(c, s2, true);
+        for (const c of n.childNodes) walk2(c, s2, true);
         return;
       }
       const block = tag === "LI" || tag === "DIV" || tag === "P";
-      if (block && cur.length) flush(bullet);
+      if (block && cur.length) flush2(bullet);
       const b2 = bullet || tag === "LI";
-      for (const c of n.childNodes) walk(c, s2, b2);
-      if (block) flush(b2);
+      for (const c of n.childNodes) walk2(c, s2, b2);
+      if (block) flush2(b2);
     };
-    for (const c of root.childNodes) walk(c, { b: false, i: false, u: false }, false);
-    flush(false);
+    for (const c of root.childNodes) walk2(c, { b: false, i: false, u: false }, false);
+    flush2(false);
     return lines.join("\n");
   }
   function richEditor(value, onChange) {
@@ -1612,19 +1995,19 @@ ${lorem}` },
       ctx2.changed();
     };
     for (const f of spec) {
-      if (f.t === "text") out.push(h2("label", { class: "f" }, f.label, h2("input", { type: "text", value: getP(obj, f.k) ?? "", oninput: live((t) => setP(obj, f.k, t.value)) })));
+      if (f.t === "text") out.push(h2("label", { class: "f" }, f.label, h2("input", { type: "text", value: getP(obj, f.k) ?? "", oninput: live((t2) => setP(obj, f.k, t2.value)) })));
       else if (f.t === "area") out.push(h2("div", { class: "f" }, h2("div", { class: "hint", textContent: f.label }), richEditor(getP(obj, f.k) ?? "", (v) => {
         setP(obj, f.k, v);
         ctx2.changed();
       })));
-      else if (f.t === "number") out.push(h2("label", { class: "f" }, f.label, h2("input", { type: "number", value: getP(obj, f.k) ?? 0, min: f.min, max: f.max, step: f.step || 1, oninput: live((t) => {
-        const v = parseFloat(t.value);
+      else if (f.t === "number") out.push(h2("label", { class: "f" }, f.label, h2("input", { type: "number", value: getP(obj, f.k) ?? 0, min: f.min, max: f.max, step: f.step || 1, oninput: live((t2) => {
+        const v = parseFloat(t2.value);
         if (!isNaN(v)) setP(obj, f.k, v);
       }) })));
-      else if (f.t === "bool") out.push(h2("label", { class: "row", style: { marginBottom: "8px" } }, h2("input", { type: "checkbox", checked: !!getP(obj, f.k), onchange: live((t) => setP(obj, f.k, t.checked)) }), f.label));
+      else if (f.t === "bool") out.push(h2("label", { class: "row", style: { marginBottom: "8px" } }, h2("input", { type: "checkbox", checked: !!getP(obj, f.k), onchange: live((t2) => setP(obj, f.k, t2.checked)) }), f.label));
       else if (f.t === "select" || f.t === "color") {
         const opts = f.t === "color" ? palOpts : f.options;
-        const sel = h2("select", { onchange: live((t) => setP(obj, f.k, t.value)) }, Object.entries(opts).map(([v, l]) => h2("option", { value: v, textContent: l })));
+        const sel = h2("select", { onchange: live((t2) => setP(obj, f.k, t2.value)) }, Object.entries(opts).map(([v, l]) => h2("option", { value: v, textContent: l })));
         sel.value = getP(obj, f.k) ?? Object.keys(opts)[0];
         out.push(h2("label", { class: "f" }, f.label, sel));
       } else if (f.t === "list") {
@@ -1678,7 +2061,7 @@ ${lorem}` },
         "div",
         { class: "row", style: { marginBottom: "6px" } },
         cs,
-        h2("input", { type: "text", value: sr.name || "", placeholder: `S\xE9rie ${j + 1}`, oninput: (e) => {
+        h2("input", { type: "text", value: sr.name || "", placeholder: `${t("S\xE9rie")} ${j + 1}`, oninput: (e) => {
           sr.name = e.target.value;
           ctx2.changed();
         } }),
@@ -1690,7 +2073,7 @@ ${lorem}` },
       ));
     });
     if (series.length < (f.maxSeries || 4)) box.append(h2("button", { type: "button", textContent: "+ S\xE9rie", onclick: () => {
-      series.push({ name: `S\xE9rie ${series.length + 1}`, color: SERIES_COLORS[series.length % SERIES_COLORS.length] });
+      series.push({ name: `${t("S\xE9rie")} ${series.length + 1}`, color: SERIES_COLORS[series.length % SERIES_COLORS.length] });
       fix();
       ctx2.restructure();
     } }));
@@ -1726,7 +2109,7 @@ ${lorem}` },
         const p = parseTable(ta.value);
         if (!p) return;
         const max = f.maxSeries || 4, n = Math.min(p.nser, max);
-        const ns = Array.from({ length: n }, (_, j) => ({ name: p.header && p.header[j + 1] || series[j] && series[j].name || `S\xE9rie ${j + 1}`, color: series[j] && series[j].color || SERIES_COLORS[j % SERIES_COLORS.length] }));
+        const ns = Array.from({ length: n }, (_, j) => ({ name: p.header && p.header[j + 1] || series[j] && series[j].name || `${t("S\xE9rie")} ${j + 1}`, color: series[j] && series[j].color || SERIES_COLORS[j % SERIES_COLORS.length] }));
         series.splice(0, series.length, ...ns);
         rows.splice(0, rows.length, ...p.rows.map((r) => ({ label: r.label, v: r.v.slice(0, n) })));
         ctx2.restructure();
@@ -1787,7 +2170,7 @@ ${lorem}` },
           set(await readImage(f, max));
           ctx2.restructure();
         } catch (e) {
-          alert("Image illisible.");
+          alert(t("Image illisible."));
         }
       } });
       return h(
@@ -1804,11 +2187,98 @@ ${lorem}` },
         )
       );
     };
-    const title = (t, crumbs = []) => root.append(h(
+    const logoPicker = (H) => {
+      const sel = h(
+        "select",
+        { onchange: (e) => {
+          H.logoVariant = e.target.value;
+          ctx2.restructure();
+        } },
+        Object.entries(LOGO_VARIANTS).map(([v, l]) => h("option", { value: v, textContent: `${t(l)} \u2014 ${t(H.logos[v] ? "import\xE9" : "vide")}`, selected: H.logoVariant === v }))
+      );
+      return h(
+        "div",
+        {},
+        field("Version du logo", sel),
+        imgPicker(`Logo \u2014 ${t(LOGO_VARIANTS[H.logoVariant])}`, () => H.logos[H.logoVariant], (v) => {
+          H.logos[H.logoVariant] = v;
+        }, 800),
+        h("p", { class: "hint", textContent: "Les 4 versions ont la m\xEAme taille (138 \xD7 42 px). PNG transparent ou SVG." })
+      );
+    };
+    const imageLibrary = (H) => {
+      const cur = headerImage(H);
+      const pick = (e) => async () => {
+        const inp = e.input;
+        const f = inp.files[0];
+        inp.value = "";
+        if (!f) return;
+        try {
+          e.img.src = await readImage(f, 800);
+          H.imageId = e.img.id;
+          ctx2.restructure();
+        } catch (x) {
+          alert(t("Image illisible."));
+        }
+      };
+      const tile = (img) => {
+        const inp = h("input", { type: "file", accept: "image/*", hidden: true });
+        inp.addEventListener("change", pick({ input: inp, img }));
+        return h(
+          "div",
+          { class: "imgtile" + (cur && cur.id === img.id ? " on" : "") },
+          h(
+            "button",
+            { type: "button", class: "imgtile-pic", title: img.name, onclick: () => {
+              H.imageId = img.id;
+              ctx2.restructure();
+            } },
+            img.src ? h("img", { src: img.src, alt: "" }) : h("span", { textContent: "Pas d\u2019image" })
+          ),
+          h("div", { class: "imgtile-name", textContent: img.name }),
+          h(
+            "div",
+            { class: "row imgtile-act" },
+            h("button", { type: "button", class: "mini", title: img.src ? "Remplacer\u2026" : "Importer\u2026", onclick: () => inp.click() }, ico("upload")),
+            h("button", { type: "button", class: "mini", title: "Renommer", onclick: () => {
+              const n = prompt(t("Nom de l\u2019image :"), img.name);
+              if (n && n.trim()) {
+                img.name = n.trim();
+                ctx2.restructure();
+              }
+            } }, ico("pencil")),
+            H.images.length > 1 ? h("button", { type: "button", class: "mini danger", title: "Supprimer", onclick: () => {
+              if (!confirm(t("Supprimer cette image ?"))) return;
+              H.images.splice(H.images.indexOf(img), 1);
+              if (H.imageId === img.id) H.imageId = H.images[0].id;
+              ctx2.restructure();
+            } }, ico("x")) : null
+          ),
+          inp
+        );
+      };
+      return h(
+        "div",
+        { class: "f" },
+        h("div", { class: "hint", textContent: "Image affich\xE9e (96 \xD7 132 px) \u2014 choisissez dans la biblioth\xE8que :" }),
+        h(
+          "div",
+          { class: "imggrid" },
+          H.images.map(tile),
+          h("button", { type: "button", class: "imgtile-add", onclick: () => {
+            const n = newHeaderImage(H.images.length + 1);
+            H.images.push(n);
+            H.imageId = n.id;
+            ctx2.restructure();
+          } }, ico("plus"), h("span", { textContent: "Ajouter une image" }))
+        )
+      );
+    };
+    const title = (t2, crumbs = []) => root.append(h(
       "div",
       { class: "pr-head" },
       h("div", { class: "crumbs" }, crumbs.flatMap(([l, p]) => [h("a", { textContent: l, onclick: () => ctx2.select(p) }), " \u203A "])),
-      h("h2", { textContent: t })
+      h("h2", { textContent: t2 })
     ));
     const actions = (...b) => h("div", { class: "row pr-actions" }, ...b);
     const P = (path || "").split(":"), kind = P[0] || "doc", si = +P[1], bi = +P[2], ci = +P[3];
@@ -1817,7 +2287,7 @@ ${lorem}` },
       title("Document");
       root.append(
         text(doc2, "name", "Nom du fichier"),
-        select(doc2, "theme", "Th\xE8me", Object.fromEntries(Object.entries(THEMES).map(([k, t]) => [k, t.label])), () => ctx2.restructure()),
+        select(doc2, "theme", "Th\xE8me", Object.fromEntries(Object.entries(THEMES).map(([k, t2]) => [k, t2.label])), () => ctx2.restructure()),
         select(doc2, "locale", "Format des nombres", LOCALES),
         h("div", { class: "hint", textContent: "Palette du th\xE8me" }),
         h("div", { class: "pal" }, Object.keys(th.colors).map((k) => h(
@@ -1842,15 +2312,11 @@ ${lorem}` },
         h("label", { class: "row" }, h("input", { type: "checkbox", checked: H.showImage, onchange: struct(() => {
           H.showImage = !H.showImage;
         }) }), "Afficher l\u2019image"),
-        H.showImage ? imgPicker("Image (96 \xD7 132 px dans le header)", () => H.image, (v) => {
-          H.image = v;
-        }, 800) : null,
+        H.showImage ? imageLibrary(H) : null,
         h("label", { class: "row" }, h("input", { type: "checkbox", checked: H.showLogo, onchange: struct(() => {
           H.showLogo = !H.showLogo;
         }) }), "Afficher le logo"),
-        H.showLogo ? imgPicker("Logo (PNG transparent ou SVG)", () => H.logo, (v) => {
-          H.logo = v;
-        }, 800) : null
+        H.showLogo ? logoPicker(H) : null
       );
     } else if (kind === "sec" && sec) {
       title(sec.title || "Section", [["Document", null]]);
@@ -1866,7 +2332,7 @@ ${lorem}` },
             stepSection(doc2, si, 1);
           }) }),
           h("button", { type: "button", class: "danger", textContent: "Supprimer", onclick: struct(() => {
-            if (confirm("Supprimer cette section ?")) doc2.sections.splice(si, 1);
+            if (confirm(t("Supprimer cette section ?"))) doc2.sections.splice(si, 1);
           }) })
         )
       );
@@ -1895,7 +2361,7 @@ ${lorem}` },
             sec.subs.splice(bi + 1, 0, c);
           }) }),
           h("button", { type: "button", class: "danger", textContent: "Supprimer", onclick: struct(() => {
-            if (confirm("Supprimer cette sous-section ?")) sec.subs.splice(bi, 1);
+            if (confirm(t("Supprimer cette sous-section ?"))) sec.subs.splice(bi, 1);
           }) })
         )
       );
@@ -1968,8 +2434,8 @@ ${lorem}` },
         meta = r.meta || null;
         svgW = width;
       }
-      const t = VIZ_TYPES[col.viz.kind];
-      hint.textContent = t && t.edit ? "Cliquer un segment ou un libell\xE9 pour le s\xE9lectionner \xB7 glisser l\u2019anneau pour le tourner \xB7 glisser un libell\xE9 (verticalement, ou de l\u2019autre c\xF4t\xE9) \xB7 glisser le point blanc pour d\xE9placer l\u2019ancrage du trait" : "Les modifications du formulaire s\u2019appliquent en direct.";
+      const t2 = VIZ_TYPES[col.viz.kind];
+      hint.textContent = t2 && t2.edit ? "Cliquer un segment ou un libell\xE9 pour le s\xE9lectionner \xB7 glisser l\u2019anneau pour le tourner \xB7 glisser un libell\xE9 (verticalement, ou de l\u2019autre c\xF4t\xE9) \xB7 glisser le point blanc pour d\xE9placer l\u2019ancrage du trait" : "Les modifications du formulaire s\u2019appliquent en direct.";
       const k = scale();
       sheet.style.width = width + 48 + "px";
       holder.style.width = width + "px";
@@ -1991,7 +2457,7 @@ ${lorem}` },
     function buildForm() {
       const top = form.scrollTop;
       form.innerHTML = "";
-      const t = VIZ_TYPES[col.viz.kind];
+      const t2 = VIZ_TYPES[col.viz.kind];
       const kindSel = h(
         "select",
         { onchange: (e) => {
@@ -2002,16 +2468,16 @@ ${lorem}` },
         Object.entries(VIZ_OPTIONS).map(([v, l]) => h("option", { value: v, textContent: l, selected: col.viz.kind === v }))
       );
       form.append(h("label", { class: "f" }, "Type de dataviz", kindSel));
-      if (t.actions) form.append(h(
+      if (t2.actions) form.append(h(
         "div",
         { class: "row", style: { flexWrap: "wrap", marginBottom: "10px" } },
-        t.actions.map((a) => h("button", { type: "button", textContent: a.label, title: a.title || "", onclick: () => {
+        t2.actions.map((a) => h("button", { type: "button", textContent: a.label, title: a.title || "", onclick: () => {
           a.run(col.viz.opts);
           ui.sel = -1;
           fctx.restructure();
         } }))
       ));
-      form.append(...buildFields(t.fields || [], col.viz.opts, fctx, paletteOptions(doc2), h));
+      form.append(...buildFields(t2.fields || [], col.viz.opts, fctx, paletteOptions(doc2), h));
       form.scrollTop = top;
     }
     const focusItem = (path) => {
@@ -2034,10 +2500,10 @@ ${lorem}` },
       return { x: (e.clientX - r.left) / k, y: (e.clientY - r.top) / k };
     };
     stage2.addEventListener("pointerdown", (e) => {
-      const t = VIZ_TYPES[col.viz.kind];
+      const t2 = VIZ_TYPES[col.viz.kind];
       const n = e.target.closest && e.target.closest("[data-hit]");
-      if (!t || !t.edit || !n || e.button !== 0) {
-        if (t && t.edit && ui.sel !== -1 && !n) {
+      if (!t2 || !t2.edit || !n || e.button !== 0) {
+        if (t2 && t2.edit && ui.sel !== -1 && !n) {
           ui.sel = -1;
           draw();
           focusItem("none");
@@ -2045,7 +2511,7 @@ ${lorem}` },
         return;
       }
       const [kind, i] = n.getAttribute("data-hit").split(":");
-      drag = t.edit.start({ kind, i: +i }, col.viz.opts, meta, api, toPt(e));
+      drag = t2.edit.start({ kind, i: +i }, col.viz.opts, meta, api, toPt(e));
       if (drag) {
         e.preventDefault();
         stage2.setPointerCapture(e.pointerId);
@@ -2178,9 +2644,9 @@ ${lorem}` },
       }
       return g;
     }
-    function chainOf(t) {
+    function chainOf(t2) {
       const chain = [];
-      for (let n = t.closest("[data-sel]"); n; n = n.parentElement && n.parentElement.closest("[data-sel]")) {
+      for (let n = t2.closest("[data-sel]"); n; n = n.parentElement && n.parentElement.closest("[data-sel]")) {
         const p = n.dataset.sel.split(":"), k = p[0];
         if (k === "col") chain.push({ kind: "col", si: +p[1], bi: +p[2], ci: +p[3], path: n.dataset.sel, el: n });
         else if (k === "sub") chain.push({ kind: "sub", si: +p[1], bi: +p[2], el: n });
@@ -2194,9 +2660,9 @@ ${lorem}` },
         if (e.buttons) hide();
         return;
       }
-      const t = e.target.closest ? e.target : null;
-      if (!t) return;
-      const chain = chainOf(t);
+      const t2 = e.target.closest ? e.target : null;
+      if (!t2) return;
+      const chain = chainOf(t2);
       if (!chain.length) {
         later();
         return;
@@ -2276,6 +2742,67 @@ ${lorem}` },
     }
   }
 
+  // src/raster.js
+  var linkHref = (name) => {
+    const l = [...document.querySelectorAll("link[rel=stylesheet]")].find((x) => x.href.endsWith(name));
+    return l ? l.href : new URL("css/" + name, location.href).href;
+  };
+  var asDataUrl = (blob) => new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = rej;
+    fr.readAsDataURL(blob);
+  });
+  var cssCache = null;
+  async function documentCss() {
+    if (cssCache) return cssCache;
+    const fontsUrl = linkHref("fonts.css");
+    const [fonts, doc2] = await Promise.all([fetch(fontsUrl).then((r) => r.text()), fetch(linkHref("doc.css")).then((r) => r.text())]);
+    const blocks = fonts.split("@font-face").slice(1).filter((b) => /-latin(-ext)?-wght/.test(b));
+    const inlined = await Promise.all(blocks.map(async (b) => {
+      const m = b.match(/url\(([^)]+)\)/);
+      if (!m) return "";
+      const url = new URL(m[1].replace(/['"]/g, ""), fontsUrl).href;
+      const data = await asDataUrl(await (await fetch(url)).blob());
+      return "@font-face" + b.replace(m[0], `url(${data})`);
+    }));
+    return cssCache = inlined.join("\n") + "\n" + doc2;
+  }
+  function loadImage(src) {
+    return new Promise((res, rej) => {
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = () => rej(new Error("raster"));
+      im.src = src;
+    });
+  }
+  async function rasterizeDocument(doc2, scale = 2) {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const css = await documentCss();
+    const stage2 = h("div", { style: { position: "absolute", left: "-20000px", top: "0" } });
+    document.body.append(stage2);
+    try {
+      const result = renderDocument(doc2);
+      result.pages.forEach((p) => stage2.append(p.el));
+      measure(result);
+      const out = [];
+      for (const p of result.pages) {
+        const vars = Object.entries(cssVars(doc2.theme, doc2.colors)).map(([k, v]) => `${k}:${v}`).join(";").replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+        const body = new XMLSerializer().serializeToString(p.el);
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE.w}" height="${PAGE.h}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="${vars}"><style>${css.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</style>${body}</div></foreignObject></svg>`;
+        const im = await loadImage("data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg));
+        const canvas = document.createElement("canvas");
+        canvas.width = PAGE.w * scale;
+        canvas.height = PAGE.h * scale;
+        canvas.getContext("2d").drawImage(im, 0, 0, canvas.width, canvas.height);
+        out.push({ key: p.key, canvas });
+      }
+      return out;
+    } finally {
+      stage2.remove();
+    }
+  }
+
   // src/main.js
   var doc = loadDoc();
   var selected = null;
@@ -2320,6 +2847,7 @@ ${lorem}` },
     });
     warnEl.innerHTML = "";
     r.warnings.forEach((w) => warnEl.append(h("div", { textContent: w })));
+    if (!storage.ok) warnEl.append(h("div", { textContent: "Espace de stockage du navigateur plein : les derni\xE8res modifications ne sont pas enregistr\xE9es. Enregistrez le projet (.json) et all\xE9gez les images." }));
     if (hover) hover.hide();
     if (selected) stage.querySelectorAll(`[data-sel="${selected}"]`).forEach((n) => n.classList.add("is-sel"));
   }
@@ -2411,9 +2939,9 @@ ${lorem}` },
   var suppressClick = false;
   stage.addEventListener("pointerdown", (e) => {
     if (e.button !== 0) return;
-    const t = e.target.closest(".sec-title");
-    if (!t) return;
-    const sec = t.closest(".sec");
+    const t2 = e.target.closest(".sec-title");
+    if (!t2) return;
+    const sec = t2.closest(".sec");
     sdrag = { si: +sec.dataset.sel.split(":")[1], x: e.clientX, y: e.clientY, active: false, el: sec, target: null };
   });
   function dropTarget(x, y) {
@@ -2448,11 +2976,11 @@ ${lorem}` },
     }
     sdrag.ghost.style.left = e.clientX + 14 + "px";
     sdrag.ghost.style.top = e.clientY + 10 + "px";
-    const t = sdrag.target = dropTarget(e.clientX, e.clientY);
-    if (t) {
-      const pr = stage.querySelector(`.page[data-page="${t.page}"]`).getBoundingClientRect();
+    const t2 = sdrag.target = dropTarget(e.clientX, e.clientY);
+    if (t2) {
+      const pr = stage.querySelector(`.page[data-page="${t2.page}"]`).getBoundingClientRect();
       const sc = pr.width / PAGE.w, x = pr.left + PAGE.margin * sc, w = pr.width - 2 * PAGE.margin * sc;
-      Object.assign(sdrag.line.style, { display: "block", left: x + "px", width: w + "px", top: t.y - 1 + "px" });
+      Object.assign(sdrag.line.style, { display: "block", left: x + "px", width: w + "px", top: t2.y - 1 + "px" });
     } else sdrag.line.style.display = "none";
   });
   function endSectionDrag() {
@@ -2467,12 +2995,12 @@ ${lorem}` },
     setTimeout(() => {
       suppressClick = false;
     }, 0);
-    const t = d.target;
-    if (!t) {
+    const t2 = d.target;
+    if (!t2) {
       schedule();
       return;
     }
-    const ni = moveSection(doc, d.si, t.si, t.after, t.page);
+    const ni = moveSection(doc, d.si, t2.si, t2.after, t2.page);
     ctx.restructure();
     ctx.select(`sec:${ni}`);
   }
@@ -2498,6 +3026,7 @@ ${lorem}` },
       setTimeout(() => URL.revokeObjectURL(url), 2e3);
     } }),
     h("button", { type: "button", textContent: "Ouvrir\u2026", onclick: () => file.click() }),
+    h("button", { type: "button", textContent: "Aper\xE7u 3D", onclick: () => open3d() }),
     h("button", { type: "button", class: "primary", textContent: "Exporter PDF\u2026", onclick: () => openExport() }),
     file
   );
@@ -2512,10 +3041,48 @@ ${lorem}` },
       selected = null;
       ctx.restructure();
     } catch (e) {
-      alert("Fichier de projet invalide.");
+      alert(t("Fichier de projet invalide."));
     }
   });
   zoomSel.addEventListener("change", schedule);
+  var langSel = document.getElementById("lang");
+  for (const [k, l] of Object.entries(LANGS)) langSel.append(h("option", { value: k, textContent: l }));
+  langSel.value = getLang();
+  var i18n = initI18n(() => ctx.restructure());
+  langSel.addEventListener("change", () => i18n.set(langSel.value));
+  var viewerLoad = null;
+  var loadViewer = () => window.FS3D ? Promise.resolve(window.FS3D) : viewerLoad = viewerLoad || new Promise((res, rej) => {
+    const s2 = h("script", { src: "viewer3d.js", onload: () => res(window.FS3D), onerror: () => {
+      viewerLoad = null;
+      rej(new Error("viewer3d"));
+    } });
+    document.head.append(s2);
+  });
+  async function open3d() {
+    hover.hide();
+    let viewer;
+    try {
+      viewer = await loadViewer();
+    } catch (e) {
+      alert(t("Impossible de g\xE9n\xE9rer l\u2019aper\xE7u 3D dans ce navigateur."));
+      return;
+    }
+    viewer.open({
+      labels: {
+        title: t("Aper\xE7u 3D du document"),
+        loading: t("Pr\xE9paration de l\u2019aper\xE7u\u2026"),
+        flip: t("Retourner"),
+        spread: t("Deux pages"),
+        single: t("Une feuille"),
+        reset: t("Recentrer"),
+        close: t("Fermer"),
+        hint: t("Clic gauche : tourner \xB7 clic droit : d\xE9placer \xB7 molette : zoomer"),
+        error: t("Impossible de g\xE9n\xE9rer l\u2019aper\xE7u 3D dans ce navigateur."),
+        noWebgl: t("WebGL indisponible.")
+      },
+      load: () => rasterizeDocument(doc, 2)
+    });
+  }
   new ResizeObserver(schedule).observe(stage);
   drawTree();
   drawProps();
