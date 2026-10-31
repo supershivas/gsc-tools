@@ -84,6 +84,8 @@
       <button id="opaque">Faces opaques</button>
       <button id="stripes" class="active">Bandes obliques</button>
     </div>
+    <div class="label" style="margin-top:10px"><span>Reflets du vitrage</span><span id="reflectVal">70%</span></div>
+    <input id="reflect" type="range" min="0" max="100" value="70">
     <div class="label" style="margin:10px 0 0"><span>Couleur du vitrage</span><input id="glassColor" type="color" value="#7fa3ab" aria-label="Couleur du vitrage"></div>
     <div class="label" style="margin:10px 0 8px"><span>Coupe de la façade</span><span id="cutVal">aucune</span></div>
     <input id="cut" type="range" min="0" max="100" value="100">
@@ -97,7 +99,8 @@
     <div class="buttons">
       <button id="floors" class="active">Plateaux</button>
       <button id="structure" class="active">Structure</button>
-      <button id="leds" class="active">Lignes LED</button>
+      <button id="leds" class="active">Spots linéaires</button>
+      <button id="rooms" class="active">Salles de réunion</button>
       <button id="atrium">Atrium vitré</button>
     </div>
   </div>
@@ -110,7 +113,7 @@
       <button data-view="inside">Depuis l’atrium</button>
     </div>
   </div>
-  <div class="legend"><span class="dot"></span> Éclairage vertical stylisé</div>
+  <div class="legend"><span class="dot"></span> Spots linéaires éclairant de l’intérieur</div>
   <div class="hint">Souris : orbiter · Molette : zoomer · Clic droit : déplacer<br>Survolez un plateau pour afficher sa fiche · Cliquez pour développer la lanterne, re-cliquez pour la refermer (ou Échap)<br>Modèle volumétrique simplifié, non destiné à la fabrication.</div>
 </section>
 <aside id="floorInfo">
@@ -127,6 +130,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const stage = document.getElementById('stage');
 const scene = new THREE.Scene();
@@ -154,6 +158,9 @@ controls.minDistance = 12;
 controls.maxDistance = 115;
 controls.maxPolarAngle = Math.PI*.49;
 
+// Carte d'environnement (pièce lumineuse) : uniquement pour le vitrage et l'acier, afin de
+// ne pas éclairer le reste de la scène ; sert de reflet aux fenêtres.
+const envTex=new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(),0.04).texture;
 scene.add(new THREE.HemisphereLight(0xc8d9e8,0x27313a,1.25));
 const key = new THREE.DirectionalLight(0xffe4c2,2.2);
 key.position.set(25,48,30); key.castShadow=true; key.shadow.mapSize.set(2048,2048);
@@ -188,7 +195,7 @@ function ellipsePoint(y,t,scale=1){
 const clipPlane=new THREE.Plane(new THREE.Vector3(-1,0,0),1000); // coupe : garde x <= constante
 const clipMats=[];   // matériaux sensibles au plan de coupe (le sol et la grille restent entiers)
 const clipped=m=>{ m.clippingPlanes=[clipPlane]; clipMats.push(m); return m; };
-const steel = clipped(new THREE.MeshStandardMaterial({color:0x65747a,metalness:.78,roughness:.34}));
+const steel = clipped(new THREE.MeshStandardMaterial({color:0x65747a,metalness:.78,roughness:.34,envMap:envTex,envMapIntensity:.7}));
 const darkSteel = new THREE.MeshStandardMaterial({color:0x28383e,metalness:.7,roughness:.42});
 const glass = new THREE.MeshPhysicalMaterial({color:0x9fc0c7,metalness:.12,roughness:.16,transparent:true,opacity:.32,side:THREE.DoubleSide,depthWrite:false,transmission:.18,thickness:.15});
 const floorMat = clipped(new THREE.MeshStandardMaterial({color:0xd0d0c8,roughness:.72,metalness:.08,side:THREE.DoubleSide}));
@@ -221,7 +228,7 @@ const NLINES=15;              // bandes obliques par fenêtre
 const WIN_MARGIN=.05;         // retrait latéral du vitrage (m) de chaque côté
 const shellUniforms={
   uRows:{value:winRows.map(r=>new THREE.Vector2(r.y0,r.y1))},
-  uStripeOp:{value:1}, uGlazeOp:{value:.08}, uStripes:{value:1},
+  uStripeOp:{value:1}, uGlazeOp:{value:.08}, uStripes:{value:1}, uReflect:{value:.7}, uLedGlow:{value:1},
   uGlassColor:{value:new THREE.Color(0x7fa3ab)},
   uStripeColor:{value:new THREE.Color(0xf4f2ec)},
   uFrameColor:{value:new THREE.Color(0x3d4c52)}
@@ -248,7 +255,7 @@ let shellMat=null, shellGeo=null, shellMesh=null, SHELL_ROWS=0, SHELL_COLS=0;
  }
  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3)); g.setAttribute('aWin',new THREE.Float32BufferAttribute(win,4)); g.setIndex(inds); g.computeVertexNormals();
  shellMat=new THREE.MeshPhysicalMaterial({
-   color:0xffffff, transparent:true, opacity:1,
+   color:0xffffff, transparent:true, opacity:1, envMap:envTex, envMapIntensity:1.5,
    roughness:.38, metalness:.05, side:THREE.DoubleSide,
    depthWrite:false, transmission:0, thickness:0,
    clippingPlanes:[clipPlane]
@@ -262,11 +269,18 @@ let shellMat=null, shellGeo=null, shellMesh=null, SHELL_ROWS=0, SHELL_COLS=0;
      .replace('#include <common>',`#include <common>
 varying vec4 vWin;
 uniform vec2 uRows[${winRows.length}];
-uniform float uStripeOp, uGlazeOp, uStripes;
+uniform float uStripeOp, uGlazeOp, uStripes, uReflect, uLedGlow;
 uniform vec3 uGlassColor, uStripeColor, uFrameColor;
 const float NWIN=${WIN_COUNT}.0;
 const float NLINES=${NLINES}.0;
 const float WMARGIN=${WIN_MARGIN};`)
+     .replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>\n roughnessFactor=mix(roughnessFactor,0.04,glassM);\n metalnessFactor=mix(metalnessFactor,0.9,glassM);')
+     .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n totalEmissiveRadiance+=ledEm;')
+     .replace('#include <opaque_fragment>',`
+ float fres=pow(1.0-clamp(abs(dot(normalize(normal),normalize(vViewPosition))),0.0,1.0),3.0);
+ diffuseColor.a=max(diffuseColor.a,glassM*(0.2+0.75*fres));
+ diffuseColor.a=max(diffuseColor.a,ledGlow*0.5);
+ #include <opaque_fragment>`)
      .replace('#include <alphamap_fragment>',`
  // three.js dessine le double-face en deux passes (BackSide inverse l'enroulement) : gl_FrontFacing seul ne suffit pas
  #ifdef FLIP_SIDED
@@ -300,6 +314,12 @@ const float WMARGIN=${WIN_MARGIN};`)
  float lineDist=(abs(fract(q)-0.5)-0.5*thFrac)*sd;
  float pxd=px*0.7071+1e-4;
  float stripe=(1.0-smoothstep(-pxd,pxd,lineDist))*uStripes*winIn*winOuter; // pas de bandes sur la face intérieure (paroi du fond vue en transparence)
+ // Spots linéaires vus de l'intérieur : 3 par bande haute, 1 par bande fine (positions = celles des tubes LED).
+ float dl=abs(ly);
+ if(wy1-wy0>=1.0){ float off=0.32*(wy1-wy0)*winSl; dl=min(dl,min(abs(ly-off),abs(ly+off))); }
+ float ledGlow=exp(-dl*dl/(2.0*0.2*0.2))*winIn*(1.0-stripe)*uLedGlow;
+ vec3 ledEm=vec3(1.0,0.72,0.38)*ledGlow*1.8;
+ float glassM=winIn*(1.0-stripe)*uReflect;
  vec3 base=mix(uFrameColor,uGlassColor,winIn);
  diffuseColor.rgb=mix(base,uStripeColor,stripe);
  diffuseColor.a*=mix(uGlazeOp,uStripeOp,stripe);
@@ -317,7 +337,7 @@ const floorDetails = [
   ["Salles de réunion","Un niveau de réunion et de circulation, organisé autour du volume intérieur de la lanterne.","Niveau 2 · réunions"],
   ["Plateau de bureaux","Espace de travail dans la partie basse de la lanterne, où le volume commence à s’évaser.","Niveau 3 · bureaux"],
   ["Espaces de conférence","Le volume s’élargit progressivement. Les plateaux gagnent en surface et en ouverture vers l’atrium.","Niveau 4 · conférence"],
-  ["Cœur de la lanterne","Zone centrale du bâtiment : le volume atteint sa largeur maximale et donne à lire la géométrie caractéristique de la lanterne.","Niveau 5 · cœur du volume"],
+  ["Salle de réunion circulaire","Cœur de la lanterne, à sa largeur maximale. Salle inspirée de celle du Conseil européen : table en anneau, moquette multicolore, pupitres en périphérie et plafond à résille blanche. Représentation interprétative.","Niveau 5 · salle du Conseil (interprétation)"],
   ["Plateau central","Niveau situé dans la partie la plus large de la lanterne, avec une relation visuelle forte à l’enveloppe vitrée.","Niveau 6 · espaces communs"],
   ["Espaces de travail","Le profil commence à se resserrer au-dessus du cœur de la lanterne.","Niveau 7 · bureaux"],
   ["Réunions et délégations","Plateau supérieur, dans la partie haute du volume elliptique.","Niveau 8 · réunions"],
@@ -335,11 +355,101 @@ levels.forEach((y,i)=>{
  const rimGeo=new THREE.TorusGeometry(1,.09,8,128);
  const rim=new THREE.Mesh(rimGeo,steel); rim.scale.set(rx*.94,rz*.94,1); rim.rotation.x=Math.PI/2; rim.position.y=y+.06; rim.userData.sliceIndex=i; floorsGroup.add(rim);
  // A few conference-room partitions, kept translucent and diagrammatic.
- if([1,3,5,7,9].includes(i)){
+ if([1,3,7,9].includes(i)){
    const wallMat=clipped(new THREE.MeshStandardMaterial({color:0x9da9a7,transparent:true,opacity:.23,roughness:.8,side:THREE.DoubleSide}));
    const wall=new THREE.Mesh(new THREE.CylinderGeometry(Math.min(rx,rz)*.72,Math.min(rx,rz)*.72,2.35,64,1,true),wallMat);
    wall.position.y=y+1.2; wall.userData.sliceIndex=i; floorsGroup.add(wall);
  }
+});
+
+// ---- Salles de réunion ----
+// Niveau 5 : salle circulaire inspirée de la salle du Conseil européen (table en anneau,
+// moquette en patchwork multicolore, parquet, pupitres en périphérie, plafond à résille
+// blanche avec panneaux colorés). Niveaux 1, 3, 7, 9 : salles plus simples (table ronde).
+const roomsGroup=new THREE.Group(); root.add(roomsGroup);
+const PALETTE=[0x7cc243,0xe94f8f,0xf6a21d,0x2f8fd8,0xf7e23b,0x7a56c2,0x1fb5a8,0xd8392b,0xa5d34a,0x4c6fd1].map(c=>new THREE.Color(c));
+function patchwork(r0,r1,sectors,rings,seed){
+ const geos=[]; let rnd=seed; const rand=()=>{ rnd=(rnd*16807)%2147483647; return rnd/2147483647; };
+ for(let a=0;a<rings;a++) for(let q=0;q<sectors;q++){
+   const g=new THREE.RingGeometry(r0+(r1-r0)*a/rings,r0+(r1-r0)*(a+1)/rings,3,1,q/sectors*Math.PI*2,Math.PI*2/sectors);
+   const c=PALETTE[Math.floor(rand()*PALETTE.length)].clone().offsetHSL(0,0,(rand()-.5)*.12);
+   const col=new Float32Array(g.attributes.position.count*3);
+   for(let i=0;i<col.length;i+=3){ col[i]=c.r; col[i+1]=c.g; col[i+2]=c.b; }
+   g.setAttribute('color',new THREE.BufferAttribute(col,3)); geos.push(g);
+ }
+ const m=mergeGeometries(geos); m.rotateX(-Math.PI/2); return m;
+}
+const chairGeo=(()=>{
+ const part=(g,x,y,z)=>{ g.translate(x,y,z); return g; };
+ return mergeGeometries([
+   part(new THREE.BoxGeometry(.5,.07,.5),0,.5,0),
+   part(new THREE.BoxGeometry(.5,.5,.06),0,.8,-.27),
+   part(new THREE.CylinderGeometry(.04,.04,.45,8),0,.27,0),
+   part(new THREE.CylinderGeometry(.27,.27,.03,16),0,.03,0)
+ ]);
+})();
+const chairMat=clipped(new THREE.MeshStandardMaterial({color:0x23262b,roughness:.6}));
+const woodMat=clipped(new THREE.MeshStandardMaterial({color:0xc79b62,roughness:.55}));
+const darkMat=clipped(new THREE.MeshStandardMaterial({color:0x3a3f45,roughness:.7,side:THREE.DoubleSide}));
+const whiteMat=clipped(new THREE.MeshStandardMaterial({color:0xf2f2f0,roughness:.45}));
+const dummy=new THREE.Object3D();
+function ringOf(geo,mat,n,radius,faceCenter,tangent){
+ const im=new THREE.InstancedMesh(geo,mat,n);
+ for(let q=0;q<n;q++){
+   const a=(q+.5)/n*Math.PI*2;
+   dummy.position.set(Math.cos(a)*radius,0,Math.sin(a)*radius);
+   dummy.rotation.set(0,tangent?-a-Math.PI/2:Math.atan2(-Math.cos(a),-Math.sin(a)),0);
+   dummy.updateMatrix(); im.setMatrixAt(q,dummy.matrix);
+ }
+ return im;
+}
+function newRoom(i,y){ const g=new THREE.Group(); g.position.y=y; g.userData.sliceIndex=i; g.userData.baseY=y; roomsGroup.add(g); return g; }
+function ringTable(g,rIn,rOut,h){
+ const sh=new THREE.Shape(); sh.absarc(0,0,rOut,0,Math.PI*2,false);
+ const hole=new THREE.Path(); hole.absarc(0,0,rIn,0,Math.PI*2,true); sh.holes.push(hole);
+ const tg=new THREE.ExtrudeGeometry(sh,{depth:.07,bevelEnabled:false,curveSegments:64}); tg.rotateX(-Math.PI/2);
+ const top=new THREE.Mesh(tg,woodMat); top.position.y=h; g.add(top);
+ const base=new THREE.Mesh(new THREE.CylinderGeometry((rIn+rOut)/2,(rIn+rOut)/2,h,48,1,true),darkMat); base.position.y=h/2; g.add(base);
+}
+function buildCouncilRoom(i,y,R){
+ const g=newRoom(i,y);
+ const floor=new THREE.Mesh(new THREE.CircleGeometry(R,96).rotateX(-Math.PI/2),woodMat); floor.position.y=.04; g.add(floor);
+ const carpetMat=clipped(new THREE.MeshStandardMaterial({vertexColors:true,roughness:.92,side:THREE.DoubleSide}));
+ const c1=new THREE.Mesh(patchwork(R*.31,R*.66,56,2,7),carpetMat); c1.position.y=.06; g.add(c1);
+ const c2=new THREE.Mesh(patchwork(R*.83,R*.97,64,1,19),carpetMat); c2.position.y=.06; g.add(c2);
+ ringTable(g,R*.19,R*.29,.75);
+ g.add(ringOf(chairGeo,chairMat,28,R*.345,true,false).translateY(.06));       // fauteuils autour de la table
+ // pupitres en bois en périphérie, avec leur siège
+ const desk=ringOf(new THREE.BoxGeometry(1.1,.75,.5).translate(0,.375,0),woodMat,20,R*.74,false,true);
+ g.add(desk);
+ g.add(ringOf(chairGeo,chairMat,20,R*.80,true,false).translateY(.06));
+ // paroi : soubassement gris, verre au-dessus, rangée de spots
+ const wall=new THREE.Mesh(new THREE.CylinderGeometry(R*.985,R*.985,1,96,1,true),darkMat); wall.position.y=.5; g.add(wall);
+ const glassWall=new THREE.Mesh(new THREE.CylinderGeometry(R*.985,R*.985,1.9,96,1,true),clipped(new THREE.MeshStandardMaterial({color:0x9fc0c7,transparent:true,opacity:.16,roughness:.1,metalness:.3,side:THREE.DoubleSide,depthWrite:false})));
+ glassWall.position.y=1.95; g.add(glassWall);
+ const spotMat=clipped(new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffffff,emissiveIntensity:2.2}));
+ const spots=new THREE.InstancedMesh(new THREE.SphereGeometry(.07,8,6),spotMat,30);
+ for(let q=0;q<30;q++){ const a=q/30*Math.PI*2; dummy.position.set(Math.cos(a)*R*.95,1.15,Math.sin(a)*R*.95); dummy.rotation.set(0,0,0); dummy.updateMatrix(); spots.setMatrixAt(q,dummy.matrix); }
+ g.add(spots);
+ // plafond : panneaux colorés + résille blanche (rayons, anneaux, grand anneau central surélevé)
+ const ceilMat=clipped(new THREE.MeshStandardMaterial({vertexColors:true,roughness:.7,side:THREE.DoubleSide,transparent:true,opacity:.62,depthWrite:false}));
+ const ceil=new THREE.Mesh(patchwork(R*.40,R*.985,48,3,3),ceilMat); ceil.position.y=2.92; g.add(ceil);
+ const dome=new THREE.Mesh(patchwork(.01,R*.38,24,2,11),ceilMat); dome.position.y=3.05; g.add(dome);
+ for(let q=0;q<24;q++){ const a=q/24*Math.PI*2, len=R*.585, m=new THREE.Mesh(new THREE.BoxGeometry(len,.05,.07),whiteMat);
+   m.position.set(Math.cos(a)*R*.69,2.9,Math.sin(a)*R*.69); m.rotation.y=-a; g.add(m); }
+ for(const [rr,tt,yy] of [[.40,.09,2.95],[.58,.045,2.9],[.78,.045,2.9],[.985,.06,2.9]]){
+   const t=new THREE.Mesh(new THREE.TorusGeometry(R*rr,tt,6,96),whiteMat); t.rotation.x=Math.PI/2; t.position.y=yy; g.add(t); }
+ return g;
+}
+function buildSmallRoom(i,y,R){
+ const g=newRoom(i,y);
+ const tbl=new THREE.Mesh(new THREE.CylinderGeometry(R*.3,R*.3,.07,48),woodMat); tbl.position.y=.78; g.add(tbl);
+ const ped=new THREE.Mesh(new THREE.CylinderGeometry(.15,.2,.75,16),darkMat); ped.position.y=.4; g.add(ped);
+ g.add(ringOf(chairGeo,chairMat,12,R*.45,true,false).translateY(.06));
+ return g;
+}
+levels.forEach((y,i)=>{ const [rx,rz]=radii(y), m=Math.min(rx,rz);
+ if(i===5) buildCouncilRoom(i,y,m*.8); else if([1,3,7,9].includes(i)) buildSmallRoom(i,y,m*.72);
 });
 
 // Steel ribs following the lantern profile.
@@ -365,14 +475,26 @@ for(let k=0;k<32;k++){
  }
 }
 
-// Stylised vertical LED tubes distributed around the internal perimeter.
-const ledMat=clipped(new THREE.MeshStandardMaterial({color:0xffd59b,emissive:0xffa84a,emissiveIntensity:2.2,roughness:.28}));
-for(let k=0;k<96;k++){
- const t=k/96*Math.PI*2, pts=[];
- for(let j=0;j<=45;j++){ const y=H*j/45; pts.push(ellipsePoint(y,t,.985)); }
- const curve=new THREE.CatmullRomCurve3(pts);
- ledsGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve,70,.026,5,false),ledMat));
+// Spots linéaires : 3 par vitre haute, 1 par petite fenêtre, posés derrière le vitrage et
+// interrompus à chaque montant (un segment par fenêtre) ; ils éclairent de l'intérieur.
+const ledMat=clipped(new THREE.MeshStandardMaterial({color:0xfff0d0,emissive:0xffb35a,emissiveIntensity:3,roughness:.3}));
+const ledMats=[ledMat];
+const ledYs=[];
+winRows.forEach(r=>{ const h=r.y1-r.y0, c=(r.y0+r.y1)/2; if(h<1) ledYs.push(c); else [-.32,0,.32].forEach(f=>ledYs.push(c+f*h)); });
+function ledGeometry(lo,hi,inclusiveTop){
+ const geos=[];
+ for(const y of ledYs){
+   if(y<lo || y>hi || (y===hi && !inclusiveTop)) continue;
+   for(let k=0;k<WIN_COUNT;k++){
+     const pts=[]; for(let j=0;j<=6;j++) pts.push(ellipsePoint(y,(k+.1+.8*j/6)/WIN_COUNT*Math.PI*2,.985));
+     geos.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),6,.03,4,false));
+   }
+ }
+ const m=geos.length?mergeGeometries(geos):new THREE.BufferGeometry();
+ geos.forEach(g=>g.dispose());
+ return m;
 }
+ledsGroup.add(new THREE.Mesh(ledGeometry(0,H,true),ledMat));
 
 // ---- Lanterne développée ----
 // Au clic sur un plateau, la lanterne est découpée en 11 tranches (une par plateau)
@@ -390,14 +512,14 @@ const slices=levels.map((_,k)=>{
  const sm=shellMat.clone(); sm.onBeforeCompile=shellMat.onBeforeCompile; sm.clippingPlanes=planes; shellMats.push(sm);
  const st=steel.clone(); st.clippingPlanes=planes;
  const lm=ledMat.clone(); lm.clippingPlanes=planes;
- clipMats.push(st,lm);
+ clipMats.push(st,lm); ledMats.push(lm);
  // Enveloppe : seules les rangées de maillage de la tranche (arrondies vers l'extérieur ; les plans de coupe ajustent).
  const jLo=Math.floor(lo/H*SHELL_ROWS), jHi=Math.ceil(hi/H*SHELL_ROWS), per=SHELL_COLS*6;
  const sg=new THREE.BufferGeometry();
  for(const n of ['position','normal','aWin']) sg.setAttribute(n,shellGeo.getAttribute(n));
  sg.setIndex(new THREE.BufferAttribute(shellGeo.index.array.slice(jLo*per,jHi*per),1));
  // Structure : montants verticaux limités à la tranche + anneaux qui s'y trouvent.
- const sGeos=[], lGeos=[];
+ const sGeos=[];
  const nr=Math.max(2,Math.ceil((hi-lo)/H*80)+1);
  for(let q=0;q<32;q++){
    const t=q/32*Math.PI*2, pts=[]; for(let j=0;j<nr;j++) pts.push(ellipsePoint(lo+(hi-lo)*j/(nr-1),t,1.005));
@@ -407,14 +529,9 @@ const slices=levels.map((_,k)=>{
    const pts=[]; for(let i=0;i<=128;i++) pts.push(ellipsePoint(y,i/128*Math.PI*2,1.012));
    sGeos.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),128,.05,6,false));
  }
- const nl=Math.max(2,Math.ceil((hi-lo)/H*45)+1);
- for(let q=0;q<96;q++){
-   const t=q/96*Math.PI*2, pts=[]; for(let j=0;j<nl;j++) pts.push(ellipsePoint(lo+(hi-lo)*j/(nl-1),t,.985));
-   lGeos.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),Math.ceil(nl*1.5),.026,5,false));
- }
- const shell=new THREE.Mesh(sg,sm), struct=new THREE.Mesh(mergeGeometries(sGeos),st), led=new THREE.Mesh(mergeGeometries(lGeos),lm);
+ const shell=new THREE.Mesh(sg,sm), struct=new THREE.Mesh(mergeGeometries(sGeos),st), led=new THREE.Mesh(ledGeometry(lo,hi,k===levels.length-1),lm);
  [shell,struct,led].forEach(m=>{ m.frustumCulled=false; });
- sGeos.concat(lGeos).forEach(g=>g.dispose());
+ sGeos.forEach(g=>g.dispose());
  group.add(shell,struct,led);
  return {group,pMin,pMax,shellMat:sm,struct,led};
 });
@@ -621,6 +738,7 @@ $('opaque').addEventListener('click',()=>{
 $('stripes').addEventListener('click',()=>{
  const on=!shellUniforms.uStripes.value; shellUniforms.uStripes.value=on?1:0; $('stripes').classList.toggle('active',on); syncShell();
 });
+$('reflect').addEventListener('input',e=>{ const v=+e.target.value/100; shellUniforms.uReflect.value=v; shellMats.forEach(m=>{m.envMapIntensity=2.1*v;}); $('reflectVal').textContent=e.target.value+'%'; });
 $('glassColor').addEventListener('input',e=>shellUniforms.uGlassColor.value.set(e.target.value));
 $('cut').addEventListener('input',e=>{
  const v=+e.target.value;
@@ -628,9 +746,9 @@ $('cut').addEventListener('input',e=>{
  $('cutVal').textContent = v>=100 ? 'aucune' : v+'%';
 });
 syncShell();
-$('light').addEventListener('input',e=>{const v=+e.target.value/100;ledMat.emissiveIntensity=2.2*v; fill.intensity=450*v; inner.intensity=340*v;$('lightVal').textContent=e.target.value+'%';});
-[['floors',floorsGroup],['structure',structureGroup],['leds',ledsGroup],['atrium',atriumGroup]].forEach(([id,obj])=>{
- $(id).addEventListener('click',()=>{obj.visible=!obj.visible;$(id).classList.toggle('active',obj.visible); if(id==='floors' && !obj.visible) collapse();});
+$('light').addEventListener('input',e=>{const v=+e.target.value/100;ledMats.forEach(m=>{m.emissiveIntensity=3*v;}); shellUniforms.uLedGlow.value=ledsGroup.visible?v:0; fill.intensity=450*v; inner.intensity=340*v;$('lightVal').textContent=e.target.value+'%';});
+[['floors',floorsGroup],['structure',structureGroup],['leds',ledsGroup],['rooms',roomsGroup],['atrium',atriumGroup]].forEach(([id,obj])=>{
+ $(id).addEventListener('click',()=>{obj.visible=!obj.visible;$(id).classList.toggle('active',obj.visible); if(id==='floors' && !obj.visible) collapse(); if(id==='leds') shellUniforms.uLedGlow.value=obj.visible?+$('light').value/100:0;});
 });
 const views={
  perspective:[43,34,55,[0,18,0]],
@@ -665,7 +783,7 @@ function updateExplode(dt){
    sl.struct.visible = structureGroup.visible; sl.led.visible = ledsGroup.visible;
    sl.shellMat.opacity = THREE.MathUtils.lerp(1,.38,e*Math.min(1,Math.abs(k-selF)));  // tranches voisines estompées
  });
- floorsGroup.children.forEach(c=>{ c.position.y = c.userData.baseY+(c.userData.sliceIndex-selF)*GAP*e; });
+ [...floorsGroup.children,...roomsGroup.children].forEach(c=>{ c.position.y = c.userData.baseY+(c.userData.sliceIndex-selF)*GAP*e; });
  const yc = levels[0]+(levels[levels.length-1]-levels[0])*selF/(levels.length-1);
  inner.position.y = THREE.MathUtils.lerp(17,yc,e);
 }
