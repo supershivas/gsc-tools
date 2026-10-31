@@ -2,6 +2,7 @@
 
 ## 1.8.0 — 2026-10-31
 - Europa 3D : les bandes obliques des fenêtres sont recalées sur chaque fenêtre (45° réels, 15 par fenêtre)
+- Europa 3D : les bandes ne se voient plus à travers la paroi du fond ; lien ajouté sur l'accueil
 - Europa 3D : faces opaques, opacité du vitrage et des bandes réglables séparément, couleur du vitrage, bandes masquables, coupe de la façade
 
 ## 1.7.1 — 2026-10-30

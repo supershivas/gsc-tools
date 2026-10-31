@@ -246,6 +246,12 @@ const float NWIN=${WIN_COUNT}.0;
 const float NLINES=${NLINES}.0;
 const float WMARGIN=${WIN_MARGIN};`)
      .replace('#include <alphamap_fragment>',`
+ // three.js dessine le double-face en deux passes (BackSide inverse l'enroulement) : gl_FrontFacing seul ne suffit pas
+ #ifdef FLIP_SIDED
+ float winOuter=gl_FrontFacing?0.0:1.0;
+ #else
+ float winOuter=gl_FrontFacing?1.0:0.0;
+ #endif
  float winCu=vWin.x*NWIN;
  float winCi=min(floor(winCu),NWIN-1.0);
  float winFx=winCu-winCi;
@@ -271,7 +277,7 @@ const float WMARGIN=${WIN_MARGIN};`)
  float q=(dd+ext)/sd;
  float lineDist=(abs(fract(q)-0.5)-0.5*thFrac)*sd;
  float pxd=px*0.7071+1e-4;
- float stripe=(1.0-smoothstep(-pxd,pxd,lineDist))*uStripes*winIn;
+ float stripe=(1.0-smoothstep(-pxd,pxd,lineDist))*uStripes*winIn*winOuter; // pas de bandes sur la face intérieure (paroi du fond vue en transparence)
  vec3 base=mix(uFrameColor,uGlassColor,winIn);
  diffuseColor.rgb=mix(base,uStripeColor,stripe);
  diffuseColor.a*=mix(uGlazeOp,uStripeOp,stripe);
