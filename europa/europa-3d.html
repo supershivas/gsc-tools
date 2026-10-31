@@ -433,6 +433,7 @@ function buildCouncilRoom(i,y,R){
  g.add(spots);
  // plafond : panneaux colorés + résille blanche (rayons, anneaux, grand anneau central surélevé)
  const ceilMat=clipped(new THREE.MeshStandardMaterial({vertexColors:true,roughness:.7,side:THREE.DoubleSide,transparent:true,opacity:.62,depthWrite:false}));
+ g.userData.ceilMat=ceilMat;
  const ceil=new THREE.Mesh(patchwork(R*.40,R*.985,48,3,3),ceilMat); ceil.position.y=2.92; g.add(ceil);
  const dome=new THREE.Mesh(patchwork(.01,R*.38,24,2,11),ceilMat); dome.position.y=3.05; g.add(dome);
  for(let q=0;q<24;q++){ const a=q/24*Math.PI*2, len=R*.585, m=new THREE.Mesh(new THREE.BoxGeometry(len,.05,.07),whiteMat);
@@ -783,6 +784,7 @@ function updateExplode(dt){
    sl.struct.visible = structureGroup.visible; sl.led.visible = ledsGroup.visible;
    sl.shellMat.opacity = THREE.MathUtils.lerp(1,.38,e*Math.min(1,Math.abs(k-selF)));  // tranches voisines estompées
  });
+ roomsGroup.children.forEach(r=>{ if(r.userData.ceilMat) r.userData.ceilMat.opacity=THREE.MathUtils.lerp(.62,.18,selected===r.userData.sliceIndex?e:0); }); // plafond estompé pour voir la salle
  [...floorsGroup.children,...roomsGroup.children].forEach(c=>{ c.position.y = c.userData.baseY+(c.userData.sliceIndex-selF)*GAP*e; });
  const yc = levels[0]+(levels[levels.length-1]-levels[0])*selF/(levels.length-1);
  inner.position.y = THREE.MathUtils.lerp(17,yc,e);

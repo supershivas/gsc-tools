@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.10.0 — 2026-10-31
+- Europa 3D : vitrage très réfléchissant, spots linéaires (3 par vitre haute, 1 par petite fenêtre) qui éclairent de l'intérieur
+- Europa 3D : salles de réunion, dont une salle circulaire au niveau 5 inspirée du Conseil européen
+
 ## 1.9.0 — 2026-10-31
 - Europa 3D : un clic sur un plateau développe la lanterne (tranches écartées, plateau centré) avec une fiche animée ; un nouveau clic la referme
 
