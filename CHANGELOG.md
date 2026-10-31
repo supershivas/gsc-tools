@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.0 — 2026-10-31
+- Europa 3D : un clic sur un plateau développe la lanterne (tranches écartées, plateau centré) avec une fiche animée ; un nouveau clic la referme
+
 ## 1.8.0 — 2026-10-31
 - Europa 3D : les bandes obliques des fenêtres sont recalées sur chaque fenêtre (45° réels, 15 par fenêtre)
 - Europa 3D : les bandes ne se voient plus à travers la paroi du fond ; lien ajouté sur l'accueil

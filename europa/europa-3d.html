@@ -45,6 +45,23 @@
   #floorInfo h2 { font-size:20px; font-weight:550; margin:7px 0 8px; }
   #floorInfo p { color:#b8c5c9; font-size:12px; line-height:1.55; margin:0; }
   #floorInfo .floor-meta { color:#e5bd82; font-size:10px; margin-top:12px; letter-spacing:.04em; }
+  #floorInfo.expanded { width:320px; border-color:#e5bd82; box-shadow:0 18px 60px #0008, 0 0 0 1px rgba(229,189,130,.25); }
+  #floorInfo h2 { min-height:1.2em; }
+  #floorInfo .floor-kicker { min-height:1em; }
+  .floor-rail { display:flex; gap:4px; margin-bottom:14px; }
+  .floor-rail i { flex:1; height:3px; border-radius:2px; background:#ffffff1f; transition:background .35s, transform .35s; }
+  .floor-rail i.on { background:#e5bd82; transform:scaleY(2.2); box-shadow:0 0 10px #e5bd82; }
+  .floor-line { height:1px; background:linear-gradient(90deg,#e5bd82,transparent); margin:0 0 10px; transform-origin:left; transform:scaleX(0); }
+  .floor-line.go { animation:lineIn .8s cubic-bezier(.2,.8,.2,1) .25s forwards; }
+  @keyframes lineIn { to { transform:scaleX(1); } }
+  .w { display:inline-block; opacity:0; transform:translateY(7px); filter:blur(4px); animation:wIn .5s cubic-bezier(.2,.8,.2,1) forwards; }
+  @keyframes wIn { to { opacity:1; transform:none; filter:none; } }
+  .floor-stats { display:flex; gap:22px; margin-top:14px; }
+  .floor-stats b { display:block; color:#f3dfbd; font-size:19px; font-weight:550; letter-spacing:-.02em; transition:opacity .4s; font-variant-numeric:tabular-nums; }
+  .floor-stats small { color:#8fa1a8; font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; }
+  .floor-back { max-height:0; overflow:hidden; opacity:0; color:#8fa1a8; font-size:10px; margin-top:0; transition:opacity .5s .9s, max-height .3s, margin .3s; }
+  #floorInfo.expanded .floor-back { max-height:30px; opacity:1; margin-top:14px; }
+  @media (prefers-reduced-motion:reduce) { .w, .floor-line.go { animation-duration:.01s; animation-delay:0s !important; } }
   @media(max-width:600px) { .panel { width:230px; top:10px; left:10px; padding:13px; } }
 </style>
 <script type="importmap">
@@ -94,17 +111,22 @@
     </div>
   </div>
   <div class="legend"><span class="dot"></span> Éclairage vertical stylisé</div>
-  <div class="hint">Souris : orbiter · Molette : zoomer · Clic droit : déplacer<br>Survolez un plateau pour afficher sa fiche · Cliquez pour zoomer dessus<br>Modèle volumétrique simplifié, non destiné à la fabrication.</div>
+  <div class="hint">Souris : orbiter · Molette : zoomer · Clic droit : déplacer<br>Survolez un plateau pour afficher sa fiche · Cliquez pour développer la lanterne, re-cliquez pour la refermer (ou Échap)<br>Modèle volumétrique simplifié, non destiné à la fabrication.</div>
 </section>
 <aside id="floorInfo">
-  <div class="floor-kicker">Exploration · niveau sélectionné</div>
+  <div class="floor-rail" id="floorRail"></div>
+  <div class="floor-kicker" id="floorKicker"></div>
   <h2 id="floorTitle">Niveau</h2>
+  <div class="floor-line" id="floorLine"></div>
   <p id="floorDescription"></p>
+  <div class="floor-stats" id="floorStats"></div>
   <div class="floor-meta" id="floorMeta"></div>
+  <div class="floor-back">Cliquez de nouveau pour refermer la lanterne</div>
 </aside>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const stage = document.getElementById('stage');
 const scene = new THREE.Scene();
@@ -204,10 +226,10 @@ const shellUniforms={
   uStripeColor:{value:new THREE.Color(0xf4f2ec)},
   uFrameColor:{value:new THREE.Color(0x3d4c52)}
 };
-let shellMat=null;
+let shellMat=null, shellGeo=null, shellMesh=null, SHELL_ROWS=0, SHELL_COLS=0;
 {
  const verts=[], inds=[], win=[];
- const rows=100, cols=128, eps=.05;
+ const rows=100, cols=128, eps=.05; SHELL_ROWS=rows; SHELL_COLS=cols;
  for(let j=0;j<=rows;j++){
    const y=H*j/rows, [rx,rz]=radii(y);
    const [rx2,rz2]=radii(Math.min(H,y+eps)), [rx1,rz1]=radii(Math.max(0,y-eps));
@@ -284,6 +306,7 @@ const float WMARGIN=${WIN_MARGIN};`)
 `);
  };
  const shell=new THREE.Mesh(g,shellMat); shell.name='envelope'; shell.castShadow=false; lantern.add(shell);
+ shellGeo=g; shellMesh=shell;
 }
 
 // Floor plates at the approximate programme levels; elliptical rooms step in and out.
@@ -307,15 +330,15 @@ levels.forEach((y,i)=>{
  shape.absellipse(0,0,rx*.94,rz*.94,0,Math.PI*2,false,0);
  const geo=new THREE.ShapeGeometry(shape,96);
  const plate=new THREE.Mesh(geo,floorMat); plate.rotation.x=-Math.PI/2; plate.position.y=y; plate.receiveShadow=true; plate.castShadow=true;
- plate.userData.floorIndex=i; plate.userData.floorY=y;
+ plate.userData.floorIndex=i; plate.userData.floorY=y; plate.userData.sliceIndex=i;
  floorsGroup.add(plate);
  const rimGeo=new THREE.TorusGeometry(1,.09,8,128);
- const rim=new THREE.Mesh(rimGeo,steel); rim.scale.set(rx*.94,rz*.94,1); rim.rotation.x=Math.PI/2; rim.position.y=y+.06; floorsGroup.add(rim);
+ const rim=new THREE.Mesh(rimGeo,steel); rim.scale.set(rx*.94,rz*.94,1); rim.rotation.x=Math.PI/2; rim.position.y=y+.06; rim.userData.sliceIndex=i; floorsGroup.add(rim);
  // A few conference-room partitions, kept translucent and diagrammatic.
  if([1,3,5,7,9].includes(i)){
    const wallMat=clipped(new THREE.MeshStandardMaterial({color:0x9da9a7,transparent:true,opacity:.23,roughness:.8,side:THREE.DoubleSide}));
    const wall=new THREE.Mesh(new THREE.CylinderGeometry(Math.min(rx,rz)*.72,Math.min(rx,rz)*.72,2.35,64,1,true),wallMat);
-   wall.position.y=y+1.2; floorsGroup.add(wall);
+   wall.position.y=y+1.2; wall.userData.sliceIndex=i; floorsGroup.add(wall);
  }
 });
 
@@ -350,6 +373,52 @@ for(let k=0;k<96;k++){
  const curve=new THREE.CatmullRomCurve3(pts);
  ledsGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve,70,.026,5,false),ledMat));
 }
+
+// ---- Lanterne développée ----
+// Au clic sur un plateau, la lanterne est découpée en 11 tranches (une par plateau)
+// qui s'écartent du plateau choisi. Chaque tranche réutilise la géométrie de
+// l'enveloppe, de la structure et des LED (fusionnées en un seul maillage), bornée
+// par deux plans de coupe horizontaux qui suivent son décalage.
+const cutY=[-100,...levels.slice(1).map((y,i)=>(levels[i]+y)/2),100];
+const shellMats=[shellMat];
+const ringYs=[...new Set(winRows.flatMap(r=>[r.y0,r.y1]).filter(y=>y>.3&&y<H-.3).map(y=>Math.round(y*10)/10))].sort((x,y)=>x-y);
+const slices=levels.map((_,k)=>{
+ const lo=Math.max(0,cutY[k]), hi=Math.min(H,cutY[k+1]);
+ const group=new THREE.Group(); group.visible=false; root.add(group);
+ const pMin=new THREE.Plane(new THREE.Vector3(0,1,0),0), pMax=new THREE.Plane(new THREE.Vector3(0,-1,0),0);
+ const planes=[clipPlane,pMin,pMax];
+ const sm=shellMat.clone(); sm.onBeforeCompile=shellMat.onBeforeCompile; sm.clippingPlanes=planes; shellMats.push(sm);
+ const st=steel.clone(); st.clippingPlanes=planes;
+ const lm=ledMat.clone(); lm.clippingPlanes=planes;
+ clipMats.push(st,lm);
+ // Enveloppe : seules les rangées de maillage de la tranche (arrondies vers l'extérieur ; les plans de coupe ajustent).
+ const jLo=Math.floor(lo/H*SHELL_ROWS), jHi=Math.ceil(hi/H*SHELL_ROWS), per=SHELL_COLS*6;
+ const sg=new THREE.BufferGeometry();
+ for(const n of ['position','normal','aWin']) sg.setAttribute(n,shellGeo.getAttribute(n));
+ sg.setIndex(new THREE.BufferAttribute(shellGeo.index.array.slice(jLo*per,jHi*per),1));
+ // Structure : montants verticaux limités à la tranche + anneaux qui s'y trouvent.
+ const sGeos=[], lGeos=[];
+ const nr=Math.max(2,Math.ceil((hi-lo)/H*80)+1);
+ for(let q=0;q<32;q++){
+   const t=q/32*Math.PI*2, pts=[]; for(let j=0;j<nr;j++) pts.push(ellipsePoint(lo+(hi-lo)*j/(nr-1),t,1.005));
+   sGeos.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),Math.ceil(nr*1.25),.075,6,false));
+ }
+ for(const y of ringYs){ if(y<lo || (y>=hi && k<levels.length-1) || y>hi) continue;
+   const pts=[]; for(let i=0;i<=128;i++) pts.push(ellipsePoint(y,i/128*Math.PI*2,1.012));
+   sGeos.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),128,.05,6,false));
+ }
+ const nl=Math.max(2,Math.ceil((hi-lo)/H*45)+1);
+ for(let q=0;q<96;q++){
+   const t=q/96*Math.PI*2, pts=[]; for(let j=0;j<nl;j++) pts.push(ellipsePoint(lo+(hi-lo)*j/(nl-1),t,.985));
+   lGeos.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),Math.ceil(nl*1.5),.026,5,false));
+ }
+ const shell=new THREE.Mesh(sg,sm), struct=new THREE.Mesh(mergeGeometries(sGeos),st), led=new THREE.Mesh(mergeGeometries(lGeos),lm);
+ [shell,struct,led].forEach(m=>{ m.frustumCulled=false; });
+ sGeos.concat(lGeos).forEach(g=>g.dispose());
+ group.add(shell,struct,led);
+ return {group,pMin,pMax,shellMat:sm,struct,led};
+});
+floorsGroup.children.forEach(c=>{ c.userData.baseY=c.position.y; });
 
 // Context: a restrained cubic atrium frame, switched off by default.
 const atriumGroup=new THREE.Group(); root.add(atriumGroup);
@@ -408,21 +477,53 @@ ground.rotation.x=-Math.PI/2; ground.position.y=-1.2; ground.receiveShadow=true;
 const grid=new THREE.GridHelper(100,50,0x405159,0x26363d); grid.position.y=-1.15; root.add(grid);
 
 // ---- Inspection des niveaux ----
-// Le survol n'agit QUE sur la fiche d'information (aucun mouvement de caméra,
-// ce qui corrigeait le verrouillage sur le dernier étage). Le clic zoome
-// en douceur sur le plateau visé.
+// Survol : fiche d'information (aucun mouvement de caméra).
+// Clic sur un plateau : la lanterne se développe, le plateau choisi est centré,
+// les autres s'écartent ; clic sur un autre plateau : on y glisse ; nouveau clic sur
+// le même plateau, dans le vide ou Échap : la lanterne se referme et la caméra recule.
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2(-10,-10);
-const info = document.getElementById('floorInfo');
-const floorTitle = document.getElementById('floorTitle');
-const floorDescription = document.getElementById('floorDescription');
-const floorMeta = document.getElementById('floorMeta');
-let hoveredFloor = null;
-let cameraGoal = null;
-let targetGoal = null;
-let lastHoverTime = 0;
-let pointerInside = false;
+const byId = id => document.getElementById(id);
+const info = byId('floorInfo'), floorKicker = byId('floorKicker'), floorTitle = byId('floorTitle');
+const floorLine = byId('floorLine'), floorDescription = byId('floorDescription');
+const floorStats = byId('floorStats'), floorMeta = byId('floorMeta'), floorRail = byId('floorRail');
+floorRail.innerHTML = levels.map(()=>'<i></i>').join('');
+const DEFAULT_CAM = new THREE.Vector3(43,34,55), DEFAULT_TARGET = new THREE.Vector3(0,18,0);
+const GAP = 4.2;                       // écart entre tranches voisines (m) une fois développée
+let hoveredFloor = null, selected = -1, exploded = false;
+let cameraGoal = null, targetGoal = null, pointerInside = false;
+const expl = {value:0, target:0};      // 0 = lanterne fermée, 1 = développée
+let selF = 0, lastEx = false;          // plateau centré (flottant, glisse d'un plateau à l'autre)
 
+// Texte révélé mot à mot (flou + translation), renvoie le délai de fin.
+function reveal(el, text, delay, step){
+  el.textContent = '';
+  let n = 0;
+  text.split(/(\s+)/).forEach(w=>{
+    if(!w) return;
+    if(/^\s+$/.test(w)){ el.append(' '); return; }
+    const sp = document.createElement('span');
+    sp.className = 'w'; sp.textContent = w; sp.style.animationDelay = (delay+n*step)+'ms';
+    el.append(sp); n++;
+  });
+  return delay+n*step;
+}
+function countUp(el, to, decimals, prefix, suffix, delay){
+  const tok = el._tok = {};
+  el.textContent = prefix+(0).toFixed(decimals).replace('.',',')+suffix;
+  el.style.opacity = 0;
+  setTimeout(()=>{
+    if(el._tok!==tok) return;
+    el.style.opacity = 1;
+    const t0 = performance.now(), dur = 800;
+    (function tick(now){
+      if(el._tok!==tok) return;
+      const k = Math.min(1,(now-t0)/dur), e = 1-Math.pow(1-k,3);
+      el.textContent = prefix+(to*e).toFixed(decimals).replace('.',',')+suffix;
+      if(k<1) requestAnimationFrame(tick);
+    })(t0);
+  }, delay);
+}
 function floorHitFromPointer(){
   raycaster.setFromCamera(pointer,camera);
   const hits = raycaster.intersectObjects(floorsGroup.children.filter(o=>o.userData.floorIndex!==undefined),false);
@@ -430,40 +531,55 @@ function floorHitFromPointer(){
   return hit ? hit.object.userData.floorIndex : null;
 }
 function showFloorInfo(index){
-  const data = floorDetails[index];
-  floorTitle.textContent = data[0];
-  floorDescription.textContent = data[1];
-  floorMeta.textContent = data[2];
+  const data = floorDetails[index], [rx,rz] = radii(levels[index]);
   info.classList.add('visible');
+  floorLine.classList.remove('go'); void floorLine.offsetWidth; floorLine.classList.add('go');
+  [...floorRail.children].forEach((d,i)=>d.classList.toggle('on',i===index));
+  reveal(floorKicker,'Exploration · niveau sélectionné',0,18);
+  reveal(floorTitle,data[0],140,70);
+  const end = reveal(floorDescription,data[1],420,24);
+  floorStats.innerHTML = '<div><b></b><small>Altitude</small></div><div><b></b><small>Surface approx.</small></div>';
+  const [b1,b2] = floorStats.querySelectorAll('b');
+  countUp(b1,levels[index],1,''," m",end*.55);
+  countUp(b2,Math.PI*rx*rz*.94*.94,0,'≈ '," m²",end*.55+120);
+  reveal(floorMeta,data[2],end*.55+300,22);
 }
 function hideFloorInfo(){
   info.classList.remove('visible');
   hoveredFloor = null;
 }
-function focusFloor(index){
-  const y = levels[index];
-  const [rx,rz] = radii(y);
-  // Conserver la direction de visée actuelle, mais s'approcher du plateau cliqué.
+function expandTo(index){
+  const y = levels[index], [rx,rz] = radii(y);
+  if(!exploded){ selF = index; }
+  selected = index; exploded = true; expl.target = 1; hoveredFloor = index;
+  info.classList.add('expanded');
+  showFloorInfo(index);
   const direction = camera.position.clone().sub(controls.target).normalize();
-  const distance = Math.max(17, Math.min(26, Math.max(rx,rz)*2.0));
+  const distance = Math.max(26, Math.max(rx,rz)*1.9+8);
   cameraGoal = new THREE.Vector3(0,y+2,0).add(direction.multiplyScalar(distance));
   targetGoal = new THREE.Vector3(0,y,0);
+}
+function collapse(){
+  if(!exploded) return;
+  exploded = false; selected = -1; expl.target = 0;
+  info.classList.remove('expanded');
+  hideFloorInfo();
+  cameraGoal = DEFAULT_CAM.clone(); targetGoal = DEFAULT_TARGET.clone();
 }
 
 renderer.domElement.addEventListener('pointermove', event => {
   const rect = renderer.domElement.getBoundingClientRect();
   pointer.x = ((event.clientX-rect.left)/rect.width)*2-1;
   pointer.y = -((event.clientY-rect.top)/rect.height)*2+1;
-  lastHoverTime = performance.now();
 });
 renderer.domElement.addEventListener('pointerenter', ()=>{ pointerInside=true; });
 renderer.domElement.addEventListener('pointerleave', ()=>{
   pointerInside=false;
   pointer.set(-10,-10);
-  hideFloorInfo();
+  if(!exploded) hideFloorInfo();
   renderer.domElement.style.cursor='';
 });
-// Clic gauche (sans drag) : zoom sur l'étage visé.
+// Clic gauche (sans drag).
 let downPos=null;
 renderer.domElement.addEventListener('pointerdown', e=>{ if(e.button===0) downPos=[e.clientX,e.clientY]; });
 renderer.domElement.addEventListener('pointerup', e=>{
@@ -476,9 +592,11 @@ renderer.domElement.addEventListener('pointerup', e=>{
   pointer.x = ((e.clientX-rect.left)/rect.width)*2-1;
   pointer.y = -((e.clientY-rect.top)/rect.height)*2+1;
   const idx = floorHitFromPointer();
-  if(idx!==null){ showFloorInfo(idx); hoveredFloor=idx; focusFloor(idx); }
+  if(exploded){ if(idx===null || idx===selected) collapse(); else expandTo(idx); }
+  else if(idx!==null) expandTo(idx);
 });
-// Toute manipulation manuelle de la caméra annule le zoom automatique en cours.
+window.addEventListener('keydown', e=>{ if(e.key==='Escape') collapse(); });
+// Toute manipulation manuelle de la caméra annule le déplacement automatique en cours.
 controls.addEventListener('start', ()=>{ cameraGoal=null; targetGoal=null; });
 
 const $=id=>document.getElementById(id);
@@ -489,7 +607,7 @@ function syncShell(){
  shellUniforms.uStripeOp.value=so; shellUniforms.uGlazeOp.value=go;
  $('opacityVal').textContent=Math.round(so*100)+'%'; $('glazeVal').textContent=Math.round(go*100)+'%';
  const solid=(go>=.995 && (so>=.995 || !shellUniforms.uStripes.value));
- shellMat.transparent=!solid; shellMat.depthWrite=solid;
+ shellMats.forEach(m=>{ m.transparent=!solid; m.depthWrite=solid; });
  $('opaque').classList.toggle('active',solid);
 }
 let beforeOpaque=null;
@@ -512,7 +630,7 @@ $('cut').addEventListener('input',e=>{
 syncShell();
 $('light').addEventListener('input',e=>{const v=+e.target.value/100;ledMat.emissiveIntensity=2.2*v; fill.intensity=450*v; inner.intensity=340*v;$('lightVal').textContent=e.target.value+'%';});
 [['floors',floorsGroup],['structure',structureGroup],['leds',ledsGroup],['atrium',atriumGroup]].forEach(([id,obj])=>{
- $(id).addEventListener('click',()=>{obj.visible=!obj.visible;$(id).classList.toggle('active',obj.visible);});
+ $(id).addEventListener('click',()=>{obj.visible=!obj.visible;$(id).classList.toggle('active',obj.visible); if(id==='floors' && !obj.visible) collapse();});
 });
 const views={
  perspective:[43,34,55,[0,18,0]],
@@ -522,17 +640,47 @@ const views={
 };
 document.querySelectorAll('[data-view]').forEach(btn=>btn.addEventListener('click',()=>{
  const v=views[btn.dataset.view]; camera.position.set(...v.slice(0,3)); controls.target.set(...v[3]); controls.update();
- cameraGoal=null; targetGoal=null;
+ collapse(); cameraGoal=null; targetGoal=null;
 }));
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+const clock = new THREE.Clock();
+function updateExplode(dt){
+ const diff = expl.target-expl.value;
+ expl.value = Math.abs(diff)<.0008 ? expl.target : expl.value+diff*(1-Math.exp(-dt*4));
+ selF += (selected>=0 ? selected-selF : 0)*(1-Math.exp(-dt*5));
+ const e = expl.value*expl.value*(3-2*expl.value);
+ const ex = expl.value>0;
+ if(ex!==lastEx){
+   lastEx = ex;
+   shellMesh.visible = !ex;
+   structureGroup.children.forEach(m=>{ m.visible=!ex; });
+   ledsGroup.children.forEach(m=>{ m.visible=!ex; });
+   slices.forEach(sl=>{ sl.group.visible=ex; });
+ }
+ if(!ex) { inner.position.y=17; return; }
+ slices.forEach((sl,k)=>{
+   const off = (k-selF)*GAP*e;
+   sl.group.position.y = off;
+   sl.pMin.constant = -(cutY[k]+off); sl.pMax.constant = cutY[k+1]+off;
+   sl.struct.visible = structureGroup.visible; sl.led.visible = ledsGroup.visible;
+   sl.shellMat.opacity = THREE.MathUtils.lerp(1,.38,e*Math.min(1,Math.abs(k-selF)));  // tranches voisines estompées
+ });
+ floorsGroup.children.forEach(c=>{ c.position.y = c.userData.baseY+(c.userData.sliceIndex-selF)*GAP*e; });
+ const yc = levels[0]+(levels[levels.length-1]-levels[0])*selF/(levels.length-1);
+ inner.position.y = THREE.MathUtils.lerp(17,yc,e);
+}
 function animate(){
  requestAnimationFrame(animate);
- // Survol : uniquement la fiche + curseur main, la caméra ne bouge plus.
+ const dt = Math.min(.05,clock.getDelta());
+ updateExplode(dt);
+ // Survol : fiche + curseur main (la fiche reste figée sur le plateau choisi quand la lanterne est développée).
  if (floorsGroup.visible && pointerInside) {
    const idx = floorHitFromPointer();
-   renderer.domElement.style.cursor = idx!==null ? 'pointer' : '';
-   if(idx!==null && idx!==hoveredFloor){ hoveredFloor=idx; showFloorInfo(idx); }
-   else if(idx===null && hoveredFloor!==null) hideFloorInfo();
+   renderer.domElement.style.cursor = (idx!==null || exploded) ? 'pointer' : '';
+   if(!exploded){
+     if(idx!==null && idx!==hoveredFloor){ hoveredFloor=idx; showFloorInfo(idx); }
+     else if(idx===null && hoveredFloor!==null) hideFloorInfo();
+   }
  } else if(!floorsGroup.visible && hoveredFloor!==null) hideFloorInfo();
 
  if(cameraGoal && targetGoal){

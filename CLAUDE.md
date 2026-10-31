@@ -20,7 +20,7 @@ JS vanilla statique, hébergé sur GitHub Pages (push sur `main` = déploiement)
 - `js/app-update.js`, `css/mobile.css`, `design-tokens.json` : synchronisés depuis le design system (ne pas modifier).
 - `css/tokens.css` : variables CSS dérivées de `design-tokens.json` ; `css/shell.css` : styles de la coque.
 - `version.json`, `CHANGELOG.md` : version (source unique).
-- `europa/europa-3d.html` : maquette 3D de la lanterne de l'Europa building (fichier autonome, three.js via CDN). Le motif des bandes obliques est calculé dans le shader de l'enveloppe (dimensions réelles de chaque fenêtre) ; elles ne s'affichent que sur la face extérieure (`FLIP_SIDED`, car three.js dessine le double-face en deux passes).
+- `europa/europa-3d.html` : maquette 3D de la lanterne de l'Europa building (fichier autonome, three.js via CDN). Le motif des bandes obliques est calculé dans le shader de l'enveloppe (dimensions réelles de chaque fenêtre) ; elles ne s'affichent que sur la face extérieure (`FLIP_SIDED`, car three.js dessine le double-face en deux passes). Clic sur un plateau = lanterne « développée » : 11 tranches (une par plateau) découpées par des plans de coupe horizontaux qui suivent leur décalage (`slices`, `updateExplode` dans `animate`) ; re-clic, vide ou Échap la referme. Les maillages d'origine servent hors animation.
 - `factsheet/` : le Factsheet creator. Sources dans `factsheet/src/`, `factsheet/app.js` est généré : après modification, `cd factsheet && npm install && npm run build` et commiter `app.js` **et** `viewer3d.js` (bundle three.js, chargé à la première ouverture de l'aperçu 3D) **et** `atelier.js`. Détails dans `factsheet/README.md`.
 
 ## Exceptions aux conventions
