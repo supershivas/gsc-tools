@@ -12,6 +12,7 @@
   canvas { display:block; }
   .panel {
     position:fixed; z-index:2; top:20px; left:20px; width:270px;
+    max-height:calc(100dvh - 40px); overflow:auto;
     padding:17px 18px 15px; color:#eaf0f2; background:rgba(11,20,27,.82);
     border:1px solid rgba(255,255,255,.15); border-radius:10px;
     backdrop-filter:blur(14px); box-shadow:0 12px 40px #0005;
@@ -22,6 +23,7 @@
   .group { border-top:1px solid #ffffff20; padding-top:12px; margin-top:11px; }
   .label { display:flex; justify-content:space-between; color:#c8d3d7; font-size:11px; margin-bottom:8px; }
   input[type=range] { width:100%; accent-color:#d5a96d; }
+  input[type=color] { width:44px; height:26px; padding:0; border:1px solid #ffffff30; border-radius:4px; background:none; cursor:pointer; }
   .buttons { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
   button {
     background:#263842; color:#eaf0f2; border:1px solid #ffffff25; border-radius:5px;
@@ -57,8 +59,17 @@
   <h1>La lanterne d’Europa</h1>
   <div class="sub">Maquette architecturale 3D interprétative · Philippe Samyn and Partners</div>
   <div class="group">
-    <div class="label"><span>Transparence de l’enveloppe</span><span id="opacityVal">100%</span></div>
+    <div class="label"><span>Opacité des bandes obliques</span><span id="opacityVal">100%</span></div>
     <input id="opacity" type="range" min="0" max="100" value="100">
+    <div class="label" style="margin-top:10px"><span>Opacité du vitrage</span><span id="glazeVal">8%</span></div>
+    <input id="glaze" type="range" min="0" max="100" value="8">
+    <div class="buttons" style="margin-top:10px">
+      <button id="opaque">Faces opaques</button>
+      <button id="stripes" class="active">Bandes obliques</button>
+    </div>
+    <div class="label" style="margin:10px 0 0"><span>Couleur du vitrage</span><input id="glassColor" type="color" value="#7fa3ab" aria-label="Couleur du vitrage"></div>
+    <div class="label" style="margin:10px 0 8px"><span>Coupe de la façade</span><span id="cutVal">aucune</span></div>
+    <input id="cut" type="range" min="0" max="100" value="100">
   </div>
   <div class="group">
     <div class="label"><span>Éclairage intérieur</span><span id="lightVal">100%</span></div>
@@ -108,6 +119,7 @@ renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.localClippingEnabled = true;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 stage.appendChild(renderer.domElement);
@@ -151,10 +163,13 @@ function radii(y){
 function ellipsePoint(y,t,scale=1){
   const [rx,rz]=radii(y); return new THREE.Vector3(Math.cos(t)*rx*scale,y,Math.sin(t)*rz*scale);
 }
-const steel = new THREE.MeshStandardMaterial({color:0x65747a,metalness:.78,roughness:.34});
+const clipPlane=new THREE.Plane(new THREE.Vector3(-1,0,0),1000); // coupe : garde x <= constante
+const clipMats=[];   // matériaux sensibles au plan de coupe (le sol et la grille restent entiers)
+const clipped=m=>{ m.clippingPlanes=[clipPlane]; clipMats.push(m); return m; };
+const steel = clipped(new THREE.MeshStandardMaterial({color:0x65747a,metalness:.78,roughness:.34}));
 const darkSteel = new THREE.MeshStandardMaterial({color:0x28383e,metalness:.7,roughness:.42});
 const glass = new THREE.MeshPhysicalMaterial({color:0x9fc0c7,metalness:.12,roughness:.16,transparent:true,opacity:.32,side:THREE.DoubleSide,depthWrite:false,transmission:.18,thickness:.15});
-const floorMat = new THREE.MeshStandardMaterial({color:0xd0d0c8,roughness:.72,metalness:.08,side:THREE.DoubleSide});
+const floorMat = clipped(new THREE.MeshStandardMaterial({color:0xd0d0c8,roughness:.72,metalness:.08,side:THREE.DoubleSide}));
 
 // Disposition des rangées de fenêtres (de bas en haut), d'après le bâtiment réel :
 // 1 bande fine · 9 bandes hautes · 1 fine · 2 hautes · 1 fine · 3 hautes · 1 fine ·
@@ -174,60 +189,94 @@ const winRows=[];
  }
 }
 
-// Continuous elliptical glazed envelope, sampled as a smooth parametric surface.
-// L'enveloppe porte des bandes blanches obliques opaques, transparentes entre les bandes.
+// Enveloppe vitrée elliptique continue. Chaque fenêtre (32 au tour × rangées
+// de winRows) porte 15 bandes obliques à 45° réels. Le motif est calculé dans le
+// shader à partir des dimensions de la fenêtre en mètres (largeur d'arc et pente
+// locales) : une texture 2D en (angle, hauteur) déformait les obliques, car la
+// taille d'une fenêtre varie avec la hauteur et l'azimut.
+const WIN_COUNT=32;           // fenêtres au tour, alignées sur les 32 montants
+const NLINES=15;              // bandes obliques par fenêtre
+const WIN_MARGIN=.05;         // retrait latéral du vitrage (m) de chaque côté
+const shellUniforms={
+  uRows:{value:winRows.map(r=>new THREE.Vector2(r.y0,r.y1))},
+  uStripeOp:{value:1}, uGlazeOp:{value:.08}, uStripes:{value:1},
+  uGlassColor:{value:new THREE.Color(0x7fa3ab)},
+  uStripeColor:{value:new THREE.Color(0xf4f2ec)},
+  uFrameColor:{value:new THREE.Color(0x3d4c52)}
+};
 let shellMat=null;
 {
- const verts=[], inds=[], uv=[];
- const rows=100, cols=128;
+ const verts=[], inds=[], win=[];
+ const rows=100, cols=128, eps=.05;
  for(let j=0;j<=rows;j++){
    const y=H*j/rows, [rx,rz]=radii(y);
-   for(let i=0;i<=cols;i++){ const t=i/cols*Math.PI*2; verts.push(Math.cos(t)*rx,y,Math.sin(t)*rz); uv.push(i/cols,j/rows); }
+   const [rx2,rz2]=radii(Math.min(H,y+eps)), [rx1,rz1]=radii(Math.max(0,y-eps));
+   const span=Math.min(H,y+eps)-Math.max(0,y-eps);
+   const drx=(rx2-rx1)/span, drz=(rz2-rz1)/span;
+   for(let i=0;i<=cols;i++){
+     const t=i/cols*Math.PI*2, c=Math.cos(t), sn=Math.sin(t);
+     verts.push(c*rx,y,sn*rz);
+     const arc=Math.hypot(rx*sn,rz*c)*Math.PI*2/WIN_COUNT;   // largeur d'une fenêtre ici (m)
+     const slant=Math.sqrt(1+(drx*c)**2+(drz*sn)**2);         // longueur de surface par mètre de hauteur
+     win.push(i/cols,y,arc,slant);
+   }
  }
  for(let j=0;j<rows;j++) for(let i=0;i<cols;i++){
    const a=j*(cols+1)+i,b=a+cols+1; inds.push(a,b,a+1,b,b+1,a+1);
  }
- const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(inds); g.computeVertexNormals();
- const alphaTex=(()=>{
-   const c=document.createElement('canvas'); c.width=1024; c.height=2048;
-   const ctx=c.getContext('2d');
-   ctx.fillStyle='#141414'; ctx.fillRect(0,0,1024,2048); // intervalles : verre légèrement teinté, presque transparent
-   ctx.fillStyle='#fff';
-   const colsP=8, pw=1024/colsP, mx=6;        // 8 fenêtres horizontales par tuile, x4 = 32 au tour (alignées sur les 32 montants verticaux)
-   const NLINES=15;                           // chaque fenêtre porte exactement 15 lignes obliques
-   const thFracs=[.28,.42,.56,.72];           // 4 épaisseurs possibles, en fraction de l'espacement
-   winRows.forEach((rd,ri)=>{
-     // L'axe v de la texture (flipY) est inversé par rapport au canvas :
-     // le monde y=0 est en BAS du canvas, d'où la conversion ci-dessous.
-     const h=(rd.y1-rd.y0)/H*2048, y0=2048-(rd.y1/H*2048);
-     for(let col=0;col<colsP;col++){
-       const x0=col*pw, w=pw-2*mx;
-       const dir=((ri+col)%2===0)?1:-1;       // angle montant ou descendant, en miroir
-       const th=thFracs[(col+ri*3)%thFracs.length]*(w+h)/NLINES;
-       const s=(w+h)/NLINES;                  // espacement régulier des 15 lignes
-       const span=Math.max(w,h);
-       ctx.save();
-       ctx.beginPath(); ctx.rect(x0+mx,y0,w,h); ctx.clip();
-       ctx.translate(x0+pw/2,y0+h/2);
-       ctx.rotate(dir*Math.PI/4);
-       for(let i=0;i<NLINES;i++){
-         const o=-NLINES*s/2 + i*s + (s-th)/2;
-         ctx.fillRect(o,-span*2,th,span*4);   // ligne blanche, intervalle transparent
-       }
-       ctx.restore();
-     }
-   });
-   const t=new THREE.CanvasTexture(c);
-   t.wrapS=THREE.RepeatWrapping; t.wrapT=THREE.ClampToEdgeWrapping;
-   t.repeat.set(4,1); t.anisotropy=8;        // 32 fenêtres par rangée, hauteur entière
-   return t;
- })();
+ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3)); g.setAttribute('aWin',new THREE.Float32BufferAttribute(win,4)); g.setIndex(inds); g.computeVertexNormals();
  shellMat=new THREE.MeshPhysicalMaterial({
-   color:0xf4f2ec, transparent:true, opacity:1,
-   alphaMap:alphaTex, alphaTest:0,
+   color:0xffffff, transparent:true, opacity:1,
    roughness:.38, metalness:.05, side:THREE.DoubleSide,
-   depthWrite:false, transmission:0, thickness:0
+   depthWrite:false, transmission:0, thickness:0,
+   clippingPlanes:[clipPlane]
  });
+ shellMat.onBeforeCompile=sh=>{
+   Object.assign(sh.uniforms,shellUniforms);
+   sh.vertexShader=sh.vertexShader
+     .replace('#include <common>','#include <common>\nattribute vec4 aWin;\nvarying vec4 vWin;')
+     .replace('#include <begin_vertex>','#include <begin_vertex>\nvWin=aWin;');
+   sh.fragmentShader=sh.fragmentShader
+     .replace('#include <common>',`#include <common>
+varying vec4 vWin;
+uniform vec2 uRows[${winRows.length}];
+uniform float uStripeOp, uGlazeOp, uStripes;
+uniform vec3 uGlassColor, uStripeColor, uFrameColor;
+const float NWIN=${WIN_COUNT}.0;
+const float NLINES=${NLINES}.0;
+const float WMARGIN=${WIN_MARGIN};`)
+     .replace('#include <alphamap_fragment>',`
+ float winCu=vWin.x*NWIN;
+ float winCi=min(floor(winCu),NWIN-1.0);
+ float winFx=winCu-winCi;
+ float winW=vWin.z, winSl=vWin.w;
+ float winY=vWin.y;
+ int winRow=-1; float wy0=0.0, wy1=0.0;
+ for(int i=0;i<${winRows.length};i++){
+   if(winY>=uRows[i].x && winY<=uRows[i].y){ winRow=i; wy0=uRows[i].x; wy1=uRows[i].y; }
+ }
+ float lx=(winFx-0.5)*winW;
+ float ly=(winY-0.5*(wy0+wy1))*winSl;
+ float hw=0.5*winW-WMARGIN;
+ float hh=0.5*(wy1-wy0)*winSl;
+ float px=max(fwidth(winCu)*winW, fwidth(winY)*winSl)+1e-4;
+ float winIn=(winRow<0)?0.0:smoothstep(-px,px,min(hw-abs(lx),hh-abs(ly)));
+ int winCol=int(mod(winCi,8.0));
+ float dirSign=(((winRow+winCol)&1)==0)?1.0:-1.0;
+ vec4 thF=vec4(0.28,0.42,0.56,0.72);
+ float thFrac=thF[(winCol+winRow*3)&3];
+ float dd=(dirSign*lx+ly)*0.70710678;
+ float ext=(2.0*hw+2.0*hh)*0.35355339;
+ float sd=2.0*ext/NLINES;
+ float q=(dd+ext)/sd;
+ float lineDist=(abs(fract(q)-0.5)-0.5*thFrac)*sd;
+ float pxd=px*0.7071+1e-4;
+ float stripe=(1.0-smoothstep(-pxd,pxd,lineDist))*uStripes*winIn;
+ vec3 base=mix(uFrameColor,uGlassColor,winIn);
+ diffuseColor.rgb=mix(base,uStripeColor,stripe);
+ diffuseColor.a*=mix(uGlazeOp,uStripeOp,stripe);
+`);
+ };
  const shell=new THREE.Mesh(g,shellMat); shell.name='envelope'; shell.castShadow=false; lantern.add(shell);
 }
 
@@ -258,7 +307,7 @@ levels.forEach((y,i)=>{
  const rim=new THREE.Mesh(rimGeo,steel); rim.scale.set(rx*.94,rz*.94,1); rim.rotation.x=Math.PI/2; rim.position.y=y+.06; floorsGroup.add(rim);
  // A few conference-room partitions, kept translucent and diagrammatic.
  if([1,3,5,7,9].includes(i)){
-   const wallMat=new THREE.MeshStandardMaterial({color:0x9da9a7,transparent:true,opacity:.23,roughness:.8,side:THREE.DoubleSide});
+   const wallMat=clipped(new THREE.MeshStandardMaterial({color:0x9da9a7,transparent:true,opacity:.23,roughness:.8,side:THREE.DoubleSide}));
    const wall=new THREE.Mesh(new THREE.CylinderGeometry(Math.min(rx,rz)*.72,Math.min(rx,rz)*.72,2.35,64,1,true),wallMat);
    wall.position.y=y+1.2; floorsGroup.add(wall);
  }
@@ -288,7 +337,7 @@ for(let k=0;k<32;k++){
 }
 
 // Stylised vertical LED tubes distributed around the internal perimeter.
-const ledMat=new THREE.MeshStandardMaterial({color:0xffd59b,emissive:0xffa84a,emissiveIntensity:2.2,roughness:.28});
+const ledMat=clipped(new THREE.MeshStandardMaterial({color:0xffd59b,emissive:0xffa84a,emissiveIntensity:2.2,roughness:.28}));
 for(let k=0;k<96;k++){
  const t=k/96*Math.PI*2, pts=[];
  for(let j=0;j<=45;j++){ const y=H*j/45; pts.push(ellipsePoint(y,t,.985)); }
@@ -427,7 +476,34 @@ renderer.domElement.addEventListener('pointerup', e=>{
 controls.addEventListener('start', ()=>{ cameraGoal=null; targetGoal=null; });
 
 const $=id=>document.getElementById(id);
-$('opacity').addEventListener('input',e=>{shellMat.opacity=+e.target.value/100;$('opacityVal').textContent=e.target.value+'%';});
+// Enveloppe : opacité des bandes, du vitrage, mode « faces opaques », coupe.
+// Dès que tout est opaque, on quitte le mode transparent (tri de profondeur correct).
+function syncShell(){
+ const so=+$('opacity').value/100, go=+$('glaze').value/100;
+ shellUniforms.uStripeOp.value=so; shellUniforms.uGlazeOp.value=go;
+ $('opacityVal').textContent=Math.round(so*100)+'%'; $('glazeVal').textContent=Math.round(go*100)+'%';
+ const solid=(go>=.995 && (so>=.995 || !shellUniforms.uStripes.value));
+ shellMat.transparent=!solid; shellMat.depthWrite=solid;
+ $('opaque').classList.toggle('active',solid);
+}
+let beforeOpaque=null;
+$('opacity').addEventListener('input',()=>{beforeOpaque=null;syncShell();});
+$('glaze').addEventListener('input',()=>{beforeOpaque=null;syncShell();});
+$('opaque').addEventListener('click',()=>{
+ if(beforeOpaque){ $('opacity').value=beforeOpaque[0]; $('glaze').value=beforeOpaque[1]; beforeOpaque=null; }
+ else { beforeOpaque=[$('opacity').value,$('glaze').value]; $('opacity').value=100; $('glaze').value=100; }
+ syncShell();
+});
+$('stripes').addEventListener('click',()=>{
+ const on=!shellUniforms.uStripes.value; shellUniforms.uStripes.value=on?1:0; $('stripes').classList.toggle('active',on); syncShell();
+});
+$('glassColor').addEventListener('input',e=>shellUniforms.uGlassColor.value.set(e.target.value));
+$('cut').addEventListener('input',e=>{
+ const v=+e.target.value;
+ clipPlane.constant = v>=100 ? 1000 : -17+v/100*34;
+ $('cutVal').textContent = v>=100 ? 'aucune' : v+'%';
+});
+syncShell();
 $('light').addEventListener('input',e=>{const v=+e.target.value/100;ledMat.emissiveIntensity=2.2*v; fill.intensity=450*v; inner.intensity=340*v;$('lightVal').textContent=e.target.value+'%';});
 [['floors',floorsGroup],['structure',structureGroup],['leds',ledsGroup],['atrium',atriumGroup]].forEach(([id,obj])=>{
  $(id).addEventListener('click',()=>{obj.visible=!obj.visible;$(id).classList.toggle('active',obj.visible);});

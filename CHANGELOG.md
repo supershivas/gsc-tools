@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.0 — 2026-10-31
+- Europa 3D : les bandes obliques des fenêtres sont recalées sur chaque fenêtre (45° réels, 15 par fenêtre)
+- Europa 3D : faces opaques, opacité du vitrage et des bandes réglables séparément, couleur du vitrage, bandes masquables, coupe de la façade
+
 ## 1.7.1 — 2026-10-30
 - Barre au survol : le bouton « Éditer », redondant avec le panneau de droite, est retiré ; « Dataviz… » reste
 
