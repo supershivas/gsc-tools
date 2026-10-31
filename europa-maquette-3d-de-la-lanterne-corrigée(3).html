@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Europa — maquette 3D de la lanterne</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#101820; font-family:Inter,Arial,sans-serif; }
+  #stage { position:fixed; inset:0; }
+  canvas { display:block; }
+  .panel {
+    position:fixed; z-index:2; top:20px; left:20px; width:270px;
+    padding:17px 18px 15px; color:#eaf0f2; background:rgba(11,20,27,.82);
+    border:1px solid rgba(255,255,255,.15); border-radius:10px;
+    backdrop-filter:blur(14px); box-shadow:0 12px 40px #0005;
+  }
+  .eyebrow { color:#9eb5bf; font-size:10px; letter-spacing:.17em; text-transform:uppercase; }
+  h1 { font-size:19px; font-weight:550; letter-spacing:-.025em; margin:7px 0 5px; }
+  .sub { color:#aab9bf; font-size:11px; line-height:1.5; margin-bottom:15px; }
+  .group { border-top:1px solid #ffffff20; padding-top:12px; margin-top:11px; }
+  .label { display:flex; justify-content:space-between; color:#c8d3d7; font-size:11px; margin-bottom:8px; }
+  input[type=range] { width:100%; accent-color:#d5a96d; }
+  .buttons { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+  button {
+    background:#263842; color:#eaf0f2; border:1px solid #ffffff25; border-radius:5px;
+    padding:8px 9px; font-size:11px; cursor:pointer;
+  }
+  button:hover, button.active { background:#52636a; border-color:#d5a96d; }
+  .hint { color:#91a2a9; font-size:10px; line-height:1.55; margin-top:13px; }
+  .legend { display:flex; align-items:center; gap:7px; margin-top:9px; color:#aebcc1; font-size:10px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:#e5bd82; box-shadow:0 0 10px #e5bd82; }
+  #floorInfo {
+    position:fixed; z-index:3; right:22px; top:22px; width:285px; padding:17px 19px;
+    color:#edf2f2; background:rgba(11,20,27,.88); border:1px solid rgba(229,189,130,.55);
+    border-radius:9px; backdrop-filter:blur(14px); box-shadow:0 12px 40px #0006;
+    opacity:0; transform:translateY(8px); transition:opacity .22s ease,transform .22s ease;
+    pointer-events:none;
+  }
+  #floorInfo.visible { opacity:1; transform:translateY(0); }
+  #floorInfo .floor-kicker { color:#e5bd82; font-size:10px; letter-spacing:.16em; text-transform:uppercase; }
+  #floorInfo h2 { font-size:20px; font-weight:550; margin:7px 0 8px; }
+  #floorInfo p { color:#b8c5c9; font-size:12px; line-height:1.55; margin:0; }
+  #floorInfo .floor-meta { color:#e5bd82; font-size:10px; margin-top:12px; letter-spacing:.04em; }
+  @media(max-width:600px) { .panel { width:230px; top:10px; left:10px; padding:13px; } }
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}
+}
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<section class="panel">
+  <div class="eyebrow">Bruxelles · Conseil de l’UE</div>
+  <h1>La lanterne d’Europa</h1>
+  <div class="sub">Maquette architecturale 3D interprétative · Philippe Samyn and Partners</div>
+  <div class="group">
+    <div class="label"><span>Transparence de l’enveloppe</span><span id="opacityVal">100%</span></div>
+    <input id="opacity" type="range" min="0" max="100" value="100">
+  </div>
+  <div class="group">
+    <div class="label"><span>Éclairage intérieur</span><span id="lightVal">100%</span></div>
+    <input id="light" type="range" min="0" max="150" value="100">
+  </div>
+  <div class="group">
+    <div class="label"><span>Afficher</span></div>
+    <div class="buttons">
+      <button id="floors" class="active">Plateaux</button>
+      <button id="structure" class="active">Structure</button>
+      <button id="leds" class="active">Lignes LED</button>
+      <button id="atrium">Atrium vitré</button>
+    </div>
+  </div>
+  <div class="group">
+    <div class="label"><span>Vues prédéfinies</span></div>
+    <div class="buttons">
+      <button data-view="perspective">Perspective</button>
+      <button data-view="front">Élévation</button>
+      <button data-view="top">Plongée</button>
+      <button data-view="inside">Depuis l’atrium</button>
+    </div>
+  </div>
+  <div class="legend"><span class="dot"></span> Éclairage vertical stylisé</div>
+  <div class="hint">Souris : orbiter · Molette : zoomer · Clic droit : déplacer<br>Survolez un plateau pour afficher sa fiche · Cliquez pour zoomer dessus<br>Modèle volumétrique simplifié, non destiné à la fabrication.</div>
+</section>
+<aside id="floorInfo">
+  <div class="floor-kicker">Exploration · niveau sélectionné</div>
+  <h2 id="floorTitle">Niveau</h2>
+  <p id="floorDescription"></p>
+  <div class="floor-meta" id="floorMeta"></div>
+</aside>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const stage = document.getElementById('stage');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x101820);
+scene.fog = new THREE.Fog(0x101820, 65, 145);
+
+const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, .1, 300);
+camera.position.set(43, 34, 55);
+const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+stage.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera,renderer.domElement);
+controls.target.set(0,18,0);
+controls.enableDamping = true;
+controls.dampingFactor = .055;
+controls.minDistance = 12;
+controls.maxDistance = 115;
+controls.maxPolarAngle = Math.PI*.49;
+
+scene.add(new THREE.HemisphereLight(0xc8d9e8,0x27313a,1.25));
+const key = new THREE.DirectionalLight(0xffe4c2,2.2);
+key.position.set(25,48,30); key.castShadow=true; key.shadow.mapSize.set(2048,2048);
+key.shadow.camera.left=-40; key.shadow.camera.right=40; key.shadow.camera.top=55; key.shadow.camera.bottom=-35;
+scene.add(key);
+const fill = new THREE.PointLight(0x9ec8e0,450,100); fill.position.set(-25,25,-15); scene.add(fill);
+// Lumière intérieure : à travers les intervalles des fenêtres on voit un
+// intérieur éclairé (plateaux, LED), pas le fond noir de la scène.
+const inner=new THREE.PointLight(0xffe7c0,340,110); inner.position.set(0,17,0); scene.add(inner);
+
+const root = new THREE.Group(); scene.add(root);
+const lantern = new THREE.Group(); root.add(lantern);
+const floorsGroup = new THREE.Group(), structureGroup = new THREE.Group(), ledsGroup = new THREE.Group();
+lantern.add(floorsGroup,structureGroup,ledsGroup);
+
+const H=39, N=80;
+const profile=[
+  [0,7.2,5.9],[2.5,8.0,6.5],[6,10.8,8.3],[10,13.8,10.2],
+  [14,15.0,11.0],[18,15.6,11.6],[22,15.0,11.1],[26,13.6,10.1],
+  [30,11.8,8.8],[34,9.7,7.4],[37,7.5,5.8],[39,5.8,4.6]
+];
+function radii(y){
+  for(let i=0;i<profile.length-1;i++){
+    const a=profile[i],b=profile[i+1];
+    if(y>=a[0] && y<=b[0]) { const t=(y-a[0])/(b[0]-a[0]); return [THREE.MathUtils.lerp(a[1],b[1],t),THREE.MathUtils.lerp(a[2],b[2],t)]; }
+  }
+  return profile[profile.length-1].slice(1);
+}
+function ellipsePoint(y,t,scale=1){
+  const [rx,rz]=radii(y); return new THREE.Vector3(Math.cos(t)*rx*scale,y,Math.sin(t)*rz*scale);
+}
+const steel = new THREE.MeshStandardMaterial({color:0x65747a,metalness:.78,roughness:.34});
+const darkSteel = new THREE.MeshStandardMaterial({color:0x28383e,metalness:.7,roughness:.42});
+const glass = new THREE.MeshPhysicalMaterial({color:0x9fc0c7,metalness:.12,roughness:.16,transparent:true,opacity:.32,side:THREE.DoubleSide,depthWrite:false,transmission:.18,thickness:.15});
+const floorMat = new THREE.MeshStandardMaterial({color:0xd0d0c8,roughness:.72,metalness:.08,side:THREE.DoubleSide});
+
+// Disposition des rangées de fenêtres (de bas en haut), d'après le bâtiment réel :
+// 1 bande fine · 9 bandes hautes · 1 fine · 2 hautes · 1 fine · 3 hautes · 1 fine ·
+// 2 hautes · 1 fine · reste en bandes hautes (4 ici, ajustable).
+const winRows=[];
+{
+ const fine=.7, high=1.5, gap=.2;
+ const groups=[[0,1],[1,9],[0,1],[1,2],[0,1],[1,3],[0,1],[1,2],[0,1],[1,4]];
+ let y=.3;
+ outer: for(const [type,count] of groups){
+   for(let n=0;n<count;n++){
+     const h=type===0?fine:high;
+     if(y+h>H-.3) break outer;
+     winRows.push({y0:y,y1:y+h});
+     y+=h+gap;
+   }
+ }
+}
+
+// Continuous elliptical glazed envelope, sampled as a smooth parametric surface.
+// L'enveloppe porte des bandes blanches obliques opaques, transparentes entre les bandes.
+let shellMat=null;
+{
+ const verts=[], inds=[], uv=[];
+ const rows=100, cols=128;
+ for(let j=0;j<=rows;j++){
+   const y=H*j/rows, [rx,rz]=radii(y);
+   for(let i=0;i<=cols;i++){ const t=i/cols*Math.PI*2; verts.push(Math.cos(t)*rx,y,Math.sin(t)*rz); uv.push(i/cols,j/rows); }
+ }
+ for(let j=0;j<rows;j++) for(let i=0;i<cols;i++){
+   const a=j*(cols+1)+i,b=a+cols+1; inds.push(a,b,a+1,b,b+1,a+1);
+ }
+ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(inds); g.computeVertexNormals();
+ const alphaTex=(()=>{
+   const c=document.createElement('canvas'); c.width=1024; c.height=2048;
+   const ctx=c.getContext('2d');
+   ctx.fillStyle='#141414'; ctx.fillRect(0,0,1024,2048); // intervalles : verre légèrement teinté, presque transparent
+   ctx.fillStyle='#fff';
+   const colsP=8, pw=1024/colsP, mx=6;        // 8 fenêtres horizontales par tuile, x4 = 32 au tour (alignées sur les 32 montants verticaux)
+   const NLINES=15;                           // chaque fenêtre porte exactement 15 lignes obliques
+   const thFracs=[.28,.42,.56,.72];           // 4 épaisseurs possibles, en fraction de l'espacement
+   winRows.forEach((rd,ri)=>{
+     // L'axe v de la texture (flipY) est inversé par rapport au canvas :
+     // le monde y=0 est en BAS du canvas, d'où la conversion ci-dessous.
+     const h=(rd.y1-rd.y0)/H*2048, y0=2048-(rd.y1/H*2048);
+     for(let col=0;col<colsP;col++){
+       const x0=col*pw, w=pw-2*mx;
+       const dir=((ri+col)%2===0)?1:-1;       // angle montant ou descendant, en miroir
+       const th=thFracs[(col+ri*3)%thFracs.length]*(w+h)/NLINES;
+       const s=(w+h)/NLINES;                  // espacement régulier des 15 lignes
+       const span=Math.max(w,h);
+       ctx.save();
+       ctx.beginPath(); ctx.rect(x0+mx,y0,w,h); ctx.clip();
+       ctx.translate(x0+pw/2,y0+h/2);
+       ctx.rotate(dir*Math.PI/4);
+       for(let i=0;i<NLINES;i++){
+         const o=-NLINES*s/2 + i*s + (s-th)/2;
+         ctx.fillRect(o,-span*2,th,span*4);   // ligne blanche, intervalle transparent
+       }
+       ctx.restore();
+     }
+   });
+   const t=new THREE.CanvasTexture(c);
+   t.wrapS=THREE.RepeatWrapping; t.wrapT=THREE.ClampToEdgeWrapping;
+   t.repeat.set(4,1); t.anisotropy=8;        // 32 fenêtres par rangée, hauteur entière
+   return t;
+ })();
+ shellMat=new THREE.MeshPhysicalMaterial({
+   color:0xf4f2ec, transparent:true, opacity:1,
+   alphaMap:alphaTex, alphaTest:0,
+   roughness:.38, metalness:.05, side:THREE.DoubleSide,
+   depthWrite:false, transmission:0, thickness:0
+ });
+ const shell=new THREE.Mesh(g,shellMat); shell.name='envelope'; shell.castShadow=false; lantern.add(shell);
+}
+
+// Floor plates at the approximate programme levels; elliptical rooms step in and out.
+const levels=[1.1,4.5,8,11.5,15,18.5,22,25.5,29,32.5,36];
+const floorDetails = [
+  ["Socle et accueil","Niveau bas de la lanterne, zone de transition entre les espaces du bâtiment et l’atrium central.","Niveau 0 · rez-de-chaussée"],
+  ["Espaces de travail","Plateau périphérique représenté de manière schématique, avec des espaces cloisonnés autour du vide central.","Niveau 1 · bureaux"],
+  ["Salles de réunion","Un niveau de réunion et de circulation, organisé autour du volume intérieur de la lanterne.","Niveau 2 · réunions"],
+  ["Plateau de bureaux","Espace de travail dans la partie basse de la lanterne, où le volume commence à s’évaser.","Niveau 3 · bureaux"],
+  ["Espaces de conférence","Le volume s’élargit progressivement. Les plateaux gagnent en surface et en ouverture vers l’atrium.","Niveau 4 · conférence"],
+  ["Cœur de la lanterne","Zone centrale du bâtiment : le volume atteint sa largeur maximale et donne à lire la géométrie caractéristique de la lanterne.","Niveau 5 · cœur du volume"],
+  ["Plateau central","Niveau situé dans la partie la plus large de la lanterne, avec une relation visuelle forte à l’enveloppe vitrée.","Niveau 6 · espaces communs"],
+  ["Espaces de travail","Le profil commence à se resserrer au-dessus du cœur de la lanterne.","Niveau 7 · bureaux"],
+  ["Réunions et délégations","Plateau supérieur, dans la partie haute du volume elliptique.","Niveau 8 · réunions"],
+  ["Partie haute","Le volume se contracte vers le sommet et laisse davantage de place à la lecture de la structure.","Niveau 9 · espaces techniques / bureaux"],
+  ["Couronnement","Dernier plateau schématique, au contact de la partie supérieure de l’enveloppe.","Niveau 10 · sommet"]
+];
+levels.forEach((y,i)=>{
+ const [rx,rz]=radii(y);
+ const shape=new THREE.Shape();
+ shape.absellipse(0,0,rx*.94,rz*.94,0,Math.PI*2,false,0);
+ const geo=new THREE.ShapeGeometry(shape,96);
+ const plate=new THREE.Mesh(geo,floorMat); plate.rotation.x=-Math.PI/2; plate.position.y=y; plate.receiveShadow=true; plate.castShadow=true;
+ plate.userData.floorIndex=i; plate.userData.floorY=y;
+ floorsGroup.add(plate);
+ const rimGeo=new THREE.TorusGeometry(1,.09,8,128);
+ const rim=new THREE.Mesh(rimGeo,steel); rim.scale.set(rx*.94,rz*.94,1); rim.rotation.x=Math.PI/2; rim.position.y=y+.06; floorsGroup.add(rim);
+ // A few conference-room partitions, kept translucent and diagrammatic.
+ if([1,3,5,7,9].includes(i)){
+   const wallMat=new THREE.MeshStandardMaterial({color:0x9da9a7,transparent:true,opacity:.23,roughness:.8,side:THREE.DoubleSide});
+   const wall=new THREE.Mesh(new THREE.CylinderGeometry(Math.min(rx,rz)*.72,Math.min(rx,rz)*.72,2.35,64,1,true),wallMat);
+   wall.position.y=y+1.2; floorsGroup.add(wall);
+ }
+});
+
+// Steel ribs following the lantern profile.
+for(let k=0;k<32;k++){
+ const t=k/32*Math.PI*2, pts=[];
+ for(let j=0;j<=80;j++){ const y=H*j/80, p=ellipsePoint(y,t,1.005); pts.push(p); }
+ const curve=new THREE.CatmullRomCurve3(pts);
+ const rib=new THREE.Mesh(new THREE.TubeGeometry(curve,100,.075,6,false),steel);
+ structureGroup.add(rib);
+}
+// Les anneaux structurels horizontaux sont générés uniquement aux bords des
+// rangées de fenêtres (voir plus bas) : la structure suit la disposition
+// réelle, aucun anneau ne traverse les bandes en plein milieu.
+// Montants horizontaux suivant la disposition des fenêtres : un anneau à chaque
+// bord de chaque bande (allège et bandes hautes), aligné sur les rangées réelles.
+{
+ const ys=new Set();
+ winRows.forEach(r=>{ if(r.y0>.3) ys.add(Math.round(r.y0*10)/10); if(r.y1<H-.3) ys.add(Math.round(r.y1*10)/10); });
+ for(const y of [...ys].sort((a,b)=>a-b)){
+   const [rx,rz]=radii(y);
+   const pts=[]; for(let i=0;i<=128;i++) pts.push(ellipsePoint(y,i/128*Math.PI*2,1.012));
+   structureGroup.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),128,.05,6,false),steel));
+ }
+}
+
+// Stylised vertical LED tubes distributed around the internal perimeter.
+const ledMat=new THREE.MeshStandardMaterial({color:0xffd59b,emissive:0xffa84a,emissiveIntensity:2.2,roughness:.28});
+for(let k=0;k<96;k++){
+ const t=k/96*Math.PI*2, pts=[];
+ for(let j=0;j<=45;j++){ const y=H*j/45; pts.push(ellipsePoint(y,t,.985)); }
+ const curve=new THREE.CatmullRomCurve3(pts);
+ ledsGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve,70,.026,5,false),ledMat));
+}
+
+// Context: a restrained cubic atrium frame, switched off by default.
+const atriumGroup=new THREE.Group(); root.add(atriumGroup);
+const frameMat=new THREE.MeshStandardMaterial({color:0x7d8b8d,metalness:.65,roughness:.45});
+const cube=56, y0=-1, y1=43;
+function bar(a,b,r=.10){ const d=new THREE.Vector3().subVectors(b,a); const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,d.length(),8),frameMat); m.position.copy(a).add(b).multiplyScalar(.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize()); atriumGroup.add(m); }
+for(const x of [-cube/2,cube/2]) for(const z of [-cube/2,cube/2]) bar(new THREE.Vector3(x,y0,z),new THREE.Vector3(x,y1,z),.14);
+for(const y of [y0,10,21,32,y1]){
+ bar(new THREE.Vector3(-cube/2,y,-cube/2),new THREE.Vector3(cube/2,y,-cube/2),.11);
+ bar(new THREE.Vector3(-cube/2,y,cube/2),new THREE.Vector3(cube/2,y,cube/2),.11);
+ bar(new THREE.Vector3(-cube/2,y,-cube/2),new THREE.Vector3(-cube/2,y,cube/2),.11);
+ bar(new THREE.Vector3(cube/2,y,-cube/2),new THREE.Vector3(cube/2,y,cube/2),.11);
+}
+// Grille de fenêtres récupérées avec le motif de bandes striées horizontales
+// du bâtiment : rangées régulières de vitrages neutres, rythmées par des
+// bandes teintées ambre et rouges, séparées par des menuiseries bois foncé.
+const clearGlass=new THREE.MeshStandardMaterial({color:0xaebfc2,roughness:.25,metalness:.1});
+const amberGlass=new THREE.MeshStandardMaterial({color:0xe0a23f,roughness:.3,metalness:.05,emissive:0x6a4a10,emissiveIntensity:.35});
+const redGlass=new THREE.MeshStandardMaterial({color:0xa6402f,roughness:.3,metalness:.05,emissive:0x40100a,emissiveIntensity:.3});
+const oliveGlass=new THREE.MeshStandardMaterial({color:0x8b8a66,roughness:.3,metalness:.05});
+const frameMat2=new THREE.MeshStandardMaterial({color:0x4a3826,roughness:.85,metalness:.02});
+// Motif vertical de bandes (index de rangée -> vitrage), inspiré des façades du palais :
+// dominante de vitrages clairs, striée de bandes ambre, rouge et olive.
+const bandPattern=[clearGlass,amberGlass,clearGlass,clearGlass,redGlass,clearGlass,amberGlass,clearGlass,oliveGlass];
+const rows=9, cols=11, cw=4.8, ch=3.9, gy=4.35, gx=4.9;
+for(const face of [0,1]){
+ for(let row=0;row<rows;row++){
+  const mat=bandPattern[row%bandPattern.length];
+  for(let col=0;col<cols;col++){
+   const x=-cube/2+3.1+col*gx, y=1.4+row*gy;
+   const panel=new THREE.Mesh(new THREE.BoxGeometry(cw,ch,.12),mat);
+   if(face===0){panel.position.set(x,y,-cube/2+.15);} else {panel.position.set(-cube/2+.15,y,x);}
+   atriumGroup.add(panel);
+  }
+ }
+ // Menuiseries : montants verticaux et traverses horizontales entre chaque rangée.
+ const yTop=1.4+(rows-1)*gy+ch/2, yBot=1.4-ch/2;
+ for(let c=0;c<=cols;c++){
+  const x=-cube/2+3.1+c*gx-cw/2-.05;
+  const m=new THREE.Mesh(new THREE.BoxGeometry(.16,yTop-yBot,.16),frameMat2);
+  if(face===0){m.position.set(x,(yTop+yBot)/2,-cube/2+.15);} else {m.position.set(-cube/2+.15,(yTop+yBot)/2,x);}
+  atriumGroup.add(m);
+ }
+ for(let r=0;r<=rows;r++){
+  const y=1.4+r*gy-ch/2-.05;
+  const m=new THREE.Mesh(new THREE.BoxGeometry(cols*gx,.16,.16),frameMat2);
+  if(face===0){m.position.set(-cube/2+3.1+(cols-1)*gx/2,y,-cube/2+.15);} else {m.position.set(-cube/2+.15,y,-cube/2+3.1+(cols-1)*gx/2);}
+  atriumGroup.add(m);
+ }
+}
+atriumGroup.visible=false;
+
+// Ground plane and scale cues.
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(180,180),new THREE.MeshStandardMaterial({color:0x1a252b,roughness:.92}));
+ground.rotation.x=-Math.PI/2; ground.position.y=-1.2; ground.receiveShadow=true; root.add(ground);
+const grid=new THREE.GridHelper(100,50,0x405159,0x26363d); grid.position.y=-1.15; root.add(grid);
+
+// ---- Inspection des niveaux ----
+// Le survol n'agit QUE sur la fiche d'information (aucun mouvement de caméra,
+// ce qui corrigeait le verrouillage sur le dernier étage). Le clic zoome
+// en douceur sur le plateau visé.
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2(-10,-10);
+const info = document.getElementById('floorInfo');
+const floorTitle = document.getElementById('floorTitle');
+const floorDescription = document.getElementById('floorDescription');
+const floorMeta = document.getElementById('floorMeta');
+let hoveredFloor = null;
+let cameraGoal = null;
+let targetGoal = null;
+let lastHoverTime = 0;
+let pointerInside = false;
+
+function floorHitFromPointer(){
+  raycaster.setFromCamera(pointer,camera);
+  const hits = raycaster.intersectObjects(floorsGroup.children.filter(o=>o.userData.floorIndex!==undefined),false);
+  const hit = hits.find(h=>h.object.visible);
+  return hit ? hit.object.userData.floorIndex : null;
+}
+function showFloorInfo(index){
+  const data = floorDetails[index];
+  floorTitle.textContent = data[0];
+  floorDescription.textContent = data[1];
+  floorMeta.textContent = data[2];
+  info.classList.add('visible');
+}
+function hideFloorInfo(){
+  info.classList.remove('visible');
+  hoveredFloor = null;
+}
+function focusFloor(index){
+  const y = levels[index];
+  const [rx,rz] = radii(y);
+  // Conserver la direction de visée actuelle, mais s'approcher du plateau cliqué.
+  const direction = camera.position.clone().sub(controls.target).normalize();
+  const distance = Math.max(17, Math.min(26, Math.max(rx,rz)*2.0));
+  cameraGoal = new THREE.Vector3(0,y+2,0).add(direction.multiplyScalar(distance));
+  targetGoal = new THREE.Vector3(0,y,0);
+}
+
+renderer.domElement.addEventListener('pointermove', event => {
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((event.clientX-rect.left)/rect.width)*2-1;
+  pointer.y = -((event.clientY-rect.top)/rect.height)*2+1;
+  lastHoverTime = performance.now();
+});
+renderer.domElement.addEventListener('pointerenter', ()=>{ pointerInside=true; });
+renderer.domElement.addEventListener('pointerleave', ()=>{
+  pointerInside=false;
+  pointer.set(-10,-10);
+  hideFloorInfo();
+  renderer.domElement.style.cursor='';
+});
+// Clic gauche (sans drag) : zoom sur l'étage visé.
+let downPos=null;
+renderer.domElement.addEventListener('pointerdown', e=>{ if(e.button===0) downPos=[e.clientX,e.clientY]; });
+renderer.domElement.addEventListener('pointerup', e=>{
+  if(e.button!==0 || !downPos) return;
+  const moved = Math.hypot(e.clientX-downPos[0], e.clientY-downPos[1]);
+  downPos=null;
+  if(moved>4) return; // c'était une rotation, pas un clic
+  if(!floorsGroup.visible) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((e.clientX-rect.left)/rect.width)*2-1;
+  pointer.y = -((e.clientY-rect.top)/rect.height)*2+1;
+  const idx = floorHitFromPointer();
+  if(idx!==null){ showFloorInfo(idx); hoveredFloor=idx; focusFloor(idx); }
+});
+// Toute manipulation manuelle de la caméra annule le zoom automatique en cours.
+controls.addEventListener('start', ()=>{ cameraGoal=null; targetGoal=null; });
+
+const $=id=>document.getElementById(id);
+$('opacity').addEventListener('input',e=>{shellMat.opacity=+e.target.value/100;$('opacityVal').textContent=e.target.value+'%';});
+$('light').addEventListener('input',e=>{const v=+e.target.value/100;ledMat.emissiveIntensity=2.2*v; fill.intensity=450*v; inner.intensity=340*v;$('lightVal').textContent=e.target.value+'%';});
+[['floors',floorsGroup],['structure',structureGroup],['leds',ledsGroup],['atrium',atriumGroup]].forEach(([id,obj])=>{
+ $(id).addEventListener('click',()=>{obj.visible=!obj.visible;$(id).classList.toggle('active',obj.visible);});
+});
+const views={
+ perspective:[43,34,55,[0,18,0]],
+ front:[0,20,78,[0,19,0]],
+ top:[1,83,1,[0,0,0]],
+ inside:[25,15,27,[0,17,0]]
+};
+document.querySelectorAll('[data-view]').forEach(btn=>btn.addEventListener('click',()=>{
+ const v=views[btn.dataset.view]; camera.position.set(...v.slice(0,3)); controls.target.set(...v[3]); controls.update();
+ cameraGoal=null; targetGoal=null;
+}));
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+function animate(){
+ requestAnimationFrame(animate);
+ // Survol : uniquement la fiche + curseur main, la caméra ne bouge plus.
+ if (floorsGroup.visible && pointerInside) {
+   const idx = floorHitFromPointer();
+   renderer.domElement.style.cursor = idx!==null ? 'pointer' : '';
+   if(idx!==null && idx!==hoveredFloor){ hoveredFloor=idx; showFloorInfo(idx); }
+   else if(idx===null && hoveredFloor!==null) hideFloorInfo();
+ } else if(!floorsGroup.visible && hoveredFloor!==null) hideFloorInfo();
+
+ if(cameraGoal && targetGoal){
+   camera.position.lerp(cameraGoal,.075);
+   controls.target.lerp(targetGoal,.09);
+   if(camera.position.distanceTo(cameraGoal)<.04 && controls.target.distanceTo(targetGoal)<.04){
+     camera.position.copy(cameraGoal); controls.target.copy(targetGoal);
+     cameraGoal=null; targetGoal=null;
+   }
+ }
+ controls.update();
+ renderer.render(scene,camera);
+}
+animate();
+</script>
+</body>
+</html>
