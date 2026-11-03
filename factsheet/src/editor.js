@@ -32,7 +32,7 @@ export function readImage(file, max = 1600) {
 /* ---------- Formulaires générés depuis la définition d'une dataviz ---------- */
 const getP = (o, p) => p.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
 const setP = (o, p, v) => { const ks = p.split('.'), last = ks.pop(); const t = ks.reduce((a, k) => (a[k] == null ? (a[k] = {}) : a[k]), o); t[last] = v; };
-const SERIES_COLORS = ['sky', 'yellow', 'blue', 'slate', 'lavender'];
+const SERIES_COLORS = ['sky', 'yellow', 'blue', 'slate', 'grey'];
 
 function parseTable(text) {
   const lines = text.replace(/\r/g, '').split('\n').filter(l => l.trim());

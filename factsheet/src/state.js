@@ -72,10 +72,10 @@ export function defaultDoc() {
     { id: uid('sub'), title: 'Three columns', layout: '1-1-1', cols: [fig(), viz('icons'), viz('bars', { opts: { ...newViz('bars').opts, callout: { on: false, value: '', text: '' }, style: 'grouped' } })] },
   ];
   return {
-    schema: SCHEMA, name: 'factsheet', locale: 'en-GB',
+    schema: SCHEMA, name: 'factsheet', locale: 'en-GB', density: 'normal',
     theme: DEFAULT_THEME, colors: {}, colorNames: {},
     header: {
-      bg: 'blue', fg: 'white',
+      bg: 'grey', fg: 'blue',
       overline: 'FACTSHEET - MONTH 20YY', title: 'MAIN TITLE', subtitle: 'Subtitle',
       images: [defaultHeaderImage()], imageId: DEFAULT_IMAGE_ID,   // bibliothèque d'images du header (autant que l'on veut)
       logos: DEFAULT_LOGOS(), logoVariant: 'default',
@@ -86,7 +86,7 @@ export function defaultDoc() {
 }
 
 /* ---------- Logos publiés dans le dépôt (disponibles sur tous les appareils) ---------- */
-export const DEFAULT_LOGOS = () => ({ default: 'assets/c069bffefa.png', mono: 'assets/d9742f1219.png', white: 'assets/4a5a41080e.png', negative: 'assets/5ec5fb8b6a.png' });
+export const DEFAULT_LOGOS = () => ({ default: 'assets/d9742f1219.png', mono: 'assets/c069bffefa.png', white: 'assets/4a5a41080e.png', negative: 'assets/5ec5fb8b6a.png' });
 /** Image du header toujours disponible (première de la bibliothèque, non modifiable) */
 export const DEFAULT_IMAGE_ID = 'img-default';
 export const defaultHeaderImage = () => ({ id: DEFAULT_IMAGE_ID, name: 'Image par défaut', src: 'assets/Asset 1.svg' });
@@ -125,7 +125,7 @@ export function migrate(j) {
 
 /** Anciens fichiers : `fill` (fond blanc du contour) → `fillColor` */
 function oldBoxes(d) {
-  const f = o => { if (o.fill === true && !o.fillColor) o.fillColor = 'white'; if (!o.fillColor) o.fillColor = 'none'; delete o.fill; };
+  const f = o => { if (o.fill === true && (!o.fillColor || o.fillColor === 'none')) o.fillColor = 'white'; if (!o.fillColor) o.fillColor = 'none'; delete o.fill; };
   d.sections.forEach(sec => { f(sec); sec.subs.forEach(sub => { f(sub); sub.cols.forEach(f); }); });
 }
 
@@ -167,7 +167,10 @@ function migrateHeader(H, src) {
   if (src.logo && !src.logos) H.logos.default = src.logo;
   delete H.logo;
   // une version vide reprend le logo publié (document créé avant la publication, autre appareil)
-  const def = DEFAULT_LOGOS(), cur = H.logos || {};
+  const def = DEFAULT_LOGOS(), cur = { ...(H.logos || {}) };
+  // les logos « défaut » et « mono » avaient été publiés à l'envers : on remet les bons fichiers
+  if (cur.default === def.mono) cur.default = def.default;
+  if (cur.mono === def.default) cur.mono = def.mono;
   H.logos = Object.assign({}, def, Object.fromEntries(Object.entries(cur).filter(([, v]) => v)));
   if (!LOGO_VARIANTS[H.logoVariant]) H.logoVariant = 'default';
   H.images = (H.images || []).filter(i => i && typeof i === 'object' && i.src && i.id !== DEFAULT_IMAGE_ID).map((i, k) => ({ id: i.id || uid('img'), name: i.name || `${t('Image')} ${k + 1}`, src: i.src }));
@@ -227,12 +230,13 @@ export function remapColors(doc, fn, bg = fn, fill = bg) {
   });
 }
 /** Anciennes palettes (12 couleurs) → 5 couleurs : les clés supprimées prennent la plus proche */
-const OLD_COLORS = { deep: 'blue', steel: 'slate', tintSky: 'tint-sky', tintLav: 'tint-blue', tintYellow: 'tint-yellow', tintGrey: 'tint-slate' };
+const OLD_COLORS = { lavender: 'grey', 'tint-lavender': 'tint-grey', deep: 'blue', steel: 'slate', tintSky: 'tint-sky', tintLav: 'tint-blue', tintYellow: 'tint-yellow', tintGrey: 'tint-slate' };
 function oldColors(d) {
   const f = k => OLD_COLORS[k] || k;
   remapColors(d, f);
   d.colors = Object.fromEntries(Object.entries(d.colors || {}).filter(([k]) => !OLD_COLORS[k] && !/^tint/.test(k) && k !== 'white'));
   d.colorNames = d.colorNames || {};
+  delete d.colorNames.lavender;
 }
 export const extraColorKeys = doc => Object.keys(doc.colors || {}).filter(k => /^x\d+$/.test(k));
 export const canAddColor = doc => extraColorKeys(doc).length < MAX_EXTRA_COLORS;

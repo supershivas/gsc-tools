@@ -1,9 +1,9 @@
 /* Boutons contextuels au survol de l'aperçu : une barre flottante regroupe les actions de l'élément
    survolé (colonne → sous-section → section, ou header). Elle vit hors des pages : jamais exportée. */
-import { h, ico } from './render.js';
-import { GRID, THEMES, sectionBgs, paletteKeys, colorLabel, cssVars, applyVars } from './tokens.js';
+import { h, ico, columnWidth } from './render.js';
+import { PAGE, GRID, THEMES, sectionBgs, paletteKeys, colorLabel, cssVars, applyVars } from './tokens.js';
 import { t } from './i18n.js';
-import { COL_TYPES, newCol, newSub, stepSection } from './state.js';
+import { COL_TYPES, newCol, newSub, newSection, stepSection, refreshAutoCards } from './state.js';
 import { readImage } from './editor.js';
 import { openPalette } from './palette.js';
 
@@ -12,10 +12,15 @@ const TYPE_LABELS = COL_TYPES;
 export function initHover({ stage, getDoc, ctx, select, canShow }) {
   const bar = h('div', { class: 'hv-bar', style: { display: 'none' } });
   const out = h('div', { class: 'hv-out', style: { display: 'none' } });
-  document.body.append(out, bar);
+  /* Boutons « + » pleine largeur sous la sous-section et sous la section survolées (hors des pages : jamais exportés) */
+  const addBtn = label => h('button', { type: 'button', class: 'hv-add', style: { display: 'none' } }, ico('plus'), h('span', { textContent: t(label) }));
+  const addSubBtn = addBtn('Nouvelle sous-section'), addSecBtn = addBtn('Nouvelle section');
+  addSubBtn.addEventListener('click', () => { const { si, bi } = addSubBtn._at, doc = getDoc(); doc.sections[si].subs.splice(bi + 1, 0, newSub('1')); hide(); ctx.restructure(); ctx.select(`sub:${si}:${bi + 1}`); });
+  addSecBtn.addEventListener('click', () => { const { si } = addSecBtn._at, doc = getDoc(); doc.sections.splice(si + 1, 0, newSection(doc.sections[si].page)); hide(); ctx.restructure(); ctx.select(`sec:${si + 1}`); });
+  document.body.append(out, bar, addSubBtn, addSecBtn);
   let timer = 0, cur = null;
 
-  const hide = () => { clearTimeout(timer); bar.style.display = out.style.display = 'none'; cur = null; };
+  const hide = () => { clearTimeout(timer); bar.style.display = out.style.display = addSubBtn.style.display = addSecBtn.style.display = 'none'; cur = null; };
   const later = () => { clearTimeout(timer); timer = setTimeout(() => { if (!bar.contains(document.activeElement)) hide(); }, 250); };
 
   const act = fn => () => { fn(); hide(); ctx.restructure(); };
@@ -31,7 +36,8 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
     if (it.kind === 'col') {
       const sub = doc.sections[it.si].subs[it.bi], col = sub.cols[it.ci];
       const grip = h('button', { type: 'button', class: 'mini grip-btn', title: 'Glisser le contenu sur une autre colonne pour l’échanger', onpointerdown: e => { e.preventDefault(); ctx.startColDrag(e, { si: it.si, bi: it.bi, ci: it.ci }); } }, ico('grip-vertical'));
-      g.push(grp('Colonne', grip, del(it.path), col.type === 'viz' ? btn('Dataviz…', 'Ouvrir l’éditeur de dataviz', () => ctx.editViz({ col, sub, ci: it.ci })) : null));
+      const plus = sub.cols.length === 1 ? btn(ico('plus'), 'Ajouter une colonne', () => { sub.layout = '1-1'; sub.cols.push(newCol('text')); refreshAutoCards(sub, i => columnWidth(getDoc(), it.si, it.bi, i)); }) : null;
+      g.push(grp('Colonne', grip, del(it.path), plus, col.type === 'viz' ? btn('Dataviz…', 'Ouvrir l’éditeur de dataviz', () => ctx.editViz({ col, sub, ci: it.ci })) : null));
     } else if (it.kind === 'sub') {
       const sec = doc.sections[it.si];
       const mv = d => () => { const j = it.bi + d; if (j >= 0 && j < sec.subs.length) [sec.subs[it.bi], sec.subs[j]] = [sec.subs[j], sec.subs[it.bi]]; };
@@ -76,11 +82,14 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
     let top = r.top - bh + 6; if (top < st.top - 12) top = r.top + 4;
     let left = Math.min(r.right - bw, window.innerWidth - bw - 8); left = Math.max(left, st.left + 4);
     Object.assign(bar.style, { left: left + 'px', top: top + 'px' });
+    const subIt = chain.find(c => c.kind === 'sub'), secIt = chain.find(c => c.kind === 'sec');
+    const put = (b, it, extra = 0) => { if (!it) { b.style.display = 'none'; return 0; } const q = it.el.getBoundingClientRect(), inset = it.kind === 'sec' ? q.width / PAGE.w * PAGE.margin : 0; b._at = it; Object.assign(b.style, { display: 'flex', left: q.left + inset + 'px', width: q.width - 2 * inset + 'px', top: q.bottom + 2 + extra + 'px' }); return q.bottom + 2 + extra; };
+    const subTop = put(addSubBtn, subIt), secTop = secIt ? secIt.el.getBoundingClientRect().bottom + 2 : 0;
+    put(addSecBtn, secIt, subIt && Math.abs(secTop - subTop) < 26 ? 26 : 0);
     Object.assign(out.style, { display: 'block', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
   });
   stage.addEventListener('pointerleave', later);
-  bar.addEventListener('pointerenter', () => clearTimeout(timer));
-  bar.addEventListener('pointerleave', later);
+  for (const el of [bar, addSubBtn, addSecBtn]) { el.addEventListener('pointerenter', () => clearTimeout(timer)); el.addEventListener('pointerleave', later); }
   stage.addEventListener('scroll', hide, true);
   return { hide };
 }

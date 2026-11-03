@@ -270,3 +270,20 @@ body.v3d-open{overflow:hidden}
 .tn-sec.drop-before{box-shadow:0 -3px 0 var(--ui-blue)}.tn-sec.drop-after{box-shadow:0 3px 0 var(--ui-blue)}
 .stage .page .drag-live{outline:2px dashed #F28C28;outline-offset:2px}
 .tn.drop-swap,.tn.drop-zone{outline:2px dashed var(--ui-blue);outline-offset:-2px;background:#f3f8ff}
+
+/* Boutons « + » pleine largeur sous la section / sous-section survolée */
+.hv-add{position:fixed;z-index:39;height:22px;padding:0;align-items:center;justify-content:center;gap:6px;border:1px dashed var(--ui-blue);border-radius:6px;background:#fffffff2;color:var(--ui-blue);font-size:12px}
+@media (hover:hover){.hv-add:hover{background:var(--ui-blue);color:#fff}}
+@media print{.hv-add,.hv-bar,.hv-out,.sp-layer{display:none!important}}
+
+/* Marges et espaces (Affichage) */
+.sp-layer{position:absolute;inset:0;pointer-events:none;z-index:5}
+.sp{position:absolute;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.sp span{font:600 9px/1 "Inter",sans-serif;color:#fff;background:#0009;border-radius:3px;padding:1px 3px}
+.sp-margin{background:#3b82f633;outline:1px solid #3b82f688}
+.sp-sec{background:#f28c2840;outline:1px solid #f28c28aa}
+.sp-sub{background:#22a06b40;outline:1px solid #22a06baa}
+.sp-col{background:#8b5cf640;outline:1px solid #8b5cf6aa}
+.sp-legend{display:flex;gap:14px;flex-wrap:wrap}
+.sp-legend span{display:inline-flex;align-items:center;gap:5px}
+.sp-legend i{width:12px;height:12px;border-radius:3px;display:inline-block}

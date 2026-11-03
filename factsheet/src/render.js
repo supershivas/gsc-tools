@@ -1,6 +1,6 @@
 /* Rendu du document en pages A4 (HTML). Aucune valeur de mise en page en dur :
    tout vient de tokens.js via les variables CSS (--s*, --gap-*, --t-*, --c-*). */
-import { PAGE, GRID, HEADER, GAP, cssVars, applyVars, colWidth, insetW } from './tokens.js';
+import { PAGE, GRID, HEADER, GAP, cssVars, applyVars, colWidth, insetW, setDensity } from './tokens.js';
 import { IMAGE_RATIOS } from './state.js';
 import { renderViz } from './viz/index.js';
 import { renderFigure } from './figure.js';
@@ -133,6 +133,7 @@ function renderSub(sub, si, bi, env, W) {
 
 /** Largeur réelle (px) de la colonne ci de la sous-section bi de la section si : tient compte des contours emboîtés */
 export function columnWidth(doc, si, bi, ci) {
+  setDensity(doc.density);
   const sec = doc.sections[si], sub = sec && sec.subs[bi], col = sub && sub.cols[ci];
   if (!col) return GRID.contentW;
   let W = GRID.contentW;
@@ -167,6 +168,7 @@ function renderSection(sec, si, env, pos) {
 
 /** → { pages: [{el, key, content, top, max, used, overflow}], warnings: [] } */
 export function renderDocument(doc) {
+  setDensity(doc.density);
   const vars = cssVars(doc.theme, doc.colors);
   const env = { locale: doc.locale || 'en-GB' };
   const pages = [];

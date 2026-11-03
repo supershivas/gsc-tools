@@ -65,6 +65,14 @@
     bandPad: SPACE[6]
     // 18 — haut/bas d'une section sur fond coloré
   };
+  var DENSITIES = { tight: { label: "Serr\xE9", f: 0.75 }, normal: { label: "Actuel", f: 1 }, loose: { label: "Large", f: 1.25 } };
+  var DENSE_KEYS = ["sectionBefore", "sectionTitle", "subsectionBefore", "subsectionTitle", "columns", "bandPad"];
+  var BASE_GAP = Object.fromEntries(DENSE_KEYS.map((k) => [k, GAP[k]]));
+  function setDensity(key) {
+    const f = (DENSITIES[key] || DENSITIES.normal).f;
+    for (const k of DENSE_KEYS) GAP[k] = Math.max(BASE, Math.round(BASE_GAP[k] * f / BASE) * BASE);
+    GRID.gutter = GAP.columns;
+  }
   var GRID = {
     cols: 3,
     gutter: GAP.columns,
@@ -191,9 +199,10 @@
         // séries claires
         yellow: "#FCDC0C",
         slate: "#5E6566",
-        lavender: "#BCCCFC"
+        grey: "#DADDE3"
+        // gris clair : fonds et séries neutres
       },
-      names: { blue: "Bleu", sky: "Bleu ciel", yellow: "Jaune", slate: "Ardoise", lavender: "Lavande" },
+      names: { blue: "Bleu", sky: "Bleu ciel", yellow: "Jaune", slate: "Ardoise", grey: "Gris clair" },
       text: "blue"
       // couleur des textes et traits par défaut
     }
@@ -277,6 +286,19 @@
     "Couleurs du document": "Document colours",
     "Chaque choix de couleur du document propose aussi \xAB + \xBB pour modifier, renommer ou ajouter une couleur.": "Every colour choice in the document also offers \u201C+\u201D to edit, rename or add a colour.",
     "Type de contenu": "Content type",
+    "Espacement": "Spacing",
+    "Marges et espaces": "Margins and spacing",
+    "Serr\xE9 \u2014 75 %": "Tight \u2014 75 %",
+    "Actuel \u2014 100 %": "Current \u2014 100 %",
+    "Large \u2014 125 %": "Wide \u2014 125 %",
+    "Ajouter une colonne": "Add a column",
+    "Nouvelle section": "New section",
+    "Nouvelle sous-section": "New subsection",
+    "Gris clair": "Light grey",
+    "Marges de page": "Page margins",
+    "Entre sections": "Between sections",
+    "Entre sous-sections": "Between subsections",
+    "Entre colonnes": "Between columns",
     "Nouvelle factsheet vierge": "New blank factsheet",
     "Cr\xE9er une factsheet vierge ? Le document actuel sera remplac\xE9 : enregistrez-le d\u2019abord (.json) si besoin.": "Create a blank factsheet? The current document will be replaced: save it first (.json) if needed.",
     "Enregistrer (.json)": "Save (.json)",
@@ -1048,7 +1070,7 @@
       largestAngle: 210,
       startAngle: 0,
       segments: [
-        { color: "lavender", value: 114.4, title: "\u20AC114.4 billion", text: "provided from or guaranteed by the EU budget (including **\u20AC43.9 billion** within Ukraine Facility and **\u20AC16.9 billion** from Ukraine Support Loan)" },
+        { color: "grey", value: 114.4, title: "\u20AC114.4 billion", text: "provided from or guaranteed by the EU budget (including **\u20AC43.9 billion** within Ukraine Facility and **\u20AC16.9 billion** from Ukraine Support Loan)" },
         { color: "blue", value: 77.9, title: "\u20AC77.9 billion", text: "in military support from Member States" },
         { color: "slate", value: 17, title: "\u20AC17 billion", text: "in support for Ukrainian refugees in the EU" },
         { color: "yellow", value: 15.5, title: "\u20AC15.5 billion", text: "of grants, loans and guarantees provided by EU Member States for non-military support" },
@@ -1779,12 +1801,13 @@ ${lorem}` },
       schema: SCHEMA,
       name: "factsheet",
       locale: "en-GB",
+      density: "normal",
       theme: DEFAULT_THEME,
       colors: {},
       colorNames: {},
       header: {
-        bg: "blue",
-        fg: "white",
+        bg: "grey",
+        fg: "blue",
         overline: "FACTSHEET - MONTH 20YY",
         title: "MAIN TITLE",
         subtitle: "Subtitle",
@@ -1799,7 +1822,7 @@ ${lorem}` },
       sections: [s1, s2, s3]
     };
   }
-  var DEFAULT_LOGOS = () => ({ default: "assets/c069bffefa.png", mono: "assets/d9742f1219.png", white: "assets/4a5a41080e.png", negative: "assets/5ec5fb8b6a.png" });
+  var DEFAULT_LOGOS = () => ({ default: "assets/d9742f1219.png", mono: "assets/c069bffefa.png", white: "assets/4a5a41080e.png", negative: "assets/5ec5fb8b6a.png" });
   var DEFAULT_IMAGE_ID = "img-default";
   var defaultHeaderImage = () => ({ id: DEFAULT_IMAGE_ID, name: "Image par d\xE9faut", src: "assets/Asset 1.svg" });
   var KEY2 = "factsheet-creator-v1";
@@ -1853,7 +1876,7 @@ ${lorem}` },
   }
   function oldBoxes(d) {
     const f = (o) => {
-      if (o.fill === true && !o.fillColor) o.fillColor = "white";
+      if (o.fill === true && (!o.fillColor || o.fillColor === "none")) o.fillColor = "white";
       if (!o.fillColor) o.fillColor = "none";
       delete o.fill;
     };
@@ -1907,7 +1930,9 @@ ${lorem}` },
     delete H.image;
     if (src.logo && !src.logos) H.logos.default = src.logo;
     delete H.logo;
-    const def = DEFAULT_LOGOS(), cur = H.logos || {};
+    const def = DEFAULT_LOGOS(), cur = { ...H.logos || {} };
+    if (cur.default === def.mono) cur.default = def.default;
+    if (cur.mono === def.default) cur.mono = def.mono;
     H.logos = Object.assign({}, def, Object.fromEntries(Object.entries(cur).filter(([, v]) => v)));
     if (!LOGO_VARIANTS[H.logoVariant]) H.logoVariant = "default";
     H.images = (H.images || []).filter((i) => i && typeof i === "object" && i.src && i.id !== DEFAULT_IMAGE_ID).map((i, k) => ({ id: i.id || uid("img"), name: i.name || `${t("Image")} ${k + 1}`, src: i.src }));
@@ -1974,12 +1999,13 @@ ${lorem}` },
       });
     });
   }
-  var OLD_COLORS = { deep: "blue", steel: "slate", tintSky: "tint-sky", tintLav: "tint-blue", tintYellow: "tint-yellow", tintGrey: "tint-slate" };
+  var OLD_COLORS = { lavender: "grey", "tint-lavender": "tint-grey", deep: "blue", steel: "slate", tintSky: "tint-sky", tintLav: "tint-blue", tintYellow: "tint-yellow", tintGrey: "tint-slate" };
   function oldColors(d) {
     const f = (k) => OLD_COLORS[k] || k;
     remapColors(d, f);
     d.colors = Object.fromEntries(Object.entries(d.colors || {}).filter(([k]) => !OLD_COLORS[k] && !/^tint/.test(k) && k !== "white"));
     d.colorNames = d.colorNames || {};
+    delete d.colorNames.lavender;
   }
   var extraColorKeys = (doc2) => Object.keys(doc2.colors || {}).filter((k) => /^x\d+$/.test(k));
   var canAddColor = (doc2) => extraColorKeys(doc2).length < MAX_EXTRA_COLORS;
@@ -2178,6 +2204,7 @@ ${lorem}` },
     return el2;
   }
   function columnWidth(doc2, si, bi, ci) {
+    setDensity(doc2.density);
     const sec = doc2.sections[si], sub = sec && sec.subs[bi], col = sub && sub.cols[ci];
     if (!col) return GRID.contentW;
     let W = GRID.contentW;
@@ -2210,6 +2237,7 @@ ${lorem}` },
     return el2;
   }
   function renderDocument(doc2) {
+    setDensity(doc2.density);
     const vars = cssVars(doc2.theme, doc2.colors);
     const env = { locale: doc2.locale || "en-GB" };
     const pages = [];
@@ -2836,7 +2864,7 @@ ${lorem}` },
     const t2 = ks.reduce((a, k) => a[k] == null ? a[k] = {} : a[k], o);
     t2[last] = v;
   };
-  var SERIES_COLORS = ["sky", "yellow", "blue", "slate", "lavender"];
+  var SERIES_COLORS = ["sky", "yellow", "blue", "slate", "grey"];
   function parseTable(text) {
     const lines = text.replace(/\r/g, "").split("\n").filter((l) => l.trim());
     if (!lines.length) return null;
@@ -3740,11 +3768,27 @@ ${lorem}` },
   function initHover({ stage: stage2, getDoc, ctx: ctx2, select, canShow }) {
     const bar = h("div", { class: "hv-bar", style: { display: "none" } });
     const out = h("div", { class: "hv-out", style: { display: "none" } });
-    document.body.append(out, bar);
+    const addBtn = (label) => h("button", { type: "button", class: "hv-add", style: { display: "none" } }, ico("plus"), h("span", { textContent: t(label) }));
+    const addSubBtn = addBtn("Nouvelle sous-section"), addSecBtn = addBtn("Nouvelle section");
+    addSubBtn.addEventListener("click", () => {
+      const { si, bi } = addSubBtn._at, doc2 = getDoc();
+      doc2.sections[si].subs.splice(bi + 1, 0, newSub("1"));
+      hide();
+      ctx2.restructure();
+      ctx2.select(`sub:${si}:${bi + 1}`);
+    });
+    addSecBtn.addEventListener("click", () => {
+      const { si } = addSecBtn._at, doc2 = getDoc();
+      doc2.sections.splice(si + 1, 0, newSection(doc2.sections[si].page));
+      hide();
+      ctx2.restructure();
+      ctx2.select(`sec:${si + 1}`);
+    });
+    document.body.append(out, bar, addSubBtn, addSecBtn);
     let timer = 0, cur = null;
     const hide = () => {
       clearTimeout(timer);
-      bar.style.display = out.style.display = "none";
+      bar.style.display = out.style.display = addSubBtn.style.display = addSecBtn.style.display = "none";
       cur = null;
     };
     const later = () => {
@@ -3776,7 +3820,12 @@ ${lorem}` },
           e.preventDefault();
           ctx2.startColDrag(e, { si: it.si, bi: it.bi, ci: it.ci });
         } }, ico("grip-vertical"));
-        g.push(grp("Colonne", grip, del(it.path), col.type === "viz" ? btn("Dataviz\u2026", "Ouvrir l\u2019\xE9diteur de dataviz", () => ctx2.editViz({ col, sub, ci: it.ci })) : null));
+        const plus = sub.cols.length === 1 ? btn(ico("plus"), "Ajouter une colonne", () => {
+          sub.layout = "1-1";
+          sub.cols.push(newCol("text"));
+          refreshAutoCards(sub, (i) => columnWidth(getDoc(), it.si, it.bi, i));
+        }) : null;
+        g.push(grp("Colonne", grip, del(it.path), plus, col.type === "viz" ? btn("Dataviz\u2026", "Ouvrir l\u2019\xE9diteur de dataviz", () => ctx2.editViz({ col, sub, ci: it.ci })) : null));
       } else if (it.kind === "sub") {
         const sec = doc2.sections[it.si];
         const mv = (d) => () => {
@@ -3853,11 +3902,26 @@ ${lorem}` },
       let left = Math.min(r.right - bw, window.innerWidth - bw - 8);
       left = Math.max(left, st.left + 4);
       Object.assign(bar.style, { left: left + "px", top: top + "px" });
+      const subIt = chain.find((c) => c.kind === "sub"), secIt = chain.find((c) => c.kind === "sec");
+      const put = (b, it, extra = 0) => {
+        if (!it) {
+          b.style.display = "none";
+          return 0;
+        }
+        const q = it.el.getBoundingClientRect(), inset = it.kind === "sec" ? q.width / PAGE.w * PAGE.margin : 0;
+        b._at = it;
+        Object.assign(b.style, { display: "flex", left: q.left + inset + "px", width: q.width - 2 * inset + "px", top: q.bottom + 2 + extra + "px" });
+        return q.bottom + 2 + extra;
+      };
+      const subTop = put(addSubBtn, subIt), secTop = secIt ? secIt.el.getBoundingClientRect().bottom + 2 : 0;
+      put(addSecBtn, secIt, subIt && Math.abs(secTop - subTop) < 26 ? 26 : 0);
       Object.assign(out.style, { display: "block", left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px" });
     });
     stage2.addEventListener("pointerleave", later);
-    bar.addEventListener("pointerenter", () => clearTimeout(timer));
-    bar.addEventListener("pointerleave", later);
+    for (const el2 of [bar, addSubBtn, addSecBtn]) {
+      el2.addEventListener("pointerenter", () => clearTimeout(timer));
+      el2.addEventListener("pointerleave", later);
+    }
     stage2.addEventListener("scroll", hide, true);
     return { hide };
   }
@@ -3993,6 +4057,7 @@ ${lorem}` },
   var gauges = document.getElementById("gauges");
   var warnEl = document.getElementById("warnings");
   var zoomMode = "fit";
+  var showSpacing = false;
   var raf = 0;
   var hover = null;
   var undoSnap = null;
@@ -4017,6 +4082,7 @@ ${lorem}` },
       stage.append(wrap);
     });
     measure(r);
+    drawSpacing();
     gauges.innerHTML = "";
     r.pages.forEach((p) => {
       const pct = Math.min(100, Math.round(p.used / p.max * 100));
@@ -4038,6 +4104,48 @@ ${lorem}` },
     if (previewDoc) {
       if (previewMark) stage.querySelectorAll(`[data-sel="${previewMark}"]`).forEach((n) => n.classList.add("drag-live"));
     } else if (selected) stage.querySelectorAll(`[data-sel="${selected}"]`).forEach((n) => n.classList.add("is-sel"));
+  }
+  var SPACING_KINDS = { margin: "Marges de page", sec: "Entre sections", sub: "Entre sous-sections", col: "Entre colonnes" };
+  function drawSpacing() {
+    if (!showSpacing) return;
+    stage.querySelectorAll(".pwrap").forEach((w) => {
+      const page = w.querySelector(".page");
+      if (!page) return;
+      const wr = w.getBoundingClientRect(), sc = wr.width / PAGE.w, layer = h("div", { class: "sp-layer" });
+      const rel = (el2) => {
+        const r = el2.getBoundingClientRect();
+        return { l: r.left - wr.left, t: r.top - wr.top, r: r.right - wr.left, b: r.bottom - wr.top };
+      };
+      const add = (l, t2, wd, ht, kind) => {
+        if (wd < 1 || ht < 1) return;
+        const px = Math.round((kind === "col" ? wd : kind === "margin" ? Math.min(wd, ht) : ht) / sc);
+        layer.append(h("div", { class: "sp sp-" + kind, style: { left: l + "px", top: t2 + "px", width: wd + "px", height: ht + "px" } }, wd >= 14 && ht >= 12 || kind === "col" && ht >= 12 ? h("span", { textContent: String(px) }) : null));
+      };
+      const m = PAGE.margin * sc, W = wr.width, H = wr.height, hd = page.querySelector(".hd"), top0 = hd ? rel(hd).b : 0;
+      const secs = [...page.querySelectorAll(".content > .sec")];
+      add(0, top0, m, H - top0, "margin");
+      add(W - m, top0, m, H - top0, "margin");
+      add(m, H - PAGE.marginBottom * sc, W - 2 * m, PAGE.marginBottom * sc, "margin");
+      if (secs.length) add(m, top0, W - 2 * m, rel(secs[0]).t - top0, "margin");
+      secs.forEach((sec, i) => {
+        if (i) add(m, rel(secs[i - 1]).b, W - 2 * m, rel(sec).t - rel(secs[i - 1]).b, "sec");
+        const subs = [...sec.querySelectorAll(".sub")].filter((x) => x.closest(".sec") === sec);
+        subs.forEach((sb, j) => {
+          if (j) {
+            const a = rel(subs[j - 1]), b = rel(sb);
+            add(b.l, a.b, b.r - b.l, b.t - a.b, "sub");
+          }
+        });
+      });
+      page.querySelectorAll(".cols").forEach((cols) => {
+        const ch = [...cols.children].filter((x) => x.dataset && x.dataset.sel), cr = rel(cols);
+        ch.forEach((c, j) => {
+          if (j) add(rel(ch[j - 1]).r, cr.t, rel(c).l - rel(ch[j - 1]).r, cr.b - cr.t, "col");
+        });
+      });
+      w.append(layer);
+    });
+    warnEl.append(h("div", { class: "note sp-legend" }, Object.entries(SPACING_KINDS).map(([k, l]) => h("span", {}, h("i", { class: "sp-" + k }), t(l)))));
   }
   var schedule = () => {
     cancelAnimationFrame(raf);
@@ -4385,6 +4493,16 @@ ${lorem}` },
         zoomItem("50 %", "0.5"),
         zoomItem("75 %", "0.75"),
         zoomItem("100 %", "1"),
+        "-",
+        { heading: "Espacement" },
+        { label: "Marges et espaces", icon: "ruler-measure", checked: () => showSpacing, run: () => {
+          showSpacing = !showSpacing;
+          schedule();
+        } },
+        ...Object.entries(DENSITIES).map(([k, d]) => ({ label: `${d.label} \u2014 ${Math.round(d.f * 100)} %`, checked: () => (doc.density || "normal") === k, run: () => {
+          doc.density = k;
+          ctx.restructure();
+        } })),
         "-",
         { label: "Aper\xE7u 3D", icon: "3d-cube-sphere", run: () => open3d() }
       ] }

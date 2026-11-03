@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.14.0 — 2026-11-03
+- Marges et espaces : filigrane dans Affichage et trois densités d'espacement (serré, actuel, large) enregistrées dans le document
+- Boutons « + » pleine largeur sous une section ou une sous-section, et « + » pour ajouter une colonne à une colonne seule
+- Logos défaut et mono remis dans le bon sens ; gris clair à la place de lavande ; header par défaut gris clair avec textes bleus ; corrige les fonds blancs des anciens documents
+
 ## 1.13.0 — 2026-11-03
 - Propriétés et structure en cartes repliables ; fond et contour au choix sur chaque élément ; couleurs modifiables, renommables et ajoutables partout
 - Glisser-déposer avec aperçu en direct (sections, sous-sections, colonnes) ; une colonne se vise sur toute sa hauteur

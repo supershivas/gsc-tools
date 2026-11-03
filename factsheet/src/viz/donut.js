@@ -23,7 +23,7 @@ export default {
   defaults: () => ({
     style: 'donut', totalTpl: '€{total} billion', decimals: 1, layout: 'auto', orient: 'largest', largestAngle: 210, startAngle: 0,
     segments: [
-      { color: 'lavender', value: 114.4, title: '€114.4 billion', text: 'provided from or guaranteed by the EU budget (including **€43.9 billion** within Ukraine Facility and **€16.9 billion** from Ukraine Support Loan)' },
+      { color: 'grey', value: 114.4, title: '€114.4 billion', text: 'provided from or guaranteed by the EU budget (including **€43.9 billion** within Ukraine Facility and **€16.9 billion** from Ukraine Support Loan)' },
       { color: 'blue', value: 77.9, title: '€77.9 billion', text: 'in military support from Member States' },
       { color: 'slate', value: 17, title: '€17 billion', text: 'in support for Ukrainian refugees in the EU' },
       { color: 'yellow', value: 15.5, title: '€15.5 billion', text: 'of grants, loans and guarantees provided by EU Member States for non-military support' },

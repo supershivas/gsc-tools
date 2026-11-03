@@ -46,6 +46,18 @@ export const GAP = {
   bandPad: SPACE[6],            // 18 — haut/bas d'une section sur fond coloré
 };
 
+/* ---------- Densité d'espacement (réglage du document) ----------
+   Les écarts entre sections, sous-sections et colonnes sont multipliés puis arrondis à la grille de 3 px ; marges de page,
+   retraits d'encadrés et textes ne bougent pas. `setDensity` est appelé avant chaque rendu (renderDocument, columnWidth). */
+export const DENSITIES = { tight: { label: 'Serré', f: 0.75 }, normal: { label: 'Actuel', f: 1 }, loose: { label: 'Large', f: 1.25 } };
+const DENSE_KEYS = ['sectionBefore', 'sectionTitle', 'subsectionBefore', 'subsectionTitle', 'columns', 'bandPad'];
+const BASE_GAP = Object.fromEntries(DENSE_KEYS.map(k => [k, GAP[k]]));
+export function setDensity(key) {
+  const f = (DENSITIES[key] || DENSITIES.normal).f;
+  for (const k of DENSE_KEYS) GAP[k] = Math.max(BASE, Math.round(BASE_GAP[k] * f / BASE) * BASE);
+  GRID.gutter = GAP.columns;
+}
+
 /* ---------- Grille ---------- */
 export const GRID = {
   cols: 3,
@@ -151,9 +163,9 @@ export const THEMES = {
       sky:      '#A4CCFC',   // séries claires
       yellow:   '#FCDC0C',
       slate:    '#5E6566',
-      lavender: '#BCCCFC',
+      grey:     '#DADDE3',   // gris clair : fonds et séries neutres
     },
-    names: { blue: 'Bleu', sky: 'Bleu ciel', yellow: 'Jaune', slate: 'Ardoise', lavender: 'Lavande' },
+    names: { blue: 'Bleu', sky: 'Bleu ciel', yellow: 'Jaune', slate: 'Ardoise', grey: 'Gris clair' },
     text: 'blue',            // couleur des textes et traits par défaut
   },
 };
