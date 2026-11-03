@@ -356,6 +356,8 @@
     "Serr\xE9": "Tight",
     "Actuel": "Current",
     "Large": "Wide",
+    "Titre de section (vide = masqu\xE9)": "Section title (empty = hidden)",
+    "Glisser la section (ou la page)": "Drag the section (to reorder or change page)",
     "Nouvelle factsheet vierge": "New blank factsheet",
     "Cr\xE9er une factsheet vierge ? Le document actuel sera remplac\xE9 : enregistrez-le d\u2019abord (.json) si besoin.": "Create a blank factsheet? The current document will be replaced: save it first (.json) if needed.",
     "Enregistrer (.json)": "Save (.json)",
@@ -3333,7 +3335,7 @@ ${lorem}` },
       title(sec.title || "Section");
       root.append(
         card("sec-main", "layout-rows", t("Section"), [
-          text(sec, "title", "Titre de section"),
+          text(sec, "title", "Titre de section (vide = masqu\xE9)"),
           select(sec, "page", "Page", { recto: "Recto", verso: "Verso" }, () => ctx2.restructure())
         ]),
         card("sec-bg", "color-swatch", t("Fond de la section"), [swatches("Fond", sec, "bg", toneKeys(doc2), true)]),
@@ -3750,8 +3752,13 @@ ${lorem}` },
         g.push(grp("Sous-section", sgrip, del(`sub:${it.si}:${it.bi}`), btn(ico("arrow-up"), "Monter", mv(-1)), btn(ico("arrow-down"), "Descendre", mv(1))));
       } else if (it.kind === "sec") {
         const sec = doc2.sections[it.si];
+        const secGrip = h("button", { type: "button", class: "mini grip-btn", title: "Glisser la section (ou la page)", onpointerdown: (e) => {
+          e.preventDefault();
+          ctx2.startSecDrag(e, { si: it.si });
+        } }, ico("grip-vertical"));
         g.push(grp(
           "Section",
+          secGrip,
           del(`sec:${it.si}`),
           sw("none", !sec.bg || sec.bg === "none", "Sans fond", () => {
             sec.bg = "none";
@@ -4645,16 +4652,20 @@ ${lorem}` },
   });
   stage.addEventListener("pointerdown", (e) => {
     if (e.button !== 0) return;
-    const st = e.target.closest(".sec-title"), bt = e.target.closest(".sub-title"), n = st || bt;
+    const st = e.target.closest(".sec-title"), bt = e.target.closest(".sub-title"), bg = !st && !bt && (e.target.classList.contains("sec") || e.target.classList.contains("sec-box")) ? e.target.closest(".sec") : null;
+    const n = st || bt || bg;
     if (!n) return;
-    const el2 = n.closest(st ? ".sec" : ".sub"), q = el2.dataset.sel.split(":").map(Number);
-    drag = { kind: st ? "sec" : "sub", id: st ? doc.sections[q[1]].id : doc.sections[q[1]].subs[q[2]].id, x: e.clientX, y: e.clientY, pending: true, active: false };
+    const el2 = n.closest(bt ? ".sub" : ".sec"), q = el2.dataset.sel.split(":").map(Number);
+    drag = { kind: bt ? "sub" : "sec", id: bt ? doc.sections[q[1]].subs[q[2]].id : doc.sections[q[1]].id, x: e.clientX, y: e.clientY, pending: true, active: false };
   });
   ctx.startColDrag = (e, from) => {
     drag = { kind: "col", from, x: e.clientX, y: e.clientY, pending: true, active: false };
   };
   ctx.startTreeDrag = (e, d) => {
     drag = { ...d, tree: true, x: e.clientX, y: e.clientY, pending: true, active: false };
+  };
+  ctx.startSecDrag = (e, from) => {
+    drag = { kind: "sec", id: doc.sections[from.si].id, x: e.clientX, y: e.clientY, pending: true, active: false };
   };
   ctx.startSubDrag = (e, from) => {
     drag = { kind: "sub", id: doc.sections[from.si].subs[from.bi].id, x: e.clientX, y: e.clientY, pending: true, active: false };

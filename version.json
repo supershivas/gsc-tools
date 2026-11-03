@@ -1,8 +1,7 @@
 {
-  "version": "1.19.0",
+  "version": "1.19.1",
   "date": "2026-11-03",
   "changes": [
-    "Glisser-déposer en temps réel aussi dans la barre latérale : la carte est prise comme un objet pendant que la structure et la page se réorganisent",
-    "Cadres de sélection et de survol : une section est encadrée sur toute sa largeur, marges comprises"
+    "Sections et sous-sections sans titre : un titre vide est masqué (indiqué dans le champ) ; une section sans titre se déplace par la poignée de la barre au survol ou par son fond"
   ]
 }

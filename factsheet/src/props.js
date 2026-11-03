@@ -151,7 +151,7 @@ export function buildProps(root, ctx) {
       card('hd-logo', 'certificate', t('Logo'), [logoPicker(H)], { on: H.showLogo, set: () => { H.showLogo = !H.showLogo; } }));
   } else if (kind === 'sec' && sec) {
     title(sec.title || 'Section');
-    root.append(card('sec-main', 'layout-rows', t('Section'), [text(sec, 'title', 'Titre de section'),
+    root.append(card('sec-main', 'layout-rows', t('Section'), [text(sec, 'title', 'Titre de section (vide = masqué)'),
         select(sec, 'page', 'Page', { recto: 'Recto', verso: 'Verso' }, () => ctx.restructure())]),
       card('sec-bg', 'color-swatch', t('Fond de la section'), [swatches('Fond', sec, 'bg', toneKeys(doc), true)]),
       card('sec-frame', 'border-all', t('Cadre'), boxControls(sec, 'Fond du cadre')),

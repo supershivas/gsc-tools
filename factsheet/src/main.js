@@ -405,13 +405,15 @@ window.addEventListener('keydown', e => { if (e.key === 'Escape') dragEnd(false)
 /* Le titre d'une section ou d'une sous-section sert de poignée (seuil de 6 px pour ne pas gêner le clic) */
 stage.addEventListener('pointerdown', e => {
   if (e.button !== 0) return;
-  const st = e.target.closest('.sec-title'), bt = e.target.closest('.sub-title'), n = st || bt; if (!n) return;
-  const el = n.closest(st ? '.sec' : '.sub'), q = el.dataset.sel.split(':').map(Number);
-  drag = { kind: st ? 'sec' : 'sub', id: st ? doc.sections[q[1]].id : doc.sections[q[1]].subs[q[2]].id, x: e.clientX, y: e.clientY, pending: true, active: false };
+  const st = e.target.closest('.sec-title'), bt = e.target.closest('.sub-title'), bg = !st && !bt && (e.target.classList.contains('sec') || e.target.classList.contains('sec-box')) ? e.target.closest('.sec') : null;
+  const n = st || bt || bg; if (!n) return;   // titre de section / de sous-section, ou fond de la section (une section sans titre se prend par son fond)
+  const el = n.closest(bt ? '.sub' : '.sec'), q = el.dataset.sel.split(':').map(Number);
+  drag = { kind: bt ? 'sub' : 'sec', id: bt ? doc.sections[q[1]].subs[q[2]].id : doc.sections[q[1]].id, x: e.clientX, y: e.clientY, pending: true, active: false };
 });
 /* Poignées de la barre au survol : le geste commence tout de suite */
 ctx.startColDrag = (e, from) => { drag = { kind: 'col', from, x: e.clientX, y: e.clientY, pending: true, active: false }; };
 ctx.startTreeDrag = (e, d) => { drag = { ...d, tree: true, x: e.clientX, y: e.clientY, pending: true, active: false }; };
+ctx.startSecDrag = (e, from) => { drag = { kind: 'sec', id: doc.sections[from.si].id, x: e.clientX, y: e.clientY, pending: true, active: false }; };
 ctx.startSubDrag = (e, from) => { drag = { kind: 'sub', id: doc.sections[from.si].subs[from.bi].id, x: e.clientX, y: e.clientY, pending: true, active: false }; };
 
 /* Fichier / Affichage : menus de l'en-tête (rendus par js/shell.js) ; la langue est dans les réglages */

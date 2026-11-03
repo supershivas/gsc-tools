@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.19.1 — 2026-11-03
+- Sections et sous-sections sans titre : un titre vide est masqué (indiqué dans le champ) ; une section sans titre se déplace par la poignée de la barre au survol ou par son fond
+
 ## 1.19.0 — 2026-11-03
 - Glisser-déposer en temps réel aussi dans la barre latérale : la carte est prise comme un objet pendant que la structure et la page se réorganisent
 - Cadres de sélection et de survol : une section est encadrée sur toute sa largeur, marges comprises

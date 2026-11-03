@@ -337,3 +337,5 @@ body.v3d-open{overflow:hidden}
 .tree-obj>*{margin:0!important}
 .tn.drag-live{opacity:.45;outline:2px dashed #F28C28;outline-offset:-2px}
 .tn-sec:has(>.sec-row.drag-live),.tn-subcard:has(>.sub-row.drag-live){opacity:.5;border-style:dashed}
+
+.stage .page .sec:not(.sec-band){cursor:default}

@@ -45,7 +45,8 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
       g.push(grp('Sous-section', sgrip, del(`sub:${it.si}:${it.bi}`), btn(ico('arrow-up'), 'Monter', mv(-1)), btn(ico('arrow-down'), 'Descendre', mv(1))));
     } else if (it.kind === 'sec') {
       const sec = doc.sections[it.si];
-      g.push(grp('Section', del(`sec:${it.si}`), sw('none', !sec.bg || sec.bg === 'none', 'Sans fond', () => { sec.bg = 'none'; }),
+      const secGrip = h('button', { type: 'button', class: 'mini grip-btn', title: 'Glisser la section (ou la page)', onpointerdown: e => { e.preventDefault(); ctx.startSecDrag(e, { si: it.si }); } }, ico('grip-vertical'));
+      g.push(grp('Section', secGrip, del(`sec:${it.si}`), sw('none', !sec.bg || sec.bg === 'none', 'Sans fond', () => { sec.bg = 'none'; }),
         sectionBgs(doc).map(k => sw(k, sec.bg === k, t(colorLabel(doc, k)), () => { sec.bg = k; })), palBtn(),
         btn(ico('arrow-up'), 'Monter', () => { stepSection(doc, it.si, -1); }), btn(ico('arrow-down'), 'Descendre', () => { stepSection(doc, it.si, 1); })));
     } else if (it.kind === 'header') {
