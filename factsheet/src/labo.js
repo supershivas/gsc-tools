@@ -57,10 +57,10 @@ const TOPICS = [
     { title: 'Inspecteur compact', style: 'e', desc: 'Comme D, mais l’étiquette est à gauche du champ (une ligne par réglage) : le plus court, proche d’un outil de design.', opts: panelOpts() },
   ] },
   { id: 'selection', icon: 'focus-2', label: 'Sélection', panel: true, controls: [], render: (o, W, v, redraw) => renderSelect(o, v, redraw), variants: [
-    { title: 'Fixe', base: true, style: 'steady', desc: 'Le cadre orange ne bouge pas : sobre, mais on le repère moins quand on change de sélection.', opts: selectOpts() },
+    { title: 'Fixe', old: true, style: 'steady', desc: 'Le cadre orange ne bouge pas : sobre, mais on le repère moins quand on change de sélection.', opts: selectOpts() },
     { title: 'Respiration', style: 'breathe', desc: 'Le trait s’éclaircit puis revient, en boucle lente (2,8 s) : le plus discret.', opts: selectOpts() },
     { title: 'Souffle', style: 'swell', desc: 'Le cadre gonfle de 1,2 % puis se rétracte, en boucle lente : donne du volume sans changer de couleur.', opts: selectOpts() },
-    { title: 'Halo', style: 'halo', desc: 'Une onde orange très douce part du cadre toutes les 2,2 s.', opts: selectOpts() },
+    { title: 'Halo', kept: 'cadre de sélection de l’aperçu', style: 'halo', desc: 'Une onde orange très douce part du cadre toutes les 2,2 s.', opts: selectOpts() },
     { title: 'Pointillés', style: 'ants', desc: 'Le contour est en pointillés qui défilent lentement (1,8 s) : on voit tout de suite quel élément est actif.', opts: selectOpts() },
   ] },
 ];

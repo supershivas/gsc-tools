@@ -19,7 +19,7 @@ export function renderSelect(o, v, repaint) {
   applyVars(box, cssVars(DEFAULT_THEME, {}));
   requestAnimationFrame(() => {
     const br = box.getBoundingClientRect(), r = blocks[o.sel].getBoundingClientRect();
-    Object.assign(frame.style, { display: 'block', left: r.left - br.left + 'px', top: r.top - br.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+    Object.assign(frame.style, { display: 'block', left: r.left - br.left - 3 + 'px', top: r.top - br.top - 3 + 'px', width: r.width + 6 + 'px', height: r.height + 6 + 'px' });
   });
   return box;
 }

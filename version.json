@@ -1,9 +1,7 @@
 {
-  "version": "1.17.0",
+  "version": "1.17.1",
   "date": "2026-11-03",
   "changes": [
-    "Historique des modifications (icône horloge dans l'en-tête, menu Édition) : on revient à n'importe quel pas en un clic",
-    "Glisser-déposer : l'élément est pris comme un objet (son rendu suit le pointeur) pendant que la page se réorganise en direct",
-    "Corrige la page qui sautait à chaque retouche avec « Marges et espaces » ; message de déplacement/suppression en petit en bas à gauche ; animations de sélection en boucle douce (Labo)"
+    "Cadre de sélection : variante Halo (onde douce en boucle), avec 3 px d'air autour de l'élément"
   ]
 }

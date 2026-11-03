@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.17.1 — 2026-11-03
+- Cadre de sélection : variante Halo (onde douce en boucle), avec 3 px d'air autour de l'élément
+
 ## 1.17.0 — 2026-11-03
 - Historique des modifications (icône horloge dans l'en-tête, menu Édition) : on revient à n'importe quel pas en un clic
 - Glisser-déposer : l'élément est pris comme un objet (son rendu suit le pointeur) pendant que la page se réorganise en direct

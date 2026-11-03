@@ -4169,7 +4169,8 @@ ${lorem}` },
     drawSelection();
     watchLayout();
   }
-  var SEL_STYLE = "steady";
+  var SEL_STYLE = "halo";
+  var SEL_GAP = 3;
   var selShown = null;
   function drawSelection() {
     stage.querySelectorAll(".sel-layer").forEach((n) => n.remove());
@@ -4182,7 +4183,7 @@ ${lorem}` },
       const wr = w.getBoundingClientRect(), r = el2.getBoundingClientRect(), inset = selected.startsWith("sec:") ? PAGE.margin * wr.width / PAGE.w : 0;
       w.append(h("div", { class: "sel-layer" }, h("div", {
         class: `sel-frame v-${SEL_STYLE}` + (fresh ? " pop" : ""),
-        style: { left: r.left - wr.left + inset + "px", top: r.top - wr.top + "px", width: r.width - 2 * inset + "px", height: r.height + "px" }
+        style: { left: r.left - wr.left + inset - SEL_GAP + "px", top: r.top - wr.top - SEL_GAP + "px", width: r.width - 2 * inset + 2 * SEL_GAP + "px", height: r.height + 2 * SEL_GAP + "px" }
       })));
     });
   }
