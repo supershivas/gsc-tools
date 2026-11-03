@@ -67,9 +67,9 @@ function drawSelection() {
   const fresh = selShown !== selected; selShown = selected;
   stage.querySelectorAll('.pwrap').forEach(w => {
     const el = w.querySelector(`.page [data-sel="${selected}"]`); if (!el) return;
-    const wr = w.getBoundingClientRect(), r = el.getBoundingClientRect(), inset = selected.startsWith('sec:') ? PAGE.margin * wr.width / PAGE.w : 0;
+    const wr = w.getBoundingClientRect(), r = el.getBoundingClientRect(), gx = selected.startsWith('sec:') ? 0 : SEL_GAP;   // une section est encadrée sur toute sa largeur, marges comprises
     w.append(h('div', { class: 'sel-layer' }, h('div', { class: `sel-frame v-${SEL_STYLE}` + (fresh ? ' pop' : ''),
-      style: { left: r.left - wr.left + inset - SEL_GAP + 'px', top: r.top - wr.top - SEL_GAP + 'px', width: r.width - 2 * inset + 2 * SEL_GAP + 'px', height: r.height + 2 * SEL_GAP + 'px' } })));
+      style: { left: r.left - wr.left - gx + 'px', top: r.top - wr.top - SEL_GAP + 'px', width: r.width + 2 * gx + 'px', height: r.height + 2 * SEL_GAP + 'px' } })));
   });
 }
 /* La mise en page peut bouger après coup (polices, images) : filigrane et cadre suivent */
@@ -198,6 +198,8 @@ const ctx = {
   changed() { undoSnap = null; record(true); saveDoc(doc); schedule(); drawTree(); const v = cssVars(doc.theme, doc.colors); applyVars(propsEl, v); applyVars(treeEl, v); },
   refreshProps: drawProps,
   shown: () => previewDoc || doc,
+  previewing: () => !!previewDoc,
+  previewMark: () => previewMark,
   /* Aperçu en direct d'un déplacement : `fn(copie)` l'applique à une copie du document et renvoie le chemin à repérer ; null = retour au vrai document */
   preview(fn) {
     if (!fn) { if (previewDoc) { previewDoc = null; previewMark = null; schedule(); } return; }
@@ -318,15 +320,59 @@ function colTarget(e) {
   }
   return null;
 }
+const mkSec = (dg, page, ref, after) => ({ key: [page, ref, after], apply: c => `sec:${moveSection(c, secIdx(c, dg.id), ref == null ? null : secIdx(c, ref), after, page)}` });
+const mkSub = (dg, sid, ref, after) => ({ key: [sid, ref, after], apply: c => { const n = moveSub(c, subIdx(c, dg.id), { si: secIdx(c, sid), bi: ref == null ? null : subIdx(c, ref).bi }, after); return `sub:${n.si}:${n.bi}`; } });
+const mkCol = (dg, si, bi, ci) => ({ key: [si, bi, ci], apply: c => { swapCols(c, dg.from, { si, bi, ci }); return `col:${si}:${bi}:${ci}`; } });
+
+/* Mêmes cibles, lues dans la colonne de gauche (nœuds portant l'identifiant de la section / sous-section) */
+const inTree = e => { const r = treeEl.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; };
+function treeSecTarget(e) {
+  const dg = drag; if (!inTree(e)) return null;
+  for (const z of treeEl.querySelectorAll('.pg-zone[data-page]')) {
+    const r = z.getBoundingClientRect(); if (e.clientY < r.top || e.clientY > r.bottom) continue;
+    const secs = [...z.querySelectorAll(':scope > .tn-sec[data-sid]')].filter(x => x.dataset.sid !== dg.id);
+    for (const x of secs) { const q = x.getBoundingClientRect(); if (e.clientY < q.top + q.height / 2) return mkSec(dg, z.dataset.page, x.dataset.sid, false); }
+    return secs.length ? mkSec(dg, z.dataset.page, secs[secs.length - 1].dataset.sid, true) : mkSec(dg, z.dataset.page, null, false);
+  }
+  return null;
+}
+function treeSubTarget(e) {
+  const dg = drag; if (!inTree(e)) return null;
+  const secs = [...treeEl.querySelectorAll('.tn-sec[data-sid]')]; if (!secs.length) return null;
+  const sec = secs.find(x => { const r = x.getBoundingClientRect(); return e.clientY >= r.top && e.clientY <= r.bottom; })
+    || secs.reduce((b, x) => { const r = x.getBoundingClientRect(), d = Math.min(Math.abs(e.clientY - r.top), Math.abs(e.clientY - r.bottom)); return !b || d < b.d ? { x, d } : b; }, null).x;
+  const subs = [...sec.querySelectorAll('.tn-subcard[data-bid]')].filter(x => x.dataset.bid !== dg.id);
+  for (const x of subs) { const r = x.getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) return mkSub(dg, sec.dataset.sid, x.dataset.bid, false); }
+  return subs.length ? mkSub(dg, sec.dataset.sid, subs[subs.length - 1].dataset.bid, true) : mkSub(dg, sec.dataset.sid, null, false);
+}
+function treeColTarget(e) {
+  const dg = drag, n = document.elementFromPoint(e.clientX, e.clientY), r = n && n.closest && n.closest('.col-row[data-path]'); if (!r) return null;
+  const [, si, bi, ci] = r.dataset.path.split(':').map(Number);
+  return si === dg.from.si && bi === dg.from.bi && ci === dg.from.ci ? null : mkCol(dg, si, bi, ci);
+}
 const TARGETS = { sec: secTarget, sub: subTarget, col: colTarget };
+const TREE_TARGETS = { sec: treeSecTarget, sub: treeSubTarget, col: treeColTarget };
 /* L'élément est « pris » comme un objet : son rendu réel suit le pointeur (surélevé), pendant que le reste de la page se réorganise en direct */
 function dragSource() {
   if (drag.kind === 'sec') return stage.querySelector(`.sec[data-sel="sec:${secIdx(doc, drag.id)}"]`);
   if (drag.kind === 'sub') { const p = subIdx(doc, drag.id); return p && stage.querySelector(`.sub[data-sel="sub:${p.si}:${p.bi}"]`); }
   return stage.querySelector(`.col[data-sel="col:${drag.from.si}:${drag.from.bi}:${drag.from.ci}"]`);
 }
+function treeSource() {
+  if (drag.kind === 'sec') return treeEl.querySelector(`.tn-sec[data-sid="${drag.id}"]`);
+  if (drag.kind === 'sub') return treeEl.querySelector(`.tn-subcard[data-bid="${drag.id}"]`);
+  return treeEl.querySelector(`.col-row[data-path="col:${drag.from.si}:${drag.from.bi}:${drag.from.ci}"]`);
+}
 function dragActivate() {
   drag.active = true; hover.hide(); document.body.classList.add('dragging');
+  if (drag.tree) {   // carte de la colonne de gauche : on la soulève telle quelle
+    const el = treeSource(); if (!el) { drag.ghost = h('div'); return; }
+    const r = el.getBoundingClientRect(), ghost = h('div', { class: 'drag-obj tree-obj', style: { width: r.width + 'px' } });
+    ghost.setAttribute('style', `${treeEl.getAttribute('style') || ''};width:${r.width}px`);
+    const clone = el.cloneNode(true); clone.style.margin = '0'; ghost.append(clone); document.body.append(ghost);
+    drag.grab = { dx: Math.min(Math.max(drag.x - r.left, 10), Math.max(10, r.width - 10)), dy: Math.min(Math.max(drag.y - r.top, 10), Math.max(10, r.height - 10)) };
+    drag.ghost = ghost; return;
+  }
   const el = dragSource(); if (!el) { drag.ghost = h('div'); return; }
   const r = el.getBoundingClientRect(), page = el.closest('.page'), sc = page.getBoundingClientRect().width / PAGE.w;
   const holder = h('div', { class: 'page drag-page', style: { width: r.width / sc + 'px', transform: `scale(${sc})` } });
@@ -339,7 +385,7 @@ function dragActivate() {
 function dragEnd(commit) {
   if (!drag) return; const d = drag; drag = null;
   if (!d.active) return;
-  d.ghost.remove(); document.body.classList.remove('dragging'); ctx.preview(null);
+  d.ghost.remove(); document.body.classList.remove('dragging'); ctx.preview(null); drawTree();
   suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
   if (commit && d.drop) ctx.moved(() => d.drop.apply(doc)); else schedule();
 }
@@ -347,10 +393,11 @@ window.addEventListener('pointermove', e => {
   if (!drag) return;
   if (!drag.active) { if (!drag.pending || Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return; dragActivate(); }
   if (drag.grab) { drag.ghost.style.left = e.clientX - drag.grab.dx + 'px'; drag.ghost.style.top = e.clientY - drag.grab.dy + 'px'; }
-  const t = TARGETS[drag.kind](e), key = t ? JSON.stringify(t.key) : '';
+  if (drag.tree) { const tr = treeEl.getBoundingClientRect(); if (e.clientY < tr.top + 36) treeEl.scrollTop -= 14; else if (e.clientY > tr.bottom - 36) treeEl.scrollTop += 14; }   // défilement aux bords
+  const t = (drag.tree ? TREE_TARGETS : TARGETS)[drag.kind](e), key = t ? JSON.stringify(t.key) : '';
   if (key === drag.key) return;
   drag.key = key; drag.drop = t;
-  ctx.preview(t ? t.apply : null);
+  ctx.preview(t ? t.apply : null); drawTree();   // la page et la structure se réorganisent ensemble
 });
 window.addEventListener('pointerup', () => dragEnd(true));
 window.addEventListener('pointercancel', () => dragEnd(false));
@@ -364,6 +411,7 @@ stage.addEventListener('pointerdown', e => {
 });
 /* Poignées de la barre au survol : le geste commence tout de suite */
 ctx.startColDrag = (e, from) => { drag = { kind: 'col', from, x: e.clientX, y: e.clientY, pending: true, active: false }; };
+ctx.startTreeDrag = (e, d) => { drag = { ...d, tree: true, x: e.clientX, y: e.clientY, pending: true, active: false }; };
 ctx.startSubDrag = (e, from) => { drag = { kind: 'sub', id: doc.sections[from.si].subs[from.bi].id, x: e.clientX, y: e.clientY, pending: true, active: false }; };
 
 /* Fichier / Affichage : menus de l'en-tête (rendus par js/shell.js) ; la langue est dans les réglages */

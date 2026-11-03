@@ -2682,11 +2682,11 @@ ${lorem}` },
     return "Dataviz \xB7 " + (t2 ? t2.label : "\u2014");
   }
   function buildTree(root, ctx2) {
-    const doc2 = ctx2.getDoc(), sel = ctx2.getSel(), collapsed2 = ctx2.collapsed;
+    const previewing = ctx2.previewing(), doc2 = ctx2.shown(), sel = previewing ? null : ctx2.getSel(), mark = previewing ? ctx2.previewMark() : null, collapsed2 = ctx2.collapsed;
     root.innerHTML = "";
     applyVars(root, cssVars(doc2.theme, doc2.colors));
     const row = (path, cls, kids) => h("div", {
-      class: "tn " + cls + (sel === path ? " sel" : ""),
+      class: "tn " + cls + (sel === path ? " sel" : "") + (mark && mark === path ? " drag-live" : ""),
       dataset: { path: path || "" },
       onclick: (e) => {
         if (e.target.closest(".grip,.tn-tog,.tn-add")) return;
@@ -2701,132 +2701,23 @@ ${lorem}` },
       fn();
       ctx2.restructure();
     } }, ico("plus"), h("span", { textContent: label }));
-    let dragFrom = null, drag2 = null, pKey = "";
-    const clearDrop = () => root.querySelectorAll(".drop-before,.drop-after,.drop-zone,.drop-swap").forEach((n) => n.classList.remove("drop-before", "drop-after", "drop-zone", "drop-swap"));
-    const preview = (key, apply) => {
-      if (key === pKey) return;
-      pKey = key;
-      ctx2.preview(apply);
-    };
-    const endDrag = () => {
-      pKey = "";
-      ctx2.preview(null);
-      clearDrop();
-      document.body.classList.remove("dragging");
-    };
-    const startDrag = () => {
-      document.body.classList.add("dragging");
-    };
-    const gripFor = (d) => h("span", {
-      class: "grip",
-      draggable: true,
-      title: d.kind === "sub" ? "Glisser la sous-section (autre section possible)" : "Glisser le contenu sur une autre colonne pour l\u2019\xE9changer",
-      ondragstart: (e) => {
-        e.stopPropagation();
-        drag2 = d;
-        startDrag();
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain", d.kind);
-      },
-      ondragend: () => {
-        drag2 = null;
-        endDrag();
-      }
-    }, ico("grip-vertical"));
-    const dropOn = (rowEl, target) => {
-      rowEl.addEventListener("dragover", (ev) => {
-        if (!drag2) return;
-        if (target.kind === "col" && drag2.kind === "col") {
-          ev.preventDefault();
-          ev.stopPropagation();
-          clearDrop();
-          rowEl.classList.add("drop-swap");
-          const same = target.si === drag2.si && target.bi === drag2.bi && target.ci === drag2.ci;
-          preview(same ? "" : `col:${target.si}:${target.bi}:${target.ci}`, same ? null : (c) => {
-            swapCols(c, drag2, target);
-            return `col:${target.si}:${target.bi}:${target.ci}`;
-          });
-        } else if (target.kind === "sub" && drag2.kind === "sub") {
-          ev.preventDefault();
-          ev.stopPropagation();
-          const r = rowEl.getBoundingClientRect(), after = ev.clientY > r.top + r.height / 2;
-          clearDrop();
-          rowEl.classList.add(after ? "drop-after" : "drop-before");
-          rowEl.dataset.after = after ? "1" : "";
-          const d = drag2;
-          preview(`sub:${target.si}:${target.bi}:${after}`, (c) => {
-            const n = moveSub(c, d, target, after);
-            return `sub:${n.si}:${n.bi}`;
-          });
-        } else if (target.kind === "sec" && drag2.kind === "sub") {
-          ev.preventDefault();
-          ev.stopPropagation();
-          clearDrop();
-          rowEl.classList.add("drop-zone");
-          const d = drag2;
-          preview(`subsec:${target.si}`, (c) => {
-            const n = moveSub(c, d, { si: target.si, bi: null });
-            return `sub:${n.si}:${n.bi}`;
-          });
-        }
-      });
-      rowEl.addEventListener("drop", (ev) => {
-        if (!drag2) return;
-        const d = drag2;
-        drag2 = null;
-        endDrag();
-        if (target.kind === "col" && d.kind === "col") {
-          ev.preventDefault();
-          ev.stopPropagation();
-          ctx2.moved(() => {
-            swapCols(doc2, d, target);
-            return `col:${target.si}:${target.bi}:${target.ci}`;
-          });
-        } else if (target.kind === "sub" && d.kind === "sub") {
-          ev.preventDefault();
-          ev.stopPropagation();
-          const after = !!rowEl.dataset.after;
-          ctx2.moved(() => {
-            const n = moveSub(doc2, d, target, after);
-            return `sub:${n.si}:${n.bi}`;
-          });
-        } else if (target.kind === "sec" && d.kind === "sub") {
-          ev.preventDefault();
-          ev.stopPropagation();
-          ctx2.moved(() => {
-            const n = moveSub(doc2, d, { si: target.si, bi: null });
-            return `sub:${n.si}:${n.bi}`;
-          });
-        }
-      });
-      return rowEl;
-    };
+    const grip = (title, d) => h("span", { class: "grip", title, onpointerdown: (e) => {
+      if (e.button) return;
+      e.preventDefault();
+      e.stopPropagation();
+      ctx2.startTreeDrag(e, d);
+    } }, ico("grip-vertical"));
     const secNode = (sec, si) => {
       const key = sec.id || "sec" + si, closed = collapsed2.has(key), band = sec.bg && sec.bg !== "none";
-      const grip = h("span", {
-        class: "grip",
-        draggable: true,
-        title: "Glisser pour r\xE9ordonner ou changer de page",
-        ondragstart: (e) => {
-          dragFrom = si;
-          startDrag();
-          e.dataTransfer.effectAllowed = "move";
-          e.dataTransfer.setData("text/plain", String(si));
-        },
-        ondragend: () => {
-          dragFrom = null;
-          endDrag();
-        }
-      }, ico("grip-vertical"));
       const dot = h("span", { class: "tn-dot" + (band ? "" : " none"), style: band ? { background: `var(--c-${sec.bg})` } : {} });
-      const node = h("div", { class: "tn-sec" });
-      node.append(dropOn(row(`sec:${si}`, "sec-row", [grip, dot, h("strong", { class: "tn-lab", textContent: sec.title || "Section sans titre" }), h("span", { class: "tn-sub", textContent: String(sec.subs.length) }), tog(key)]), { kind: "sec", si }));
+      const node = h("div", { class: "tn-sec", dataset: { sid: sec.id } });
+      node.append(row(`sec:${si}`, "sec-row", [grip("Glisser pour r\xE9ordonner ou changer de page", { kind: "sec", id: sec.id }), dot, h("strong", { class: "tn-lab", textContent: sec.title || "Section sans titre" }), h("span", { class: "tn-sub", textContent: String(sec.subs.length) }), tog(key)]));
       if (!closed) {
         const body = h("div", { class: "tn-body" });
         sec.subs.forEach((sub, bi) => {
-          const sk = sub.id || `sub${si}${bi}`, sClosed = collapsed2.has(sk), subCard = h("div", { class: "tn-subcard" });
-          subCard.append(dropOn(row(`sub:${si}:${bi}`, "sub-row", [gripFor({ kind: "sub", si, bi }), ico("columns"), h("span", { class: "tn-lab", textContent: sub.title || "Sous-section" }), h("span", { class: "tn-sub", textContent: sub.layout }), tog(sk)]), { kind: "sub", si, bi }));
-          if (!sClosed) sub.cols.forEach((col, ci) => subCard.append(dropOn(row(`col:${si}:${bi}:${ci}`, "col-row", [gripFor({ kind: "col", si, bi, ci }), ico(ICON[col.type] || "text-size"), h("span", { class: "tn-lab", textContent: colLabel(col) })]), { kind: "col", si, bi, ci })));
+          const sk = sub.id || `sub${si}${bi}`, sClosed = collapsed2.has(sk), subCard = h("div", { class: "tn-subcard", dataset: { bid: sub.id } });
+          subCard.append(row(`sub:${si}:${bi}`, "sub-row", [grip("Glisser la sous-section (autre section possible)", { kind: "sub", id: sub.id }), ico("columns"), h("span", { class: "tn-lab", textContent: sub.title || "Sous-section" }), h("span", { class: "tn-sub", textContent: sub.layout }), tog(sk)]));
+          if (!sClosed) sub.cols.forEach((col, ci) => subCard.append(row(`col:${si}:${bi}:${ci}`, "col-row", [grip("Glisser le contenu sur une autre colonne pour l\u2019\xE9changer", { kind: "col", from: { si, bi, ci } }), ico(ICON[col.type] || "text-size"), h("span", { class: "tn-lab", textContent: colLabel(col) })])));
           body.append(subCard);
         });
         body.append(add("Sous-section", () => {
@@ -2834,32 +2725,10 @@ ${lorem}` },
         }));
         node.append(body);
       }
-      node.addEventListener("dragover", (ev) => {
-        if (dragFrom == null) return;
-        ev.preventDefault();
-        ev.stopPropagation();
-        const r = node.getBoundingClientRect(), after = ev.clientY > r.top + Math.min(r.height / 2, 24);
-        clearDrop();
-        node.classList.add(after ? "drop-after" : "drop-before");
-        node.dataset.after = after ? "1" : "";
-        const from = dragFrom;
-        preview(`sec:${si}:${after}`, (c) => `sec:${moveSection(c, from, si, after)}`);
-      });
-      node.addEventListener("drop", (ev) => {
-        if (dragFrom == null) return;
-        ev.preventDefault();
-        ev.stopPropagation();
-        const from = dragFrom, after = !!node.dataset.after;
-        dragFrom = null;
-        endDrag();
-        const ni = moveSection(doc2, from, si, after);
-        ctx2.restructure();
-        ctx2.select(`sec:${ni}`);
-      });
       return node;
     };
     for (const pg of ["recto", "verso"]) {
-      const zone = h("div", { class: "pg-zone" }, h("div", { class: "pg-head", textContent: pg === "recto" ? "Recto" : "Verso" }));
+      const zone = h("div", { class: "pg-zone", dataset: { page: pg } }, h("div", { class: "pg-head", textContent: pg === "recto" ? "Recto" : "Verso" }));
       if (pg === "recto") zone.append(h("div", { class: "tn-sec tn-head" }, row("header", "head-row", [ico("layout-navbar"), h("strong", { class: "tn-lab", textContent: "Header" }), h("span", { class: "tn-sub", textContent: strip(doc2.header.title).slice(0, 18) })])));
       let n = 0;
       doc2.sections.forEach((sec, si) => {
@@ -2872,24 +2741,6 @@ ${lorem}` },
       zone.append(add("Section", () => {
         doc2.sections.push(newSection(pg));
       }));
-      zone.addEventListener("dragover", (ev) => {
-        if (dragFrom == null) return;
-        ev.preventDefault();
-        clearDrop();
-        zone.classList.add("drop-zone");
-        const from = dragFrom;
-        preview(`page:${pg}`, (c) => `sec:${moveSection(c, from, null, false, pg)}`);
-      });
-      zone.addEventListener("drop", (ev) => {
-        if (dragFrom == null) return;
-        ev.preventDefault();
-        const from = dragFrom;
-        dragFrom = null;
-        endDrag();
-        const ni = moveSection(doc2, from, null, false, pg);
-        ctx2.restructure();
-        ctx2.select(`sec:${ni}`);
-      });
       root.append(zone);
     }
   }
@@ -3967,12 +3818,12 @@ ${lorem}` },
       if (secIt) {
         const sec = doc2.sections[secIt.si], pageEl = secIt.el.closest(".page"), pr = pageEl.getBoundingClientRect(), sc = pr.width / PAGE.w, limit = pr.bottom - PAGE.marginBottom * sc;
         const subH = TYPE.subsection.lh + GAP.subsectionTitle + TYPE.body.lh, secH = TYPE.section.lh + GAP.sectionTitle + subH;
-        const place = (b, it, inset2, top2, want) => {
+        const place = (b, it, inset, top2, want) => {
           const hh = Math.min(want * sc, limit - top2);
           if (hh < 20) return 0;
           const q = it.el.getBoundingClientRect();
           b._at = it;
-          Object.assign(b.style, { display: "flex", left: q.left + inset2 + "px", width: q.width - 2 * inset2 + "px", top: top2 + "px", height: hh + "px" });
+          Object.assign(b.style, { display: "flex", left: q.left + inset + "px", width: q.width - 2 * inset + "px", top: top2 + "px", height: hh + "px" });
           return top2 + hh;
         };
         let y = secIt.el.getBoundingClientRect().bottom;
@@ -3985,8 +3836,8 @@ ${lorem}` },
           place(addSecBtn, secIt, PAGE.margin * sc, y + GAP.sectionBefore * sc, secH);
         }
       }
-      const pg = chain[0].el.closest(".page"), inset = chain[0].kind === "sec" && pg ? PAGE.margin * pg.getBoundingClientRect().width / PAGE.w : 0, GAPX = 3;
-      Object.assign(out.style, { display: "block", left: r.left + inset - GAPX + "px", top: r.top - GAPX + "px", width: r.width - 2 * inset + 2 * GAPX + "px", height: r.height + 2 * GAPX + "px" });
+      const GAPX = 3, gx = chain[0].kind === "sec" ? 0 : GAPX;
+      Object.assign(out.style, { display: "block", left: r.left - gx + "px", top: r.top - GAPX + "px", width: r.width + 2 * gx + "px", height: r.height + 2 * GAPX + "px" });
     });
     stage2.addEventListener("pointerleave", later);
     for (const el2 of [bar, addSubBtn, addSecBtn]) {
@@ -4188,10 +4039,10 @@ ${lorem}` },
     stage.querySelectorAll(".pwrap").forEach((w) => {
       const el2 = w.querySelector(`.page [data-sel="${selected}"]`);
       if (!el2) return;
-      const wr = w.getBoundingClientRect(), r = el2.getBoundingClientRect(), inset = selected.startsWith("sec:") ? PAGE.margin * wr.width / PAGE.w : 0;
+      const wr = w.getBoundingClientRect(), r = el2.getBoundingClientRect(), gx = selected.startsWith("sec:") ? 0 : SEL_GAP;
       w.append(h("div", { class: "sel-layer" }, h("div", {
         class: `sel-frame v-${SEL_STYLE}` + (fresh ? " pop" : ""),
-        style: { left: r.left - wr.left + inset - SEL_GAP + "px", top: r.top - wr.top - SEL_GAP + "px", width: r.width - 2 * inset + 2 * SEL_GAP + "px", height: r.height + 2 * SEL_GAP + "px" }
+        style: { left: r.left - wr.left - gx + "px", top: r.top - wr.top - SEL_GAP + "px", width: r.width + 2 * gx + "px", height: r.height + 2 * SEL_GAP + "px" }
       })));
     });
   }
@@ -4460,6 +4311,8 @@ ${lorem}` },
     },
     refreshProps: drawProps,
     shown: () => previewDoc || doc,
+    previewing: () => !!previewDoc,
+    previewMark: () => previewMark,
     /* Aperçu en direct d'un déplacement : `fn(copie)` l'applique à une copie du document et renvoie le chemin à repérer ; null = retour au vrai document */
     preview(fn) {
       if (!fn) {
@@ -4642,7 +4495,61 @@ ${lorem}` },
     }
     return null;
   }
+  var mkSec = (dg, page, ref, after) => ({ key: [page, ref, after], apply: (c) => `sec:${moveSection(c, secIdx(c, dg.id), ref == null ? null : secIdx(c, ref), after, page)}` });
+  var mkSub = (dg, sid, ref, after) => ({ key: [sid, ref, after], apply: (c) => {
+    const n = moveSub(c, subIdx(c, dg.id), { si: secIdx(c, sid), bi: ref == null ? null : subIdx(c, ref).bi }, after);
+    return `sub:${n.si}:${n.bi}`;
+  } });
+  var mkCol = (dg, si, bi, ci) => ({ key: [si, bi, ci], apply: (c) => {
+    swapCols(c, dg.from, { si, bi, ci });
+    return `col:${si}:${bi}:${ci}`;
+  } });
+  var inTree = (e) => {
+    const r = treeEl.getBoundingClientRect();
+    return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+  };
+  function treeSecTarget(e) {
+    const dg = drag;
+    if (!inTree(e)) return null;
+    for (const z of treeEl.querySelectorAll(".pg-zone[data-page]")) {
+      const r = z.getBoundingClientRect();
+      if (e.clientY < r.top || e.clientY > r.bottom) continue;
+      const secs = [...z.querySelectorAll(":scope > .tn-sec[data-sid]")].filter((x) => x.dataset.sid !== dg.id);
+      for (const x of secs) {
+        const q = x.getBoundingClientRect();
+        if (e.clientY < q.top + q.height / 2) return mkSec(dg, z.dataset.page, x.dataset.sid, false);
+      }
+      return secs.length ? mkSec(dg, z.dataset.page, secs[secs.length - 1].dataset.sid, true) : mkSec(dg, z.dataset.page, null, false);
+    }
+    return null;
+  }
+  function treeSubTarget(e) {
+    const dg = drag;
+    if (!inTree(e)) return null;
+    const secs = [...treeEl.querySelectorAll(".tn-sec[data-sid]")];
+    if (!secs.length) return null;
+    const sec = secs.find((x) => {
+      const r = x.getBoundingClientRect();
+      return e.clientY >= r.top && e.clientY <= r.bottom;
+    }) || secs.reduce((b, x) => {
+      const r = x.getBoundingClientRect(), d = Math.min(Math.abs(e.clientY - r.top), Math.abs(e.clientY - r.bottom));
+      return !b || d < b.d ? { x, d } : b;
+    }, null).x;
+    const subs = [...sec.querySelectorAll(".tn-subcard[data-bid]")].filter((x) => x.dataset.bid !== dg.id);
+    for (const x of subs) {
+      const r = x.getBoundingClientRect();
+      if (e.clientY < r.top + r.height / 2) return mkSub(dg, sec.dataset.sid, x.dataset.bid, false);
+    }
+    return subs.length ? mkSub(dg, sec.dataset.sid, subs[subs.length - 1].dataset.bid, true) : mkSub(dg, sec.dataset.sid, null, false);
+  }
+  function treeColTarget(e) {
+    const dg = drag, n = document.elementFromPoint(e.clientX, e.clientY), r = n && n.closest && n.closest(".col-row[data-path]");
+    if (!r) return null;
+    const [, si, bi, ci] = r.dataset.path.split(":").map(Number);
+    return si === dg.from.si && bi === dg.from.bi && ci === dg.from.ci ? null : mkCol(dg, si, bi, ci);
+  }
   var TARGETS = { sec: secTarget, sub: subTarget, col: colTarget };
+  var TREE_TARGETS = { sec: treeSecTarget, sub: treeSubTarget, col: treeColTarget };
   function dragSource() {
     if (drag.kind === "sec") return stage.querySelector(`.sec[data-sel="sec:${secIdx(doc, drag.id)}"]`);
     if (drag.kind === "sub") {
@@ -4651,10 +4558,31 @@ ${lorem}` },
     }
     return stage.querySelector(`.col[data-sel="col:${drag.from.si}:${drag.from.bi}:${drag.from.ci}"]`);
   }
+  function treeSource() {
+    if (drag.kind === "sec") return treeEl.querySelector(`.tn-sec[data-sid="${drag.id}"]`);
+    if (drag.kind === "sub") return treeEl.querySelector(`.tn-subcard[data-bid="${drag.id}"]`);
+    return treeEl.querySelector(`.col-row[data-path="col:${drag.from.si}:${drag.from.bi}:${drag.from.ci}"]`);
+  }
   function dragActivate() {
     drag.active = true;
     hover.hide();
     document.body.classList.add("dragging");
+    if (drag.tree) {
+      const el3 = treeSource();
+      if (!el3) {
+        drag.ghost = h("div");
+        return;
+      }
+      const r2 = el3.getBoundingClientRect(), ghost = h("div", { class: "drag-obj tree-obj", style: { width: r2.width + "px" } });
+      ghost.setAttribute("style", `${treeEl.getAttribute("style") || ""};width:${r2.width}px`);
+      const clone2 = el3.cloneNode(true);
+      clone2.style.margin = "0";
+      ghost.append(clone2);
+      document.body.append(ghost);
+      drag.grab = { dx: Math.min(Math.max(drag.x - r2.left, 10), Math.max(10, r2.width - 10)), dy: Math.min(Math.max(drag.y - r2.top, 10), Math.max(10, r2.height - 10)) };
+      drag.ghost = ghost;
+      return;
+    }
     const el2 = dragSource();
     if (!el2) {
       drag.ghost = h("div");
@@ -4680,6 +4608,7 @@ ${lorem}` },
     d.ghost.remove();
     document.body.classList.remove("dragging");
     ctx.preview(null);
+    drawTree();
     suppressClick = true;
     setTimeout(() => {
       suppressClick = false;
@@ -4697,11 +4626,17 @@ ${lorem}` },
       drag.ghost.style.left = e.clientX - drag.grab.dx + "px";
       drag.ghost.style.top = e.clientY - drag.grab.dy + "px";
     }
-    const t2 = TARGETS[drag.kind](e), key = t2 ? JSON.stringify(t2.key) : "";
+    if (drag.tree) {
+      const tr2 = treeEl.getBoundingClientRect();
+      if (e.clientY < tr2.top + 36) treeEl.scrollTop -= 14;
+      else if (e.clientY > tr2.bottom - 36) treeEl.scrollTop += 14;
+    }
+    const t2 = (drag.tree ? TREE_TARGETS : TARGETS)[drag.kind](e), key = t2 ? JSON.stringify(t2.key) : "";
     if (key === drag.key) return;
     drag.key = key;
     drag.drop = t2;
     ctx.preview(t2 ? t2.apply : null);
+    drawTree();
   });
   window.addEventListener("pointerup", () => dragEnd(true));
   window.addEventListener("pointercancel", () => dragEnd(false));
@@ -4717,6 +4652,9 @@ ${lorem}` },
   });
   ctx.startColDrag = (e, from) => {
     drag = { kind: "col", from, x: e.clientX, y: e.clientY, pending: true, active: false };
+  };
+  ctx.startTreeDrag = (e, d) => {
+    drag = { ...d, tree: true, x: e.clientX, y: e.clientY, pending: true, active: false };
   };
   ctx.startSubDrag = (e, from) => {
     drag = { kind: "sub", id: doc.sections[from.si].subs[from.bi].id, x: e.clientX, y: e.clientY, pending: true, active: false };

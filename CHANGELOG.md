@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.19.0 — 2026-11-03
+- Glisser-déposer en temps réel aussi dans la barre latérale : la carte est prise comme un objet pendant que la structure et la page se réorganisent
+- Cadres de sélection et de survol : une section est encadrée sur toute sa largeur, marges comprises
+
 ## 1.18.1 — 2026-11-03
 - Espace entre le header et la première section : 36 px (au lieu de 24 px)
 

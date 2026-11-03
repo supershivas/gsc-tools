@@ -330,3 +330,10 @@ body.v3d-open{overflow:hidden}
 .bar .sp-ctl{flex:none}
 .bar .sp-legend{flex:1 1 0;min-width:0;overflow:hidden;gap:10px;margin-left:14px;justify-content:flex-end}
 .bar .sp-legend{flex-wrap:nowrap}.bar .sp-legend span{flex:none}
+
+/* Glisser depuis la colonne de gauche */
+.grip{touch-action:none}
+.tree-obj{border-radius:10px;opacity:.97}
+.tree-obj>*{margin:0!important}
+.tn.drag-live{opacity:.45;outline:2px dashed #F28C28;outline-offset:-2px}
+.tn-sec:has(>.sec-row.drag-live),.tn-subcard:has(>.sub-row.drag-live){opacity:.5;border-style:dashed}
