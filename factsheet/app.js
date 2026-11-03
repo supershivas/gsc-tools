@@ -358,6 +358,9 @@
     "Large": "Wide",
     "Titre de section (vide = masqu\xE9)": "Section title (empty = hidden)",
     "Glisser la section (ou la page)": "Drag the section (to reorder or change page)",
+    "Afficher le titre": "Show title",
+    "affichage du titre": "title visibility",
+    "Titre de sous-section": "Subsection title",
     "Nouvelle factsheet vierge": "New blank factsheet",
     "Cr\xE9er une factsheet vierge ? Le document actuel sera remplac\xE9 : enregistrez-le d\u2019abord (.json) si besoin.": "Create a blank factsheet? The current document will be replaced: save it first (.json) if needed.",
     "Enregistrer (.json)": "Save (.json)",
@@ -1811,12 +1814,14 @@
   var newSub = (layout = "1") => ({
     id: uid("sub"),
     title: t("Sous-section"),
+    showTitle: true,
     layout,
     cols: Array.from({ length: GRID.layouts[layout].spans.length }, () => newCol("text"))
   });
   var newSection = (page = "recto") => ({
     id: uid("sec"),
     title: t("Titre de section"),
+    showTitle: true,
     page,
     bg: "none",
     subs: [newSub("1")]
@@ -2252,7 +2257,7 @@ ${lorem}` },
     const el2 = h("div", { class: "sub", dataset: { sel: `sub:${si}:${bi}` } });
     strokeStyle(el2)(sub);
     if (isBox(sub)) W = insetW(W);
-    if (sub.title && sub.title.trim()) el2.append(h("h3", { class: "sub-title", textContent: sub.title }));
+    if (sub.title && sub.title.trim() && sub.showTitle !== false) el2.append(h("h3", { class: "sub-title", textContent: sub.title }));
     const cols = h("div", { class: "cols", style: { gridTemplateColumns: `repeat(${L.cols}, minmax(0, 1fr))` } });
     sub.cols.forEach((c, i) => {
       const node = renderCol(c, colWidth(sub.layout, i, W), `col:${si}:${bi}:${i}`, env);
@@ -2291,7 +2296,7 @@ ${lorem}` },
       el2.append(host);
       W = insetW(W);
     }
-    if (sec.title && sec.title.trim()) host.append(h("h2", { class: "sec-title", textContent: sec.title }));
+    if (sec.title && sec.title.trim() && sec.showTitle !== false) host.append(h("h2", { class: "sec-title", textContent: sec.title }));
     sec.subs.forEach((sub, bi) => host.append(renderSub(sub, si, bi, env, W)));
     return el2;
   }
@@ -3335,7 +3340,10 @@ ${lorem}` },
       title(sec.title || "Section");
       root.append(
         card("sec-main", "layout-rows", t("Section"), [
-          text(sec, "title", "Titre de section (vide = masqu\xE9)"),
+          text(sec, "title", "Titre de section"),
+          switchRow(t("Afficher le titre"), sec.showTitle !== false, () => {
+            sec.showTitle = sec.showTitle === false;
+          }),
           select(sec, "page", "Page", { recto: "Recto", verso: "Verso" }, () => ctx2.restructure())
         ]),
         card("sec-bg", "color-swatch", t("Fond de la section"), [swatches("Fond", sec, "bg", toneKeys(doc2), true)]),
@@ -3371,7 +3379,10 @@ ${lorem}` },
       })();
       root.append(
         card("sub-main", "columns", t("Sous-section"), [
-          text(sub, "title", "Titre de sous-section (vide = masqu\xE9)"),
+          text(sub, "title", "Titre de sous-section"),
+          switchRow(t("Afficher le titre"), sub.showTitle !== false, () => {
+            sub.showTitle = sub.showTitle === false;
+          }),
           select(sub, "layout", "Colonnes", Object.fromEntries(Object.entries(GRID.layouts).map(([k, l]) => [k, l.label])), () => {
             const n = GRID.layouts[sub.layout].spans.length;
             sub.cols = sub.cols.slice(0, n);
@@ -4201,7 +4212,8 @@ ${lorem}` },
     images: "images",
     showImage: "image",
     showLogo: "logo",
-    name: "nom du fichier"
+    name: "nom du fichier",
+    showTitle: "affichage du titre"
   };
   var firstDiff = (a, b, path = []) => {
     if (a === b) return null;

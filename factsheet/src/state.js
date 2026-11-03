@@ -32,11 +32,11 @@ export const newCol = (type = 'text') => ({
   stroke: false, strokeColor: 'text', fillColor: 'none',   // contour et fond (également sur les sous-sections et sections) ; fond : 'none', 'white', une couleur ou 'tint-<couleur>'
 });
 export const newSub = (layout = '1') => ({
-  id: uid('sub'), title: t('Sous-section'), layout,
+  id: uid('sub'), title: t('Sous-section'), showTitle: true, layout,
   cols: Array.from({ length: GRID.layouts[layout].spans.length }, () => newCol('text')),
 });
 export const newSection = (page = 'recto') => ({
-  id: uid('sec'), title: t('Titre de section'), page, bg: 'none', subs: [newSub('1')],
+  id: uid('sec'), title: t('Titre de section'), showTitle: true, page, bg: 'none', subs: [newSub('1')],
 });
 
 /** Factsheet vierge : header et logos d'origine, une seule section vide au recto */

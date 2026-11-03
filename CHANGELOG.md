@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.20.0 — 2026-11-03
+- Sections et sous-sections : interrupteur « Afficher le titre » pour masquer un titre sans le perdre
+
 ## 1.19.2 — 2026-11-03
 - Une page sans section (verso vide) propose « Nouvelle section » au survol, à l'emplacement de la première section
 

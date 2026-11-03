@@ -120,7 +120,7 @@ function renderSub(sub, si, bi, env, W) {
   const L = GRID.layouts[sub.layout];
   const el = h('div', { class: 'sub', dataset: { sel: `sub:${si}:${bi}` } });
   strokeStyle(el)(sub); if (isBox(sub)) W = insetW(W);
-  if (sub.title && sub.title.trim()) el.append(h('h3', { class: 'sub-title', textContent: sub.title }));
+  if (sub.title && sub.title.trim() && sub.showTitle !== false) el.append(h('h3', { class: 'sub-title', textContent: sub.title }));
   const cols = h('div', { class: 'cols', style: { gridTemplateColumns: `repeat(${L.cols}, minmax(0, 1fr))` } });
   sub.cols.forEach((c, i) => {
     const node = renderCol(c, colWidth(sub.layout, i, W), `col:${si}:${bi}:${i}`, env);
@@ -161,7 +161,7 @@ function renderSection(sec, si, env, pos) {
   const el = h('section', { class: cls, style, dataset: { sel: `sec:${si}` } });
   let host = el, W = GRID.contentW;
   if (isBox(sec)) { host = h('div', { class: 'sec-box' }); strokeStyle(host)(sec); el.append(host); W = insetW(W); }
-  if (sec.title && sec.title.trim()) host.append(h('h2', { class: 'sec-title', textContent: sec.title }));
+  if (sec.title && sec.title.trim() && sec.showTitle !== false) host.append(h('h2', { class: 'sec-title', textContent: sec.title }));
   sec.subs.forEach((sub, bi) => host.append(renderSub(sub, si, bi, env, W)));
   return el;
 }

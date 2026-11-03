@@ -151,7 +151,7 @@ export function buildProps(root, ctx) {
       card('hd-logo', 'certificate', t('Logo'), [logoPicker(H)], { on: H.showLogo, set: () => { H.showLogo = !H.showLogo; } }));
   } else if (kind === 'sec' && sec) {
     title(sec.title || 'Section');
-    root.append(card('sec-main', 'layout-rows', t('Section'), [text(sec, 'title', 'Titre de section (vide = masqué)'),
+    root.append(card('sec-main', 'layout-rows', t('Section'), [text(sec, 'title', 'Titre de section'), switchRow(t('Afficher le titre'), sec.showTitle !== false, () => { sec.showTitle = sec.showTitle === false; }),
         select(sec, 'page', 'Page', { recto: 'Recto', verso: 'Verso' }, () => ctx.restructure())]),
       card('sec-bg', 'color-swatch', t('Fond de la section'), [swatches('Fond', sec, 'bg', toneKeys(doc), true)]),
       card('sec-frame', 'border-all', t('Cadre'), boxControls(sec, 'Fond du cadre')),
@@ -164,7 +164,7 @@ export function buildProps(root, ctx) {
         h('option', { value: '', textContent: '—' }), doc.sections.map((x, i) => h('option', { value: i, textContent: `${x.title || t('Section')} (${x.page === 'recto' ? t('Recto') : t('Verso')})` })));
       s.value = ''; return s;
     })();
-    root.append(card('sub-main', 'columns', t('Sous-section'), [text(sub, 'title', 'Titre de sous-section (vide = masqué)'),
+    root.append(card('sub-main', 'columns', t('Sous-section'), [text(sub, 'title', 'Titre de sous-section'), switchRow(t('Afficher le titre'), sub.showTitle !== false, () => { sub.showTitle = sub.showTitle === false; }),
         select(sub, 'layout', 'Colonnes', Object.fromEntries(Object.entries(GRID.layouts).map(([k, l]) => [k, l.label])), () => {
           const n = GRID.layouts[sub.layout].spans.length; sub.cols = sub.cols.slice(0, n); while (sub.cols.length < n) sub.cols.push(newCol('text')); refreshAutoCards(sub, i => columnWidth(doc, si, bi, i)); ctx.restructure();
         }),

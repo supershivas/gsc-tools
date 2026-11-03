@@ -131,7 +131,7 @@ const restore = str => JSON.parse(str, (k, v) => (typeof v === 'string' && v.sta
 /* Libellé d'un pas d'historique : première différence entre l'état précédent et le nouveau, dite en mots */
 const FIELDS = { text: 'texte', title: 'titre', subtitle: 'sous-titre', overline: 'surtitre', bg: 'fond', fg: 'couleur du texte', stroke: 'contour', strokeColor: 'couleur du contour', fillColor: 'fond',
   layout: 'colonnes', page: 'page', valign: 'alignement vertical', align: 'alignement', density: 'espacement', locale: 'format des nombres', src: 'image', caption: 'légende', logoVariant: 'logo',
-  logos: 'logo', colors: 'couleurs', colorNames: 'noms des couleurs', viz: 'dataviz', card: 'carte', figure: 'chiffre clé', type: 'type de contenu', imageId: 'image', images: 'images', showImage: 'image', showLogo: 'logo', name: 'nom du fichier' };
+  logos: 'logo', colors: 'couleurs', colorNames: 'noms des couleurs', viz: 'dataviz', card: 'carte', figure: 'chiffre clé', type: 'type de contenu', imageId: 'image', images: 'images', showImage: 'image', showLogo: 'logo', name: 'nom du fichier', showTitle: 'affichage du titre' };
 const firstDiff = (a, b, path = []) => {
   if (a === b) return null;
   if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return { path };

@@ -1,7 +1,7 @@
 {
-  "version": "1.19.2",
+  "version": "1.20.0",
   "date": "2026-11-03",
   "changes": [
-    "Une page sans section (verso vide) propose « Nouvelle section » au survol, à l'emplacement de la première section"
+    "Sections et sous-sections : interrupteur « Afficher le titre » pour masquer un titre sans le perdre"
   ]
 }
