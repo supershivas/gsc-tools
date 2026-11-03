@@ -3691,11 +3691,18 @@ ${lorem}` },
       ctx2.select(`sub:${si}:${bi + 1}`);
     });
     addSecBtn.addEventListener("click", () => {
-      const { si } = addSecBtn._at, doc2 = getDoc();
-      doc2.sections.splice(si + 1, 0, newSection(doc2.sections[si].page));
+      const at = addSecBtn._at, doc2 = getDoc();
+      if (at.page) {
+        doc2.sections.push(newSection(at.page));
+        hide();
+        ctx2.restructure();
+        ctx2.select(`sec:${doc2.sections.length - 1}`);
+        return;
+      }
+      doc2.sections.splice(at.si + 1, 0, newSection(doc2.sections[at.si].page));
       hide();
       ctx2.restructure();
-      ctx2.select(`sec:${si + 1}`);
+      ctx2.select(`sec:${at.si + 1}`);
     });
     document.body.append(out, bar, addSubBtn, addSecBtn);
     let timer = 0, cur = null;
@@ -3801,6 +3808,19 @@ ${lorem}` },
       const t2 = e.target.closest ? e.target : null;
       if (!t2) return;
       const chain = chainOf(t2);
+      const pageEl = t2.closest(".page");
+      if (pageEl && !pageEl.querySelector(".sec")) {
+        clearTimeout(timer);
+        const pr = pageEl.getBoundingClientRect(), sc = pr.width / PAGE.w, hd = pageEl.querySelector(".hd");
+        const top2 = hd ? hd.getBoundingClientRect().bottom + GAP.headerToBody * sc : pr.top + PAGE.marginTop * sc, hh = Math.min((TYPE.section.lh + GAP.sectionTitle + TYPE.subsection.lh + GAP.subsectionTitle + TYPE.body.lh) * sc, pr.bottom - PAGE.marginBottom * sc - top2);
+        bar.style.display = out.style.display = addSubBtn.style.display = "none";
+        if (hh >= 20) {
+          addSecBtn._at = { page: pageEl.dataset.page };
+          Object.assign(addSecBtn.style, { display: "flex", left: pr.left + PAGE.margin * sc + "px", width: pr.width - 2 * PAGE.margin * sc + "px", top: top2 + "px", height: hh + "px" });
+          cur = "empty:" + pageEl.dataset.page;
+        }
+        return;
+      }
       if (!chain.length) {
         later();
         return;
@@ -3823,7 +3843,7 @@ ${lorem}` },
       const subIt = chain.find((c) => c.kind === "sub"), secIt = chain.find((c) => c.kind === "sec");
       addSubBtn.style.display = addSecBtn.style.display = "none";
       if (secIt) {
-        const sec = doc2.sections[secIt.si], pageEl = secIt.el.closest(".page"), pr = pageEl.getBoundingClientRect(), sc = pr.width / PAGE.w, limit = pr.bottom - PAGE.marginBottom * sc;
+        const sec = doc2.sections[secIt.si], pageEl2 = secIt.el.closest(".page"), pr = pageEl2.getBoundingClientRect(), sc = pr.width / PAGE.w, limit = pr.bottom - PAGE.marginBottom * sc;
         const subH = TYPE.subsection.lh + GAP.subsectionTitle + TYPE.body.lh, secH = TYPE.section.lh + GAP.sectionTitle + subH;
         const place = (b, it, inset, top2, want) => {
           const hh = Math.min(want * sc, limit - top2);

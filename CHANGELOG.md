@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.19.2 — 2026-11-03
+- Une page sans section (verso vide) propose « Nouvelle section » au survol, à l'emplacement de la première section
+
 ## 1.19.1 — 2026-11-03
 - Sections et sous-sections sans titre : un titre vide est masqué (indiqué dans le champ) ; une section sans titre se déplace par la poignée de la barre au survol ou par son fond
 

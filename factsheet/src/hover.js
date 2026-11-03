@@ -16,7 +16,11 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
   const addBtn = label => h('button', { type: 'button', class: 'hv-add', style: { display: 'none' } }, ico('plus'), h('span', { textContent: t(label) }));
   const addSubBtn = addBtn('Nouvelle sous-section'), addSecBtn = addBtn('Nouvelle section');
   addSubBtn.addEventListener('click', () => { const { si, bi } = addSubBtn._at, doc = getDoc(); doc.sections[si].subs.splice(bi + 1, 0, newSub('1')); hide(); ctx.restructure(); ctx.select(`sub:${si}:${bi + 1}`); });
-  addSecBtn.addEventListener('click', () => { const { si } = addSecBtn._at, doc = getDoc(); doc.sections.splice(si + 1, 0, newSection(doc.sections[si].page)); hide(); ctx.restructure(); ctx.select(`sec:${si + 1}`); });
+  addSecBtn.addEventListener('click', () => {
+    const at = addSecBtn._at, doc = getDoc();
+    if (at.page) { doc.sections.push(newSection(at.page)); hide(); ctx.restructure(); ctx.select(`sec:${doc.sections.length - 1}`); return; }   // page sans section
+    doc.sections.splice(at.si + 1, 0, newSection(doc.sections[at.si].page)); hide(); ctx.restructure(); ctx.select(`sec:${at.si + 1}`);
+  });
   document.body.append(out, bar, addSubBtn, addSecBtn);
   let timer = 0, cur = null;
 
@@ -71,7 +75,18 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
   stage.addEventListener('pointermove', e => {
     if (!canShow() || e.buttons) { if (e.buttons) hide(); return; }
     const t = e.target.closest ? e.target : null; if (!t) return;
-    const chain = chainOf(t); if (!chain.length) { later(); return; }
+    const chain = chainOf(t);
+    /* page sans aucune section : le survol de la page propose d'en ajouter une, à l'emplacement de la première section */
+    const pageEl = t.closest('.page');
+    if (pageEl && !pageEl.querySelector('.sec')) {
+      clearTimeout(timer);
+      const pr = pageEl.getBoundingClientRect(), sc = pr.width / PAGE.w, hd = pageEl.querySelector('.hd');
+      const top = (hd ? hd.getBoundingClientRect().bottom + GAP.headerToBody * sc : pr.top + PAGE.marginTop * sc), hh = Math.min((TYPE.section.lh + GAP.sectionTitle + TYPE.subsection.lh + GAP.subsectionTitle + TYPE.body.lh) * sc, pr.bottom - PAGE.marginBottom * sc - top);
+      bar.style.display = out.style.display = addSubBtn.style.display = 'none';
+      if (hh >= 20) { addSecBtn._at = { page: pageEl.dataset.page }; Object.assign(addSecBtn.style, { display: 'flex', left: pr.left + PAGE.margin * sc + 'px', width: pr.width - 2 * PAGE.margin * sc + 'px', top: top + 'px', height: hh + 'px' }); cur = 'empty:' + pageEl.dataset.page; }
+      return;
+    }
+    if (!chain.length) { later(); return; }
     const key = chain[0].el.dataset.sel;
     clearTimeout(timer);
     if (key === cur) return;
