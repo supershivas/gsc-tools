@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.11.0 — 2026-11-03
+- Factsheet creator : logo négatif et image du header par défaut (toujours disponibles) ; les logos ne se retirent plus, on peut charger une autre image à leur place
+- Labo : 5 présentations du panneau de propriétés à comparer (sujet « Propriétés »)
+
 ## 1.10.1 — 2026-11-03
 - Factsheet creator : les logos (normal, mono, blanc) sont publiés dans le dépôt et présents par défaut sur tous les appareils
 

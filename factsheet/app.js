@@ -323,6 +323,11 @@
     "Logo": "Logo",
     "Version du logo": "Logo version",
     "Les 4 versions ont la m\xEAme taille (138 \xD7 42 px). PNG transparent ou SVG.": "The 4 versions share the same size (138 \xD7 42 px). Transparent PNG or SVG.",
+    "personnalis\xE9": "custom",
+    "original": "original",
+    "Charger une autre image\u2026": "Load another image\u2026",
+    "R\xE9tablir l\u2019original": "Restore the original",
+    "Image par d\xE9faut": "Default image",
     "D\xE9faut": "Default",
     "Mono": "Mono",
     "Blanc (white)": "White",
@@ -1762,8 +1767,8 @@ ${lorem}` },
         overline: "FACTSHEET - MONTH 20YY",
         title: "MAIN TITLE",
         subtitle: "Subtitle",
-        images: [newHeaderImage(1), newHeaderImage(2)],
-        imageId: null,
+        images: [defaultHeaderImage()],
+        imageId: DEFAULT_IMAGE_ID,
         // bibliothèque d'images du header (autant que l'on veut)
         logos: DEFAULT_LOGOS(),
         logoVariant: "default",
@@ -1773,7 +1778,9 @@ ${lorem}` },
       sections: [s1, s2, s3]
     };
   }
-  var DEFAULT_LOGOS = () => ({ default: "assets/c069bffefa.png", mono: "assets/d9742f1219.png", white: "assets/4a5a41080e.png", negative: null });
+  var DEFAULT_LOGOS = () => ({ default: "assets/c069bffefa.png", mono: "assets/d9742f1219.png", white: "assets/4a5a41080e.png", negative: "assets/5ec5fb8b6a.png" });
+  var DEFAULT_IMAGE_ID = "img-default";
+  var defaultHeaderImage = () => ({ id: DEFAULT_IMAGE_ID, name: "Image par d\xE9faut", src: "assets/Asset 1.svg" });
   var KEY2 = "factsheet-creator-v1";
   function loadDoc() {
     try {
@@ -1857,8 +1864,9 @@ ${lorem}` },
   }
   function migrateHeader(H, src) {
     if (src.image && !Array.isArray(src.images)) {
-      H.images[0].src = src.image;
-      H.imageId = H.images[0].id;
+      const n = { ...newHeaderImage(1), src: src.image };
+      H.images = [n];
+      H.imageId = n.id;
     }
     delete H.image;
     if (src.logo && !src.logos) H.logos.default = src.logo;
@@ -1866,8 +1874,8 @@ ${lorem}` },
     const def = DEFAULT_LOGOS(), cur = H.logos || {};
     H.logos = Object.assign({}, def, Object.fromEntries(Object.entries(cur).filter(([, v]) => v)));
     if (!LOGO_VARIANTS[H.logoVariant]) H.logoVariant = "default";
-    H.images = (H.images || []).filter((i) => i && typeof i === "object").map((i, k) => ({ id: i.id || uid("img"), name: i.name || `${t("Image")} ${k + 1}`, src: i.src || null }));
-    if (!H.images.length) H.images = [newHeaderImage(1), newHeaderImage(2)];
+    H.images = (H.images || []).filter((i) => i && typeof i === "object" && i.src && i.id !== DEFAULT_IMAGE_ID).map((i, k) => ({ id: i.id || uid("img"), name: i.name || `${t("Image")} ${k + 1}`, src: i.src }));
+    H.images.unshift(defaultHeaderImage());
     if (!H.images.some((i) => i.id === H.imageId)) H.imageId = H.images[0].id;
   }
   function docImages(doc2) {
@@ -2959,21 +2967,45 @@ ${lorem}` },
       );
     };
     const logoPicker = (H) => {
+      const v = H.logoVariant, orig = DEFAULT_LOGOS()[v], custom = H.logos[v] !== orig;
       const sel = h(
         "select",
         { onchange: (e) => {
           H.logoVariant = e.target.value;
           ctx2.restructure();
         } },
-        Object.entries(LOGO_VARIANTS).map(([v, l]) => h("option", { value: v, textContent: `${t(l)} \u2014 ${t(H.logos[v] ? "import\xE9" : "vide")}`, selected: H.logoVariant === v }))
+        Object.entries(LOGO_VARIANTS).map(([k, l]) => h("option", { value: k, textContent: `${t(l)} \u2014 ${t(H.logos[k] !== DEFAULT_LOGOS()[k] ? "personnalis\xE9" : "original")}`, selected: v === k }))
       );
+      const inp = h("input", { type: "file", accept: "image/*", hidden: true, onchange: async () => {
+        const f = inp.files[0];
+        inp.value = "";
+        if (!f) return;
+        try {
+          H.logos[v] = await readImage(f, 800);
+          ctx2.restructure();
+        } catch (e) {
+          alert(t("Image illisible."));
+        }
+      } });
       return h(
         "div",
         {},
         field("Version du logo", sel),
-        imgPicker(`Logo \u2014 ${t(LOGO_VARIANTS[H.logoVariant])}`, () => H.logos[H.logoVariant], (v) => {
-          H.logos[H.logoVariant] = v;
-        }, 800),
+        h(
+          "div",
+          { class: "f" },
+          h("div", { class: "hint", textContent: `Logo \u2014 ${t(LOGO_VARIANTS[v])}` }),
+          h(
+            "div",
+            { class: "row" },
+            h("img", { class: "thumb" + (v === "white" || v === "negative" ? " dark" : ""), src: H.logos[v], alt: "" }),
+            h("button", { type: "button", textContent: "Charger une autre image\u2026", onclick: () => inp.click() }),
+            custom ? h("button", { type: "button", textContent: "R\xE9tablir l\u2019original", onclick: struct(() => {
+              H.logos[v] = orig;
+            }) }) : null,
+            inp
+          )
+        ),
         h("p", { class: "hint", textContent: "Les 4 versions ont la m\xEAme taille (138 \xD7 42 px). PNG transparent ou SVG." })
       );
     };
@@ -3006,8 +3038,8 @@ ${lorem}` },
             } },
             img.src ? h("img", { src: img.src, alt: "" }) : h("span", { textContent: "Pas d\u2019image" })
           ),
-          h("div", { class: "imgtile-name", textContent: img.name }),
-          h(
+          h("div", { class: "imgtile-name", textContent: img.id === DEFAULT_IMAGE_ID ? t("Image par d\xE9faut") : img.name }),
+          img.id === DEFAULT_IMAGE_ID ? null : h(
             "div",
             { class: "row imgtile-act" },
             h("button", { type: "button", class: "mini", title: img.src ? "Remplacer\u2026" : "Importer\u2026", onclick: () => inp.click() }, ico("upload")),
@@ -3018,12 +3050,12 @@ ${lorem}` },
                 ctx2.restructure();
               }
             } }, ico("pencil")),
-            H.images.length > 1 ? h("button", { type: "button", class: "mini danger", title: "Supprimer", onclick: () => {
+            h("button", { type: "button", class: "mini danger", title: "Supprimer", onclick: () => {
               if (!confirm(t("Supprimer cette image ?"))) return;
               H.images.splice(H.images.indexOf(img), 1);
               if (H.imageId === img.id) H.imageId = H.images[0].id;
               ctx2.restructure();
-            } }, ico("x")) : null
+            } }, ico("x"))
           ),
           inp
         );

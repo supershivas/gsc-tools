@@ -70,7 +70,7 @@ export function defaultDoc() {
     header: {
       bg: 'blue', fg: 'white',
       overline: 'FACTSHEET - MONTH 20YY', title: 'MAIN TITLE', subtitle: 'Subtitle',
-      images: [newHeaderImage(1), newHeaderImage(2)], imageId: null,   // bibliothèque d'images du header (autant que l'on veut)
+      images: [defaultHeaderImage()], imageId: DEFAULT_IMAGE_ID,   // bibliothèque d'images du header (autant que l'on veut)
       logos: DEFAULT_LOGOS(), logoVariant: 'default',
       showImage: true, showLogo: true,
     },
@@ -79,7 +79,10 @@ export function defaultDoc() {
 }
 
 /* ---------- Logos publiés dans le dépôt (disponibles sur tous les appareils) ---------- */
-const DEFAULT_LOGOS = () => ({ default: 'assets/c069bffefa.png', mono: 'assets/d9742f1219.png', white: 'assets/4a5a41080e.png', negative: null });
+export const DEFAULT_LOGOS = () => ({ default: 'assets/c069bffefa.png', mono: 'assets/d9742f1219.png', white: 'assets/4a5a41080e.png', negative: 'assets/5ec5fb8b6a.png' });
+/** Image du header toujours disponible (première de la bibliothèque, non modifiable) */
+export const DEFAULT_IMAGE_ID = 'img-default';
+export const defaultHeaderImage = () => ({ id: DEFAULT_IMAGE_ID, name: 'Image par défaut', src: 'assets/Asset 1.svg' });
 
 /* ---------- Persistance locale + fichier ---------- */
 const KEY = 'factsheet-creator-v1';
@@ -145,7 +148,7 @@ export function stepSection(doc, si, d) {
 
 /** Anciens fichiers : une seule image (`image`) et un seul logo (`logo`) → bibliothèque d'images et 4 versions du logo */
 function migrateHeader(H, src) {
-  if (src.image && !Array.isArray(src.images)) { H.images[0].src = src.image; H.imageId = H.images[0].id; }
+  if (src.image && !Array.isArray(src.images)) { const n = { ...newHeaderImage(1), src: src.image }; H.images = [n]; H.imageId = n.id; }
   delete H.image;
   if (src.logo && !src.logos) H.logos.default = src.logo;
   delete H.logo;
@@ -153,8 +156,8 @@ function migrateHeader(H, src) {
   const def = DEFAULT_LOGOS(), cur = H.logos || {};
   H.logos = Object.assign({}, def, Object.fromEntries(Object.entries(cur).filter(([, v]) => v)));
   if (!LOGO_VARIANTS[H.logoVariant]) H.logoVariant = 'default';
-  H.images = (H.images || []).filter(i => i && typeof i === 'object').map((i, k) => ({ id: i.id || uid('img'), name: i.name || `${t('Image')} ${k + 1}`, src: i.src || null }));
-  if (!H.images.length) H.images = [newHeaderImage(1), newHeaderImage(2)];
+  H.images = (H.images || []).filter(i => i && typeof i === 'object' && i.src && i.id !== DEFAULT_IMAGE_ID).map((i, k) => ({ id: i.id || uid('img'), name: i.name || `${t('Image')} ${k + 1}`, src: i.src }));
+  H.images.unshift(defaultHeaderImage());   // l'image par défaut reste toujours la première
   if (!H.images.some(i => i.id === H.imageId)) H.imageId = H.images[0].id;
 }
 

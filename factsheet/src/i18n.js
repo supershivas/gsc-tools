@@ -36,7 +36,7 @@ const EN = {
   'Surtitre': 'Overline', 'Titre (taille fixe)': 'Title (fixed size)', 'Sous-titre (optionnel — vide = masqué)': 'Subtitle (optional — empty = hidden)',
   'Couleur de fond': 'Background colour', 'Couleur du texte': 'Text colour', 'Afficher l’image': 'Show image', 'Afficher le logo': 'Show logo',
   'Logo': 'Logo', 'Version du logo': 'Logo version', 'Les 4 versions ont la même taille (138 × 42 px). PNG transparent ou SVG.': 'The 4 versions share the same size (138 × 42 px). Transparent PNG or SVG.',
-  'Défaut': 'Default', 'Mono': 'Mono', 'Blanc (white)': 'White', 'Négatif': 'Negative', 'importé': 'uploaded', 'vide': 'empty',
+  'personnalisé': 'custom', 'original': 'original', 'Charger une autre image…': 'Load another image…', 'Rétablir l’original': 'Restore the original', 'Image par défaut': 'Default image', 'Défaut': 'Default', 'Mono': 'Mono', 'Blanc (white)': 'White', 'Négatif': 'Negative', 'importé': 'uploaded', 'vide': 'empty',
   'Images du header': 'Header images', 'Image affichée (96 × 132 px) — choisissez dans la bibliothèque :': 'Image shown (96 × 132 px) — pick one from the library:',
   'Ajouter une image': 'Add an image', 'Renommer': 'Rename', 'Nom de l’image :': 'Image name:', 'Supprimer cette image ?': 'Delete this image?',
   'Image du header': 'Header image', 'Image': 'Image', 'Remplacer…': 'Replace…', 'Importer…': 'Import…', 'Retirer': 'Remove', 'Aucun': 'None', 'Pas d’image': 'No image',

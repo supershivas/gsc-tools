@@ -4,7 +4,7 @@ import { t } from './i18n.js';
 import { GRID, THEMES, paletteOf, paletteKeys, sectionBgs, colorLabel, cssVars, applyVars } from './tokens.js';
 import { openColorEditor, cmykText } from './colorpicker.js';
 import { newCard, cardPresetFor, CARD_CHECKS } from './cardmodel.js';
-import { COL_TYPES, IMAGE_RATIOS, LOCALES, LOGO_VARIANTS, VALIGNS, ALIGNS, newCol, stepSection, newHeaderImage, swapCols, allCols, moveSub, addColor, removeColor, canAddColor, extraColorKeys, refreshAutoCards } from './state.js';
+import { COL_TYPES, IMAGE_RATIOS, LOCALES, LOGO_VARIANTS, DEFAULT_LOGOS, DEFAULT_IMAGE_ID, VALIGNS, ALIGNS, newCol, stepSection, newHeaderImage, swapCols, allCols, moveSub, addColor, removeColor, canAddColor, extraColorKeys, refreshAutoCards } from './state.js';
 import { VIZ_TYPES, VIZ_OPTIONS, newViz } from './viz/index.js';
 import { buildFields, readImage, richEditor, paletteOptions } from './editor.js';
 import { FIGURE_DEFAULTS, FIGURE_FIELDS } from './figure.js';
@@ -38,12 +38,21 @@ export function buildProps(root, ctx) {
         get() ? h('button', { type: 'button', class: 'danger', textContent: 'Retirer', onclick: struct(() => set(null)) }) : null, inp));
   };
 
-  /* Logo : 4 versions de même taille, une liste déroulante choisit celle qui s'affiche */
+  /* Logo : 4 versions de même taille, une liste déroulante choisit celle qui s'affiche.
+     Les logos d'origine (publiés dans le dépôt) ne se retirent pas : on peut charger une autre image à leur place, puis rétablir l'original. */
   const logoPicker = H => {
+    const v = H.logoVariant, orig = DEFAULT_LOGOS()[v], custom = H.logos[v] !== orig;
     const sel = h('select', { onchange: e => { H.logoVariant = e.target.value; ctx.restructure(); } },
-      Object.entries(LOGO_VARIANTS).map(([v, l]) => h('option', { value: v, textContent: `${t(l)} — ${t(H.logos[v] ? 'importé' : 'vide')}`, selected: H.logoVariant === v })));
+      Object.entries(LOGO_VARIANTS).map(([k, l]) => h('option', { value: k, textContent: `${t(l)} — ${t(H.logos[k] !== DEFAULT_LOGOS()[k] ? 'personnalisé' : 'original')}`, selected: v === k })));
+    const inp = h('input', { type: 'file', accept: 'image/*', hidden: true, onchange: async () => {
+      const f = inp.files[0]; inp.value = ''; if (!f) return;
+      try { H.logos[v] = await readImage(f, 800); ctx.restructure(); } catch (e) { alert(t('Image illisible.')); }
+    } });
     return h('div', {}, field('Version du logo', sel),
-      imgPicker(`Logo — ${t(LOGO_VARIANTS[H.logoVariant])}`, () => H.logos[H.logoVariant], v => { H.logos[H.logoVariant] = v; }, 800),
+      h('div', { class: 'f' }, h('div', { class: 'hint', textContent: `Logo — ${t(LOGO_VARIANTS[v])}` }),
+        h('div', { class: 'row' }, h('img', { class: 'thumb' + (v === 'white' || v === 'negative' ? ' dark' : ''), src: H.logos[v], alt: '' }),
+          h('button', { type: 'button', textContent: 'Charger une autre image…', onclick: () => inp.click() }),
+          custom ? h('button', { type: 'button', textContent: 'Rétablir l’original', onclick: struct(() => { H.logos[v] = orig; }) }) : null, inp)),
       h('p', { class: 'hint', textContent: 'Les 4 versions ont la même taille (138 × 42 px). PNG transparent ou SVG.' }));
   };
 
@@ -60,11 +69,11 @@ export function buildProps(root, ctx) {
       return h('div', { class: 'imgtile' + (cur && cur.id === img.id ? ' on' : '') },
         h('button', { type: 'button', class: 'imgtile-pic', title: img.name, onclick: () => { H.imageId = img.id; ctx.restructure(); } },
           img.src ? h('img', { src: img.src, alt: '' }) : h('span', { textContent: 'Pas d’image' })),
-        h('div', { class: 'imgtile-name', textContent: img.name }),
-        h('div', { class: 'row imgtile-act' },
+        h('div', { class: 'imgtile-name', textContent: img.id === DEFAULT_IMAGE_ID ? t('Image par défaut') : img.name }),
+        img.id === DEFAULT_IMAGE_ID ? null : h('div', { class: 'row imgtile-act' },
           h('button', { type: 'button', class: 'mini', title: img.src ? 'Remplacer…' : 'Importer…', onclick: () => inp.click() }, ico('upload')),
           h('button', { type: 'button', class: 'mini', title: 'Renommer', onclick: () => { const n = prompt(t('Nom de l’image :'), img.name); if (n && n.trim()) { img.name = n.trim(); ctx.restructure(); } } }, ico('pencil')),
-          H.images.length > 1 ? h('button', { type: 'button', class: 'mini danger', title: 'Supprimer', onclick: () => { if (!confirm(t('Supprimer cette image ?'))) return; H.images.splice(H.images.indexOf(img), 1); if (H.imageId === img.id) H.imageId = H.images[0].id; ctx.restructure(); } }, ico('x')) : null),
+          h('button', { type: 'button', class: 'mini danger', title: 'Supprimer', onclick: () => { if (!confirm(t('Supprimer cette image ?'))) return; H.images.splice(H.images.indexOf(img), 1); if (H.imageId === img.id) H.imageId = H.images[0].id; ctx.restructure(); } }, ico('x'))),
         inp);
     };
     return h('div', { class: 'f' }, h('div', { class: 'hint', textContent: 'Image affichée (96 × 132 px) — choisissez dans la bibliothèque :' }),

@@ -55,6 +55,7 @@ details.sel{border-color:#F28C28;box-shadow:0 0 0 2px #f28c2855}
 .col-card .chd{font-size:11px;color:var(--ui-mute);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
 .hint{font-size:12px;color:var(--ui-mute);margin:4px 0 0}
 .thumb{height:40px;max-width:100%;border:1px solid var(--ui-line);border-radius:4px;background:#f3f4f7;object-fit:contain}
+.thumb.dark{background:#1C1C1E}
 .mini{padding:1px 7px;font-size:12px}
 
 #print-root{display:none}

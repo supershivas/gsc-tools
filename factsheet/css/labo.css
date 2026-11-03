@@ -57,3 +57,59 @@ body.labo { height: 100dvh; display: flex; flex-direction: column; overflow: hid
   .labo-bar .icon-btn { color: var(--ink); } .labo-bar .icon-btn:disabled { opacity: .3; }
   .labo-bar .bar-title { flex: 1; min-width: 0; margin-left: 8px; font-size: 13px; color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
+
+/* ---------- Panneau de propriétés (sujet « Propriétés ») ---------- */
+.labo-work.solo { grid-template-columns: minmax(0, 1fr); }
+.pp { width: 340px; max-width: 100%; box-sizing: border-box; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); color: var(--ink); font: 14px/1.4 var(--font-sans); padding: 20px 16px 24px; }
+.pp *, .pp *::before, .pp *::after { box-sizing: border-box; }
+.pp-crumb { font-size: 12px; color: var(--accent); }
+.pp h2 { margin: 4px 0 16px; font-size: 18px; font-weight: 600; }
+.pp-f { display: block; margin: 0; }
+.pp-l { display: block; margin-bottom: 4px; font-size: 12px; color: var(--mute); }
+.pp input[type=text], .pp select { width: 100%; height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; font: inherit; color: var(--ink); }
+.pp input:focus, .pp select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.pp-body { display: grid; gap: 12px; }
+.pp-dots { display: flex; gap: 8px; flex-wrap: wrap; }
+.pp-dot { width: 28px; height: 28px; padding: 0; border-radius: 50%; border: 1px solid rgba(0,0,0,.2); cursor: pointer; }
+.pp-dot.on { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pp-switch { position: relative; flex: none; width: 36px; height: 20px; padding: 0; border: 0; border-radius: 10px; background: #c9c9cc; cursor: pointer; }
+.pp-switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.pp-switch.on { background: var(--accent); } .pp-switch.on::after { transform: translateX(16px); }
+.pp-sp { flex: 1; }
+.pp-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pp-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 96px; padding: 6px; border: 1px solid var(--line); border-radius: var(--radius-md); background: #fff; font: 12px var(--font-sans); color: var(--mute); }
+.pp-tile.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); color: var(--ink); }
+.pp-tile img { height: 56px; max-width: 100%; object-fit: contain; }
+.pp-add { border-style: dashed; cursor: pointer; } .pp-add .ti { font-size: 20px; }
+.pp-hint { margin: 0; font-size: 12px; color: var(--mute); }
+.pp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; font: inherit; color: var(--ink); cursor: pointer; }
+.pp-logo { display: flex; align-items: center; justify-content: center; height: 64px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #f3f4f7; }
+.pp-logo.dark { background: var(--dark); } .pp-logo img { max-height: 40px; max-width: 80%; }
+@media (hover: hover) { .pp-btn:hover, .pp-add:hover, .pp-tabs button:hover { border-color: var(--accent); color: var(--accent); } }
+/* A : actuelle — écarts volontairement serrés et irréguliers, comme dans l'app */
+.pp-a .pp-body > *, .pp-a .pp-f { margin-bottom: 8px; } .pp-a .pp-body { display: block; }
+.pp-a .pp-check { display: flex; align-items: center; gap: 8px; margin: 4px 0; } .pp-a .pp-check input { width: 16px; height: 16px; }
+/* B : cartes repliables */
+.pp-card { margin-bottom: 12px; border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; }
+.pp-card-h { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 8px 0 14px; background: var(--bg); }
+.pp-card-h .ti { font-size: 20px; color: var(--mute); } .pp-card-h b { font-weight: 600; }
+.pp-chev { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--mute); cursor: pointer; }
+.pp-card .pp-body { gap: 16px; padding: 16px; }
+/* C : onglets */
+.pp-tabs { display: flex; margin: 0 -16px 20px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+.pp-tabs button { flex: 1; min-height: 44px; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; font: 500 14px var(--font-sans); color: var(--mute); cursor: pointer; }
+.pp-tabs button.on { color: var(--accent); border-bottom-color: var(--accent); }
+.pp-c .pp-body { gap: 16px; } .pp-c .pp-sec + .pp-sec { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.pp-c .pp-sec-h { display: flex; align-items: center; justify-content: space-between; min-height: 32px; margin-bottom: 12px; font-weight: 600; }
+/* D et E : sections à filet */
+.pp-d .pp-sec, .pp-e .pp-sec { padding-top: 20px; margin-top: 20px; border-top: 1px solid var(--line); }
+.pp-d h2 + .pp-sec, .pp-e h2 + .pp-sec { margin-top: 0; padding-top: 0; border-top: 0; }
+.pp-sec-h { display: flex; align-items: center; gap: 8px; min-height: 32px; margin-bottom: 12px; }
+.pp-d .pp-sec-h, .pp-e .pp-sec-h { font: 500 11px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+.pp-sec-h .ti { font-size: 18px; }
+.pp-d .pp-sec-h .pp-switch, .pp-e .pp-sec-h .pp-switch { margin-left: auto; }
+.pp-e .pp-body { gap: 8px; }
+.pp-e .pp-row { display: grid; grid-template-columns: 80px minmax(0, 1fr); align-items: center; gap: 8px; }
+.pp-e .pp-row .pp-l { margin: 0; }
+.pp-e input[type=text], .pp-e select, .pp-e .pp-btn { height: 32px; }
+.pp-e .pp-dot { width: 24px; height: 24px; }

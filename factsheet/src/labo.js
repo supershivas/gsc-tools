@@ -9,6 +9,7 @@ import { renderCard } from './card.js';
 import { CARD_DEFAULTS, CARD_CHECKS } from './cardmodel.js';
 import { renderFigure, FIGURE_DEFAULTS } from './figure.js';
 import { ICON_OPTIONS } from './viz/icons.js';
+import { renderPanel, panelOpts } from './labo-panel.js';
 
 const WIDTHS = { '1/3': colWidth('1-1-1', 0), '1/2': colWidth('1-1', 0), '2/3': colWidth('2-1', 0), 'full': colWidth('1', 0) };
 
@@ -46,6 +47,13 @@ const TOPICS = [
     { title: 'Icône devant le chiffre', desc: 'Pictogramme au trait à la hauteur du chiffre.', opts: fig({ icon: true }) },
     { title: 'Icône en pastille', desc: 'Même icône dans une pastille ronde de 0,5 pt, comme dans la liste à icônes.', opts: fig({ icon: true, iconCircle: true }) },
     { title: 'Centré, sans contour', desc: 'Chiffre et icône centrés, pour une bande de plusieurs chiffres.', opts: fig({ icon: true, stroke: false, fill: false, align: 'center' }) },
+  ] },
+  { id: 'proprietes', icon: 'adjustments', label: 'Propriétés', panel: true, controls: [], render: (o, W, v, redraw) => renderPanel(o, v, redraw), variants: [
+    { title: 'Actuelle', base: true, style: 'a', desc: 'Le panneau tel qu’il est : tout à la suite, des étiquettes de 12 px, des écarts irréguliers et des cases à cocher entre les blocs.', opts: panelOpts() },
+    { title: 'Cartes repliables', style: 'b', desc: 'Un bloc par sujet (texte, couleurs, image, logo) dans une carte avec icône, interrupteur et chevron : on replie ce qu’on ne touche pas.', opts: panelOpts() },
+    { title: 'Onglets', style: 'c', desc: 'Trois onglets (texte, couleurs, médias) : un seul groupe à l’écran, plus de défilement, mais un clic pour changer de sujet.', opts: panelOpts() },
+    { title: 'Sections à filet', style: 'd', desc: 'Tout reste visible, découpé en sections séparées par un filet, titre en majuscules et interrupteur à droite ; 24 px entre sections, 12 px entre champs.', opts: panelOpts() },
+    { title: 'Inspecteur compact', style: 'e', desc: 'Comme D, mais l’étiquette est à gauche du champ (une ligne par réglage) : le plus court, proche d’un outil de design.', opts: panelOpts() },
   ] },
 ];
 const LETTERS = 'ABCDEFGHIJ';
@@ -89,21 +97,21 @@ function control(tp, c, o, redraw) {
 function draw() {
   const tp = TOPICS.find(x => x.id === topicId), v = tp.variants[vi], o = optsOf(tp, vi);
   document.title = `${t('Labo')} — GSC tools`;
-  const sheet = h('div', { class: 'page labo-sheet', style: { background: stage.tint ? 'var(--c-tint-sky)' : '#fff' } });
+  const sheet = h('div', { class: 'page labo-sheet', style: { background: tp.panel ? 'var(--bg)' : stage.tint ? 'var(--c-tint-sky)' : '#fff' } });
   applyVars(sheet, cssVars(DEFAULT_THEME, {}));
-  const paint = () => { sheet.replaceChildren(tp.render(o, WIDTHS[stage.width])); };
+  const paint = () => { sheet.replaceChildren(tp.render(o, WIDTHS[stage.width], v, paint)); };
   paint();
-  const opts = h('aside', { class: 'labo-opts' }, h('h3', { textContent: 'Options' }), tp.controls.map(c => control(tp, c, o, paint)),
+  const opts = tp.panel ? null : h('aside', { class: 'labo-opts' }, h('h3', { textContent: 'Options' }), tp.controls.map(c => control(tp, c, o, paint)),
     h('button', { type: 'button', class: 'btn', onclick: () => { delete state[`${tp.id}-${LETTERS[vi]}`]; draw(); } }, h('i', { class: 'ti ti-restore' }), 'Réinitialiser la variante'));
   const view = h('div', { class: 'labo-stage' },
-    h('div', { class: 'labo-tools' },
+    tp.panel ? null : h('div', { class: 'labo-tools' },
       h('label', {}, 'Largeur de colonne ', h('select', { onchange: e => { stage.width = e.target.value; paint(); } }, Object.entries(WIDTHS).map(([k, w]) => h('option', { value: k, selected: k === stage.width, textContent: `${k} (${Math.round(w)} px)` })))),
       h('label', { class: 'labo-check' }, h('input', { type: 'checkbox', checked: stage.tint, onchange: e => { stage.tint = e.target.checked; sheet.style.background = stage.tint ? 'var(--c-tint-sky)' : '#fff'; } }), 'Sur fond de section teinté')),
     h('div', { class: 'labo-canvas' }, sheet));
   const chips = h('div', { class: 'labo-chips' }, TOPICS.map(x => h('button', { type: 'button', class: x.id === topicId ? 'on' : '', onclick: () => go(x.id, 0) }, h('i', { class: 'ti ti-' + x.icon }), x.label)));
   const head = h('div', { class: 'labo-title' }, h('b', { class: 'letter', textContent: LETTERS[vi] }), h('h2', { textContent: v.title }),
     v.base ? h('span', { class: 'mark', textContent: 'actuelle' }) : null, v.kept ? h('span', { class: 'mark kept', textContent: `retenue — ${v.kept}` }) : null);
-  const main = h('main', { class: 'labo-main' }, chips, h('section', { class: 'labo-view' }, head, h('p', { class: 'labo-desc', textContent: v.desc }), h('div', { class: 'labo-work' }, opts, view)));
+  const main = h('main', { class: 'labo-main' }, chips, h('section', { class: 'labo-view' }, head, h('p', { class: 'labo-desc', textContent: v.desc }), h('div', { class: 'labo-work' + (tp.panel ? ' solo' : '') }, opts, view)));
   const bar = h('div', { class: 'labo-bar' },
     h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Précédente', disabled: vi === 0, onclick: () => go(topicId, vi - 1) }, h('i', { class: 'ti ti-chevron-left' })),
     h('div', { class: 'letters' }, tp.variants.map((_, i) => h('button', { type: 'button', class: i === vi ? 'on' : '', onclick: () => go(topicId, i), textContent: LETTERS[i] }))),
