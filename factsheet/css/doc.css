@@ -9,7 +9,8 @@
 /* Header */
 .hd{height:240px;display:flex;align-items:center;padding:0 var(--gap-headerPadX)}
 .hd-inner{position:relative;width:100%;height:132px;display:flex;gap:var(--gap-headerImgText)}
-.hd-img{flex:none;width:96px;height:132px;object-fit:cover;display:block}
+.hd-img{flex:none;height:132px;width:auto;max-width:144px;object-fit:contain;display:block}
+.hd-img.ph{width:96px}
 .hd-logo{position:absolute;top:0;right:0;width:138px;height:42px;object-fit:contain;object-position:right top}
 .ph{display:flex;align-items:center;justify-content:center;background:#fff;color:#000;font-weight:600;font-size:var(--t-body-size)}
 .hd-text{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-between;overflow:visible}

@@ -272,7 +272,7 @@ body.v3d-open{overflow:hidden}
 .tn.drop-swap,.tn.drop-zone{outline:2px dashed var(--ui-blue);outline-offset:-2px;background:#f3f8ff}
 
 /* Boutons « + » pleine largeur sous la section / sous-section survolée */
-.hv-add{position:fixed;z-index:39;height:22px;padding:0;align-items:center;justify-content:center;gap:6px;border:1px dashed var(--ui-blue);border-radius:6px;background:#fffffff2;color:var(--ui-blue);font-size:12px}
+.hv-add{position:fixed;z-index:39;box-sizing:border-box;padding:0;align-items:center;justify-content:center;gap:6px;border:1px dashed var(--ui-blue);border-radius:6px;background:#fffffff2;color:var(--ui-blue);font-size:12px}
 @media (hover:hover){.hv-add:hover{background:var(--ui-blue);color:#fff}}
 @media print{.hv-add,.hv-bar,.hv-out,.sp-layer{display:none!important}}
 

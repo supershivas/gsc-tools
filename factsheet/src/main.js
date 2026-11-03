@@ -57,9 +57,13 @@ function drawPreview() {
   else if (selected) stage.querySelectorAll(`[data-sel="${selected}"]`).forEach(n => n.classList.add('is-sel'));
 }
 /* Marges et espaces : filigrane coloré par-dessus l'aperçu (hors des pages, donc jamais exporté) */
+let spRaf = 0;
+const spObs = new ResizeObserver(() => { cancelAnimationFrame(spRaf); spRaf = requestAnimationFrame(() => drawSpacing(false)); });
 const SPACING_KINDS = { margin: 'Marges de page', sec: 'Entre sections', sub: 'Entre sous-sections', col: 'Entre colonnes' };
-function drawSpacing() {
-  if (!showSpacing) return;
+function drawSpacing(observe = true) {
+  stage.querySelectorAll('.sp-layer').forEach(n => n.remove()); warnEl.querySelectorAll('.sp-legend').forEach(n => n.remove());
+  if (observe) { spObs.disconnect(); if (showSpacing) stage.querySelectorAll('.page .content').forEach(c => spObs.observe(c)); }
+  if (!showSpacing) return;   // la mise en page peut bouger après coup (polices, images) : le filigrane suit
   stage.querySelectorAll('.pwrap').forEach(w => {
     const page = w.querySelector('.page'); if (!page) return;
     const wr = w.getBoundingClientRect(), sc = wr.width / PAGE.w, layer = h('div', { class: 'sp-layer' });
@@ -149,6 +153,13 @@ stage.addEventListener('click', e => {
   const n = e.target.closest('[data-sel]');
   ctx.select(n ? n.dataset.sel : null);
 });
+
+/* Cmd/Ctrl + molette (ou pincement du pavé tactile) : zoom continu de l'aperçu */
+stage.addEventListener('wheel', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  zoomMode = String(Math.min(2, Math.max(0.25, scaleValue() * Math.exp(-e.deltaY * 0.002))).toFixed(3)); schedule();
+}, { passive: false });
 
 /* Double-clic sur une dataviz de l'aperçu → éditeur */
 stage.addEventListener('dblclick', e => {

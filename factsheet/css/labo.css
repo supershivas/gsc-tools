@@ -28,7 +28,10 @@ body.labo { height: 100dvh; display: flex; flex-direction: column; overflow: hid
 .mark.kept { border-color: var(--accent); color: var(--accent); }
 .labo-desc { margin: 8px 0 18px; color: var(--mute); max-width: 70ch; }
 .labo-work { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 20px; align-items: start; }
-.labo-opts { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+.labo-opts { display: flex; flex-direction: column; gap: 12px; }
+.labo-opts .pp-card { margin: 0; }
+.pp-switchrow { display: flex; align-items: center; justify-content: space-between; min-height: 32px; font-size: 14px; }
+.labo-opts .pp-btn { width: 100%; }
 .labo-opts h3 { margin: 0 0 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
 .labo-check { display: flex; align-items: center; gap: 8px; min-height: 32px; font-size: 14px; cursor: pointer; }
 .labo-check input, .labo-radios input { width: 18px; height: 18px; accent-color: var(--accent); }

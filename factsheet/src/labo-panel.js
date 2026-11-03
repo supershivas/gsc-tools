@@ -26,7 +26,7 @@ export function renderPanel(o, v, repaint) {
     image: () => [h('div', { class: 'pp-tiles' },
       h('div', { class: 'pp-tile on' }, h('img', { src: 'assets/Asset 1.svg', alt: '' }), h('span', { textContent: 'Par défaut' })),
       h('button', { type: 'button', class: 'pp-tile pp-add' }, h('i', { class: 'ti ti-plus' }), h('span', { textContent: 'Ajouter' }))),
-      h('p', { class: 'pp-hint', textContent: 'Affichée en 96 × 132 px. L’image par défaut reste toujours disponible.' })],
+      h('p', { class: 'pp-hint', textContent: 'Affichée sur 132 px de haut, largeur selon l’image. L’image par défaut reste toujours disponible.' })],
     logo: () => [field('Version', logoSel),
       h('div', { class: 'pp-logo' + (o.logo === 'white' || o.logo === 'negative' ? ' dark' : '') }, h('img', { src: LOGOS[o.logo][1], alt: '' })),
       h('button', { type: 'button', class: 'pp-btn' }, h('i', { class: 'ti ti-upload' }), 'Charger une autre image…'),

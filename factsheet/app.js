@@ -373,7 +373,7 @@
     "import\xE9": "uploaded",
     "vide": "empty",
     "Images du header": "Header images",
-    "Image affich\xE9e (96 \xD7 132 px) \u2014 choisissez dans la biblioth\xE8que :": "Image shown (96 \xD7 132 px) \u2014 pick one from the library:",
+    "Image affich\xE9e (132 px de haut, largeur selon l\u2019image) \u2014 choisissez dans la biblioth\xE8que :": "Image shown (132 px high, width follows the image) \u2014 pick one from the library:",
     "Ajouter une image": "Add an image",
     "Renommer": "Rename",
     "Nom de l\u2019image :": "Image name:",
@@ -3280,7 +3280,7 @@ ${lorem}` },
       return h(
         "div",
         { class: "f" },
-        h("div", { class: "hint", textContent: "Image affich\xE9e (96 \xD7 132 px) \u2014 choisissez dans la biblioth\xE8que :" }),
+        h("div", { class: "hint", textContent: "Image affich\xE9e (132 px de haut, largeur selon l\u2019image) \u2014 choisissez dans la biblioth\xE8que :" }),
         h(
           "div",
           { class: "imggrid" },
@@ -3903,18 +3903,28 @@ ${lorem}` },
       left = Math.max(left, st.left + 4);
       Object.assign(bar.style, { left: left + "px", top: top + "px" });
       const subIt = chain.find((c) => c.kind === "sub"), secIt = chain.find((c) => c.kind === "sec");
-      const put = (b, it, extra = 0) => {
-        if (!it) {
-          b.style.display = "none";
-          return 0;
+      addSubBtn.style.display = addSecBtn.style.display = "none";
+      if (secIt) {
+        const sec = doc2.sections[secIt.si], pageEl = secIt.el.closest(".page"), pr = pageEl.getBoundingClientRect(), sc = pr.width / PAGE.w, limit = pr.bottom - PAGE.marginBottom * sc;
+        const subH = TYPE.subsection.lh + GAP.subsectionTitle + TYPE.body.lh, secH = TYPE.section.lh + GAP.sectionTitle + subH;
+        const place = (b, it, inset, top2, want) => {
+          const hh = Math.min(want * sc, limit - top2);
+          if (hh < 20) return 0;
+          const q = it.el.getBoundingClientRect();
+          b._at = it;
+          Object.assign(b.style, { display: "flex", left: q.left + inset + "px", width: q.width - 2 * inset + "px", top: top2 + "px", height: hh + "px" });
+          return top2 + hh;
+        };
+        let y = secIt.el.getBoundingClientRect().bottom;
+        const lastSec = doc2.sections.filter((x) => x.page === sec.page).pop() === sec;
+        if (lastSec) {
+          if (subIt && subIt.bi === sec.subs.length - 1) {
+            const sb = subIt.el.getBoundingClientRect();
+            y = place(addSubBtn, subIt, 0, sb.bottom + GAP.subsectionBefore * sc, subH) || y;
+          }
+          place(addSecBtn, secIt, PAGE.margin * sc, y + GAP.sectionBefore * sc, secH);
         }
-        const q = it.el.getBoundingClientRect(), inset = it.kind === "sec" ? q.width / PAGE.w * PAGE.margin : 0;
-        b._at = it;
-        Object.assign(b.style, { display: "flex", left: q.left + inset + "px", width: q.width - 2 * inset + "px", top: q.bottom + 2 + extra + "px" });
-        return q.bottom + 2 + extra;
-      };
-      const subTop = put(addSubBtn, subIt), secTop = secIt ? secIt.el.getBoundingClientRect().bottom + 2 : 0;
-      put(addSecBtn, secIt, subIt && Math.abs(secTop - subTop) < 26 ? 26 : 0);
+      }
       Object.assign(out.style, { display: "block", left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px" });
     });
     stage2.addEventListener("pointerleave", later);
@@ -4105,8 +4115,19 @@ ${lorem}` },
       if (previewMark) stage.querySelectorAll(`[data-sel="${previewMark}"]`).forEach((n) => n.classList.add("drag-live"));
     } else if (selected) stage.querySelectorAll(`[data-sel="${selected}"]`).forEach((n) => n.classList.add("is-sel"));
   }
+  var spRaf = 0;
+  var spObs = new ResizeObserver(() => {
+    cancelAnimationFrame(spRaf);
+    spRaf = requestAnimationFrame(() => drawSpacing(false));
+  });
   var SPACING_KINDS = { margin: "Marges de page", sec: "Entre sections", sub: "Entre sous-sections", col: "Entre colonnes" };
-  function drawSpacing() {
+  function drawSpacing(observe2 = true) {
+    stage.querySelectorAll(".sp-layer").forEach((n) => n.remove());
+    warnEl.querySelectorAll(".sp-legend").forEach((n) => n.remove());
+    if (observe2) {
+      spObs.disconnect();
+      if (showSpacing) stage.querySelectorAll(".page .content").forEach((c) => spObs.observe(c));
+    }
     if (!showSpacing) return;
     stage.querySelectorAll(".pwrap").forEach((w) => {
       const page = w.querySelector(".page");
@@ -4282,6 +4303,12 @@ ${lorem}` },
     const n = e.target.closest("[data-sel]");
     ctx.select(n ? n.dataset.sel : null);
   });
+  stage.addEventListener("wheel", (e) => {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    zoomMode = String(Math.min(2, Math.max(0.25, scaleValue() * Math.exp(-e.deltaY * 2e-3))).toFixed(3));
+    schedule();
+  }, { passive: false });
   stage.addEventListener("dblclick", (e) => {
     const n = e.target.closest(".col-viz[data-sel]");
     if (!n) return;

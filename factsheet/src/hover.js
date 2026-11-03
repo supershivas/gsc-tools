@@ -1,7 +1,7 @@
 /* Boutons contextuels au survol de l'aperçu : une barre flottante regroupe les actions de l'élément
    survolé (colonne → sous-section → section, ou header). Elle vit hors des pages : jamais exportée. */
 import { h, ico, columnWidth } from './render.js';
-import { PAGE, GRID, THEMES, sectionBgs, paletteKeys, colorLabel, cssVars, applyVars } from './tokens.js';
+import { PAGE, TYPE, GAP, GRID, THEMES, sectionBgs, paletteKeys, colorLabel, cssVars, applyVars } from './tokens.js';
 import { t } from './i18n.js';
 import { COL_TYPES, newCol, newSub, newSection, stepSection, refreshAutoCards } from './state.js';
 import { readImage } from './editor.js';
@@ -82,10 +82,21 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
     let top = r.top - bh + 6; if (top < st.top - 12) top = r.top + 4;
     let left = Math.min(r.right - bw, window.innerWidth - bw - 8); left = Math.max(left, st.left + 4);
     Object.assign(bar.style, { left: left + 'px', top: top + 'px' });
+    /* Boutons « + » : seulement là où il y a de la place dessous (dernière section de la page, dernière sous-section de la section).
+       Ils ont la hauteur du bloc créé et sont décalés de l'écart réel entre deux blocs, pour montrer où il apparaîtra. */
     const subIt = chain.find(c => c.kind === 'sub'), secIt = chain.find(c => c.kind === 'sec');
-    const put = (b, it, extra = 0) => { if (!it) { b.style.display = 'none'; return 0; } const q = it.el.getBoundingClientRect(), inset = it.kind === 'sec' ? q.width / PAGE.w * PAGE.margin : 0; b._at = it; Object.assign(b.style, { display: 'flex', left: q.left + inset + 'px', width: q.width - 2 * inset + 'px', top: q.bottom + 2 + extra + 'px' }); return q.bottom + 2 + extra; };
-    const subTop = put(addSubBtn, subIt), secTop = secIt ? secIt.el.getBoundingClientRect().bottom + 2 : 0;
-    put(addSecBtn, secIt, subIt && Math.abs(secTop - subTop) < 26 ? 26 : 0);
+    addSubBtn.style.display = addSecBtn.style.display = 'none';
+    if (secIt) {
+      const sec = doc.sections[secIt.si], pageEl = secIt.el.closest('.page'), pr = pageEl.getBoundingClientRect(), sc = pr.width / PAGE.w, limit = pr.bottom - PAGE.marginBottom * sc;
+      const subH = TYPE.subsection.lh + GAP.subsectionTitle + TYPE.body.lh, secH = TYPE.section.lh + GAP.sectionTitle + subH;
+      const place = (b, it, inset, top, want) => { const hh = Math.min(want * sc, limit - top); if (hh < 20) return 0; const q = it.el.getBoundingClientRect(); b._at = it; Object.assign(b.style, { display: 'flex', left: q.left + inset + 'px', width: q.width - 2 * inset + 'px', top: top + 'px', height: hh + 'px' }); return top + hh; };
+      let y = secIt.el.getBoundingClientRect().bottom;
+      const lastSec = doc.sections.filter(x => x.page === sec.page).pop() === sec;
+      if (lastSec) {
+        if (subIt && subIt.bi === sec.subs.length - 1) { const sb = subIt.el.getBoundingClientRect(); y = place(addSubBtn, subIt, 0, sb.bottom + GAP.subsectionBefore * sc, subH) || y; }
+        place(addSecBtn, secIt, PAGE.margin * sc, y + GAP.sectionBefore * sc, secH);
+      }
+    }
     Object.assign(out.style, { display: 'block', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
   });
   stage.addEventListener('pointerleave', later);

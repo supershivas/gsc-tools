@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.15.0 — 2026-11-03
+- Image du header : affichée en entier, le conteneur suit les proportions de l'image
+- Boutons « + » à la hauteur du bloc créé, seulement là où il y a de la place dessous ; Cmd/Ctrl + molette zoome l'aperçu
+- Le Labo reprend les cartes repliables pour ses options ; le filigrane des marges suit les changements de mise en page
+
 ## 1.14.0 — 2026-11-03
 - Marges et espaces : filigrane dans Affichage et trois densités d'espacement (serré, actuel, large) enregistrées dans le document
 - Boutons « + » pleine largeur sous une section ou une sous-section, et « + » pour ajouter une colonne à une colonne seule

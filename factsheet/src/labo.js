@@ -88,12 +88,22 @@ function drawNav(tp) {
   return side;
 }
 function control(tp, c, o, redraw) {
-  if (c.type === 'check') return h('label', { class: 'labo-check' }, h('input', { type: 'checkbox', checked: !!o[c.k], onchange: e => { o[c.k] = e.target.checked; redraw(); } }), c.label);
+  if (c.type === 'check') return h('div', { class: 'pp-switchrow' }, h('span', { textContent: c.label }),
+    h('button', { type: 'button', role: 'switch', 'aria-checked': String(!!o[c.k]), 'aria-label': c.label, class: 'pp-switch' + (o[c.k] ? ' on' : ''), onclick: e => { o[c.k] = !o[c.k]; e.currentTarget.classList.toggle('on', o[c.k]); e.currentTarget.setAttribute('aria-checked', String(!!o[c.k])); redraw(); } }));
   if (c.type === 'radio') return h('div', { class: 'labo-group' }, h('div', { class: 'labo-lab', textContent: c.label }), h('div', { class: 'labo-radios' }, Object.entries(c.choices).map(([v, l]) =>
     h('label', {}, h('input', { type: 'radio', name: c.k, value: v, checked: o[c.k] === v, onchange: () => { o[c.k] = v; redraw(); } }), l))));
   const s = h('select', { onchange: e => { o[c.k] = e.target.value; redraw(); } }, Object.entries(c.choices).map(([v, l]) => h('option', { value: v, textContent: l })));
   s.value = o[c.k]; return h('label', { class: 'labo-group' }, h('div', { class: 'labo-lab', textContent: c.label }), s);
 }
+/* Cartes repliables, comme les propriétés de l'éditeur (variante B) ; l'état replié est gardé le temps de la session */
+const shut = new Set();
+const optCard = (id, icon, name, nodes) => {
+  const open = !shut.has(id);
+  return h('section', { class: 'pp-card' },
+    h('div', { class: 'pp-card-h' }, h('i', { class: 'ti ti-' + icon }), h('b', { textContent: name }), h('span', { class: 'pp-sp' }),
+      h('button', { type: 'button', class: 'pp-chev', 'aria-expanded': String(open), 'aria-label': open ? 'Replier' : 'Déplier', onclick: () => { open ? shut.add(id) : shut.delete(id); draw(); } }, h('i', { class: 'ti ti-chevron-' + (open ? 'up' : 'down') }))),
+    open ? h('div', { class: 'pp-body' }, nodes) : null);
+};
 function draw() {
   const tp = TOPICS.find(x => x.id === topicId), v = tp.variants[vi], o = optsOf(tp, vi);
   document.title = `${t('Labo')} — GSC tools`;
@@ -101,8 +111,11 @@ function draw() {
   applyVars(sheet, cssVars(DEFAULT_THEME, {}));
   const paint = () => { sheet.replaceChildren(tp.render(o, WIDTHS[stage.width], v, paint)); };
   paint();
-  const opts = tp.panel ? null : h('aside', { class: 'labo-opts' }, h('h3', { textContent: 'Options' }), tp.controls.map(c => control(tp, c, o, paint)),
-    h('button', { type: 'button', class: 'btn', onclick: () => { delete state[`${tp.id}-${LETTERS[vi]}`]; draw(); } }, h('i', { class: 'ti ti-restore' }), 'Réinitialiser la variante'));
+  const settings = tp.controls.filter(c => c.type !== 'check'), checks = tp.controls.filter(c => c.type === 'check');
+  const opts = tp.panel ? null : h('aside', { class: 'labo-opts' },
+    settings.length ? optCard('settings', 'adjustments', 'Réglages', settings.map(c => control(tp, c, o, paint))) : null,
+    checks.length ? optCard('options', 'list-check', 'Options', checks.map(c => control(tp, c, o, paint))) : null,
+    h('button', { type: 'button', class: 'pp-btn', onclick: () => { delete state[`${tp.id}-${LETTERS[vi]}`]; draw(); } }, h('i', { class: 'ti ti-restore' }), h('span', { textContent: 'Réinitialiser la variante' })));
   const view = h('div', { class: 'labo-stage' },
     tp.panel ? null : h('div', { class: 'labo-tools' },
       h('label', {}, 'Largeur de colonne ', h('select', { onchange: e => { stage.width = e.target.value; paint(); } }, Object.entries(WIDTHS).map(([k, w]) => h('option', { value: k, selected: k === stage.width, textContent: `${k} (${Math.round(w)} px)` })))),

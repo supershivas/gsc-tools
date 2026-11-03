@@ -79,7 +79,7 @@ export function buildProps(root, ctx) {
           h('button', { type: 'button', class: 'mini danger', title: 'Supprimer', onclick: () => { if (!confirm(t('Supprimer cette image ?'))) return; H.images.splice(H.images.indexOf(img), 1); if (H.imageId === img.id) H.imageId = H.images[0].id; ctx.restructure(); } }, ico('x'))),
         inp);
     };
-    return h('div', { class: 'f' }, h('div', { class: 'hint', textContent: 'Image affichée (96 × 132 px) — choisissez dans la bibliothèque :' }),
+    return h('div', { class: 'f' }, h('div', { class: 'hint', textContent: 'Image affichée (132 px de haut, largeur selon l’image) — choisissez dans la bibliothèque :' }),
       h('div', { class: 'imggrid' }, H.images.map(tile),
         h('button', { type: 'button', class: 'imgtile-add', onclick: () => { const n = newHeaderImage(H.images.length + 1); H.images.push(n); H.imageId = n.id; ctx.restructure(); } }, ico('plus'), h('span', { textContent: 'Ajouter une image' }))));
   };
