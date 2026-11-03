@@ -35,7 +35,7 @@ export const GAP = {
   headerOverlineRule: SPACE[3], // 9  — surtitre → filet
   headerRuleTitle: SPACE[3],    // 9  — filet → titre
   headerTitleSub: SPACE[1],     // 3  — titre → sous-titre
-  headerToBody: SPACE[8],       // 24 — bas du header → 1re section (recto)
+  headerToBody: SPACE[12],      // 36 — bas du header → 1re section (recto)
   sectionBefore: SPACE[8],      // 24 — entre deux sections
   sectionTitle: SPACE[4],       // 12 — titre de section → 1re sous-section
   subsectionBefore: SPACE[6],   // 18 — entre deux sous-sections
