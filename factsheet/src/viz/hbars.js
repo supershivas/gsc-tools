@@ -7,6 +7,7 @@ const hPath = (x, y, w, h, r) => { r = Math.max(0, Math.min(r, h / 2, w)); retur
 
 export default {
   label: 'Barres horizontales',
+  icon: 'align-box-left-middle', family: 'compare',
   defaults: () => ({
     style: 'grouped', legend: false, showValues: true, decimals: 0, suffix: '%',
     series: [{ name: t('Valeur'), color: 'blue' }],

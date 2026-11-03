@@ -5,6 +5,7 @@ import { t } from '../i18n.js';
 
 export default {
   label: 'Courbes',
+  icon: 'chart-line', family: 'trend',
   defaults: () => ({
     ratio: '16:9', legend: true, showValues: false, decimals: 0, suffix: '', zero: true,
     series: [{ name: `${t('Série')} 1`, color: 'blue' }, { name: `${t('Série')} 2`, color: 'yellow' }],

@@ -7,9 +7,19 @@ import { h, ico } from './render.js';
 import { openPalette } from './palette.js';
 import { buildFields, paletteOptions } from './editor.js';
 import { colWidth, cssVars, applyVars } from './tokens.js';
-import { VIZ_TYPES, VIZ_OPTIONS, newViz, renderVizFull } from './viz/index.js';
+import { VIZ_TYPES, VIZ_FAMILIES, newViz, renderVizFull } from './viz/index.js';
+import { cardEl } from './cards.js';
+import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
+import { t } from './i18n.js';
 
 let current = null;
+const shut = new Set();   // cartes repliées (gardées d'une ouverture à l'autre)
+let tab = 'viz';          // onglet : 'data' (Données) ou 'viz' (Visualisation)
+
+/* Rangement des champs d'un type dans les cartes de l'onglet Visualisation (un champ peut forcer `g: 'format' | 'labels' | 'style' | 'data'`) */
+const LABEL_KEYS = new Set(['legend', 'showValues', 'decimals', 'suffix', 'totalTpl', 'layout']);
+const SERIES_COLORS = ['sky', 'yellow', 'blue', 'slate', 'grey'];
+const groupOf = f => f.g || (f.t === 'table' || f.t === 'list' ? 'data' : f.k === 'ratio' ? 'format' : LABEL_KEYS.has(f.k) ? 'labels' : 'style');
 
 export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
   if (current) return;
@@ -28,6 +38,10 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
   const stage = h('div', { class: 've-stage' }, scaler);
   const form = h('aside', { class: 'panel ve-form' });
   const hint = h('div', { class: 've-hint' });
+  const body = h('div', { class: 've-body' });
+  const tabBtns = [['viz', 'adjustments', 'Visualisation'], ['data', 'table', 'Données']].map(([k, ic, l]) => h('button', { type: 'button', class: 've-tab', dataset: { tab: k }, onclick: () => { tab = k; buildForm(); } }, ico(ic), h('span', { textContent: t(l) })));
+  const tabs = h('div', { class: 've-tabs', role: 'tablist' }, ...tabBtns);
+  const syncTabs = hasData => { tabs.style.display = hasData ? '' : 'none'; tabBtns.forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); }); };
 
   /* ----- rendu ----- */
   function scale() {
@@ -56,17 +70,53 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
   const palCtx = { getDoc: ctx.getDoc,
     changed: () => { applyVars(root, cssVars(doc.theme, doc.colors)); draw(); ctx.changed(); },
     restructure: () => { applyVars(root, cssVars(doc.theme, doc.colors)); buildForm(); draw(); } };
+  const refreshForm = () => buildForm();
+  const card = (id, icon, name, nodes) => cardEl(id, icon, name, nodes, { shut, refresh: refreshForm });
+  function typePicker() {
+    const box = h('div', { class: 've-types' });
+    for (const [fk, fl] of Object.entries(VIZ_FAMILIES)) {
+      const list = Object.entries(VIZ_TYPES).filter(([, v]) => v.family === fk);
+      if (!list.length) continue;
+      box.append(h('div', { class: 'hint', textContent: t(fl) }), h('div', { class: 've-tgrid' }, list.map(([k, v]) => h('button', { type: 'button', class: 've-type' + (col.viz.kind === k ? ' on' : ''), title: t(v.label), 'aria-pressed': String(col.viz.kind === k),
+        onclick: () => {
+          if (col.viz.kind === k) return;
+          const nv = newViz(k), o = col.viz.opts, n = nv.opts;
+          nv.head = col.viz.head;
+          if (o.rows && o.series && n.rows && n.series) { n.rows = o.rows; n.series = o.series; }   // les données tabulaires suivent d'un type à l'autre
+          col.viz = nv; ui.sel = -1; fctx.restructure();
+        } }, ico(v.icon || 'chart-bar'), h('span', { textContent: t(v.label) })))));
+    }
+    return box;
+  }
   function buildForm() {
     const top = form.scrollTop;
     form.innerHTML = '';
-    const t = VIZ_TYPES[col.viz.kind];
-    const kindSel = h('select', { onchange: e => { col.viz = newViz(e.target.value); ui.sel = -1; fctx.restructure(); } },
-      Object.entries(VIZ_OPTIONS).map(([v, l]) => h('option', { value: v, textContent: l, selected: col.viz.kind === v })));
-    form.append(h('label', { class: 'f' }, 'Type de dataviz', kindSel));
-    form.append(h('button', { type: 'button', class: 'pp-btn', style: { width: '100%', marginBottom: '10px' }, onclick: e => openPalette(e.currentTarget, palCtx) }, ico('palette'), h('span', { textContent: 'Couleurs du document' })));
-    if (t.actions) form.append(h('div', { class: 'row', style: { flexWrap: 'wrap', marginBottom: '10px' } },
-      t.actions.map(a => h('button', { type: 'button', textContent: a.label, title: a.title || '', onclick: () => { a.run(col.viz.opts); ui.sel = -1; fctx.restructure(); } }))));
-    form.append(...buildFields(t.fields || [], col.viz.opts, fctx, paletteOptions(doc), h));
+    const ty = VIZ_TYPES[col.viz.kind], fields = ty.fields || [], F = g => fields.filter(f => groupOf(f) === g);
+    const head = col.viz.head || (col.viz.head = { title: '', source: '' });
+    const dataFields = F('data'), hasData = !!ty.data || dataFields.length > 0;
+    if (!hasData) tab = 'viz';
+    syncTabs(hasData);
+    body.classList.toggle('data', tab === 'data');
+    const gen = list => buildFields(list, col.viz.opts, fctx, paletteOptions(doc), h);
+    if (tab === 'data') {
+      const nodes = [];
+      for (const f of dataFields) {
+        if (f.t === 'table') nodes.push(gridEditor(tableAdapter(f, col.viz.opts, paletteOptions(doc), SERIES_COLORS), fctx, { downloadName: col.viz.kind }));
+        else nodes.push(...gen([f]));
+      }
+      if (ty.data) nodes.push(gridEditor(recordsAdapter(ty.data, col.viz.opts, paletteOptions(doc)), fctx, { downloadName: col.viz.kind }), ty.dataHint ? h('p', { class: 'hint', textContent: t(ty.dataHint) }) : null);
+      form.append(card('dv-data', 'table', t('Données'), nodes));
+    } else {
+      form.append(
+        card('dv-type', 'chart-dots', t('Type'), [typePicker()]),
+        card('dv-head', 'typography', t('Titre et source'), buildFields([{ k: 'title', t: 'text', label: 'Titre de la dataviz (facultatif)' }, { k: 'source', t: 'text', label: 'Source (facultatif)' }], head, fctx, {}, h)),
+        F('format').length ? card('dv-format', 'ruler-2', t('Dimensions'), gen(F('format'))) : null,
+        card('dv-colors', 'palette', t('Couleurs'), [h('button', { type: 'button', class: 'pp-btn', onclick: e => openPalette(e.currentTarget, palCtx) }, ico('palette'), h('span', { textContent: t('Couleurs du document') }))]),
+        F('labels').length ? card('dv-labels', 'letter-case', t('Étiquettes'), gen(F('labels'))) : null,
+        F('style').length || ty.actions ? card('dv-style', 'adjustments', t('Options'), [
+          ty.actions ? h('div', { class: 'pp-actions' }, ty.actions.map(a => h('button', { type: 'button', class: 'pp-btn', textContent: a.label, title: a.title || '', onclick: () => { a.run(col.viz.opts); ui.sel = -1; fctx.restructure(); } }))) : null,
+          ...gen(F('style'))]) : null);
+    }
     form.scrollTop = top;
   }
   const focusItem = path => {
@@ -110,11 +160,12 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
 
   root.append(
     h('div', { class: 've-bar' }, h('strong', { textContent: 'Éditeur de dataviz' }),
-      h('label', { class: 'zoom' }, 'Aperçu à la largeur ', wSel), h('label', { class: 'zoom' }, 'Zoom ', zSel),
+      tabs, h('label', { class: 'zoom' }, 'Aperçu à la largeur ', wSel), h('label', { class: 'zoom' }, 'Zoom ', zSel),
       h('span', { style: { flex: 1 } }),
       h('button', { type: 'button', textContent: 'Annuler', onclick: () => close(false) }),
       h('button', { type: 'button', class: 'primary', textContent: 'Terminer', onclick: () => close(true) })),
-    h('div', { class: 've-body' }, form, h('div', { class: 've-main' }, hint, stage)));
+    body);
+  body.append(form, h('div', { class: 've-main' }, hint, stage));
   document.body.append(root); document.body.classList.add('ve-open'); current = root;
   new ResizeObserver(() => { if (zoom === 'fit') draw(); }).observe(stage);
   buildForm(); draw();

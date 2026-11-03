@@ -20,6 +20,7 @@ const ORANGE = '#F28C28';
 
 export default {
   label: 'Anneau / camembert',
+  icon: 'chart-donut', family: 'part',
   defaults: () => ({
     style: 'donut', totalTpl: '€{total} billion', decimals: 1, layout: 'auto', orient: 'largest', largestAngle: 210, startAngle: 0,
     segments: [

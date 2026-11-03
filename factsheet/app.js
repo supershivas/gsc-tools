@@ -512,6 +512,24 @@
     "Pleine largeur": "Full width",
     "Cliquer un segment ou un libell\xE9 pour le s\xE9lectionner \xB7 glisser l\u2019anneau pour le tourner \xB7 glisser un libell\xE9 (verticalement, ou de l\u2019autre c\xF4t\xE9) \xB7 glisser le point blanc pour d\xE9placer l\u2019ancrage du trait": "Click a segment or a label to select it \xB7 drag the ring to rotate it \xB7 drag a label (vertically, or to the other side) \xB7 drag the white dot to move the leader line anchor",
     "Les modifications du formulaire s\u2019appliquent en direct.": "Changes made in the form apply live.",
+    /* éditeur de dataviz : cartes et données */
+    "Visualisation": "Visualisation",
+    "Comparaison": "Comparison",
+    "Proportions": "Proportions",
+    "\xC9volution": "Trend",
+    "Listes": "Lists",
+    "Type": "Type",
+    "Titre et source": "Title and source",
+    "Titre de la dataviz (facultatif)": "Dataviz title (optional)",
+    "Source (facultatif)": "Source (optional)",
+    "Dimensions": "Dimensions",
+    "\xC9tiquettes": "Labels",
+    "Fichier illisible.": "Unreadable file.",
+    "Collez ici un tableau copi\xE9 depuis Excel, Sheets ou un CSV (la 1re ligne peut contenir les en-t\xEAtes)": "Paste a table copied from Excel, Sheets or a CSV here (the first row can hold headers)",
+    "Glissez un fichier CSV, TSV ou JSON ici, ou": "Drop a CSV, TSV or JSON file here, or",
+    "importez-le\u2026": "import it\u2026",
+    "Exporter en CSV": "Export as CSV",
+    "Donut / camembert": "Donut / pie",
     /* types de dataviz */
     "Barres (jumel\xE9es, group\xE9es, empil\xE9es)": "Bars (overlapping, grouped, stacked)",
     "Plusieurs s\xE9ries": "Multiple series",
@@ -1123,6 +1141,8 @@
   var ORANGE = "#F28C28";
   var donut_default = {
     label: "Anneau / camembert",
+    icon: "chart-donut",
+    family: "part",
     defaults: () => ({
       style: "donut",
       totalTpl: "\u20AC{total} billion",
@@ -1388,6 +1408,8 @@
   };
   var bars_default = {
     label: "Barres (jumel\xE9es, group\xE9es, empil\xE9es)",
+    icon: "chart-bar",
+    family: "compare",
     defaults: () => ({
       style: "overlap",
       ratio: "16:9",
@@ -1534,6 +1556,8 @@
   // src/viz/iconlist.js
   var iconlist_default = {
     label: "Liste \xE0 ic\xF4nes",
+    icon: "list-check",
+    family: "list",
     defaults: () => ({ items: [
       { icon: "sliders", text: t("Premier \xE9l\xE9ment de liste") },
       { icon: "send", text: t("Deuxi\xE8me \xE9l\xE9ment de liste") },
@@ -1583,6 +1607,8 @@
   };
   var hbars_default = {
     label: "Barres horizontales",
+    icon: "align-box-left-middle",
+    family: "compare",
     defaults: () => ({
       style: "grouped",
       legend: false,
@@ -1651,6 +1677,8 @@
   // src/viz/line.js
   var line_default = {
     label: "Courbes",
+    icon: "chart-line",
+    family: "trend",
     defaults: () => ({
       ratio: "16:9",
       legend: true,
@@ -1708,12 +1736,22 @@
   // src/viz/index.js
   var VIZ_TYPES = { donut: donut_default, bars: bars_default, hbars: hbars_default, line: line_default, icons: iconlist_default };
   var VIZ_OPTIONS = Object.fromEntries(Object.entries(VIZ_TYPES).map(([k, v]) => [k, v.label]));
-  var newViz = (kind = "bars") => ({ kind, opts: VIZ_TYPES[kind].defaults() });
+  var VIZ_FAMILIES = { compare: "Comparaison", part: "Proportions", trend: "\xC9volution", list: "Listes" };
+  var newViz = (kind = "bars") => ({ kind, opts: VIZ_TYPES[kind].defaults(), head: { title: "", source: "" } });
+  function withHead(viz, node) {
+    const hd = viz.head || {};
+    if (!node || !(hd.title || "").trim() && !(hd.source || "").trim()) return node;
+    const wrap = el("div", { class: "viz-wrap" });
+    if ((hd.title || "").trim()) wrap.append(el("div", { class: "viz-title", textContent: hd.title }));
+    wrap.append(node);
+    if ((hd.source || "").trim()) wrap.append(el("div", { class: "viz-source", textContent: hd.source }));
+    return wrap;
+  }
   function renderViz(viz, width, env) {
     const t2 = viz && VIZ_TYPES[viz.kind];
     if (!t2) return null;
     try {
-      return t2.render(viz.opts || t2.defaults(), width, env || {}).node;
+      return withHead(viz, t2.render(viz.opts || t2.defaults(), width, env || {}).node);
     } catch (e) {
       console.error("dataviz", viz.kind, e);
       return null;
@@ -1723,7 +1761,8 @@
     const t2 = viz && VIZ_TYPES[viz.kind];
     if (!t2) return null;
     try {
-      return t2.render(viz.opts || t2.defaults(), width, env || {});
+      const r = t2.render(viz.opts || t2.defaults(), width, env || {});
+      return { ...r, node: withHead(viz, r.node), wrapped: !!(viz.head && (viz.head.title || viz.head.source)) };
     } catch (e) {
       console.error("dataviz", viz.kind, e);
       return null;
@@ -2463,26 +2502,26 @@ ${lorem}` },
     };
     function drawSliders() {
       sliders.replaceChildren(...specs().map(([label, min, max, val, set], i) => {
-        const num = h("input", { type: "number", min, max, step: 1, value: Math.round(val), "aria-label": label });
+        const num2 = h("input", { type: "number", min, max, step: 1, value: Math.round(val), "aria-label": label });
         const rng = h("input", { type: "range", min, max, step: 1, value: Math.round(val), class: "ce-range", style: { background: gradient(i) }, "aria-label": label });
         const apply = (v) => {
           set(clamp(+v || 0, min, max));
           update(true, mode === "cmyk");
         };
         rng.addEventListener("input", () => apply(rng.value));
-        num.addEventListener("input", () => {
-          if (num.value !== "") apply(num.value);
+        num2.addEventListener("input", () => {
+          if (num2.value !== "") apply(num2.value);
         });
-        return h("div", { class: "ce-row" }, h("b", { textContent: label }), rng, num);
+        return h("div", { class: "ce-row" }, h("b", { textContent: label }), rng, num2);
       }));
     }
-    const tab = (m, label) => h("button", { type: "button", class: "ce-tab" + (mode === m ? " on" : ""), textContent: label, onclick: () => {
+    const tab2 = (m, label) => h("button", { type: "button", class: "ce-tab" + (mode === m ? " on" : ""), textContent: label, onclick: () => {
       mode = m;
       tabs.querySelectorAll(".ce-tab").forEach((b) => b.classList.toggle("on", b.dataset.m === m));
       drawSliders();
     } });
     const tabs = h("div", { class: "ce-tabs" }, ...[["rgb", "RGB"], ["hsv", "HSV"], ["cmyk", "CMJN"]].map(([m, l]) => {
-      const b = tab(m, l);
+      const b = tab2(m, l);
       b.dataset.m = m;
       return b;
     }));
@@ -2752,6 +2791,34 @@ ${lorem}` },
     }
   }
 
+  // src/cards.js
+  function cardEl(id, icon, name, nodes, { shut: shut3, refresh, toggle = null, live = true }) {
+    const open = !shut3.has(id), show = open && live;
+    return h(
+      "section",
+      { class: "pp-card" },
+      h(
+        "div",
+        { class: "pp-card-h" },
+        ico(icon),
+        h("b", { textContent: name }),
+        h("span", { class: "pp-sp" }),
+        toggle,
+        h("button", {
+          type: "button",
+          class: "pp-chev",
+          "aria-expanded": String(open),
+          "aria-label": open ? t("Replier") : t("D\xE9plier"),
+          onclick: () => {
+            open ? shut3.add(id) : shut3.delete(id);
+            refresh();
+          }
+        }, ico(open ? "chevron-up" : "chevron-down"))
+      ),
+      show ? h("div", { class: "pp-body" }, nodes.flat().filter(Boolean)) : null
+    );
+  }
+
   // src/editor.js
   function readImage(file2, max = 1600) {
     return new Promise((res, rej) => {
@@ -2786,14 +2853,14 @@ ${lorem}` },
     if (!lines.length) return null;
     const sep = lines[0].includes("	") ? "	" : lines[0].includes(";") ? ";" : ",";
     const cells = lines.map((l) => l.split(sep).map((c) => c.trim()));
-    const num = (c) => {
+    const num2 = (c) => {
       const n = parseFloat(String(c).replace(/\s/g, "").replace(",", "."));
       return isNaN(n) ? null : n;
     };
     let header = null;
-    if (cells[0].slice(1).some((c) => c !== "" && num(c) === null)) header = cells.shift();
+    if (cells[0].slice(1).some((c) => c !== "" && num2(c) === null)) header = cells.shift();
     const nser = Math.max(1, ...cells.map((c) => c.length - 1));
-    return { header, nser, rows: cells.map((c) => ({ label: c[0] || "", v: Array.from({ length: nser }, (_, j) => num(c[j + 1]) ?? 0) })) };
+    return { header, nser, rows: cells.map((c) => ({ label: c[0] || "", v: Array.from({ length: nser }, (_, j) => num2(c[j + 1]) ?? 0) })) };
   }
   var mkToHtml = (t2) => {
     const lines = String(t2 || "").replace(/\r\n?/g, "\n").split("\n").filter((l) => l.trim());
@@ -3277,26 +3344,7 @@ ${lorem}` },
     };
     const switchBtn = (on, label, fn) => h("button", { type: "button", role: "switch", "aria-checked": String(!!on), "aria-label": label, class: "pp-switch" + (on ? " on" : ""), onclick: fn });
     const switchRow = (label, on, fn) => h("div", { class: "pp-switchrow" }, h("span", { textContent: label }), switchBtn(on, label, struct(fn)));
-    const card = (id, icon, name, nodes, toggle) => {
-      const open = !shut.has(id), live2 = open && (!toggle || toggle.on);
-      return h(
-        "section",
-        { class: "pp-card" },
-        h(
-          "div",
-          { class: "pp-card-h" },
-          ico(icon),
-          h("b", { textContent: name }),
-          h("span", { class: "pp-sp" }),
-          toggle ? switchBtn(toggle.on, name, struct(toggle.set)) : null,
-          h("button", { type: "button", class: "pp-chev", "aria-expanded": String(open), "aria-label": open ? t("Replier") : t("D\xE9plier"), onclick: () => {
-            open ? shut.add(id) : shut.delete(id);
-            ctx2.refreshProps();
-          } }, ico(open ? "chevron-up" : "chevron-down"))
-        ),
-        live2 ? h("div", { class: "pp-body" }, nodes.flat().filter(Boolean)) : null
-      );
-    };
+    const card = (id, icon, name, nodes, toggle) => cardEl(id, icon, name, nodes, { shut, refresh: ctx2.refreshProps, live: !toggle || toggle.on, toggle: toggle ? switchBtn(toggle.on, name, struct(toggle.set)) : null });
     const btn = (icon, label, fn, cls = "") => h("button", { type: "button", class: "pp-btn " + cls, onclick: fn }, ico(icon), h("span", { textContent: label }));
     const boxControls = (obj, fillLabel = "Fond") => [
       swatches(fillLabel, obj, "fillColor", toneKeys(doc2), true),
@@ -3498,8 +3546,300 @@ ${lorem}` },
     }
   }
 
+  // src/vizdata.js
+  var num = (c) => {
+    const n = parseFloat(String(c).replace(/\s/g, "").replace(",", "."));
+    return isNaN(n) ? null : n;
+  };
+  function parseMatrix(text) {
+    const lines = String(text || "").replace(/\r/g, "").split("\n").filter((l) => l.trim());
+    if (!lines.length) return null;
+    const sep = lines[0].includes("	") ? "	" : lines[0].includes(";") ? ";" : ",";
+    return lines.map((l) => {
+      if (sep !== "," || !l.includes('"')) return l.split(sep).map((c) => c.trim());
+      const out = [];
+      let cur = "", q = false;
+      for (const ch of l) {
+        if (ch === '"') q = !q;
+        else if (ch === "," && !q) {
+          out.push(cur.trim());
+          cur = "";
+        } else cur += ch;
+      }
+      return out.concat(cur.trim());
+    });
+  }
+  var toCSV = (m) => m.map((r) => r.map((c) => /[",;\n]/.test(String(c)) ? `"${String(c).replace(/"/g, '""')}"` : String(c)).join(",")).join("\n");
+  function fileToMatrix(name, text) {
+    if (/\.json$/i.test(name) || /^\s*[\[{]/.test(text)) {
+      let j = JSON.parse(text);
+      if (!Array.isArray(j)) j = Object.values(j).find(Array.isArray) || [];
+      if (j.length && !Array.isArray(j[0])) {
+        const keys = [...new Set(j.flatMap((o) => Object.keys(o)))];
+        return [keys, ...j.map((o) => keys.map((k) => o[k] ?? ""))];
+      }
+      return j.map((r) => r.map((c) => String(c ?? "")));
+    }
+    return parseMatrix(text);
+  }
+  var hasHeader = (m, numericCols) => m.length > 1 && numericCols.some((j) => m[0][j] !== void 0 && m[0][j] !== "" && num(m[0][j]) === null);
+  function tableAdapter(f, obj, palOpts, SERIES_COLORS3) {
+    const rows = obj[f.k], series = obj[f.series], max = f.maxSeries || 4;
+    const fix = () => rows.forEach((r) => {
+      r.v = Array.from({ length: series.length }, (_, j) => +(r.v || [])[j] || 0);
+    });
+    return {
+      cols: [{ name: t("Libell\xE9"), type: "text" }, ...series.map((sr, j) => ({
+        name: sr.name || "",
+        type: "number",
+        color: sr.color,
+        palOpts,
+        onColor: (v) => {
+          sr.color = v;
+        },
+        onRename: (v) => {
+          sr.name = v;
+        },
+        onDelete: series.length > 1 ? () => {
+          series.splice(j, 1);
+          fix();
+        } : null
+      }))],
+      rows: () => rows.length,
+      get: (i, j) => j === 0 ? rows[i].label || "" : String((rows[i].v || [])[j - 1] ?? 0),
+      set(i, j, v) {
+        if (j === 0) rows[i].label = v;
+        else {
+          const n = num(v);
+          (rows[i].v || (rows[i].v = []))[j - 1] = n === null ? 0 : n;
+        }
+      },
+      addRow: () => rows.push({ label: "", v: series.map(() => 0) }),
+      delRow: (i) => {
+        if (rows.length > 1) rows.splice(i, 1);
+      },
+      addCol: series.length < max ? () => {
+        series.push({ name: `${t("S\xE9rie")} ${series.length + 1}`, color: SERIES_COLORS3[series.length % SERIES_COLORS3.length] });
+        fix();
+      } : null,
+      colLabel: t("+ S\xE9rie"),
+      load(m, head) {
+        const body = head ? m.slice(1) : m, nser = Math.min(max, Math.max(1, ...body.map((c) => c.length - 1)));
+        const ns = Array.from({ length: nser }, (_, j) => ({ name: head && m[0][j + 1] || series[j] && series[j].name || `${t("S\xE9rie")} ${j + 1}`, color: series[j] && series[j].color || SERIES_COLORS3[j % SERIES_COLORS3.length] }));
+        series.splice(0, series.length, ...ns);
+        rows.splice(0, rows.length, ...body.map((c) => ({ label: c[0] || "", v: Array.from({ length: nser }, (_, j) => num(c[j + 1]) ?? 0) })));
+      },
+      numericCols: Array.from({ length: Math.max(0, series.length) }, (_, j) => j + 1),
+      toMatrix: () => [["", ...series.map((s2) => s2.name || "")], ...rows.map((r) => [r.label || "", ...series.map((_, j) => (r.v || [])[j] ?? 0)])]
+    };
+  }
+  function recordsAdapter(spec, obj, palOpts) {
+    const rows = obj[spec.k] || (obj[spec.k] = []), cols = spec.cols;
+    const conv = (c, v) => c.t === "number" ? num(v) ?? 0 : c.t === "color" ? palOpts[v] ? v : c.def || "blue" : v;
+    const blank = () => Object.fromEntries(cols.map((c) => [c.k, c.def ?? (c.t === "number" ? 0 : "")]));
+    return {
+      cols: cols.map((c) => ({ name: c.label, type: c.t === "number" ? "number" : "text", select: c.t === "color" ? palOpts : c.options || null })),
+      rows: () => rows.length,
+      get: (i, j) => String(rows[i][cols[j].k] ?? ""),
+      set: (i, j, v) => {
+        rows[i][cols[j].k] = conv(cols[j], v);
+      },
+      addRow: () => rows.push(spec.item ? spec.item(rows.length) : blank()),
+      delRow: (i) => {
+        if (rows.length > (spec.min || 1)) rows.splice(i, 1);
+      },
+      addCol: null,
+      load(m, head) {
+        const body = head ? m.slice(1) : m;
+        const idx = cols.map((c, j) => {
+          if (!head) return j;
+          const n = m[0].findIndex((x) => x.toLowerCase() === c.label.toLowerCase() || x.toLowerCase() === c.k.toLowerCase());
+          return n < 0 ? j : n;
+        });
+        rows.splice(0, rows.length, ...body.map((r) => Object.fromEntries(cols.map((c, j) => [c.k, conv(c, r[idx[j]] ?? c.def ?? "")]))));
+      },
+      numericCols: cols.map((c, j) => c.t === "number" ? j : -1).filter((j) => j >= 0),
+      toMatrix: () => [cols.map((c) => c.label), ...rows.map((r) => cols.map((c) => r[c.k] ?? ""))]
+    };
+  }
+  function gridEditor(ad, ctx2, { downloadName = "data" } = {}) {
+    const rebuild = () => ctx2.restructure();
+    const apply = (m, head2) => {
+      if (!m || !m.length) return;
+      ad.load(m, head2 === void 0 ? hasHeader(m, ad.numericCols) : head2);
+      rebuild();
+    };
+    const file2 = h("input", { type: "file", accept: ".csv,.tsv,.txt,.json,text/csv,application/json", hidden: true, onchange: async () => {
+      const f = file2.files[0];
+      file2.value = "";
+      if (!f) return;
+      try {
+        apply(fileToMatrix(f.name, await f.text()));
+      } catch (e) {
+        alert(t("Fichier illisible."));
+      }
+    } });
+    const ta = h("textarea", { placeholder: t("Collez ici un tableau copi\xE9 depuis Excel, Sheets ou un CSV (la 1re ligne peut contenir les en-t\xEAtes)"), style: { minHeight: "64px" } });
+    const drop = h(
+      "div",
+      { class: "dg-drop" },
+      ico("upload"),
+      h("span", { textContent: t("Glissez un fichier CSV, TSV ou JSON ici, ou") }),
+      h("button", { type: "button", textContent: t("importez-le\u2026"), onclick: () => file2.click() }),
+      file2
+    );
+    ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => {
+      e.preventDefault();
+      drop.classList.add("on");
+    }));
+    ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => {
+      e.preventDefault();
+      drop.classList.remove("on");
+    }));
+    drop.addEventListener("drop", async (e) => {
+      const f = e.dataTransfer.files[0];
+      if (!f) return;
+      try {
+        apply(fileToMatrix(f.name, await f.text()));
+      } catch (x) {
+        alert(t("Fichier illisible."));
+      }
+    });
+    const tools = h(
+      "div",
+      { class: "row dg-tools" },
+      h("button", { type: "button", class: "pp-btn", onclick: () => {
+        const b = new Blob(["\uFEFF" + toCSV(ad.toMatrix())], { type: "text/csv" }), a = h("a", { href: URL.createObjectURL(b), download: downloadName + ".csv" });
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1e3);
+      } }, ico("download"), h("span", { textContent: t("Exporter en CSV") }))
+    );
+    const table = h("table", { class: "dg" });
+    const head = h("tr", {}, h("th", { class: "dg-n" }), ...ad.cols.map((c, j) => {
+      const th = h("th", {}, c.onRename ? h(
+        "div",
+        { class: "dg-h" },
+        c.palOpts ? (() => {
+          const s2 = h("select", { class: "dg-color", title: t("Couleur"), onchange: (e) => {
+            c.onColor(e.target.value);
+            ctx2.changed();
+          } }, Object.entries(c.palOpts).map(([v, l]) => h("option", { value: v, textContent: l })));
+          s2.value = c.color;
+          return s2;
+        })() : null,
+        h("input", { type: "text", value: c.name, placeholder: `${t("S\xE9rie")} ${j}`, oninput: (e) => {
+          c.onRename(e.target.value);
+          ctx2.changed();
+        } }),
+        c.onDelete ? h("button", { type: "button", class: "mini danger", title: t("Supprimer"), onclick: () => {
+          c.onDelete();
+          rebuild();
+        } }, ico("x")) : null
+      ) : h("span", { textContent: c.name }));
+      return th;
+    }), h("th", { class: "dg-n" }));
+    table.append(h("thead", {}, head));
+    const body = h("tbody");
+    const cell = (i, j) => {
+      const c = ad.cols[j], v = ad.get(i, j);
+      const common = { "data-r": i, "data-c": j };
+      if (c.select) {
+        const s2 = h("select", { ...common, onchange: (e) => {
+          ad.set(i, j, e.target.value);
+          ctx2.changed();
+        } }, Object.entries(c.select).map(([k, l]) => h("option", { value: k, textContent: l })));
+        s2.value = v;
+        return h("td", {}, s2);
+      }
+      const inp = h("input", {
+        ...common,
+        type: "text",
+        inputMode: c.type === "number" ? "decimal" : "text",
+        value: v,
+        oninput: (e) => {
+          ad.set(i, j, e.target.value);
+          ctx2.changed();
+        },
+        onkeydown: (e) => {
+          const go = (di, dj) => {
+            const n = table.querySelector(`[data-r="${i + di}"][data-c="${j + dj}"]`);
+            if (n) {
+              e.preventDefault();
+              n.focus();
+              n.select && n.select();
+            }
+          };
+          if (e.key === "Enter" || e.key === "ArrowDown") go(1, 0);
+          else if (e.key === "ArrowUp") go(-1, 0);
+        },
+        onpaste: (e) => {
+          const txt = (e.clipboardData || window.clipboardData).getData("text/plain");
+          if (!/[\t\n]/.test(txt.trim())) return;
+          const m = parseMatrix(txt);
+          if (!m) return;
+          e.preventDefault();
+          if (i === 0 && j === 0) {
+            apply(m);
+            return;
+          }
+          m.forEach((r, di) => {
+            while (ad.rows() <= i + di) ad.addRow();
+            r.forEach((val, dj) => {
+              if (j + dj < ad.cols.length) ad.set(i + di, j + dj, val);
+            });
+          });
+          rebuild();
+        }
+      });
+      return h("td", {}, inp);
+    };
+    for (let i = 0; i < ad.rows(); i++) {
+      body.append(h(
+        "tr",
+        {},
+        h("td", { class: "dg-n", textContent: String(i + 1) }),
+        ...ad.cols.map((_, j) => cell(i, j)),
+        h("td", { class: "dg-n" }, ad.rows() > 1 ? h("button", { type: "button", class: "mini danger", title: t("Supprimer"), onclick: () => {
+          ad.delRow(i);
+          rebuild();
+        } }, ico("x")) : null)
+      ));
+    }
+    table.append(body);
+    const adds = h(
+      "div",
+      { class: "row" },
+      h("button", { type: "button", class: "pp-btn", onclick: () => {
+        ad.addRow();
+        rebuild();
+      } }, ico("plus"), h("span", { textContent: t("+ Ligne") })),
+      ad.addCol ? h("button", { type: "button", class: "pp-btn", onclick: () => {
+        ad.addCol();
+        rebuild();
+      } }, ico("plus"), h("span", { textContent: ad.colLabel })) : null
+    );
+    const pasteBtn = h("button", { type: "button", class: "pp-btn", textContent: t("Remplacer les donn\xE9es"), onclick: () => {
+      const m = parseMatrix(ta.value);
+      if (m) apply(m);
+    } });
+    return h(
+      "div",
+      { class: "dg-wrap" },
+      drop,
+      h("details", {}, h("summary", { textContent: t("Coller un tableau") }), h("div", { class: "body" }, ta, pasteBtn)),
+      h("div", { class: "dg-scroll" }, table),
+      adds,
+      tools
+    );
+  }
+
   // src/vizeditor.js
   var current2 = null;
+  var shut2 = /* @__PURE__ */ new Set();
+  var tab = "viz";
+  var LABEL_KEYS = /* @__PURE__ */ new Set(["legend", "showValues", "decimals", "suffix", "totalTpl", "layout"]);
+  var SERIES_COLORS2 = ["sky", "yellow", "blue", "slate", "grey"];
+  var groupOf = (f) => f.g || (f.t === "table" || f.t === "list" ? "data" : f.k === "ratio" ? "format" : LABEL_KEYS.has(f.k) ? "labels" : "style");
   function openVizEditor({ col, sub, ci, bg, width: colW, ctx: ctx2 }) {
     if (current2) return;
     const doc2 = ctx2.getDoc();
@@ -3516,6 +3856,20 @@ ${lorem}` },
     const stage2 = h("div", { class: "ve-stage" }, scaler);
     const form = h("aside", { class: "panel ve-form" });
     const hint = h("div", { class: "ve-hint" });
+    const body = h("div", { class: "ve-body" });
+    const tabBtns = [["viz", "adjustments", "Visualisation"], ["data", "table", "Donn\xE9es"]].map(([k, ic, l]) => h("button", { type: "button", class: "ve-tab", dataset: { tab: k }, onclick: () => {
+      tab = k;
+      buildForm();
+    } }, ico(ic), h("span", { textContent: t(l) })));
+    const tabs = h("div", { class: "ve-tabs", role: "tablist" }, ...tabBtns);
+    const syncTabs = (hasData) => {
+      tabs.style.display = hasData ? "" : "none";
+      tabBtns.forEach((b) => {
+        const on = b.dataset.tab === tab;
+        b.classList.toggle("on", on);
+        b.setAttribute("aria-selected", String(on));
+      });
+    };
     function scale() {
       if (zoom !== "fit") return parseFloat(zoom);
       return Math.max(0.5, Math.min(2, (stage2.clientWidth - 80) / (width + 48)));
@@ -3561,31 +3915,69 @@ ${lorem}` },
         draw();
       }
     };
+    const refreshForm = () => buildForm();
+    const card = (id, icon, name, nodes) => cardEl(id, icon, name, nodes, { shut: shut2, refresh: refreshForm });
+    function typePicker() {
+      const box = h("div", { class: "ve-types" });
+      for (const [fk, fl] of Object.entries(VIZ_FAMILIES)) {
+        const list = Object.entries(VIZ_TYPES).filter(([, v]) => v.family === fk);
+        if (!list.length) continue;
+        box.append(h("div", { class: "hint", textContent: t(fl) }), h("div", { class: "ve-tgrid" }, list.map(([k, v]) => h("button", {
+          type: "button",
+          class: "ve-type" + (col.viz.kind === k ? " on" : ""),
+          title: t(v.label),
+          "aria-pressed": String(col.viz.kind === k),
+          onclick: () => {
+            if (col.viz.kind === k) return;
+            const nv = newViz(k), o = col.viz.opts, n = nv.opts;
+            nv.head = col.viz.head;
+            if (o.rows && o.series && n.rows && n.series) {
+              n.rows = o.rows;
+              n.series = o.series;
+            }
+            col.viz = nv;
+            ui.sel = -1;
+            fctx.restructure();
+          }
+        }, ico(v.icon || "chart-bar"), h("span", { textContent: t(v.label) })))));
+      }
+      return box;
+    }
     function buildForm() {
       const top = form.scrollTop;
       form.innerHTML = "";
-      const t2 = VIZ_TYPES[col.viz.kind];
-      const kindSel = h(
-        "select",
-        { onchange: (e) => {
-          col.viz = newViz(e.target.value);
-          ui.sel = -1;
-          fctx.restructure();
-        } },
-        Object.entries(VIZ_OPTIONS).map(([v, l]) => h("option", { value: v, textContent: l, selected: col.viz.kind === v }))
-      );
-      form.append(h("label", { class: "f" }, "Type de dataviz", kindSel));
-      form.append(h("button", { type: "button", class: "pp-btn", style: { width: "100%", marginBottom: "10px" }, onclick: (e) => openPalette(e.currentTarget, palCtx) }, ico("palette"), h("span", { textContent: "Couleurs du document" })));
-      if (t2.actions) form.append(h(
-        "div",
-        { class: "row", style: { flexWrap: "wrap", marginBottom: "10px" } },
-        t2.actions.map((a) => h("button", { type: "button", textContent: a.label, title: a.title || "", onclick: () => {
-          a.run(col.viz.opts);
-          ui.sel = -1;
-          fctx.restructure();
-        } }))
-      ));
-      form.append(...buildFields(t2.fields || [], col.viz.opts, fctx, paletteOptions(doc2), h));
+      const ty = VIZ_TYPES[col.viz.kind], fields = ty.fields || [], F = (g) => fields.filter((f) => groupOf(f) === g);
+      const head = col.viz.head || (col.viz.head = { title: "", source: "" });
+      const dataFields = F("data"), hasData = !!ty.data || dataFields.length > 0;
+      if (!hasData) tab = "viz";
+      syncTabs(hasData);
+      body.classList.toggle("data", tab === "data");
+      const gen = (list) => buildFields(list, col.viz.opts, fctx, paletteOptions(doc2), h);
+      if (tab === "data") {
+        const nodes = [];
+        for (const f of dataFields) {
+          if (f.t === "table") nodes.push(gridEditor(tableAdapter(f, col.viz.opts, paletteOptions(doc2), SERIES_COLORS2), fctx, { downloadName: col.viz.kind }));
+          else nodes.push(...gen([f]));
+        }
+        if (ty.data) nodes.push(gridEditor(recordsAdapter(ty.data, col.viz.opts, paletteOptions(doc2)), fctx, { downloadName: col.viz.kind }), ty.dataHint ? h("p", { class: "hint", textContent: t(ty.dataHint) }) : null);
+        form.append(card("dv-data", "table", t("Donn\xE9es"), nodes));
+      } else {
+        form.append(
+          card("dv-type", "chart-dots", t("Type"), [typePicker()]),
+          card("dv-head", "typography", t("Titre et source"), buildFields([{ k: "title", t: "text", label: "Titre de la dataviz (facultatif)" }, { k: "source", t: "text", label: "Source (facultatif)" }], head, fctx, {}, h)),
+          F("format").length ? card("dv-format", "ruler-2", t("Dimensions"), gen(F("format"))) : null,
+          card("dv-colors", "palette", t("Couleurs"), [h("button", { type: "button", class: "pp-btn", onclick: (e) => openPalette(e.currentTarget, palCtx) }, ico("palette"), h("span", { textContent: t("Couleurs du document") }))]),
+          F("labels").length ? card("dv-labels", "letter-case", t("\xC9tiquettes"), gen(F("labels"))) : null,
+          F("style").length || ty.actions ? card("dv-style", "adjustments", t("Options"), [
+            ty.actions ? h("div", { class: "pp-actions" }, ty.actions.map((a) => h("button", { type: "button", class: "pp-btn", textContent: a.label, title: a.title || "", onclick: () => {
+              a.run(col.viz.opts);
+              ui.sel = -1;
+              fctx.restructure();
+            } }))) : null,
+            ...gen(F("style"))
+          ]) : null
+        );
+      }
       form.scrollTop = top;
     }
     const focusItem = (path) => {
@@ -3667,14 +4059,16 @@ ${lorem}` },
         "div",
         { class: "ve-bar" },
         h("strong", { textContent: "\xC9diteur de dataviz" }),
+        tabs,
         h("label", { class: "zoom" }, "Aper\xE7u \xE0 la largeur ", wSel),
         h("label", { class: "zoom" }, "Zoom ", zSel),
         h("span", { style: { flex: 1 } }),
         h("button", { type: "button", textContent: "Annuler", onclick: () => close(false) }),
         h("button", { type: "button", class: "primary", textContent: "Terminer", onclick: () => close(true) })
       ),
-      h("div", { class: "ve-body" }, form, h("div", { class: "ve-main" }, hint, stage2))
+      body
     );
+    body.append(form, h("div", { class: "ve-main" }, hint, stage2));
     document.body.append(root);
     document.body.classList.add("ve-open");
     current2 = root;

@@ -6,6 +6,7 @@ import { t } from '../i18n.js';
 
 export default {
   label: 'Liste à icônes',
+  icon: 'list-check', family: 'list',
   defaults: () => ({ items: [
     { icon: 'sliders', text: t('Premier élément de liste') },
     { icon: 'send', text: t('Deuxième élément de liste') },

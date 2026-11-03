@@ -45,6 +45,9 @@
 .vf-value{font-family:var(--t-figure-family);font-size:var(--t-figure-size);line-height:var(--t-figure-lh);font-weight:var(--t-figure-weight)}
 .vf-text{margin-top:var(--s1)}
 .vf-text b{font-weight:700}
+.viz-wrap{display:flex;flex-direction:column;gap:var(--s3)}
+.viz-title{font-size:var(--t-caption-size);line-height:var(--t-caption-lh);font-weight:700}
+.viz-source{font-size:var(--t-caption-size);line-height:var(--t-caption-lh);font-weight:400;opacity:.7}
 .viz-icons{display:flex;flex-direction:column;gap:var(--viz-iconRowGap)}
 .vi-row{display:flex;align-items:center;gap:var(--viz-iconGap);min-height:var(--viz-iconCircle)}
 .vi-ic{flex:none;display:block}

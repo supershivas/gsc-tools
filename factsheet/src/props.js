@@ -3,6 +3,7 @@ import { h, ico, headerImage, columnWidth } from './render.js';
 import { t } from './i18n.js';
 import { GRID, THEMES, paletteKeys, toneKeys, colorLabel, cssVars, applyVars } from './tokens.js';
 import { openPalette } from './palette.js';
+import { cardEl } from './cards.js';
 import { newCard, cardPresetFor, CARD_CHECKS } from './cardmodel.js';
 import { COL_TYPES, IMAGE_RATIOS, LOCALES, LOGO_VARIANTS, DEFAULT_LOGOS, DEFAULT_IMAGE_ID, VALIGNS, ALIGNS, newCol, stepSection, newHeaderImage, swapCols, allCols, moveSub, refreshAutoCards } from './state.js';
 import { VIZ_TYPES, VIZ_OPTIONS, newViz } from './viz/index.js';
@@ -117,14 +118,7 @@ export function buildProps(root, ctx) {
   const switchBtn = (on, label, fn) => h('button', { type: 'button', role: 'switch', 'aria-checked': String(!!on), 'aria-label': label, class: 'pp-switch' + (on ? ' on' : ''), onclick: fn });
   const switchRow = (label, on, fn) => h('div', { class: 'pp-switchrow' }, h('span', { textContent: label }), switchBtn(on, label, struct(fn)));
   /** toggle : { on, set } — l'interrupteur de l'en-tête affiche ou masque l'élément (la carte se replie quand il est éteint) */
-  const card = (id, icon, name, nodes, toggle) => {
-    const open = !shut.has(id), live = open && (!toggle || toggle.on);
-    return h('section', { class: 'pp-card' },
-      h('div', { class: 'pp-card-h' }, ico(icon), h('b', { textContent: name }), h('span', { class: 'pp-sp' }),
-        toggle ? switchBtn(toggle.on, name, struct(toggle.set)) : null,
-        h('button', { type: 'button', class: 'pp-chev', 'aria-expanded': String(open), 'aria-label': open ? t('Replier') : t('Déplier'), onclick: () => { open ? shut.add(id) : shut.delete(id); ctx.refreshProps(); } }, ico(open ? 'chevron-up' : 'chevron-down'))),
-      live ? h('div', { class: 'pp-body' }, nodes.flat().filter(Boolean)) : null);
-  };
+  const card = (id, icon, name, nodes, toggle) => cardEl(id, icon, name, nodes, { shut, refresh: ctx.refreshProps, live: !toggle || toggle.on, toggle: toggle ? switchBtn(toggle.on, name, struct(toggle.set)) : null });
   const btn = (icon, label, fn, cls = '') => h('button', { type: 'button', class: 'pp-btn ' + cls, onclick: fn }, ico(icon), h('span', { textContent: label }));
   /* Fond (une couleur au choix, avec teintes) et contour (couleur au choix) : sections, sous-sections et colonnes */
   const boxControls = (obj, fillLabel = 'Fond') => [

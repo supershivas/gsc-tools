@@ -9,6 +9,7 @@ const barPath = (x, y, w, h, r) => {
 
 export default {
   label: 'Barres (jumelées, groupées, empilées)',
+  icon: 'chart-bar', family: 'compare',
   defaults: () => ({
     style: 'overlap', ratio: '16:9', legend: true, showValues: false, decimals: 0, suffix: '',
     series: [{ name: 'Label 1', color: 'sky' }, { name: 'Label 2', color: 'yellow' }],

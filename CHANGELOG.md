@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.21.0 — 2026-11-03
+- Éditeur de dataviz : panneau en cartes repliables comme l'accueil, onglets Visualisation et Données
+- Données : tableau éditable, collage depuis Excel, import CSV/TSV/JSON, export CSV
+- Titre et source facultatifs sur toute dataviz ; le tableau suit quand on change de type
+
 ## 1.20.0 — 2026-11-03
 - Sections et sous-sections : interrupteur « Afficher le titre » pour masquer un titre sans le perdre
 
