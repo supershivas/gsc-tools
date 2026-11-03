@@ -57,7 +57,7 @@ async function buildSettings() {
   return dlg;
 }
 
-/* Menus déroulants de l'en-tête : [{ label, items: [{ label, icon?, href?, run?, checked?() } | { heading } | '-'] }] */
+/* Menus déroulants de l'en-tête : [{ label, items: [{ label, icon?, hint?, href?, run?, checked?(), disabled?() } | { heading } | '-'] }] */
 function buildMenus(menus) {
   const nav = el('nav', { className: 'app-menus', ariaLabel: 'Menu' });
   const pops = [];
@@ -71,8 +71,9 @@ function buildMenus(menus) {
         if (it === '-') return el('div', { className: 'menu-sep', role: 'separator' });
         if (it.heading) return el('div', { className: 'menu-head', textContent: it.heading });
         const mark = it.checked ? el('i', { className: 'ti ti-check' + (it.checked() ? '' : ' off') }) : it.icon ? icon(it.icon) : el('i', { className: 'ti' });
-        return el(it.href ? 'a' : 'button', { className: 'menu-item', role: it.checked ? 'menuitemradio' : 'menuitem', ariaChecked: it.checked ? String(it.checked()) : null,
-          ...(it.href ? { href: it.href } : { type: 'button' }), onclick: () => { closeAll(); if (it.run) it.run(); } }, mark, el('span', { textContent: it.label }));
+        const off = !!(it.disabled && it.disabled());
+        return el(it.href ? 'a' : 'button', { className: 'menu-item', role: it.checked ? 'menuitemradio' : 'menuitem', ariaChecked: it.checked ? String(it.checked()) : null, disabled: off,
+          ...(it.href ? { href: it.href } : { type: 'button' }), onclick: () => { closeAll(); if (it.run) it.run(); } }, mark, el('span', { textContent: it.label }), it.hint ? el('small', { className: 'menu-hint', textContent: it.hint }) : null);
       }));
     } };
     pops.push(m);
@@ -85,7 +86,7 @@ function buildMenus(menus) {
   return nav;
 }
 
-export function initShell({ sub = '', homeUrl = new URL('./', ROOT).href, menus = [], settingsExtra: extra = [] } = {}) {
+export function initShell({ sub = '', homeUrl = new URL('./', ROOT).href, menus = [], center = null, settingsExtra: extra = [] } = {}) {
   settingsExtra = extra;
   const host = document.getElementById('app-header');
   const name = el('a', { className: 'app-name', href: homeUrl, textContent: 'GSC tools' });
@@ -94,8 +95,8 @@ export function initShell({ sub = '', homeUrl = new URL('./', ROOT).href, menus 
     onclick: async () => { dlgPromise ||= buildSettings(); (await dlgPromise).showModal(); } }, icon('settings'));
   // Le nom ramène à l'accueil et referme les modales ouvertes.
   name.addEventListener('click', () => document.querySelectorAll('dialog[open]').forEach(d => d.close()));
-  host.className = 'app-header';
-  host.append(el('div', { className: 'app-left' }, name, sub ? el('span', { className: 'app-sub', textContent: sub }) : null, menus.length ? buildMenus(menus) : null), gear);
+  host.className = 'app-header' + (center ? ' has-center' : '');
+  host.append(el('div', { className: 'app-left' }, name, sub ? el('span', { className: 'app-sub', textContent: sub }) : null, menus.length ? buildMenus(menus) : null), ...(center ? [center] : []), el('div', { className: 'app-right' }, gear));
 
   // App uniquement bureau : bandeau refermable sur téléphone.
   let hidden = false;

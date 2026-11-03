@@ -38,7 +38,6 @@
 .viz-ph{width:100%;border:var(--stroke) solid var(--c-text);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;opacity:.55}
 
 /* Sélection (aperçu uniquement) */
-.page .is-sel{outline:2px solid #F28C28;outline-offset:2px;border-radius:2px}
 
 /* Dataviz */
 .viz-ph{height:var(--s16);width:100%;border:var(--stroke) solid var(--c-text);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;opacity:.55}

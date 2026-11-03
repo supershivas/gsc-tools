@@ -220,7 +220,7 @@
   var paletteOf = (themeKey, colors) => Object.assign({}, (THEMES[themeKey] || THEMES[DEFAULT_THEME]).colors, colors || {});
   var paletteKeys = (doc2, white = true) => [...Object.keys(paletteOf(doc2.theme, doc2.colors)), ...white ? ["white"] : []];
   var sectionBgs = (doc2) => Object.keys(paletteOf(doc2.theme, doc2.colors)).map((k) => "tint-" + k);
-  var fillKeys = (doc2) => ["white", ...sectionBgs(doc2), ...paletteKeys(doc2, false)];
+  var toneKeys = (doc2) => [...paletteKeys(doc2), ...sectionBgs(doc2)];
   function colorLabel(doc2, key) {
     const th = THEMES[doc2.theme] || THEMES[DEFAULT_THEME];
     if (key === "white") return "Blanc";
@@ -299,6 +299,14 @@
     "Entre sections": "Between sections",
     "Entre sous-sections": "Between subsections",
     "Entre colonnes": "Between columns",
+    "Annuler l\u2019action": "Undo",
+    "Ton l\xE9ger (20 %)": "Light tone (20 %)",
+    "\xC9dition": "Edit",
+    "R\xE9tablir": "Redo",
+    "Couleurs du document\u2026": "Document colours\u2026",
+    "Format des nombres": "Number format",
+    "S\xE9lectionnez un \xE9l\xE9ment dans la structure (\xE0 gauche) ou sur la page pour modifier ses propri\xE9t\xE9s.": "Select an element in the structure (left) or on the page to edit its properties.",
+    "Les couleurs, le format des nombres et le nom du fichier sont dans le menu \xC9dition.": "Colours, number format and file name are in the Edit menu.",
     "Nouvelle factsheet vierge": "New blank factsheet",
     "Cr\xE9er une factsheet vierge ? Le document actuel sera remplac\xE9 : enregistrez-le d\u2019abord (.json) si besoin.": "Create a blank factsheet? The current document will be replaced: save it first (.json) if needed.",
     "Enregistrer (.json)": "Save (.json)",
@@ -2023,7 +2031,7 @@ ${lorem}` },
     delete doc2.colors[key];
     delete (doc2.colorNames || {})[key];
     const gone = (k) => k === key || k === "tint-" + key ? "none" : k;
-    remapColors(doc2, (k) => k === key ? "blue" : k, gone, gone);
+    remapColors(doc2, (k) => k === key ? "blue" : k === "tint-" + key ? "tint-blue" : k, gone, gone);
   }
   function refreshAutoCards(sub, widthOf) {
     sub.cols.forEach((c, i) => {
@@ -2270,231 +2278,6 @@ ${lorem}` },
     }
     result.warnings = warnings;
     return result;
-  }
-
-  // src/tree.js
-  var strip = (t2) => String(t2 || "").replace(/\*\*|__|~~/g, "").replace(/^[-•]\s+/gm, "").replace(/\s+/g, " ").trim();
-  var ICON = { text: "text-size", image: "photo", figure: "number", card: "layout-cards", viz: "chart-bar" };
-  function colLabel(col) {
-    if (col.type === "text") return strip(col.text).slice(0, 34) || "Texte vide";
-    if (col.type === "image") return col.caption ? "Image \xB7 " + col.caption : "Image";
-    if (col.type === "card") return "Carte \xB7 " + (strip(col.card && col.card.content && col.card.content.title) || "\u2014");
-    if (col.type === "figure") return "Chiffre cl\xE9 \xB7 " + (col.figure && col.figure.value || "\u2014");
-    const t2 = col.viz && VIZ_TYPES[col.viz.kind];
-    return "Dataviz \xB7 " + (t2 ? t2.label : "\u2014");
-  }
-  function buildTree(root, ctx2) {
-    const doc2 = ctx2.getDoc(), sel = ctx2.getSel(), collapsed2 = ctx2.collapsed;
-    root.innerHTML = "";
-    applyVars(root, cssVars(doc2.theme, doc2.colors));
-    const row = (path, cls, kids) => h("div", {
-      class: "tn " + cls + (sel === path ? " sel" : ""),
-      dataset: { path: path || "" },
-      onclick: (e) => {
-        if (e.target.closest(".grip,.tn-tog,.tn-add")) return;
-        ctx2.select(path);
-      }
-    }, ...kids);
-    const tog = (key) => h("button", { type: "button", class: "tn-tog", "aria-label": collapsed2.has(key) ? "D\xE9plier" : "Replier", "aria-expanded": String(!collapsed2.has(key)), onclick: () => {
-      collapsed2.has(key) ? collapsed2.delete(key) : collapsed2.add(key);
-      ctx2.refreshTree();
-    } }, ico(collapsed2.has(key) ? "chevron-down" : "chevron-up"));
-    const add = (label, fn) => h("button", { type: "button", class: "tn-add", onclick: () => {
-      fn();
-      ctx2.restructure();
-    } }, ico("plus"), h("span", { textContent: label }));
-    root.append(row(null, "tn-doc", [ico("file-text"), h("strong", { textContent: doc2.name || "Document" }), h("span", { class: "tn-sub", textContent: "document" })]));
-    let dragFrom = null, drag2 = null, pKey = "";
-    const clearDrop = () => root.querySelectorAll(".drop-before,.drop-after,.drop-zone,.drop-swap").forEach((n) => n.classList.remove("drop-before", "drop-after", "drop-zone", "drop-swap"));
-    const preview = (key, apply) => {
-      if (key === pKey) return;
-      pKey = key;
-      ctx2.preview(apply);
-    };
-    const endDrag = () => {
-      pKey = "";
-      ctx2.preview(null);
-      clearDrop();
-      document.body.classList.remove("dragging");
-    };
-    const startDrag = () => {
-      document.body.classList.add("dragging");
-    };
-    const gripFor = (d) => h("span", {
-      class: "grip",
-      draggable: true,
-      title: d.kind === "sub" ? "Glisser la sous-section (autre section possible)" : "Glisser le contenu sur une autre colonne pour l\u2019\xE9changer",
-      ondragstart: (e) => {
-        e.stopPropagation();
-        drag2 = d;
-        startDrag();
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain", d.kind);
-      },
-      ondragend: () => {
-        drag2 = null;
-        endDrag();
-      }
-    }, ico("grip-vertical"));
-    const dropOn = (rowEl, target) => {
-      rowEl.addEventListener("dragover", (ev) => {
-        if (!drag2) return;
-        if (target.kind === "col" && drag2.kind === "col") {
-          ev.preventDefault();
-          ev.stopPropagation();
-          clearDrop();
-          rowEl.classList.add("drop-swap");
-          const same = target.si === drag2.si && target.bi === drag2.bi && target.ci === drag2.ci;
-          preview(same ? "" : `col:${target.si}:${target.bi}:${target.ci}`, same ? null : (c) => {
-            swapCols(c, drag2, target);
-            return `col:${target.si}:${target.bi}:${target.ci}`;
-          });
-        } else if (target.kind === "sub" && drag2.kind === "sub") {
-          ev.preventDefault();
-          ev.stopPropagation();
-          const r = rowEl.getBoundingClientRect(), after = ev.clientY > r.top + r.height / 2;
-          clearDrop();
-          rowEl.classList.add(after ? "drop-after" : "drop-before");
-          rowEl.dataset.after = after ? "1" : "";
-          const d = drag2;
-          preview(`sub:${target.si}:${target.bi}:${after}`, (c) => {
-            const n = moveSub(c, d, target, after);
-            return `sub:${n.si}:${n.bi}`;
-          });
-        } else if (target.kind === "sec" && drag2.kind === "sub") {
-          ev.preventDefault();
-          ev.stopPropagation();
-          clearDrop();
-          rowEl.classList.add("drop-zone");
-          const d = drag2;
-          preview(`subsec:${target.si}`, (c) => {
-            const n = moveSub(c, d, { si: target.si, bi: null });
-            return `sub:${n.si}:${n.bi}`;
-          });
-        }
-      });
-      rowEl.addEventListener("drop", (ev) => {
-        if (!drag2) return;
-        const d = drag2;
-        drag2 = null;
-        endDrag();
-        if (target.kind === "col" && d.kind === "col") {
-          ev.preventDefault();
-          ev.stopPropagation();
-          ctx2.moved(() => {
-            swapCols(doc2, d, target);
-            return `col:${target.si}:${target.bi}:${target.ci}`;
-          });
-        } else if (target.kind === "sub" && d.kind === "sub") {
-          ev.preventDefault();
-          ev.stopPropagation();
-          const after = !!rowEl.dataset.after;
-          ctx2.moved(() => {
-            const n = moveSub(doc2, d, target, after);
-            return `sub:${n.si}:${n.bi}`;
-          });
-        } else if (target.kind === "sec" && d.kind === "sub") {
-          ev.preventDefault();
-          ev.stopPropagation();
-          ctx2.moved(() => {
-            const n = moveSub(doc2, d, { si: target.si, bi: null });
-            return `sub:${n.si}:${n.bi}`;
-          });
-        }
-      });
-      return rowEl;
-    };
-    const secNode = (sec, si) => {
-      const key = sec.id || "sec" + si, closed = collapsed2.has(key), band = sec.bg && sec.bg !== "none";
-      const grip = h("span", {
-        class: "grip",
-        draggable: true,
-        title: "Glisser pour r\xE9ordonner ou changer de page",
-        ondragstart: (e) => {
-          dragFrom = si;
-          startDrag();
-          e.dataTransfer.effectAllowed = "move";
-          e.dataTransfer.setData("text/plain", String(si));
-        },
-        ondragend: () => {
-          dragFrom = null;
-          endDrag();
-        }
-      }, ico("grip-vertical"));
-      const dot = h("span", { class: "tn-dot" + (band ? "" : " none"), style: band ? { background: `var(--c-${sec.bg})` } : {} });
-      const node = h("div", { class: "tn-sec" });
-      node.append(dropOn(row(`sec:${si}`, "sec-row", [grip, dot, h("strong", { class: "tn-lab", textContent: sec.title || "Section sans titre" }), h("span", { class: "tn-sub", textContent: String(sec.subs.length) }), tog(key)]), { kind: "sec", si }));
-      if (!closed) {
-        const body = h("div", { class: "tn-body" });
-        sec.subs.forEach((sub, bi) => {
-          const sk = sub.id || `sub${si}${bi}`, sClosed = collapsed2.has(sk), subCard = h("div", { class: "tn-subcard" });
-          subCard.append(dropOn(row(`sub:${si}:${bi}`, "sub-row", [gripFor({ kind: "sub", si, bi }), ico("columns"), h("span", { class: "tn-lab", textContent: sub.title || "Sous-section" }), h("span", { class: "tn-sub", textContent: sub.layout }), tog(sk)]), { kind: "sub", si, bi }));
-          if (!sClosed) sub.cols.forEach((col, ci) => subCard.append(dropOn(row(`col:${si}:${bi}:${ci}`, "col-row", [gripFor({ kind: "col", si, bi, ci }), ico(ICON[col.type] || "text-size"), h("span", { class: "tn-lab", textContent: colLabel(col) })]), { kind: "col", si, bi, ci })));
-          body.append(subCard);
-        });
-        body.append(add("Sous-section", () => {
-          sec.subs.push(newSub("1"));
-        }));
-        node.append(body);
-      }
-      node.addEventListener("dragover", (ev) => {
-        if (dragFrom == null) return;
-        ev.preventDefault();
-        ev.stopPropagation();
-        const r = node.getBoundingClientRect(), after = ev.clientY > r.top + Math.min(r.height / 2, 24);
-        clearDrop();
-        node.classList.add(after ? "drop-after" : "drop-before");
-        node.dataset.after = after ? "1" : "";
-        const from = dragFrom;
-        preview(`sec:${si}:${after}`, (c) => `sec:${moveSection(c, from, si, after)}`);
-      });
-      node.addEventListener("drop", (ev) => {
-        if (dragFrom == null) return;
-        ev.preventDefault();
-        ev.stopPropagation();
-        const from = dragFrom, after = !!node.dataset.after;
-        dragFrom = null;
-        endDrag();
-        const ni = moveSection(doc2, from, si, after);
-        ctx2.restructure();
-        ctx2.select(`sec:${ni}`);
-      });
-      return node;
-    };
-    for (const pg of ["recto", "verso"]) {
-      const zone = h("div", { class: "pg-zone" }, h("div", { class: "pg-head", textContent: pg === "recto" ? "Recto" : "Verso" }));
-      if (pg === "recto") zone.append(h("div", { class: "tn-sec tn-head" }, row("header", "head-row", [ico("layout-navbar"), h("strong", { class: "tn-lab", textContent: "Header" }), h("span", { class: "tn-sub", textContent: strip(doc2.header.title).slice(0, 18) })])));
-      let n = 0;
-      doc2.sections.forEach((sec, si) => {
-        if (sec.page === pg) {
-          zone.append(secNode(sec, si));
-          n++;
-        }
-      });
-      if (!n) zone.append(h("div", { class: "hint", textContent: "Aucune section \u2014 glissez-en une ici." }));
-      zone.append(add("Section", () => {
-        doc2.sections.push(newSection(pg));
-      }));
-      zone.addEventListener("dragover", (ev) => {
-        if (dragFrom == null) return;
-        ev.preventDefault();
-        clearDrop();
-        zone.classList.add("drop-zone");
-        const from = dragFrom;
-        preview(`page:${pg}`, (c) => `sec:${moveSection(c, from, null, false, pg)}`);
-      });
-      zone.addEventListener("drop", (ev) => {
-        if (dragFrom == null) return;
-        ev.preventDefault();
-        const from = dragFrom;
-        dragFrom = null;
-        endDrag();
-        const ni = moveSection(doc2, from, null, false, pg);
-        ctx2.restructure();
-        ctx2.select(`sec:${ni}`);
-      });
-      root.append(zone);
-    }
   }
 
   // src/colorpicker.js
@@ -2755,10 +2538,12 @@ ${lorem}` },
         else if (!isExtra) delete doc2.colorNames[k];
         ctx2.changed();
       } });
+      const chip = h("i", { class: "pal2-tint", title: t("Ton l\xE9ger (20 %)"), style: { background: tintOf(pal[k]) } });
       return h(
         "div",
         { class: "pal2-row", dataset: { key: k } },
         sw,
+        chip,
         name,
         h("span", { class: "pal2-hex", textContent: pal[k].toUpperCase(), title: `CMJN ${cmykText(pal[k])}` }),
         isExtra ? h("button", { type: "button", class: "mini danger", title: t("Supprimer"), "aria-label": t("Supprimer"), onclick: () => {
@@ -2834,6 +2619,230 @@ ${lorem}` },
     document.addEventListener("pointerdown", away, true);
     document.addEventListener("keydown", key, true);
     pop = { el: el2, anchor, away, key, ctx: ctx2 };
+  }
+
+  // src/tree.js
+  var strip = (t2) => String(t2 || "").replace(/\*\*|__|~~/g, "").replace(/^[-•]\s+/gm, "").replace(/\s+/g, " ").trim();
+  var ICON = { text: "text-size", image: "photo", figure: "number", card: "layout-cards", viz: "chart-bar" };
+  function colLabel(col) {
+    if (col.type === "text") return strip(col.text).slice(0, 34) || "Texte vide";
+    if (col.type === "image") return col.caption ? "Image \xB7 " + col.caption : "Image";
+    if (col.type === "card") return "Carte \xB7 " + (strip(col.card && col.card.content && col.card.content.title) || "\u2014");
+    if (col.type === "figure") return "Chiffre cl\xE9 \xB7 " + (col.figure && col.figure.value || "\u2014");
+    const t2 = col.viz && VIZ_TYPES[col.viz.kind];
+    return "Dataviz \xB7 " + (t2 ? t2.label : "\u2014");
+  }
+  function buildTree(root, ctx2) {
+    const doc2 = ctx2.getDoc(), sel = ctx2.getSel(), collapsed2 = ctx2.collapsed;
+    root.innerHTML = "";
+    applyVars(root, cssVars(doc2.theme, doc2.colors));
+    const row = (path, cls, kids) => h("div", {
+      class: "tn " + cls + (sel === path ? " sel" : ""),
+      dataset: { path: path || "" },
+      onclick: (e) => {
+        if (e.target.closest(".grip,.tn-tog,.tn-add")) return;
+        ctx2.select(path);
+      }
+    }, ...kids);
+    const tog = (key) => h("button", { type: "button", class: "tn-tog", "aria-label": collapsed2.has(key) ? "D\xE9plier" : "Replier", "aria-expanded": String(!collapsed2.has(key)), onclick: () => {
+      collapsed2.has(key) ? collapsed2.delete(key) : collapsed2.add(key);
+      ctx2.refreshTree();
+    } }, ico(collapsed2.has(key) ? "chevron-down" : "chevron-up"));
+    const add = (label, fn) => h("button", { type: "button", class: "tn-add", onclick: () => {
+      fn();
+      ctx2.restructure();
+    } }, ico("plus"), h("span", { textContent: label }));
+    let dragFrom = null, drag2 = null, pKey = "";
+    const clearDrop = () => root.querySelectorAll(".drop-before,.drop-after,.drop-zone,.drop-swap").forEach((n) => n.classList.remove("drop-before", "drop-after", "drop-zone", "drop-swap"));
+    const preview = (key, apply) => {
+      if (key === pKey) return;
+      pKey = key;
+      ctx2.preview(apply);
+    };
+    const endDrag = () => {
+      pKey = "";
+      ctx2.preview(null);
+      clearDrop();
+      document.body.classList.remove("dragging");
+    };
+    const startDrag = () => {
+      document.body.classList.add("dragging");
+    };
+    const gripFor = (d) => h("span", {
+      class: "grip",
+      draggable: true,
+      title: d.kind === "sub" ? "Glisser la sous-section (autre section possible)" : "Glisser le contenu sur une autre colonne pour l\u2019\xE9changer",
+      ondragstart: (e) => {
+        e.stopPropagation();
+        drag2 = d;
+        startDrag();
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", d.kind);
+      },
+      ondragend: () => {
+        drag2 = null;
+        endDrag();
+      }
+    }, ico("grip-vertical"));
+    const dropOn = (rowEl, target) => {
+      rowEl.addEventListener("dragover", (ev) => {
+        if (!drag2) return;
+        if (target.kind === "col" && drag2.kind === "col") {
+          ev.preventDefault();
+          ev.stopPropagation();
+          clearDrop();
+          rowEl.classList.add("drop-swap");
+          const same = target.si === drag2.si && target.bi === drag2.bi && target.ci === drag2.ci;
+          preview(same ? "" : `col:${target.si}:${target.bi}:${target.ci}`, same ? null : (c) => {
+            swapCols(c, drag2, target);
+            return `col:${target.si}:${target.bi}:${target.ci}`;
+          });
+        } else if (target.kind === "sub" && drag2.kind === "sub") {
+          ev.preventDefault();
+          ev.stopPropagation();
+          const r = rowEl.getBoundingClientRect(), after = ev.clientY > r.top + r.height / 2;
+          clearDrop();
+          rowEl.classList.add(after ? "drop-after" : "drop-before");
+          rowEl.dataset.after = after ? "1" : "";
+          const d = drag2;
+          preview(`sub:${target.si}:${target.bi}:${after}`, (c) => {
+            const n = moveSub(c, d, target, after);
+            return `sub:${n.si}:${n.bi}`;
+          });
+        } else if (target.kind === "sec" && drag2.kind === "sub") {
+          ev.preventDefault();
+          ev.stopPropagation();
+          clearDrop();
+          rowEl.classList.add("drop-zone");
+          const d = drag2;
+          preview(`subsec:${target.si}`, (c) => {
+            const n = moveSub(c, d, { si: target.si, bi: null });
+            return `sub:${n.si}:${n.bi}`;
+          });
+        }
+      });
+      rowEl.addEventListener("drop", (ev) => {
+        if (!drag2) return;
+        const d = drag2;
+        drag2 = null;
+        endDrag();
+        if (target.kind === "col" && d.kind === "col") {
+          ev.preventDefault();
+          ev.stopPropagation();
+          ctx2.moved(() => {
+            swapCols(doc2, d, target);
+            return `col:${target.si}:${target.bi}:${target.ci}`;
+          });
+        } else if (target.kind === "sub" && d.kind === "sub") {
+          ev.preventDefault();
+          ev.stopPropagation();
+          const after = !!rowEl.dataset.after;
+          ctx2.moved(() => {
+            const n = moveSub(doc2, d, target, after);
+            return `sub:${n.si}:${n.bi}`;
+          });
+        } else if (target.kind === "sec" && d.kind === "sub") {
+          ev.preventDefault();
+          ev.stopPropagation();
+          ctx2.moved(() => {
+            const n = moveSub(doc2, d, { si: target.si, bi: null });
+            return `sub:${n.si}:${n.bi}`;
+          });
+        }
+      });
+      return rowEl;
+    };
+    const secNode = (sec, si) => {
+      const key = sec.id || "sec" + si, closed = collapsed2.has(key), band = sec.bg && sec.bg !== "none";
+      const grip = h("span", {
+        class: "grip",
+        draggable: true,
+        title: "Glisser pour r\xE9ordonner ou changer de page",
+        ondragstart: (e) => {
+          dragFrom = si;
+          startDrag();
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", String(si));
+        },
+        ondragend: () => {
+          dragFrom = null;
+          endDrag();
+        }
+      }, ico("grip-vertical"));
+      const dot = h("span", { class: "tn-dot" + (band ? "" : " none"), style: band ? { background: `var(--c-${sec.bg})` } : {} });
+      const node = h("div", { class: "tn-sec" });
+      node.append(dropOn(row(`sec:${si}`, "sec-row", [grip, dot, h("strong", { class: "tn-lab", textContent: sec.title || "Section sans titre" }), h("span", { class: "tn-sub", textContent: String(sec.subs.length) }), tog(key)]), { kind: "sec", si }));
+      if (!closed) {
+        const body = h("div", { class: "tn-body" });
+        sec.subs.forEach((sub, bi) => {
+          const sk = sub.id || `sub${si}${bi}`, sClosed = collapsed2.has(sk), subCard = h("div", { class: "tn-subcard" });
+          subCard.append(dropOn(row(`sub:${si}:${bi}`, "sub-row", [gripFor({ kind: "sub", si, bi }), ico("columns"), h("span", { class: "tn-lab", textContent: sub.title || "Sous-section" }), h("span", { class: "tn-sub", textContent: sub.layout }), tog(sk)]), { kind: "sub", si, bi }));
+          if (!sClosed) sub.cols.forEach((col, ci) => subCard.append(dropOn(row(`col:${si}:${bi}:${ci}`, "col-row", [gripFor({ kind: "col", si, bi, ci }), ico(ICON[col.type] || "text-size"), h("span", { class: "tn-lab", textContent: colLabel(col) })]), { kind: "col", si, bi, ci })));
+          body.append(subCard);
+        });
+        body.append(add("Sous-section", () => {
+          sec.subs.push(newSub("1"));
+        }));
+        node.append(body);
+      }
+      node.addEventListener("dragover", (ev) => {
+        if (dragFrom == null) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        const r = node.getBoundingClientRect(), after = ev.clientY > r.top + Math.min(r.height / 2, 24);
+        clearDrop();
+        node.classList.add(after ? "drop-after" : "drop-before");
+        node.dataset.after = after ? "1" : "";
+        const from = dragFrom;
+        preview(`sec:${si}:${after}`, (c) => `sec:${moveSection(c, from, si, after)}`);
+      });
+      node.addEventListener("drop", (ev) => {
+        if (dragFrom == null) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        const from = dragFrom, after = !!node.dataset.after;
+        dragFrom = null;
+        endDrag();
+        const ni = moveSection(doc2, from, si, after);
+        ctx2.restructure();
+        ctx2.select(`sec:${ni}`);
+      });
+      return node;
+    };
+    for (const pg of ["recto", "verso"]) {
+      const zone = h("div", { class: "pg-zone" }, h("div", { class: "pg-head", textContent: pg === "recto" ? "Recto" : "Verso" }));
+      if (pg === "recto") zone.append(h("div", { class: "tn-sec tn-head" }, row("header", "head-row", [ico("layout-navbar"), h("strong", { class: "tn-lab", textContent: "Header" }), h("span", { class: "tn-sub", textContent: strip(doc2.header.title).slice(0, 18) })])));
+      let n = 0;
+      doc2.sections.forEach((sec, si) => {
+        if (sec.page === pg) {
+          zone.append(secNode(sec, si));
+          n++;
+        }
+      });
+      if (!n) zone.append(h("div", { class: "hint", textContent: "Aucune section \u2014 glissez-en une ici." }));
+      zone.append(add("Section", () => {
+        doc2.sections.push(newSection(pg));
+      }));
+      zone.addEventListener("dragover", (ev) => {
+        if (dragFrom == null) return;
+        ev.preventDefault();
+        clearDrop();
+        zone.classList.add("drop-zone");
+        const from = dragFrom;
+        preview(`page:${pg}`, (c) => `sec:${moveSection(c, from, null, false, pg)}`);
+      });
+      zone.addEventListener("drop", (ev) => {
+        if (dragFrom == null) return;
+        ev.preventDefault();
+        const from = dragFrom;
+        dragFrom = null;
+        endDrag();
+        const ni = moveSection(doc2, from, null, false, pg);
+        ctx2.restructure();
+        ctx2.select(`sec:${ni}`);
+      });
+      root.append(zone);
+    }
   }
 
   // src/editor.js
@@ -3112,7 +3121,7 @@ ${lorem}` },
     )));
     return box;
   }
-  var paletteOptions = (doc2) => Object.fromEntries(paletteKeys(doc2).map((k) => [k, t(colorLabel(doc2, k))]));
+  var paletteOptions = (doc2) => Object.fromEntries([...paletteKeys(doc2), ...sectionBgs(doc2)].map((k) => [k, t(colorLabel(doc2, k))]));
 
   // src/props.js
   var shut = /* @__PURE__ */ new Set();
@@ -3143,20 +3152,28 @@ ${lorem}` },
       s2.value = obj[k];
       return field(label, s2);
     };
-    const swatches = (label, obj, k, keys, withNone) => h(
-      "div",
-      { class: "f" },
-      h("div", { class: "hint", textContent: label }),
-      h("div", { class: "swrow" }, [
-        withNone ? h("button", { type: "button", class: "hv-sw none" + (!obj[k] || obj[k] === "none" ? " on" : ""), title: t("Aucun"), onclick: struct(() => {
-          obj[k] = "none";
-        }) }) : null,
-        ...keys.map((c) => h("button", { type: "button", class: "hv-sw" + (obj[k] === c ? " on" : ""), title: t(colorLabel(doc2, c)), style: { background: `var(--c-${c})` }, onclick: struct(() => {
-          obj[k] = c;
-        }) })),
-        h("button", { type: "button", class: "hv-sw pal-btn", title: t("Modifier, renommer ou ajouter des couleurs"), "aria-label": t("Modifier, renommer ou ajouter des couleurs"), onclick: (e) => openPalette(e.currentTarget, ctx2) }, ico("plus"))
-      ])
-    );
+    const swatches = (label, obj, k, keys, withNone) => {
+      const light = keys.filter((c) => c.startsWith("tint-")), solid = keys.filter((c) => !c.startsWith("tint-"));
+      const dot = (c) => h("button", { type: "button", class: "hv-sw" + (obj[k] === c ? " on" : ""), title: t(colorLabel(doc2, c)), "aria-label": t(colorLabel(doc2, c)), style: { background: `var(--c-${c})` }, onclick: struct(() => {
+        obj[k] = c;
+      }) });
+      const gap = () => h("span", { class: "hv-sw ghost" });
+      const none = h("button", { type: "button", class: "hv-sw none" + (!obj[k] || obj[k] === "none" ? " on" : ""), title: t("Aucun"), "aria-label": t("Aucun"), onclick: struct(() => {
+        obj[k] = "none";
+      }) });
+      const pal = h("button", { type: "button", class: "hv-sw pal-btn", title: t("Modifier, renommer ou ajouter des couleurs"), "aria-label": t("Modifier, renommer ou ajouter des couleurs"), onclick: (e) => openPalette(e.currentTarget, ctx2) }, ico("plus"));
+      const lightRow = solid.map((c) => {
+        const tc = "tint-" + c;
+        return light.includes(tc) ? dot(tc) : gap();
+      });
+      return h(
+        "div",
+        { class: "f" },
+        h("div", { class: "hint", textContent: label }),
+        h("div", { class: "swrow" }, withNone ? none : null, ...solid.map(dot), pal),
+        light.length ? h("div", { class: "swrow" }, withNone ? gap() : null, ...lightRow) : null
+      );
+    };
     const imgPicker = (label, get, set, max) => {
       const inp = h("input", { type: "file", accept: "image/*", hidden: true, onchange: async () => {
         const f = inp.files[0];
@@ -3375,11 +3392,11 @@ ${lorem}` },
     };
     const btn = (icon, label, fn, cls = "") => h("button", { type: "button", class: "pp-btn " + cls, onclick: fn }, ico(icon), h("span", { textContent: label }));
     const boxControls = (obj, fillLabel = "Fond") => [
-      swatches(fillLabel, obj, "fillColor", fillKeys(doc2), true),
+      swatches(fillLabel, obj, "fillColor", toneKeys(doc2), true),
       switchRow(t("Contour"), obj.stroke, () => {
         obj.stroke = !obj.stroke;
       }),
-      obj.stroke ? swatches("Couleur du contour", obj, "strokeColor", paletteKeys(doc2)) : null
+      obj.stroke ? swatches("Couleur du contour", obj, "strokeColor", toneKeys(doc2)) : null
     ];
     const title = (name, crumbs = []) => root.append(h(
       "div",
@@ -3392,25 +3409,19 @@ ${lorem}` },
     const sec = doc2.sections[si], sub = sec && sec.subs[bi], col = sub && sub.cols[ci];
     const ICONS2 = { text: "text-size", image: "photo", card: "layout-cards", figure: "number", viz: "chart-bar" };
     if (kind === "doc") {
-      title("Document");
-      root.append(
-        card("doc-file", "file-text", t("Fichier"), [
-          text(doc2, "name", "Nom du fichier"),
-          select(doc2, "theme", "Th\xE8me", Object.fromEntries(Object.entries(THEMES).map(([k, x]) => [k, x.label])), () => ctx2.restructure()),
-          select(doc2, "locale", "Format des nombres", LOCALES)
-        ]),
-        card("doc-colors", "palette", t("Couleurs"), [
-          buildPalette(ctx2, () => ctx2.restructure()),
-          h("p", { class: "hint", textContent: "Chaque choix de couleur du document propose aussi \xAB + \xBB pour modifier, renommer ou ajouter une couleur." })
-        ]),
-        h("p", { class: "hint", textContent: "S\xE9lectionnez un \xE9l\xE9ment dans la structure (\xE0 gauche) ou sur la page pour modifier ses propri\xE9t\xE9s." })
-      );
+      root.append(h(
+        "div",
+        { class: "pp-empty" },
+        ico("pointer"),
+        h("p", { textContent: "S\xE9lectionnez un \xE9l\xE9ment dans la structure (\xE0 gauche) ou sur la page pour modifier ses propri\xE9t\xE9s." }),
+        h("p", { class: "hint", textContent: "Les couleurs, le format des nombres et le nom du fichier sont dans le menu \xC9dition." })
+      ));
     } else if (kind === "header") {
       const H = doc2.header;
-      title("Header", [["Document", null]]);
+      title("Header");
       root.append(
         card("hd-text", "typography", t("Texte"), [text(H, "overline", "Surtitre"), text(H, "title", "Titre (taille fixe)"), text(H, "subtitle", "Sous-titre (optionnel \u2014 vide = masqu\xE9)")]),
-        card("hd-colors", "palette", t("Couleurs"), [swatches("Couleur de fond", H, "bg", paletteKeys(doc2)), swatches("Couleur du texte", H, "fg", paletteKeys(doc2))]),
+        card("hd-colors", "palette", t("Couleurs"), [swatches("Couleur de fond", H, "bg", toneKeys(doc2)), swatches("Couleur du texte", H, "fg", toneKeys(doc2))]),
         card("hd-image", "photo", t("Image"), [imageLibrary(H)], { on: H.showImage, set: () => {
           H.showImage = !H.showImage;
         } }),
@@ -3419,13 +3430,13 @@ ${lorem}` },
         } })
       );
     } else if (kind === "sec" && sec) {
-      title(sec.title || "Section", [["Document", null]]);
+      title(sec.title || "Section");
       root.append(
         card("sec-main", "layout-rows", t("Section"), [
           text(sec, "title", "Titre de section"),
           select(sec, "page", "Page", { recto: "Recto", verso: "Verso" }, () => ctx2.restructure())
         ]),
-        card("sec-bg", "color-swatch", t("Fond de la section"), [swatches("Fond", sec, "bg", fillKeys(doc2), true)]),
+        card("sec-bg", "color-swatch", t("Fond de la section"), [swatches("Fond", sec, "bg", toneKeys(doc2), true)]),
         card("sec-frame", "border-all", t("Cadre"), boxControls(sec, "Fond du cadre")),
         actions(
           btn("arrow-up", t("Monter"), struct(() => {
@@ -3438,7 +3449,7 @@ ${lorem}` },
         )
       );
     } else if (kind === "sub" && sub) {
-      title(sub.title || "Sous-section", [["Document", null], [sec.title || "Section", `sec:${si}`]]);
+      title(sub.title || "Sous-section", [[sec.title || "Section", `sec:${si}`]]);
       const mv = (() => {
         const s2 = h(
           "select",
@@ -3487,7 +3498,7 @@ ${lorem}` },
         )
       );
     } else if (kind === "col" && col) {
-      title(`Colonne ${ci + 1}`, [["Document", null], [sec.title || "Section", `sec:${si}`], [sub.title || "Sous-section", `sub:${si}:${bi}`]]);
+      title(`Colonne ${ci + 1}`, [[sec.title || "Section", `sec:${si}`], [sub.title || "Sous-section", `sub:${si}:${bi}`]]);
       const typeSel = field("Type de contenu", h(
         "select",
         { onchange: (e) => {
@@ -3579,7 +3590,7 @@ ${lorem}` },
   function openVizEditor({ col, sub, ci, bg, width: colW, ctx: ctx2 }) {
     if (current2) return;
     const doc2 = ctx2.getDoc();
-    const snapshot = JSON.stringify(col.viz);
+    const snapshot2 = JSON.stringify(col.viz);
     const baseW = colW || colWidth(sub.layout, ci);
     const ui = { sel: -1, drag: null };
     let width = baseW, zoom = "fit", meta = null, svgW = baseW;
@@ -3726,7 +3737,7 @@ ${lorem}` },
     } }, [["fit", "Ajuster"], ["1", "100 %"], ["1.5", "150 %"], ["2", "200 %"]].map(([v, l]) => h("option", { value: v, textContent: l })));
     const close = (keep) => {
       if (!keep) {
-        col.viz = JSON.parse(snapshot);
+        col.viz = JSON.parse(snapshot2);
       }
       window.removeEventListener("keydown", onKey);
       root.remove();
@@ -4111,23 +4122,43 @@ ${lorem}` },
     if (nLocal) warnEl.append(h("a", { class: "note", href: "atelier.html", textContent: nLocal === 1 ? "1 image \xE0 publier \u2014 ouvrir l\u2019Atelier" : `${nLocal} images \xE0 publier \u2014 ouvrir l\u2019Atelier` }));
     if (!storage.ok) warnEl.append(h("div", { textContent: "Espace de stockage du navigateur plein : les derni\xE8res modifications ne sont pas enregistr\xE9es. Enregistrez le projet (.json) et all\xE9gez les images." }));
     if (hover) hover.hide();
-    if (previewDoc) {
-      if (previewMark) stage.querySelectorAll(`[data-sel="${previewMark}"]`).forEach((n) => n.classList.add("drag-live"));
-    } else if (selected) stage.querySelectorAll(`[data-sel="${selected}"]`).forEach((n) => n.classList.add("is-sel"));
+    if (previewDoc && previewMark) stage.querySelectorAll(`[data-sel="${previewMark}"]`).forEach((n) => n.classList.add("drag-live"));
+    drawSelection();
+    watchLayout();
   }
-  var spRaf = 0;
-  var spObs = new ResizeObserver(() => {
-    cancelAnimationFrame(spRaf);
-    spRaf = requestAnimationFrame(() => drawSpacing(false));
+  var SEL_STYLE = "steady";
+  var selShown = null;
+  function drawSelection() {
+    stage.querySelectorAll(".sel-layer").forEach((n) => n.remove());
+    if (!selected || previewDoc) return;
+    const fresh = selShown !== selected;
+    selShown = selected;
+    stage.querySelectorAll(".pwrap").forEach((w) => {
+      const el2 = w.querySelector(`.page [data-sel="${selected}"]`);
+      if (!el2) return;
+      const wr = w.getBoundingClientRect(), r = el2.getBoundingClientRect(), inset = selected.startsWith("sec:") ? PAGE.margin * wr.width / PAGE.w : 0;
+      w.append(h("div", { class: "sel-layer" }, h("div", {
+        class: `sel-frame v-${SEL_STYLE}` + (fresh ? " pop" : ""),
+        style: { left: r.left - wr.left + inset + "px", top: r.top - wr.top + "px", width: r.width - 2 * inset + "px", height: r.height + "px" }
+      })));
+    });
+  }
+  var layRaf = 0;
+  var layoutObs = new ResizeObserver(() => {
+    cancelAnimationFrame(layRaf);
+    layRaf = requestAnimationFrame(() => {
+      drawSpacing();
+      drawSelection();
+    });
   });
+  var watchLayout = () => {
+    layoutObs.disconnect();
+    stage.querySelectorAll(".page .content, .page .hd").forEach((c) => layoutObs.observe(c));
+  };
   var SPACING_KINDS = { margin: "Marges de page", sec: "Entre sections", sub: "Entre sous-sections", col: "Entre colonnes" };
-  function drawSpacing(observe2 = true) {
+  function drawSpacing() {
     stage.querySelectorAll(".sp-layer").forEach((n) => n.remove());
     warnEl.querySelectorAll(".sp-legend").forEach((n) => n.remove());
-    if (observe2) {
-      spObs.disconnect();
-      if (showSpacing) stage.querySelectorAll(".page .content").forEach((c) => spObs.observe(c));
-    }
     if (!showSpacing) return;
     stage.querySelectorAll(".pwrap").forEach((w) => {
       const page = w.querySelector(".page");
@@ -4168,6 +4199,54 @@ ${lorem}` },
     });
     warnEl.append(h("div", { class: "note sp-legend" }, Object.entries(SPACING_KINDS).map(([k, l]) => h("span", {}, h("i", { class: "sp-" + k }), t(l)))));
   }
+  var HIST = { stack: [], i: -1, at: 0, burst: false, applying: false, max: 100 };
+  var imgIds = /* @__PURE__ */ new Map();
+  var imgById = [];
+  var tokenOf = (v) => {
+    let n = imgIds.get(v);
+    if (n == null) {
+      n = imgById.length;
+      imgById.push(v);
+      imgIds.set(v, n);
+    }
+    return `img${n}`;
+  };
+  var snapshot = () => JSON.stringify(doc, (k, v) => typeof v === "string" && v.length > 300 && v.startsWith("data:") ? tokenOf(v) : v);
+  var restore = (str) => JSON.parse(str, (k, v) => typeof v === "string" && v.startsWith("img") ? imgById[+v.slice(4)] : v);
+  function record(burst) {
+    if (HIST.applying) return;
+    const sn = snapshot();
+    if (HIST.i >= 0 && HIST.stack[HIST.i] === sn) return;
+    const now = Date.now();
+    if (burst && HIST.burst && HIST.i === HIST.stack.length - 1 && HIST.i > 0 && now - HIST.at < 1e3) HIST.stack[HIST.i] = sn;
+    else {
+      HIST.stack.length = HIST.i + 1;
+      HIST.stack.push(sn);
+      if (HIST.stack.length > HIST.max) HIST.stack.shift();
+      HIST.i = HIST.stack.length - 1;
+    }
+    HIST.at = now;
+    HIST.burst = !!burst;
+    syncCenter();
+  }
+  function goTo(i) {
+    if (i < 0 || i >= HIST.stack.length) return;
+    HIST.i = i;
+    HIST.applying = true;
+    try {
+      doc = migrate(restore(HIST.stack[i]));
+      undoSnap = null;
+      ctx.preview(null);
+      ctx.restructure();
+    } finally {
+      HIST.applying = false;
+    }
+    syncCenter();
+  }
+  var undo = () => goTo(HIST.i - 1);
+  var redo = () => goTo(HIST.i + 1);
+  var canUndo = () => HIST.i > 0;
+  var canRedo = () => HIST.i < HIST.stack.length - 1;
   var schedule = () => {
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(drawPreview);
@@ -4205,6 +4284,7 @@ ${lorem}` },
     collapsed,
     changed() {
       undoSnap = null;
+      record(true);
       saveDoc(doc);
       schedule();
       drawTree();
@@ -4254,6 +4334,7 @@ ${lorem}` },
     },
     restructure() {
       fixSelection();
+      record(false);
       saveDoc(doc);
       drawTree();
       drawProps();
@@ -4273,13 +4354,6 @@ ${lorem}` },
       openVizEditor({ col, sub, ci, bg: sec && sec.bg, width: columnWidth(doc, doc.sections.indexOf(sec), sec.subs.indexOf(sub), ci), ctx });
     }
   };
-  function undo() {
-    if (!undoSnap) return;
-    doc = migrate(JSON.parse(undoSnap.snap));
-    undoSnap = null;
-    selected = null;
-    ctx.restructure();
-  }
   window.addEventListener("keydown", (e) => {
     if (e.key !== "Delete" && e.key !== "Backspace") return;
     const a = document.activeElement, tag = e.target.tagName || "";
@@ -4306,7 +4380,7 @@ ${lorem}` },
   stage.addEventListener("wheel", (e) => {
     if (!(e.ctrlKey || e.metaKey)) return;
     e.preventDefault();
-    zoomMode = String(Math.min(2, Math.max(0.25, scaleValue() * Math.exp(-e.deltaY * 2e-3))).toFixed(3));
+    zoomMode = String(Math.min(4, Math.max(0.25, scaleValue() * Math.exp(-e.deltaY * 2e-3))).toFixed(3));
     schedule();
   }, { passive: false });
   stage.addEventListener("dblclick", (e) => {
@@ -4504,6 +4578,32 @@ ${lorem}` },
     zoomMode = v;
     schedule();
   } });
+  var MAC = /Mac|iPhone|iPad/.test(navigator.platform || "");
+  var MOD = MAC ? "\u2318" : "Ctrl+";
+  var undoBtn = h("button", { type: "button", class: "icon-btn fs-hbtn", title: `${t("Annuler l\u2019action")} (${MOD}Z)`, "aria-label": t("Annuler l\u2019action"), onclick: () => undo() }, ico("arrow-back-up"));
+  var redoBtn = h("button", { type: "button", class: "icon-btn fs-hbtn", title: `${t("R\xE9tablir")} (${MAC ? "\u21E7\u2318Z" : "Ctrl+Y"})`, "aria-label": t("R\xE9tablir"), onclick: () => redo() }, ico("arrow-forward-up"));
+  var nameIn = h("input", {
+    type: "text",
+    class: "fs-name",
+    spellcheck: false,
+    "aria-label": t("Nom du fichier"),
+    title: t("Nom du fichier"),
+    oninput: (e) => {
+      doc.name = e.target.value;
+      fitName();
+      ctx.changed();
+    }
+  });
+  var fitName = () => {
+    nameIn.style.width = Math.max(10, nameIn.value.length + 1) + "ch";
+  };
+  var centerEl = h("div", { class: "fs-center" }, undoBtn, redoBtn, nameIn);
+  function syncCenter() {
+    undoBtn.disabled = !canUndo();
+    redoBtn.disabled = !canRedo();
+    if (document.activeElement !== nameIn) nameIn.value = doc.name || "";
+    fitName();
+  }
   window.FS_UI = {
     menus: [
       { label: "Fichier", items: [
@@ -4514,12 +4614,25 @@ ${lorem}` },
         "-",
         { label: "Atelier", icon: "brush", href: "atelier.html" }
       ] },
+      { label: "\xC9dition", items: [
+        { label: "Annuler l\u2019action", icon: "arrow-back-up", hint: MOD + "Z", run: () => undo(), disabled: () => !canUndo() },
+        { label: "R\xE9tablir", icon: "arrow-forward-up", hint: MAC ? "\u21E7\u2318Z" : "Ctrl+Y", run: () => redo(), disabled: () => !canRedo() },
+        "-",
+        { label: "Couleurs du document\u2026", icon: "palette", run: () => openPalette(nameIn, ctx) },
+        { heading: "Format des nombres" },
+        ...Object.entries(LOCALES).map(([k, l]) => ({ label: l, checked: () => doc.locale === k, run: () => {
+          doc.locale = k;
+          ctx.restructure();
+        } }))
+      ] },
       { label: "Affichage", items: [
         { heading: "Zoom" },
         zoomItem("Ajuster", "fit"),
         zoomItem("50 %", "0.5"),
         zoomItem("75 %", "0.75"),
         zoomItem("100 %", "1"),
+        zoomItem("200 %", "2"),
+        zoomItem("400 %", "4"),
         "-",
         { heading: "Espacement" },
         { label: "Marges et espaces", icon: "ruler-measure", checked: () => showSpacing, run: () => {
@@ -4534,8 +4647,22 @@ ${lorem}` },
         { label: "Aper\xE7u 3D", icon: "3d-cube-sphere", run: () => open3d() }
       ] }
     ],
+    center: centerEl,
     settings: [{ title: "Langue", node: langSel }]
   };
+  window.addEventListener("keydown", (e) => {
+    if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+    const tg = e.target, tag = tg.tagName || "";
+    if (/INPUT|TEXTAREA|SELECT/.test(tag) || tg.isContentEditable || document.querySelector("dialog[open], .ve, .v3d")) return;
+    const k = e.key.toLowerCase();
+    if (k === "z") {
+      e.preventDefault();
+      e.shiftKey ? redo() : undo();
+    } else if (k === "y") {
+      e.preventDefault();
+      redo();
+    }
+  });
   var viewerLoad = null;
   var loadViewer = () => window.FS3D ? Promise.resolve(window.FS3D) : viewerLoad = viewerLoad || new Promise((res, rej) => {
     const s2 = h("script", { src: "viewer3d.js", onload: () => res(window.FS3D), onerror: () => {
@@ -4601,4 +4728,6 @@ ${lorem}` },
     window.addEventListener("afterprint", done);
     window.print();
   });
+  record(false);
+  syncCenter();
 })();

@@ -116,3 +116,9 @@ body.labo { height: 100dvh; display: flex; flex-direction: column; overflow: hid
 .pp-e .pp-row .pp-l { margin: 0; }
 .pp-e input[type=text], .pp-e select, .pp-e .pp-btn { height: 32px; }
 .pp-e .pp-dot { width: 24px; height: 24px; }
+
+/* ---------- Sujet « Sélection » ---------- */
+.sel-demo { position: relative; width: 600px; max-width: 100%; box-sizing: border-box; padding: 40px 52px 72px; background: #fff; border-radius: var(--radius-md); }
+.sel-demo .sel-block { cursor: pointer; }
+.sel-demo .col-figure { padding: 12px; border: .5pt solid var(--c-text); border-radius: 3px; }
+.sel-demo .sel-replay { position: absolute; right: 16px; bottom: 16px; width: auto; }

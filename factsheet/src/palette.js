@@ -2,7 +2,7 @@
    Se trouve dans les propriétés du document et s'ouvre en fenêtre depuis chaque choix de couleur (openPalette). */
 import { h, ico } from './render.js';
 import { t } from './i18n.js';
-import { THEMES, paletteOf, colorLabel } from './tokens.js';
+import { THEMES, paletteOf, colorLabel, tintOf } from './tokens.js';
 import { openColorEditor, cmykText } from './colorpicker.js';
 import { extraColorKeys, addColor, removeColor, canAddColor } from './state.js';
 
@@ -21,7 +21,8 @@ export function buildPalette(ctx, redraw) {
       if (v && v !== defName(k)) doc.colorNames[k] = v; else if (!isExtra) delete doc.colorNames[k];
       ctx.changed();
     } });
-    return h('div', { class: 'pal2-row', dataset: { key: k } }, sw, name,
+    const chip = h('i', { class: 'pal2-tint', title: t('Ton léger (20 %)'), style: { background: tintOf(pal[k]) } });
+    return h('div', { class: 'pal2-row', dataset: { key: k } }, sw, chip, name,
       h('span', { class: 'pal2-hex', textContent: pal[k].toUpperCase(), title: `CMJN ${cmykText(pal[k])}` }),
       isExtra ? h('button', { type: 'button', class: 'mini danger', title: t('Supprimer'), 'aria-label': t('Supprimer'), onclick: () => { if (confirm(t('Supprimer cette couleur ? Ce qui l’utilise passera en bleu.'))) { removeColor(doc, k); ctx.changed(); redraw(); } } }, ico('x'))
         : recolored || renamed ? h('button', { type: 'button', class: 'mini', title: t('Rétablir la couleur du thème'), 'aria-label': t('Rétablir la couleur du thème'), onclick: () => { delete doc.colors[k]; delete doc.colorNames[k]; ctx.changed(); redraw(); } }, ico('restore')) : h('span'));

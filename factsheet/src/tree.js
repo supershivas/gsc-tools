@@ -25,8 +25,6 @@ export function buildTree(root, ctx) {
   const tog = key => h('button', { type: 'button', class: 'tn-tog', 'aria-label': collapsed.has(key) ? 'Déplier' : 'Replier', 'aria-expanded': String(!collapsed.has(key)), onclick: () => { collapsed.has(key) ? collapsed.delete(key) : collapsed.add(key); ctx.refreshTree(); } }, ico(collapsed.has(key) ? 'chevron-down' : 'chevron-up'));
   const add = (label, fn) => h('button', { type: 'button', class: 'tn-add', onclick: () => { fn(); ctx.restructure(); } }, ico('plus'), h('span', { textContent: label }));
 
-  root.append(row(null, 'tn-doc', [ico('file-text'), h('strong', { textContent: doc.name || 'Document' }), h('span', { class: 'tn-sub', textContent: 'document' })]));
-
   let dragFrom = null, drag = null, pKey = '';     // dragFrom : section ; drag : { kind: 'sub' | 'col', si, bi, ci } — sous-section ou contenu de colonne
   const clearDrop = () => root.querySelectorAll('.drop-before,.drop-after,.drop-zone,.drop-swap').forEach(n => n.classList.remove('drop-before', 'drop-after', 'drop-zone', 'drop-swap'));
   /* Aperçu en direct sur la page : la copie du document avec le déplacement appliqué (les indices sont ceux du vrai document) */

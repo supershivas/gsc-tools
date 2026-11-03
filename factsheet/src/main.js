@@ -1,6 +1,7 @@
 import { PAGE, cssVars, applyVars, DENSITIES } from './tokens.js';
-import { loadDoc, saveDoc, migrate, defaultDoc, blankDoc, moveSection, moveSub, storage, localImageCount, swapCols, removeCol } from './state.js';
-import { renderDocument, measure, h, columnWidth } from './render.js';
+import { openPalette } from './palette.js';
+import { loadDoc, saveDoc, migrate, defaultDoc, blankDoc, LOCALES, moveSection, moveSub, storage, localImageCount, swapCols, removeCol } from './state.js';
+import { renderDocument, measure, h, ico, columnWidth } from './render.js';
 import { buildTree } from './tree.js';
 import { buildProps } from './props.js';
 import { openVizEditor } from './vizeditor.js';
@@ -53,16 +54,33 @@ function drawPreview() {
   if (nLocal) warnEl.append(h('a', { class: 'note', href: 'atelier.html', textContent: nLocal === 1 ? '1 image à publier — ouvrir l’Atelier' : `${nLocal} images à publier — ouvrir l’Atelier` }));
   if (!storage.ok) warnEl.append(h('div', { textContent: 'Espace de stockage du navigateur plein : les dernières modifications ne sont pas enregistrées. Enregistrez le projet (.json) et allégez les images.' }));
   if (hover) hover.hide();
-  if (previewDoc) { if (previewMark) stage.querySelectorAll(`[data-sel="${previewMark}"]`).forEach(n => n.classList.add('drag-live')); }
-  else if (selected) stage.querySelectorAll(`[data-sel="${selected}"]`).forEach(n => n.classList.add('is-sel'));
+  if (previewDoc && previewMark) stage.querySelectorAll(`[data-sel="${previewMark}"]`).forEach(n => n.classList.add('drag-live'));
+  drawSelection(); watchLayout();
 }
+/* Cadre de sélection : superposé à l'aperçu (pas recadré par le bord de page) ; une section est encadrée à la largeur des marges.
+   L'animation d'apparition (SEL_STYLE, voir le Labo) ne joue que quand la sélection change, pas à chaque retouche. */
+const SEL_STYLE = 'steady';
+let selShown = null;
+function drawSelection() {
+  stage.querySelectorAll('.sel-layer').forEach(n => n.remove());
+  if (!selected || previewDoc) return;
+  const fresh = selShown !== selected; selShown = selected;
+  stage.querySelectorAll('.pwrap').forEach(w => {
+    const el = w.querySelector(`.page [data-sel="${selected}"]`); if (!el) return;
+    const wr = w.getBoundingClientRect(), r = el.getBoundingClientRect(), inset = selected.startsWith('sec:') ? PAGE.margin * wr.width / PAGE.w : 0;
+    w.append(h('div', { class: 'sel-layer' }, h('div', { class: `sel-frame v-${SEL_STYLE}` + (fresh ? ' pop' : ''),
+      style: { left: r.left - wr.left + inset + 'px', top: r.top - wr.top + 'px', width: r.width - 2 * inset + 'px', height: r.height + 'px' } })));
+  });
+}
+/* La mise en page peut bouger après coup (polices, images) : filigrane et cadre suivent */
+let layRaf = 0;
+const layoutObs = new ResizeObserver(() => { cancelAnimationFrame(layRaf); layRaf = requestAnimationFrame(() => { drawSpacing(); drawSelection(); }); });
+const watchLayout = () => { layoutObs.disconnect(); stage.querySelectorAll('.page .content, .page .hd').forEach(c => layoutObs.observe(c)); };
+
 /* Marges et espaces : filigrane coloré par-dessus l'aperçu (hors des pages, donc jamais exporté) */
-let spRaf = 0;
-const spObs = new ResizeObserver(() => { cancelAnimationFrame(spRaf); spRaf = requestAnimationFrame(() => drawSpacing(false)); });
 const SPACING_KINDS = { margin: 'Marges de page', sec: 'Entre sections', sub: 'Entre sous-sections', col: 'Entre colonnes' };
-function drawSpacing(observe = true) {
+function drawSpacing() {
   stage.querySelectorAll('.sp-layer').forEach(n => n.remove()); warnEl.querySelectorAll('.sp-legend').forEach(n => n.remove());
-  if (observe) { spObs.disconnect(); if (showSpacing) stage.querySelectorAll('.page .content').forEach(c => spObs.observe(c)); }
   if (!showSpacing) return;   // la mise en page peut bouger après coup (polices, images) : le filigrane suit
   stage.querySelectorAll('.pwrap').forEach(w => {
     const page = w.querySelector('.page'); if (!page) return;
@@ -86,6 +104,31 @@ function drawSpacing(observe = true) {
   });
   warnEl.append(h('div', { class: 'note sp-legend' }, Object.entries(SPACING_KINDS).map(([k, l]) => h('span', {}, h('i', { class: 'sp-' + k }), t(l)))));
 }
+/* ---------- Historique (annuler / rétablir) ----------
+   Un instantané du document après chaque modification ; la frappe est regroupée (1 s). Les images en data URL sont
+   remplacées par un numéro dans les instantanés pour ne pas multiplier les mégaoctets. */
+const HIST = { stack: [], i: -1, at: 0, burst: false, applying: false, max: 100 };
+const imgIds = new Map(), imgById = [];
+const tokenOf = v => { let n = imgIds.get(v); if (n == null) { n = imgById.length; imgById.push(v); imgIds.set(v, n); } return `\u0001img${n}`; };
+const snapshot = () => JSON.stringify(doc, (k, v) => (typeof v === 'string' && v.length > 300 && v.startsWith('data:') ? tokenOf(v) : v));
+const restore = str => JSON.parse(str, (k, v) => (typeof v === 'string' && v.startsWith('\u0001img') ? imgById[+v.slice(4)] : v));
+function record(burst) {
+  if (HIST.applying) return;
+  const sn = snapshot(); if (HIST.i >= 0 && HIST.stack[HIST.i] === sn) return;
+  const now = Date.now();
+  if (burst && HIST.burst && HIST.i === HIST.stack.length - 1 && HIST.i > 0 && now - HIST.at < 1000) HIST.stack[HIST.i] = sn;
+  else { HIST.stack.length = HIST.i + 1; HIST.stack.push(sn); if (HIST.stack.length > HIST.max) HIST.stack.shift(); HIST.i = HIST.stack.length - 1; }
+  HIST.at = now; HIST.burst = !!burst; syncCenter();
+}
+function goTo(i) {
+  if (i < 0 || i >= HIST.stack.length) return;
+  HIST.i = i; HIST.applying = true;
+  try { doc = migrate(restore(HIST.stack[i])); undoSnap = null; ctx.preview(null); ctx.restructure(); } finally { HIST.applying = false; }
+  syncCenter();
+}
+const undo = () => goTo(HIST.i - 1), redo = () => goTo(HIST.i + 1);
+const canUndo = () => HIST.i > 0, canRedo = () => HIST.i < HIST.stack.length - 1;
+
 const schedule = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(drawPreview); };
 
 const pathOk = p => { if (!p) return true; const q = p.split(':'), sec = doc.sections[+q[1]];
@@ -98,7 +141,7 @@ function drawProps() { const top = propsEl.scrollTop; buildProps(propsEl, ctx); 
 
 const ctx = {
   getDoc: () => doc, getSel: () => selected, collapsed,
-  changed() { undoSnap = null; saveDoc(doc); schedule(); drawTree(); const v = cssVars(doc.theme, doc.colors); applyVars(propsEl, v); applyVars(treeEl, v); },
+  changed() { undoSnap = null; record(true); saveDoc(doc); schedule(); drawTree(); const v = cssVars(doc.theme, doc.colors); applyVars(propsEl, v); applyVars(treeEl, v); },
   refreshProps: drawProps,
   shown: () => previewDoc || doc,
   /* Aperçu en direct d'un déplacement : `fn(copie)` l'applique à une copie du document et renvoie le chemin à repérer ; null = retour au vrai document */
@@ -120,7 +163,7 @@ const ctx = {
     else if (q[0] === 'sub' && sub) ctx.moved(() => { sec.subs.splice(bi, 1); return `sec:${si}`; }, 'Élément supprimé.', 'Annuler la suppression');
     else if (q[0] === 'col' && sub && sub.cols[ci]) ctx.moved(() => removeCol(doc, si, bi, ci), sub.cols.length > 1 ? 'Colonne supprimée : les autres s’étendent.' : 'Élément supprimé.', 'Annuler la suppression');
   },
-  restructure() { fixSelection(); saveDoc(doc); drawTree(); drawProps(); schedule(); },
+  restructure() { fixSelection(); record(false); saveDoc(doc); drawTree(); drawProps(); schedule(); },
   select(path) {
     selected = path || null; fixSelection(); drawTree(); drawProps(); schedule();
     const n = treeEl.querySelector('.tn.sel'); if (n) n.scrollIntoView({ block: 'nearest' });
@@ -131,10 +174,6 @@ const ctx = {
   },
 };
 
-function undo() {
-  if (!undoSnap) return;
-  doc = migrate(JSON.parse(undoSnap.snap)); undoSnap = null; selected = null; ctx.restructure();
-}
 /* Suppr / Retour arrière : supprime l'élément sélectionné, sauf pendant une saisie ou quand une fenêtre est ouverte */
 window.addEventListener('keydown', e => {
   if (e.key !== 'Delete' && e.key !== 'Backspace') return;
@@ -158,7 +197,7 @@ stage.addEventListener('click', e => {
 stage.addEventListener('wheel', e => {
   if (!(e.ctrlKey || e.metaKey)) return;
   e.preventDefault();
-  zoomMode = String(Math.min(2, Math.max(0.25, scaleValue() * Math.exp(-e.deltaY * 0.002))).toFixed(3)); schedule();
+  zoomMode = String(Math.min(4, Math.max(0.25, scaleValue() * Math.exp(-e.deltaY * 0.002))).toFixed(3)); schedule();
 }, { passive: false });
 
 /* Double-clic sur une dataviz de l'aperçu → éditeur */
@@ -288,6 +327,21 @@ const i18n = initI18n(() => ctx.restructure());
 langSel.addEventListener('change', () => i18n.set(langSel.value));
 
 const zoomItem = (label, v) => ({ label, checked: () => zoomMode === v, run: () => { zoomMode = v; schedule(); } });
+
+/* En-tête central : annuler / rétablir et nom du fichier (modifiable) */
+const MAC = /Mac|iPhone|iPad/.test(navigator.platform || '');
+const MOD = MAC ? '⌘' : 'Ctrl+', SHIFT = MAC ? '⇧' : 'Shift+';
+const undoBtn = h('button', { type: 'button', class: 'icon-btn fs-hbtn', title: `${t('Annuler l’action')} (${MOD}Z)`, 'aria-label': t('Annuler l’action'), onclick: () => undo() }, ico('arrow-back-up'));
+const redoBtn = h('button', { type: 'button', class: 'icon-btn fs-hbtn', title: `${t('Rétablir')} (${MAC ? '⇧⌘Z' : 'Ctrl+Y'})`, 'aria-label': t('Rétablir'), onclick: () => redo() }, ico('arrow-forward-up'));
+const nameIn = h('input', { type: 'text', class: 'fs-name', spellcheck: false, 'aria-label': t('Nom du fichier'), title: t('Nom du fichier'),
+  oninput: e => { doc.name = e.target.value; fitName(); ctx.changed(); } });
+const fitName = () => { nameIn.style.width = Math.max(10, nameIn.value.length + 1) + 'ch'; };
+const centerEl = h('div', { class: 'fs-center' }, undoBtn, redoBtn, nameIn);
+function syncCenter() {
+  undoBtn.disabled = !canUndo(); redoBtn.disabled = !canRedo();
+  if (document.activeElement !== nameIn) nameIn.value = doc.name || ''; fitName();
+}
+
 window.FS_UI = {
   menus: [
     { label: 'Fichier', items: [
@@ -297,8 +351,15 @@ window.FS_UI = {
       { label: 'Exporter PDF…', icon: 'file-type-pdf', run: () => openExport() },
       '-',
       { label: 'Atelier', icon: 'brush', href: 'atelier.html' }] },
+    { label: 'Édition', items: [
+      { label: 'Annuler l’action', icon: 'arrow-back-up', hint: MOD + 'Z', run: () => undo(), disabled: () => !canUndo() },
+      { label: 'Rétablir', icon: 'arrow-forward-up', hint: MAC ? '⇧⌘Z' : 'Ctrl+Y', run: () => redo(), disabled: () => !canRedo() },
+      '-',
+      { label: 'Couleurs du document…', icon: 'palette', run: () => openPalette(nameIn, ctx) },
+      { heading: 'Format des nombres' },
+      ...Object.entries(LOCALES).map(([k, l]) => ({ label: l, checked: () => doc.locale === k, run: () => { doc.locale = k; ctx.restructure(); } }))] },
     { label: 'Affichage', items: [
-      { heading: 'Zoom' }, zoomItem('Ajuster', 'fit'), zoomItem('50 %', '0.5'), zoomItem('75 %', '0.75'), zoomItem('100 %', '1'),
+      { heading: 'Zoom' }, zoomItem('Ajuster', 'fit'), zoomItem('50 %', '0.5'), zoomItem('75 %', '0.75'), zoomItem('100 %', '1'), zoomItem('200 %', '2'), zoomItem('400 %', '4'),
       '-',
       { heading: 'Espacement' },
       { label: 'Marges et espaces', icon: 'ruler-measure', checked: () => showSpacing, run: () => { showSpacing = !showSpacing; schedule(); } },
@@ -306,8 +367,19 @@ window.FS_UI = {
       '-',
       { label: 'Aperçu 3D', icon: '3d-cube-sphere', run: () => open3d() }] },
   ],
+  center: centerEl,
   settings: [{ title: 'Langue', node: langSel }],
 };
+
+/* Cmd/Ctrl + Z : annuler ; + Maj (ou Ctrl + Y) : rétablir — sauf dans un champ de saisie, qui garde son propre annuler */
+window.addEventListener('keydown', e => {
+  if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+  const tg = e.target, tag = tg.tagName || '';
+  if (/INPUT|TEXTAREA|SELECT/.test(tag) || tg.isContentEditable || document.querySelector('dialog[open], .ve, .v3d')) return;
+  const k = e.key.toLowerCase();
+  if (k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+  else if (k === 'y') { e.preventDefault(); redo(); }
+});
 
 /* Aperçu 3D : les pages sont dessinées ici, la scène three.js est dans viewer3d.js (chargé à la première ouverture) */
 let viewerLoad = null;
@@ -351,3 +423,5 @@ document.getElementById('exportGo').addEventListener('click', async () => {
   window.addEventListener('afterprint', done);
   window.print();
 });
+
+record(false); syncCenter();   // état de départ de l'historique

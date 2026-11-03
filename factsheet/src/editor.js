@@ -1,7 +1,7 @@
 /* Panneau d'édition : tout est éditable, mais jamais les tailles / espacements / layout. */
 import { h, inline, ico } from './render.js';
 import { t } from './i18n.js';
-import { GRID, THEMES, paletteKeys, colorLabel } from './tokens.js';
+import { GRID, THEMES, paletteKeys, sectionBgs, colorLabel } from './tokens.js';
 import { COL_TYPES, IMAGE_RATIOS, LOCALES, newCol, newSub, newSection, uid, moveSection, stepSection } from './state.js';
 import { VIZ_TYPES, VIZ_OPTIONS, newViz } from './viz/index.js';
 
@@ -162,5 +162,5 @@ function tableField(f, obj, ctx, palOpts, h2) {
   return box;
 }
 
-export const paletteOptions = doc => Object.fromEntries(paletteKeys(doc).map(k => [k, t(colorLabel(doc, k))]));
+export const paletteOptions = doc => Object.fromEntries([...paletteKeys(doc), ...sectionBgs(doc)].map(k => [k, t(colorLabel(doc, k))]));
 

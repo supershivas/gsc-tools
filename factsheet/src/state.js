@@ -251,7 +251,7 @@ export function addColor(doc, hex) {
 export function removeColor(doc, key) {
   delete doc.colors[key]; delete (doc.colorNames || {})[key];
   const gone = k => (k === key || k === 'tint-' + key ? 'none' : k);
-  remapColors(doc, k => (k === key ? 'blue' : k), gone, gone);
+  remapColors(doc, k => (k === key ? 'blue' : k === 'tint-' + key ? 'tint-blue' : k), gone, gone);
 }
 
 /** Cartes « automatiques » : suivent la largeur de leur colonne tant qu'on n'a pas touché à leurs options (voir cardPresetFor) */

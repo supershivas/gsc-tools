@@ -1,9 +1,9 @@
 {
-  "version": "1.15.0",
+  "version": "1.16.0",
   "date": "2026-11-03",
   "changes": [
-    "Image du header : affichée en entier, le conteneur suit les proportions de l'image",
-    "Boutons « + » à la hauteur du bloc créé, seulement là où il y a de la place dessous ; Cmd/Ctrl + molette zoome l'aperçu",
-    "Le Labo reprend les cartes repliables pour ses options ; le filigrane des marges suit les changements de mise en page"
+    "Annuler / rétablir (boutons au centre de l'en-tête, menu Édition, Cmd/Ctrl + Z) et nom du fichier modifiable dans l'en-tête ; plus d'onglet Document ni de choix de thème",
+    "Palette à deux tons : chaque couleur existe en pleine et en légère (20 %), seule liste proposée pour fonds, contours et textes",
+    "Cadre de sélection superposé à la page (plus recadré par le bord), zoom jusqu'à 400 %, boutons « + » plus discrets, Labo : variantes d'animation de la sélection"
   ]
 }

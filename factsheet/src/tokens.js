@@ -185,8 +185,8 @@ export const paletteOf = (themeKey, colors) => Object.assign({}, (THEMES[themeKe
 export const paletteKeys = (doc, white = true) => [...Object.keys(paletteOf(doc.theme, doc.colors)), ...(white ? ['white'] : [])];
 /** fonds de section proposés : une teinte par couleur */
 export const sectionBgs = doc => Object.keys(paletteOf(doc.theme, doc.colors)).map(k => 'tint-' + k);
-/** fonds proposés pour un cadre ou une section : blanc, une teinte par couleur, puis les couleurs pleines */
-export const fillKeys = doc => ['white', ...sectionBgs(doc), ...paletteKeys(doc, false)];
+/** palette à deux tons : chaque couleur pleine, le blanc, puis la teinte légère (20 %) de chaque couleur — c'est la seule liste proposée pour un fond, un contour ou un texte */
+export const toneKeys = doc => [...paletteKeys(doc), ...sectionBgs(doc)];
 /** libellé (clé française, à passer par t()) d'une couleur ou d'une teinte */
 export function colorLabel(doc, key) {
   const th = THEMES[doc.theme] || THEMES[DEFAULT_THEME];

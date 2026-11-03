@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.16.0 — 2026-11-03
+- Annuler / rétablir (boutons au centre de l'en-tête, menu Édition, Cmd/Ctrl + Z) et nom du fichier modifiable dans l'en-tête ; plus d'onglet Document ni de choix de thème
+- Palette à deux tons : chaque couleur existe en pleine et en légère (20 %), seule liste proposée pour fonds, contours et textes
+- Cadre de sélection superposé à la page (plus recadré par le bord), zoom jusqu'à 400 %, boutons « + » plus discrets, Labo : variantes d'animation de la sélection
+
 ## 1.15.0 — 2026-11-03
 - Image du header : affichée en entier, le conteneur suit les proportions de l'image
 - Boutons « + » à la hauteur du bloc créé, seulement là où il y a de la place dessous ; Cmd/Ctrl + molette zoome l'aperçu

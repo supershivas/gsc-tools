@@ -1,0 +1,15 @@
+/* Cadre de sélection : dessiné par-dessus l'aperçu (hors de la page, donc jamais recadré ni exporté).
+   Variantes d'animation à l'apparition (classe .pop) — choisies dans le Labo, sujet « Sélection ». */
+.sel-layer { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+.sel-frame { position: absolute; box-sizing: border-box; border: 1.5px solid #F28C28; border-radius: 3px; }
+/* B : scintillement léger */
+.sel-frame.v-blink.pop { animation: sel-blink .9s ease-in-out 1; }
+@keyframes sel-blink { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 #f28c2800; } 20% { opacity: .25; } 40% { opacity: 1; box-shadow: 0 0 0 6px #f28c2855; } 60% { opacity: .4; } 80% { opacity: 1; box-shadow: 0 0 0 0 #f28c2800; } }
+/* C : upscale */
+.sel-frame.v-zoom.pop { animation: sel-zoom .32s cubic-bezier(.2, .9, .3, 1); }
+@keyframes sel-zoom { from { transform: scale(1.05); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+/* D : upscale puis halo */
+.sel-frame.v-both.pop { animation: sel-zoom .32s cubic-bezier(.2, .9, .3, 1), sel-glow 1.2s ease-out .32s 2; }
+@keyframes sel-glow { 0% { box-shadow: 0 0 0 0 #f28c2888; } 100% { box-shadow: 0 0 0 10px #f28c2800; } }
+@media (prefers-reduced-motion: reduce) { .sel-frame.pop { animation: none !important; } }
+@media print { .sel-layer { display: none !important; } }
