@@ -3,7 +3,8 @@
    - aperçu à la largeur réelle de la colonne (ou d'un autre gabarit pour tester)
    - interactions à la souris si le type exporte `edit.start(hit, opts, meta, api, pt)` ;
      le rendu pose des `data-hit="kind:index"` sur les éléments saisissables. */
-import { h } from './render.js';
+import { h, ico } from './render.js';
+import { openPalette } from './palette.js';
 import { buildFields, paletteOptions } from './editor.js';
 import { colWidth, cssVars, applyVars } from './tokens.js';
 import { VIZ_TYPES, VIZ_OPTIONS, newViz, renderVizFull } from './viz/index.js';
@@ -51,6 +52,10 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
 
   /* ----- formulaire ----- */
   const fctx = { changed, restructure: () => { buildForm(); changed(); } };
+  /* La fenêtre des couleurs agit sur le document : l'éditeur se redessine avec les nouvelles couleurs */
+  const palCtx = { getDoc: ctx.getDoc,
+    changed: () => { applyVars(root, cssVars(doc.theme, doc.colors)); draw(); ctx.changed(); },
+    restructure: () => { applyVars(root, cssVars(doc.theme, doc.colors)); buildForm(); draw(); } };
   function buildForm() {
     const top = form.scrollTop;
     form.innerHTML = '';
@@ -58,6 +63,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     const kindSel = h('select', { onchange: e => { col.viz = newViz(e.target.value); ui.sel = -1; fctx.restructure(); } },
       Object.entries(VIZ_OPTIONS).map(([v, l]) => h('option', { value: v, textContent: l, selected: col.viz.kind === v })));
     form.append(h('label', { class: 'f' }, 'Type de dataviz', kindSel));
+    form.append(h('button', { type: 'button', class: 'pp-btn', style: { width: '100%', marginBottom: '10px' }, onclick: e => openPalette(e.currentTarget, palCtx) }, ico('palette'), h('span', { textContent: 'Couleurs du document' })));
     if (t.actions) form.append(h('div', { class: 'row', style: { flexWrap: 'wrap', marginBottom: '10px' } },
       t.actions.map(a => h('button', { type: 'button', textContent: a.label, title: a.title || '', onclick: () => { a.run(col.viz.opts); ui.sel = -1; fctx.restructure(); } }))));
     form.append(...buildFields(t.fields || [], col.viz.opts, fctx, paletteOptions(doc), h));

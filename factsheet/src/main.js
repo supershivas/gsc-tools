@@ -1,5 +1,5 @@
-import { PAGE } from './tokens.js';
-import { loadDoc, saveDoc, migrate, defaultDoc, blankDoc, moveSection, storage, localImageCount, swapCols, removeCol } from './state.js';
+import { PAGE, cssVars, applyVars } from './tokens.js';
+import { loadDoc, saveDoc, migrate, defaultDoc, blankDoc, moveSection, moveSub, storage, localImageCount, swapCols, removeCol } from './state.js';
 import { renderDocument, measure, h, columnWidth } from './render.js';
 import { buildTree } from './tree.js';
 import { buildProps } from './props.js';
@@ -18,6 +18,7 @@ const gauges = document.getElementById('gauges');
 const warnEl = document.getElementById('warnings');
 let zoomMode = 'fit';
 let raf = 0, hover = null, undoSnap = null;
+let previewDoc = null, previewMark = null;   // glisser-déposer : document candidat dessiné pendant le geste
 
 function scaleValue() {
   if (zoomMode !== 'fit') return parseFloat(zoomMode);
@@ -27,7 +28,7 @@ function scaleValue() {
 
 function drawPreview() {
   const sc = scaleValue();
-  const r = renderDocument(doc);
+  const r = renderDocument(previewDoc || doc);
   stage.innerHTML = '';
   r.pages.forEach(p => {
     const wrap = h('div', { class: 'pwrap', style: { width: PAGE.w * sc + 'px', height: PAGE.h * sc + 'px' } },
@@ -51,7 +52,8 @@ function drawPreview() {
   if (nLocal) warnEl.append(h('a', { class: 'note', href: 'atelier.html', textContent: nLocal === 1 ? '1 image à publier — ouvrir l’Atelier' : `${nLocal} images à publier — ouvrir l’Atelier` }));
   if (!storage.ok) warnEl.append(h('div', { textContent: 'Espace de stockage du navigateur plein : les dernières modifications ne sont pas enregistrées. Enregistrez le projet (.json) et allégez les images.' }));
   if (hover) hover.hide();
-  if (selected) stage.querySelectorAll(`[data-sel="${selected}"]`).forEach(n => n.classList.add('is-sel'));
+  if (previewDoc) { if (previewMark) stage.querySelectorAll(`[data-sel="${previewMark}"]`).forEach(n => n.classList.add('drag-live')); }
+  else if (selected) stage.querySelectorAll(`[data-sel="${selected}"]`).forEach(n => n.classList.add('is-sel'));
 }
 const schedule = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(drawPreview); };
 
@@ -65,7 +67,14 @@ function drawProps() { const top = propsEl.scrollTop; buildProps(propsEl, ctx); 
 
 const ctx = {
   getDoc: () => doc, getSel: () => selected, collapsed,
-  changed() { undoSnap = null; saveDoc(doc); schedule(); drawTree(); },
+  changed() { undoSnap = null; saveDoc(doc); schedule(); drawTree(); const v = cssVars(doc.theme, doc.colors); applyVars(propsEl, v); applyVars(treeEl, v); },
+  refreshProps: drawProps,
+  shown: () => previewDoc || doc,
+  /* Aperçu en direct d'un déplacement : `fn(copie)` l'applique à une copie du document et renvoie le chemin à repérer ; null = retour au vrai document */
+  preview(fn) {
+    if (!fn) { if (previewDoc) { previewDoc = null; previewMark = null; schedule(); } return; }
+    const c = JSON.parse(JSON.stringify(doc)); previewMark = fn(c); previewDoc = c; schedule();
+  },
   refreshTree: drawTree,
   /* Déplacement de contenu : `fn` modifie le document et renvoie le chemin à sélectionner ensuite.
      L'état d'avant est gardé pour « Annuler le déplacement » (jusqu'à la prochaine modification). */
@@ -104,7 +113,7 @@ window.addEventListener('keydown', e => {
   e.preventDefault(); ctx.remove(selected);
 });
 
-hover = initHover({ stage, getDoc: () => doc, ctx, canShow: () => !sdrag && !document.body.classList.contains('ve-open') && !document.body.classList.contains('dragging'),
+hover = initHover({ stage, getDoc: () => doc, ctx, canShow: () => !drag && !document.body.classList.contains('ve-open') && !document.body.classList.contains('dragging'),
   select: path => ctx.select(path) });
 
 /* Clic dans l'aperçu → sélection (structure à gauche, propriétés à droite) */
@@ -122,84 +131,97 @@ stage.addEventListener('dblclick', e => {
   if (col) ctx.editViz({ col, sub, ci });
 });
 
-/* Glisser une section par son titre : réordonner, ou passer d'une page à l'autre */
-let sdrag = null, suppressClick = false;
-stage.addEventListener('pointerdown', e => {
-  if (e.button !== 0) return;
-  const t = e.target.closest('.sec-title'); if (!t) return;
-  const sec = t.closest('.sec');
-  sdrag = { si: +sec.dataset.sel.split(':')[1], x: e.clientX, y: e.clientY, active: false, el: sec, target: null };
-});
-function dropTarget(x, y) {
+/* ---------- Glisser-déposer dans l'aperçu, avec aperçu en direct ----------
+   Pendant le geste, une copie du document avec le déplacement appliqué est dessinée à la place du vrai (jauges et
+   avertissements compris) ; relâcher valide (annulable), Échap annule. Les cibles sont désignées par identifiant,
+   donc valables dans la copie comme dans le vrai document. */
+let drag = null, suppressClick = false;
+const secIdx = (d, id) => d.sections.findIndex(x => x.id === id);
+const subIdx = (d, id) => { for (let si = 0; si < d.sections.length; si++) { const bi = d.sections[si].subs.findIndex(x => x.id === id); if (bi >= 0) return { si, bi }; } return null; };
+const secOf = el => +el.dataset.sel.split(':')[1];
+
+/* Section : on cherche, parmi les autres sections de la page visée, celle devant laquelle on se trouve */
+function secTarget(e) {
+  const sd = ctx.shown(), dg = drag;
   for (const page of stage.querySelectorAll('.page')) {
     const pr = page.getBoundingClientRect();
-    if (x < pr.left || x > pr.right || y < pr.top || y > pr.bottom) continue;
-    const secs = [...page.querySelectorAll('.sec')].filter(s => s !== sdrag.el);
-    const key = page.dataset.page;
-    for (const s of secs) { const r = s.getBoundingClientRect(); if (y < r.top + r.height / 2) return { page: key, si: +s.dataset.sel.split(':')[1], after: false, y: r.top - 2 }; }
-    if (secs.length) { const last = secs[secs.length - 1], r = last.getBoundingClientRect(); return { page: key, si: +last.dataset.sel.split(':')[1], after: true, y: r.bottom + 2, x: r.left, w: r.width }; }
-    const c = page.querySelector('.content').getBoundingClientRect();
-    return { page: key, si: null, after: false, y: c.top + 2, x: c.left, w: c.width };
+    if (e.clientX < pr.left || e.clientX > pr.right || e.clientY < pr.top || e.clientY > pr.bottom) continue;
+    const key = page.dataset.page, id = el => sd.sections[secOf(el)].id;
+    const secs = [...page.querySelectorAll('.sec')].filter(x => id(x) !== dg.id);
+    const mk = (ref, after) => ({ key: [key, ref, after], apply: c => { const ni = moveSection(c, secIdx(c, dg.id), ref == null ? null : secIdx(c, ref), after, key); return `sec:${ni}`; } });
+    for (const x of secs) { const r = x.getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) return mk(id(x), false); }
+    return secs.length ? mk(id(secs[secs.length - 1]), true) : mk(null, false);
   }
   return null;
 }
-window.addEventListener('pointermove', e => {
-  if (!sdrag) return;
-  if (!sdrag.active) {
-    if (Math.hypot(e.clientX - sdrag.x, e.clientY - sdrag.y) < 6) return;
-    sdrag.active = true; document.body.classList.add('dragging'); sdrag.el.classList.add('drag-src');
-    sdrag.line = h('div', { class: 'drop-line' }); sdrag.ghost = h('div', { class: 'drag-ghost', textContent: doc.sections[sdrag.si].title || 'Section' });
-    document.body.append(sdrag.line, sdrag.ghost);
+/* Sous-section : la section visée est celle sous le pointeur (la plus proche sinon), puis la sous-section devant laquelle on se trouve */
+function subTarget(e) {
+  const sd = ctx.shown(), dg = drag;
+  for (const page of stage.querySelectorAll('.page')) {
+    const pr = page.getBoundingClientRect();
+    if (e.clientX < pr.left || e.clientX > pr.right || e.clientY < pr.top || e.clientY > pr.bottom) continue;
+    const secs = [...page.querySelectorAll('.sec')]; if (!secs.length) return null;
+    let sec = secs.find(x => { const r = x.getBoundingClientRect(); return e.clientY >= r.top && e.clientY <= r.bottom; });
+    if (!sec) sec = e.clientY < secs[0].getBoundingClientRect().top ? secs[0] : secs[secs.length - 1];
+    const sid = sd.sections[secOf(sec)].id, subs = [...sec.querySelectorAll('.sub[data-sel]')].filter(x => { const q = x.dataset.sel.split(':'); return sd.sections[+q[1]].subs[+q[2]].id !== dg.id; });
+    const idOf = el => { const q = el.dataset.sel.split(':'); return sd.sections[+q[1]].subs[+q[2]].id; };
+    const mk = (ref, after) => ({ key: [sid, ref, after], apply: c => { const from = subIdx(c, dg.id), si = secIdx(c, sid), n = moveSub(c, from, { si, bi: ref == null ? null : subIdx(c, ref).bi }, after); return `sub:${n.si}:${n.bi}`; } });
+    for (const x of subs) { const r = x.getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) return mk(idOf(x), false); }
+    return subs.length ? mk(idOf(subs[subs.length - 1]), true) : mk(null, false);
   }
-  sdrag.ghost.style.left = e.clientX + 14 + 'px'; sdrag.ghost.style.top = e.clientY + 10 + 'px';
-  const t = sdrag.target = dropTarget(e.clientX, e.clientY);
-  if (t) {
-    const pr = stage.querySelector(`.page[data-page="${t.page}"]`).getBoundingClientRect();
-    const sc = pr.width / PAGE.w, x = pr.left + PAGE.margin * sc, w = pr.width - 2 * PAGE.margin * sc;
-    Object.assign(sdrag.line.style, { display: 'block', left: x + 'px', width: w + 'px', top: t.y - 1 + 'px' });
-  } else sdrag.line.style.display = 'none';
-});
-function endSectionDrag() {
-  if (!sdrag) return;
-  const d = sdrag; sdrag = null;
+  return null;
+}
+/* Colonne : toute la hauteur de la rangée compte, pas seulement le contenu (une colonne courte reste visée sur toute sa cellule) */
+function colTarget(e) {
+  const dg = drag;
+  for (const sub of stage.querySelectorAll('.sub[data-sel]')) {
+    const cols = sub.querySelector(':scope > .cols'); if (!cols) continue;
+    const r = cols.getBoundingClientRect();
+    if (e.clientY < r.top || e.clientY > r.bottom || e.clientX < r.left || e.clientX > r.right) continue;
+    const list = [...cols.children].filter(x => x.dataset && x.dataset.sel);
+    const hit = list.find(x => { const b = x.getBoundingClientRect(); return e.clientX >= b.left && e.clientX <= b.right; })
+      || list.reduce((best, x) => { const b = x.getBoundingClientRect(), d = Math.min(Math.abs(e.clientX - b.left), Math.abs(e.clientX - b.right)); return !best || d < best.d ? { x, d } : best; }, null).x;
+    const [, si, bi, ci] = hit.dataset.sel.split(':').map(Number);
+    if (si === dg.from.si && bi === dg.from.bi && ci === dg.from.ci) return null;
+    return { key: [si, bi, ci], apply: c => { swapCols(c, dg.from, { si, bi, ci }); return `col:${si}:${bi}:${ci}`; } };
+  }
+  return null;
+}
+const TARGETS = { sec: secTarget, sub: subTarget, col: colTarget };
+const dragLabel = () => drag.kind === 'sec' ? (doc.sections[secIdx(doc, drag.id)] || {}).title || 'Section' : drag.kind === 'sub' ? (() => { const p = subIdx(doc, drag.id); return (p && doc.sections[p.si].subs[p.bi].title) || 'Sous-section'; })() : 'Contenu';
+function dragActivate() {
+  drag.active = true; hover.hide(); document.body.classList.add('dragging');
+  drag.ghost = h('div', { class: 'drag-ghost', textContent: dragLabel() }); document.body.append(drag.ghost);
+}
+function dragEnd(commit) {
+  if (!drag) return; const d = drag; drag = null;
   if (!d.active) return;
-  document.body.classList.remove('dragging'); d.line.remove(); d.ghost.remove();
+  d.ghost.remove(); document.body.classList.remove('dragging'); ctx.preview(null);
   suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
-  const t = d.target; if (!t) { schedule(); return; }
-  const ni = moveSection(doc, d.si, t.si, t.after, t.page);
-  ctx.restructure(); ctx.select(`sec:${ni}`);
+  if (commit && d.drop) ctx.moved(() => d.drop.apply(doc)); else schedule();
 }
-window.addEventListener('pointerup', endSectionDrag);
-
-/* Glisser le contenu d'une colonne (poignée de la barre au survol) sur une autre colonne : les deux contenus s'échangent */
-let cdrag = null;
-const colAt = (x, y) => { const n = document.elementFromPoint(x, y), c = n && n.closest && n.closest('.stage .col[data-sel^="col:"]'); return c || null; };
-ctx.startColDrag = (e, from) => {
-  const src = stage.querySelector(`.col[data-sel="col:${from.si}:${from.bi}:${from.ci}"]`);
-  cdrag = { from, src, target: null, ghost: h('div', { class: 'drag-ghost', textContent: 'Contenu' }) };
-  hover.hide(); document.body.classList.add('dragging'); document.body.append(cdrag.ghost);
-  if (src) src.classList.add('drag-src'); moveColDrag(e);
-};
-function moveColDrag(e) {
-  if (!cdrag) return;
-  cdrag.ghost.style.left = e.clientX + 14 + 'px'; cdrag.ghost.style.top = e.clientY + 10 + 'px';
-  const c = colAt(e.clientX, e.clientY), ok = c && c !== cdrag.src ? c : null;
-  if (ok !== cdrag.target) { if (cdrag.target) cdrag.target.classList.remove('drop-col'); if (ok) ok.classList.add('drop-col'); cdrag.target = ok; }
-}
-window.addEventListener('pointermove', moveColDrag);
-function endColDrag(commit) {
-  if (!cdrag) return; const d = cdrag; cdrag = null;
-  d.ghost.remove(); document.body.classList.remove('dragging');
-  if (d.src) d.src.classList.remove('drag-src'); if (d.target) d.target.classList.remove('drop-col');
-  if (commit && d.target) {
-    const [, si, bi, ci] = d.target.dataset.sel.split(':').map(Number);
-    ctx.moved(() => { swapCols(doc, d.from, { si, bi, ci }); return `col:${si}:${bi}:${ci}`; });
-  }
-}
-window.addEventListener('pointerup', () => endColDrag(true));
-window.addEventListener('pointercancel', () => endColDrag(false));
-window.addEventListener('keydown', e => { if (e.key === 'Escape') endColDrag(false); });
-window.addEventListener('pointercancel', () => { if (sdrag && sdrag.active) { sdrag.line.remove(); sdrag.ghost.remove(); document.body.classList.remove('dragging'); } sdrag = null; schedule(); });
+window.addEventListener('pointermove', e => {
+  if (!drag) return;
+  if (!drag.active) { if (!drag.pending || Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return; dragActivate(); }
+  drag.ghost.style.left = e.clientX + 14 + 'px'; drag.ghost.style.top = e.clientY + 10 + 'px';
+  const t = TARGETS[drag.kind](e), key = t ? JSON.stringify(t.key) : '';
+  if (key === drag.key) return;
+  drag.key = key; drag.drop = t;
+  ctx.preview(t ? t.apply : null);
+});
+window.addEventListener('pointerup', () => dragEnd(true));
+window.addEventListener('pointercancel', () => dragEnd(false));
+window.addEventListener('keydown', e => { if (e.key === 'Escape') dragEnd(false); });
+/* Le titre d'une section ou d'une sous-section sert de poignée (seuil de 6 px pour ne pas gêner le clic) */
+stage.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  const st = e.target.closest('.sec-title'), bt = e.target.closest('.sub-title'), n = st || bt; if (!n) return;
+  const el = n.closest(st ? '.sec' : '.sub'), q = el.dataset.sel.split(':').map(Number);
+  drag = { kind: st ? 'sec' : 'sub', id: st ? doc.sections[q[1]].id : doc.sections[q[1]].subs[q[2]].id, x: e.clientX, y: e.clientY, pending: true, active: false };
+});
+/* Poignées de la barre au survol : le geste commence tout de suite */
+ctx.startColDrag = (e, from) => { drag = { kind: 'col', from, x: e.clientX, y: e.clientY, pending: true, active: false }; };
+ctx.startSubDrag = (e, from) => { drag = { kind: 'sub', id: doc.sections[from.si].subs[from.bi].id, x: e.clientX, y: e.clientY, pending: true, active: false }; };
 
 /* Fichier / Affichage : menus de l'en-tête (rendus par js/shell.js) ; la langue est dans les réglages */
 const newBlank = () => {

@@ -173,6 +173,8 @@ export const paletteOf = (themeKey, colors) => Object.assign({}, (THEMES[themeKe
 export const paletteKeys = (doc, white = true) => [...Object.keys(paletteOf(doc.theme, doc.colors)), ...(white ? ['white'] : [])];
 /** fonds de section proposés : une teinte par couleur */
 export const sectionBgs = doc => Object.keys(paletteOf(doc.theme, doc.colors)).map(k => 'tint-' + k);
+/** fonds proposés pour un cadre ou une section : blanc, une teinte par couleur, puis les couleurs pleines */
+export const fillKeys = doc => ['white', ...sectionBgs(doc), ...paletteKeys(doc, false)];
 /** libellé (clé française, à passer par t()) d'une couleur ou d'une teinte */
 export function colorLabel(doc, key) {
   const th = THEMES[doc.theme] || THEMES[DEFAULT_THEME];

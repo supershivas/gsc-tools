@@ -130,20 +130,7 @@ body.ve-open{overflow:hidden}
 @media print{.hv-bar,.hv-out{display:none!important}}
 
 /* ---------- Structure (gauche) / propriétés (droite) ---------- */
-.panel.tree{padding:10px 8px 40px;background:#fafbfc}
 .panel.props{border-right:0;border-left:1px solid var(--ui-line)}
-.tn{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:13px;white-space:nowrap;overflow:hidden;border:1px solid transparent}
-.tn:hover{background:#eef2f9}
-.tn.sel{background:#e3ecff;border-color:var(--ui-blue)}
-.tn strong{font-weight:600}
-.tn .tn-lab{overflow:hidden;text-overflow:ellipsis;color:var(--ui-mute)}
-.tn .tn-ico{width:14px;text-align:center;color:var(--ui-mute);flex:none}
-.tn .tn-sub{margin-left:auto;font-size:11px;color:var(--ui-mute);background:#eef0f3;border-radius:8px;padding:0 6px}
-.tn-tog{width:12px;color:var(--ui-mute);font-size:11px;cursor:pointer;flex:none}
-.tn-add{margin:2px 0 6px;border:0;background:none;color:var(--ui-blue);font-size:12px;padding:2px 4px}
-.tn-add:hover{text-decoration:underline}
-.tn-sec.drop-before{box-shadow:0 -3px 0 var(--ui-blue)}
-.tn-sec.drop-after{box-shadow:0 3px 0 var(--ui-blue)}
 .pr-head{margin-bottom:12px}
 .pr-head h2{margin:2px 0 0!important;font-size:16px!important;text-transform:none!important;letter-spacing:0!important;color:var(--ui-ink)!important}
 .crumbs{font-size:11px;color:var(--ui-mute)}
@@ -182,8 +169,6 @@ body.v3d-open{overflow:hidden}
 .imgtile-add{min-height:84px;border:1px dashed var(--ui-line);background:transparent;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;color:var(--ui-mute)}
 
 /* ---------- Déplacements, alignements, menus ---------- */
-.tn.drop-before{box-shadow:0 -3px 0 var(--ui-blue)}.tn.drop-after{box-shadow:0 3px 0 var(--ui-blue)}
-.tn.drop-swap,.tn.drop-zone{outline:2px dashed var(--ui-blue);outline-offset:-2px;background:#f3f8ff}
 .stage .page .drop-col{outline:2px dashed #F28C28;outline-offset:2px;background:#F28C2814}
 .stage .page .drag-src{opacity:.45}
 .grip-btn{cursor:grab;touch-action:none}
@@ -225,3 +210,63 @@ body.v3d-open{overflow:hidden}
 .pal2-row .mini{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center}
 .pal2-hex{font:11px var(--font-mono,monospace);color:var(--ui-mute);letter-spacing:.02em}
 .pal2 + .btn{margin:var(--modal-gap) 0}   /* bouton du design system (44 px, gap 8) ; écart = --modal-gap */
+
+/* ---------- Propriétés : cartes repliables (variante B du Labo) ---------- */
+.panel.props{padding:16px 16px 40px}
+.pp-card{margin:0 0 12px;border:1px solid var(--ui-line);border-radius:12px;overflow:hidden;background:#fff}
+.pp-card-h{display:flex;align-items:center;gap:10px;min-height:48px;padding:0 8px 0 14px;background:var(--ui-bg)}
+.pp-card-h .ti{font-size:20px;color:var(--ui-mute)}.pp-card-h b{font-weight:600;font-size:14px}
+.pp-sp{flex:1}
+.pp-chev{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--ui-mute)}
+.pp-body{display:grid;gap:16px;padding:16px}
+.pp-body>*{margin:0!important}
+.pp-body input[type=text],.pp-body input[type=number],.pp-body select{width:100%;min-height:36px;font-size:14px}
+.pp-body label.f{margin:0}
+.pp-body .hint{margin:0 0 4px}
+.pp-body .row{flex-wrap:wrap}
+.pp-switch{position:relative;flex:none;width:36px;height:20px;padding:0;border:0;border-radius:10px;background:#c9c9cc}
+.pp-switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
+.pp-switch.on{background:var(--ui-blue)}.pp-switch.on::after{transform:translateX(16px)}
+.pp-switchrow{display:flex;align-items:center;justify-content:space-between;min-height:32px;font-size:14px}
+.pp-actions{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.pp-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:0 12px;font-size:14px}
+.pp-actions .pp-btn{flex:1 1 auto}
+.pp-btn.danger{color:#b3261e}
+@media (hover:hover){.pp-btn:hover,.pp-chev:hover{border-color:var(--ui-blue);color:var(--ui-blue)}}
+.hv-sw.pal-btn{display:inline-flex;align-items:center;justify-content:center;border:1px dashed var(--ui-mute);background:#fff;color:var(--ui-mute);font-size:12px}
+.swrow .hv-sw.on{outline-offset:2px}
+.pal-pop{position:fixed;z-index:70;width:340px;max-height:80vh;overflow:auto;background:#fff;border:1px solid var(--ui-line);border-radius:12px;box-shadow:0 12px 40px #0004;padding:12px 14px 14px;font-size:13px}
+.pal-pop-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.pal-pop .pal2{margin:0 0 10px}
+.pal-pop .pp-btn{width:100%}
+
+/* ---------- Structure (gauche) : cartes repliables ---------- */
+.panel.tree{padding:16px 14px 40px;background:var(--ui-bg)}
+.tn{display:flex;align-items:center;gap:8px;min-height:40px;padding:0 8px 0 10px;cursor:pointer;font-size:13px;white-space:nowrap;overflow:hidden;border:1px solid transparent;border-radius:8px}
+.tn .ti{font-size:18px;color:var(--ui-mute);flex:none}
+.tn .tn-lab{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.tn strong{font-weight:600;font-size:14px}
+.tn .tn-sub{flex:none;font-size:11px;color:var(--ui-mute);background:#eef0f3;border-radius:8px;padding:0 7px;line-height:18px}
+.tn-doc{background:#fff;border:1px solid var(--ui-line);margin-bottom:12px}
+.tn-doc strong{flex:1}
+.tn-sec{margin:0 0 12px;background:#fff;border:1px solid var(--ui-line);border-radius:12px;overflow:hidden}
+.tn-sec>.tn{border-radius:0;min-height:44px}
+.tn-sec>.sec-row{background:#fafafa}
+.tn-body{display:grid;gap:8px;padding:8px 8px 10px;border-top:1px solid var(--ui-line)}
+.tn-subcard{border:1px solid var(--ui-line);border-radius:10px;overflow:hidden}
+.tn-subcard>.sub-row{background:#fafafa;border-radius:0}
+.tn-subcard>.col-row{border-radius:0;border-top:1px solid var(--ui-line);padding-left:18px;color:var(--ui-ink)}
+.tn-dot{flex:none;width:14px;height:14px;border-radius:4px;border:1px solid #0003}
+.tn-dot.none{background:#fff;border-style:dashed}
+.tn-tog{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--ui-mute)}
+.tn-add{display:flex;align-items:center;gap:6px;min-height:36px;margin:0;padding:0 8px;border:1px dashed var(--ui-line);border-radius:8px;background:transparent;color:var(--ui-mute);font-size:13px}
+.pg-zone>.tn-add{width:100%;justify-content:center;margin-bottom:12px}
+@media (hover:hover){.tn:hover{background:#eef2f9}.tn-add:hover,.tn-tog:hover{border-color:var(--ui-blue);color:var(--ui-blue);background:transparent}}
+.tn.sel{background:#e3ecff;border-color:var(--ui-blue)}
+.tn-doc.sel{border-color:var(--ui-blue)}
+.tn.sel .tn-sub{background:#fff}
+.tn-sec:has(>.tn.sel){border-color:var(--ui-blue)}
+.tn.drop-before{box-shadow:0 -3px 0 var(--ui-blue)}.tn.drop-after{box-shadow:0 3px 0 var(--ui-blue)}
+.tn-sec.drop-before{box-shadow:0 -3px 0 var(--ui-blue)}.tn-sec.drop-after{box-shadow:0 3px 0 var(--ui-blue)}
+.stage .page .drag-live{outline:2px dashed #F28C28;outline-offset:2px}
+.tn.drop-swap,.tn.drop-zone{outline:2px dashed var(--ui-blue);outline-offset:-2px;background:#f3f8ff}

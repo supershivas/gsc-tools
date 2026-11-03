@@ -61,11 +61,15 @@ function renderHeader(doc) {
   return el;
 }
 
-/* Contour (trait 0,5 pt, coins de 3 px) : le retrait intérieur est déduit des largeurs transmises aux enfants (voir insetW) */
-const strokeStyle = (node, o, th) => {
-  if (!o.stroke) return;
-  node.classList.add('stroked'); if (o.fill) node.classList.add('filled');
-  if (o.strokeColor && o.strokeColor !== 'text') node.style.setProperty('--stroke-color', `var(--c-${o.strokeColor})`);
+/* Cadre : contour (trait 0,5 pt, coins de 3 px) et/ou fond de couleur. Un fond sans contour garde le même retrait (trait transparent),
+   donc le même calcul de largeur : le retrait intérieur est déduit des largeurs transmises aux enfants (voir insetW). */
+const hasFill = o => !!o.fillColor && o.fillColor !== 'none';
+export const isBox = o => !!(o.stroke || hasFill(o));
+const strokeStyle = node => o => {
+  if (!isBox(o)) return;
+  node.classList.add('stroked');
+  node.style.setProperty('--stroke-color', o.stroke ? `var(--c-${o.strokeColor || 'text'})` : 'transparent');
+  if (hasFill(o)) node.style.background = `var(--c-${o.fillColor})`;
 };
 
 /** Image selon le mode choisi : ratio fixe (défaut), « fit » = largeur de la colonne et proportions de l'image, ou taille personnalisée */
@@ -94,7 +98,7 @@ function renderImage(col, w) {
 function renderCol(col, w, path, env) {
   const wrap = h('div', { class: `col col-${col.type}`, dataset: { sel: path } });
   const al = { top: 'start', center: 'center', bottom: 'end' }[col.valign] || 'start';
-  if (col.stroke && col.type !== 'card') { strokeStyle(wrap, col); wrap.style.justifyContent = { start: 'flex-start', center: 'center', end: 'flex-end' }[al]; w = insetW(w); }
+  if (isBox(col) && col.type !== 'card') { strokeStyle(wrap)(col); wrap.style.justifyContent = { start: 'flex-start', center: 'center', end: 'flex-end' }[al]; w = insetW(w); }
   else wrap.style.alignSelf = al;
   if (col.type === 'text') wrap.append(richText(col.text, col.align));
   else if (col.type === 'image') {
@@ -115,7 +119,7 @@ function renderCol(col, w, path, env) {
 function renderSub(sub, si, bi, env, W) {
   const L = GRID.layouts[sub.layout];
   const el = h('div', { class: 'sub', dataset: { sel: `sub:${si}:${bi}` } });
-  strokeStyle(el, sub); if (sub.stroke) W = insetW(W);
+  strokeStyle(el)(sub); if (isBox(sub)) W = insetW(W);
   if (sub.title && sub.title.trim()) el.append(h('h3', { class: 'sub-title', textContent: sub.title }));
   const cols = h('div', { class: 'cols', style: { gridTemplateColumns: `repeat(${L.cols}, minmax(0, 1fr))` } });
   sub.cols.forEach((c, i) => {
@@ -132,10 +136,10 @@ export function columnWidth(doc, si, bi, ci) {
   const sec = doc.sections[si], sub = sec && sec.subs[bi], col = sub && sub.cols[ci];
   if (!col) return GRID.contentW;
   let W = GRID.contentW;
-  if (sec.stroke) W = insetW(W);
-  if (sub.stroke) W = insetW(W);
+  if (isBox(sec)) W = insetW(W);
+  if (isBox(sub)) W = insetW(W);
   const w = colWidth(sub.layout, ci, W);
-  return col.stroke ? insetW(w) : w;
+  return isBox(col) && col.type !== 'card' ? insetW(w) : w;
 }
 
 const isBand = s => !!(s.bg && s.bg !== 'none');
@@ -155,7 +159,7 @@ function renderSection(sec, si, env, pos) {
   const cls = ['sec', band && 'sec-band', pos.first && 'sec-first', pos.last && 'sec-last'].filter(Boolean).join(' ');
   const el = h('section', { class: cls, style, dataset: { sel: `sec:${si}` } });
   let host = el, W = GRID.contentW;
-  if (sec.stroke) { host = h('div', { class: 'sec-box' }); strokeStyle(host, sec); el.append(host); W = insetW(W); }
+  if (isBox(sec)) { host = h('div', { class: 'sec-box' }); strokeStyle(host)(sec); el.append(host); W = insetW(W); }
   if (sec.title && sec.title.trim()) host.append(h('h2', { class: 'sec-title', textContent: sec.title }));
   sec.subs.forEach((sub, bi) => host.append(renderSub(sub, si, bi, env, W)));
   return el;

@@ -29,7 +29,7 @@ export const newCol = (type = 'text') => ({
   figure: type === 'figure' ? FIGURE_DEFAULTS() : null,
   card: type === 'card' ? newCard() : null,          // carte : options + contenu (voir cardmodel.js)   // chiffre clé : { value, icon, iconStyle, text }
   imgMode: 'ratio', imgW: 100, imgH: 150, imgFit: 'cover', natural: null,   // image : ratio | fit (proportions de l'image) | custom (largeur en %, hauteur en px)
-  stroke: false, strokeColor: 'text', fill: false,   // contour (également sur les sections et sous-sections)
+  stroke: false, strokeColor: 'text', fillColor: 'none',   // contour et fond (également sur les sous-sections et sections) ; fond : 'none', 'white', une couleur ou 'tint-<couleur>'
 });
 export const newSub = (layout = '1') => ({
   id: uid('sub'), title: t('Sous-section'), layout,
@@ -49,7 +49,7 @@ export function blankDoc() {
 export function defaultDoc() {
   const lorem = 'Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim.';
   const viz = (kind, extra) => ({ ...newCol('viz'), viz: { ...newViz(kind), ...(extra || {}) } });
-  const fig = () => ({ ...newCol('figure'), stroke: true, fill: true });
+  const fig = () => ({ ...newCol('figure'), stroke: true, fillColor: 'white' });
   const s1 = newSection('recto');
   s1.title = 'Section title';
   s1.subs = [
@@ -118,15 +118,22 @@ export function migrate(j) {
       sub.cols = sub.cols.map(c => { c = oldFigure(c); const k = Object.assign(newCol(c.type || 'text'), c); if (k.type === 'figure' && !k.figure) k.figure = FIGURE_DEFAULTS(); if (k.type === 'card' && !k.card) k.card = newCard(); if (k.type === 'viz') { if (!k.viz) k.viz = newViz('bars'); else if (!k.viz.opts) k.viz = newViz(k.viz.kind); } return k; });
     });
   });
+  oldBoxes(d);
   oldColors(d);
   return d;
+}
+
+/** Anciens fichiers : `fill` (fond blanc du contour) → `fillColor` */
+function oldBoxes(d) {
+  const f = o => { if (o.fill === true && !o.fillColor) o.fillColor = 'white'; if (!o.fillColor) o.fillColor = 'none'; delete o.fill; };
+  d.sections.forEach(sec => { f(sec); sec.subs.forEach(sub => { f(sub); sub.cols.forEach(f); }); });
 }
 
 /** Anciens fichiers : le chiffre clé était une dataviz → type de contenu à part, avec son cadre devenu contour */
 function oldFigure(c) {
   if (c.type !== 'viz' || !c.viz || c.viz.kind !== 'figure') return c;
   const o = c.viz.opts || {};
-  return { ...c, type: 'figure', viz: null, figure: { ...FIGURE_DEFAULTS(), value: o.value ?? '', text: o.text ?? '' }, stroke: true, fill: true };
+  return { ...c, type: 'figure', viz: null, figure: { ...FIGURE_DEFAULTS(), value: o.value ?? '', text: o.text ?? '' }, stroke: true, fillColor: 'white' };
 }
 
 /* ---------- Déplacement de sections (glisser-déposer, flèches) ---------- */
@@ -208,14 +215,14 @@ export function moveSub(doc, from, to, after) {
 
 /* ---------- Couleurs : migration, ajout, suppression ---------- */
 /** Parcourt toutes les références de couleur du document (header, fonds et contours, séries des dataviz) ; fn(clé) → nouvelle clé, bg(clé) pour les fonds de section */
-export function remapColors(doc, fn, bg = fn) {
+export function remapColors(doc, fn, bg = fn, fill = bg) {
   const H = doc.header || {}; H.bg = fn(H.bg); H.fg = fn(H.fg);
   const walk = o => { if (o && typeof o === 'object') for (const k of Object.keys(o)) { if (k === 'color' && typeof o[k] === 'string') o[k] = fn(o[k]); else walk(o[k]); } };
   (doc.sections || []).forEach(sec => {
-    sec.bg = bg(sec.bg); if (sec.strokeColor) sec.strokeColor = fn(sec.strokeColor);
+    sec.bg = bg(sec.bg); if (sec.strokeColor) sec.strokeColor = fn(sec.strokeColor); if (sec.fillColor) sec.fillColor = fill(sec.fillColor);
     (sec.subs || []).forEach(sub => {
-      if (sub.strokeColor) sub.strokeColor = fn(sub.strokeColor);
-      (sub.cols || []).forEach(c => { if (c.strokeColor) c.strokeColor = fn(c.strokeColor); walk(c.viz); });
+      if (sub.strokeColor) sub.strokeColor = fn(sub.strokeColor); if (sub.fillColor) sub.fillColor = fill(sub.fillColor);
+      (sub.cols || []).forEach(c => { if (c.strokeColor) c.strokeColor = fn(c.strokeColor); if (c.fillColor) c.fillColor = fill(c.fillColor); walk(c.viz); });
     });
   });
 }
@@ -236,10 +243,11 @@ export function addColor(doc, hex) {
   doc.colors[k] = hex; doc.colorNames[k] = `${t('Couleur')} ${5 + extraColorKeys(doc).length}`;
   return k;
 }
-/** Retire une couleur ajoutée : ce qui l'utilisait passe en bleu (les fonds de section en « aucun ») */
+/** Retire une couleur ajoutée : ce qui l'utilisait passe en bleu (les fonds en « aucun ») */
 export function removeColor(doc, key) {
   delete doc.colors[key]; delete (doc.colorNames || {})[key];
-  remapColors(doc, k => (k === key ? 'blue' : k), k => (k === 'tint-' + key ? 'none' : k));
+  const gone = k => (k === key || k === 'tint-' + key ? 'none' : k);
+  remapColors(doc, k => (k === key ? 'blue' : k), gone, gone);
 }
 
 /** Cartes « automatiques » : suivent la largeur de leur colonne tant qu'on n'a pas touché à leurs options (voir cardPresetFor) */

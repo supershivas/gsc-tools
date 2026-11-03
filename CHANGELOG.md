@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.13.0 — 2026-11-03
+- Propriétés et structure en cartes repliables ; fond et contour au choix sur chaque élément ; couleurs modifiables, renommables et ajoutables partout
+- Glisser-déposer avec aperçu en direct (sections, sous-sections, colonnes) ; une colonne se vise sur toute sa hauteur
+
 ## 1.12.0 — 2026-11-03
 - Factsheet creator : menu Fichier › Nouvelle factsheet vierge (header et logos d'origine, une section vide)
 

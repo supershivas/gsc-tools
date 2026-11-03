@@ -211,6 +211,7 @@
   var paletteOf = (themeKey, colors) => Object.assign({}, (THEMES[themeKey] || THEMES[DEFAULT_THEME]).colors, colors || {});
   var paletteKeys = (doc2, white = true) => [...Object.keys(paletteOf(doc2.theme, doc2.colors)), ...white ? ["white"] : []];
   var sectionBgs = (doc2) => Object.keys(paletteOf(doc2.theme, doc2.colors)).map((k) => "tint-" + k);
+  var fillKeys = (doc2) => ["white", ...sectionBgs(doc2), ...paletteKeys(doc2, false)];
   function colorLabel(doc2, key) {
     const th = THEMES[doc2.theme] || THEMES[DEFAULT_THEME];
     if (key === "white") return "Blanc";
@@ -263,6 +264,19 @@
     "Zoom": "Zoom",
     "Ajuster": "Fit",
     "Langue": "Language",
+    "Couleurs": "Colours",
+    "Cadre": "Frame",
+    "Fond du cadre": "Frame background",
+    "Fond": "Background",
+    "Fond et contour": "Background and outline",
+    "Disposition": "Layout",
+    "Replier": "Collapse",
+    "D\xE9plier": "Expand",
+    "Modifier, renommer ou ajouter des couleurs": "Edit, rename or add colours",
+    "Nom de la couleur": "Colour name",
+    "Couleurs du document": "Document colours",
+    "Chaque choix de couleur du document propose aussi \xAB + \xBB pour modifier, renommer ou ajouter une couleur.": "Every colour choice in the document also offers \u201C+\u201D to edit, rename or add a colour.",
+    "Type de contenu": "Content type",
     "Nouvelle factsheet vierge": "New blank factsheet",
     "Cr\xE9er une factsheet vierge ? Le document actuel sera remplac\xE9 : enregistrez-le d\u2019abord (.json) si besoin.": "Create a blank factsheet? The current document will be replaced: save it first (.json) if needed.",
     "Enregistrer (.json)": "Save (.json)",
@@ -1710,8 +1724,8 @@
     // image : ratio | fit (proportions de l'image) | custom (largeur en %, hauteur en px)
     stroke: false,
     strokeColor: "text",
-    fill: false
-    // contour (également sur les sections et sous-sections)
+    fillColor: "none"
+    // contour et fond (également sur les sous-sections et sections) ; fond : 'none', 'white', une couleur ou 'tint-<couleur>'
   });
   var newSub = (layout = "1") => ({
     id: uid("sub"),
@@ -1734,7 +1748,7 @@
   function defaultDoc() {
     const lorem = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim.";
     const viz = (kind, extra) => ({ ...newCol("viz"), viz: { ...newViz(kind), ...extra || {} } });
-    const fig = () => ({ ...newCol("figure"), stroke: true, fill: true });
+    const fig = () => ({ ...newCol("figure"), stroke: true, fillColor: "white" });
     const s1 = newSection("recto");
     s1.title = "Section title";
     s1.subs = [
@@ -1833,13 +1847,28 @@ ${lorem}` },
         });
       });
     });
+    oldBoxes(d);
     oldColors(d);
     return d;
+  }
+  function oldBoxes(d) {
+    const f = (o) => {
+      if (o.fill === true && !o.fillColor) o.fillColor = "white";
+      if (!o.fillColor) o.fillColor = "none";
+      delete o.fill;
+    };
+    d.sections.forEach((sec) => {
+      f(sec);
+      sec.subs.forEach((sub) => {
+        f(sub);
+        sub.cols.forEach(f);
+      });
+    });
   }
   function oldFigure(c) {
     if (c.type !== "viz" || !c.viz || c.viz.kind !== "figure") return c;
     const o = c.viz.opts || {};
-    return { ...c, type: "figure", viz: null, figure: { ...FIGURE_DEFAULTS(), value: o.value ?? "", text: o.text ?? "" }, stroke: true, fill: true };
+    return { ...c, type: "figure", viz: null, figure: { ...FIGURE_DEFAULTS(), value: o.value ?? "", text: o.text ?? "" }, stroke: true, fillColor: "white" };
   }
   function moveSection(doc2, from, to, after, page) {
     const sec = doc2.sections[from];
@@ -1920,7 +1949,7 @@ ${lorem}` },
     else dst.subs.push(sub);
     return { si: to.si, bi: dst.subs.indexOf(sub) };
   }
-  function remapColors(doc2, fn, bg = fn) {
+  function remapColors(doc2, fn, bg = fn, fill = bg) {
     const H = doc2.header || {};
     H.bg = fn(H.bg);
     H.fg = fn(H.fg);
@@ -1933,10 +1962,13 @@ ${lorem}` },
     (doc2.sections || []).forEach((sec) => {
       sec.bg = bg(sec.bg);
       if (sec.strokeColor) sec.strokeColor = fn(sec.strokeColor);
+      if (sec.fillColor) sec.fillColor = fill(sec.fillColor);
       (sec.subs || []).forEach((sub) => {
         if (sub.strokeColor) sub.strokeColor = fn(sub.strokeColor);
+        if (sub.fillColor) sub.fillColor = fill(sub.fillColor);
         (sub.cols || []).forEach((c) => {
           if (c.strokeColor) c.strokeColor = fn(c.strokeColor);
+          if (c.fillColor) c.fillColor = fill(c.fillColor);
           walk2(c.viz);
         });
       });
@@ -1964,7 +1996,8 @@ ${lorem}` },
   function removeColor(doc2, key) {
     delete doc2.colors[key];
     delete (doc2.colorNames || {})[key];
-    remapColors(doc2, (k) => k === key ? "blue" : k, (k) => k === "tint-" + key ? "none" : k);
+    const gone = (k) => k === key || k === "tint-" + key ? "none" : k;
+    remapColors(doc2, (k) => k === key ? "blue" : k, gone, gone);
   }
   function refreshAutoCards(sub, widthOf) {
     sub.cols.forEach((c, i) => {
@@ -2073,11 +2106,13 @@ ${lorem}` },
     el2.append(inner);
     return el2;
   }
-  var strokeStyle = (node, o, th) => {
-    if (!o.stroke) return;
+  var hasFill = (o) => !!o.fillColor && o.fillColor !== "none";
+  var isBox = (o) => !!(o.stroke || hasFill(o));
+  var strokeStyle = (node) => (o) => {
+    if (!isBox(o)) return;
     node.classList.add("stroked");
-    if (o.fill) node.classList.add("filled");
-    if (o.strokeColor && o.strokeColor !== "text") node.style.setProperty("--stroke-color", `var(--c-${o.strokeColor})`);
+    node.style.setProperty("--stroke-color", o.stroke ? `var(--c-${o.strokeColor || "text"})` : "transparent");
+    if (hasFill(o)) node.style.background = `var(--c-${o.fillColor})`;
   };
   function renderImage(col, w) {
     const mode = col.imgMode || "ratio";
@@ -2108,8 +2143,8 @@ ${lorem}` },
   function renderCol(col, w, path, env) {
     const wrap = h("div", { class: `col col-${col.type}`, dataset: { sel: path } });
     const al = { top: "start", center: "center", bottom: "end" }[col.valign] || "start";
-    if (col.stroke && col.type !== "card") {
-      strokeStyle(wrap, col);
+    if (isBox(col) && col.type !== "card") {
+      strokeStyle(wrap)(col);
       wrap.style.justifyContent = { start: "flex-start", center: "center", end: "flex-end" }[al];
       w = insetW(w);
     } else wrap.style.alignSelf = al;
@@ -2130,8 +2165,8 @@ ${lorem}` },
   function renderSub(sub, si, bi, env, W) {
     const L = GRID.layouts[sub.layout];
     const el2 = h("div", { class: "sub", dataset: { sel: `sub:${si}:${bi}` } });
-    strokeStyle(el2, sub);
-    if (sub.stroke) W = insetW(W);
+    strokeStyle(el2)(sub);
+    if (isBox(sub)) W = insetW(W);
     if (sub.title && sub.title.trim()) el2.append(h("h3", { class: "sub-title", textContent: sub.title }));
     const cols = h("div", { class: "cols", style: { gridTemplateColumns: `repeat(${L.cols}, minmax(0, 1fr))` } });
     sub.cols.forEach((c, i) => {
@@ -2146,10 +2181,10 @@ ${lorem}` },
     const sec = doc2.sections[si], sub = sec && sec.subs[bi], col = sub && sub.cols[ci];
     if (!col) return GRID.contentW;
     let W = GRID.contentW;
-    if (sec.stroke) W = insetW(W);
-    if (sub.stroke) W = insetW(W);
+    if (isBox(sec)) W = insetW(W);
+    if (isBox(sub)) W = insetW(W);
     const w = colWidth(sub.layout, ci, W);
-    return col.stroke ? insetW(w) : w;
+    return isBox(col) && col.type !== "card" ? insetW(w) : w;
   }
   var isBand = (s2) => !!(s2.bg && s2.bg !== "none");
   function renderSection(sec, si, env, pos) {
@@ -2164,9 +2199,9 @@ ${lorem}` },
     const cls = ["sec", band && "sec-band", pos.first && "sec-first", pos.last && "sec-last"].filter(Boolean).join(" ");
     const el2 = h("section", { class: cls, style, dataset: { sel: `sec:${si}` } });
     let host = el2, W = GRID.contentW;
-    if (sec.stroke) {
+    if (isBox(sec)) {
       host = h("div", { class: "sec-box" });
-      strokeStyle(host, sec);
+      strokeStyle(host)(sec);
       el2.append(host);
       W = insetW(W);
     }
@@ -2211,7 +2246,7 @@ ${lorem}` },
 
   // src/tree.js
   var strip = (t2) => String(t2 || "").replace(/\*\*|__|~~/g, "").replace(/^[-•]\s+/gm, "").replace(/\s+/g, " ").trim();
-  var GLYPH = { text: "\xB6", image: "\u25A8", figure: "\u2116", card: "\u25AD", viz: "\u25A6" };
+  var ICON = { text: "text-size", image: "photo", figure: "number", card: "layout-cards", viz: "chart-bar" };
   function colLabel(col) {
     if (col.type === "text") return strip(col.text).slice(0, 34) || "Texte vide";
     if (col.type === "image") return col.caption ? "Image \xB7 " + col.caption : "Image";
@@ -2224,68 +2259,97 @@ ${lorem}` },
     const doc2 = ctx2.getDoc(), sel = ctx2.getSel(), collapsed2 = ctx2.collapsed;
     root.innerHTML = "";
     applyVars(root, cssVars(doc2.theme, doc2.colors));
-    const row = (path, depth, kids, extra = "") => h("div", {
-      class: "tn" + (sel === path ? " sel" : "") + extra,
+    const row = (path, cls, kids) => h("div", {
+      class: "tn " + cls + (sel === path ? " sel" : ""),
       dataset: { path: path || "" },
-      style: { paddingLeft: 8 + depth * 14 + "px" },
       onclick: (e) => {
         if (e.target.closest(".grip,.tn-tog,.tn-add")) return;
         ctx2.select(path);
       }
     }, ...kids);
-    const tog = (key) => h("span", { class: "tn-tog", onclick: () => {
+    const tog = (key) => h("button", { type: "button", class: "tn-tog", "aria-label": collapsed2.has(key) ? "D\xE9plier" : "Replier", "aria-expanded": String(!collapsed2.has(key)), onclick: () => {
       collapsed2.has(key) ? collapsed2.delete(key) : collapsed2.add(key);
       ctx2.refreshTree();
-    } }, ico(collapsed2.has(key) ? "chevron-right" : "chevron-down"));
-    const add = (label, fn, depth) => h("button", { type: "button", class: "tn-add", textContent: label, style: { marginLeft: 8 + depth * 14 + "px" }, onclick: () => {
+    } }, ico(collapsed2.has(key) ? "chevron-down" : "chevron-up"));
+    const add = (label, fn) => h("button", { type: "button", class: "tn-add", onclick: () => {
       fn();
       ctx2.restructure();
-    } });
-    root.append(row(null, 0, [h("span", { class: "tn-ico", textContent: "\u25A4" }), h("strong", { textContent: doc2.name || "Document" }), h("span", { class: "tn-sub", textContent: "document" })]));
-    let dragFrom = null, drag = null;
+    } }, ico("plus"), h("span", { textContent: label }));
+    root.append(row(null, "tn-doc", [ico("file-text"), h("strong", { textContent: doc2.name || "Document" }), h("span", { class: "tn-sub", textContent: "document" })]));
+    let dragFrom = null, drag2 = null, pKey = "";
     const clearDrop = () => root.querySelectorAll(".drop-before,.drop-after,.drop-zone,.drop-swap").forEach((n) => n.classList.remove("drop-before", "drop-after", "drop-zone", "drop-swap"));
+    const preview = (key, apply) => {
+      if (key === pKey) return;
+      pKey = key;
+      ctx2.preview(apply);
+    };
+    const endDrag = () => {
+      pKey = "";
+      ctx2.preview(null);
+      clearDrop();
+      document.body.classList.remove("dragging");
+    };
+    const startDrag = () => {
+      document.body.classList.add("dragging");
+    };
     const gripFor = (d) => h("span", {
       class: "grip",
       draggable: true,
       title: d.kind === "sub" ? "Glisser la sous-section (autre section possible)" : "Glisser le contenu sur une autre colonne pour l\u2019\xE9changer",
       ondragstart: (e) => {
         e.stopPropagation();
-        drag = d;
+        drag2 = d;
+        startDrag();
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData("text/plain", d.kind);
       },
       ondragend: () => {
-        drag = null;
-        clearDrop();
+        drag2 = null;
+        endDrag();
       }
     }, ico("grip-vertical"));
     const dropOn = (rowEl, target) => {
       rowEl.addEventListener("dragover", (ev) => {
-        if (!drag) return;
-        if (target.kind === "col" && drag.kind === "col") {
+        if (!drag2) return;
+        if (target.kind === "col" && drag2.kind === "col") {
           ev.preventDefault();
           ev.stopPropagation();
           clearDrop();
           rowEl.classList.add("drop-swap");
-        } else if (target.kind === "sub" && drag.kind === "sub") {
+          const same = target.si === drag2.si && target.bi === drag2.bi && target.ci === drag2.ci;
+          preview(same ? "" : `col:${target.si}:${target.bi}:${target.ci}`, same ? null : (c) => {
+            swapCols(c, drag2, target);
+            return `col:${target.si}:${target.bi}:${target.ci}`;
+          });
+        } else if (target.kind === "sub" && drag2.kind === "sub") {
           ev.preventDefault();
           ev.stopPropagation();
           const r = rowEl.getBoundingClientRect(), after = ev.clientY > r.top + r.height / 2;
           clearDrop();
           rowEl.classList.add(after ? "drop-after" : "drop-before");
           rowEl.dataset.after = after ? "1" : "";
-        } else if (target.kind === "sec" && drag.kind === "sub") {
+          const d = drag2;
+          preview(`sub:${target.si}:${target.bi}:${after}`, (c) => {
+            const n = moveSub(c, d, target, after);
+            return `sub:${n.si}:${n.bi}`;
+          });
+        } else if (target.kind === "sec" && drag2.kind === "sub") {
           ev.preventDefault();
           ev.stopPropagation();
           clearDrop();
           rowEl.classList.add("drop-zone");
+          const d = drag2;
+          preview(`subsec:${target.si}`, (c) => {
+            const n = moveSub(c, d, { si: target.si, bi: null });
+            return `sub:${n.si}:${n.bi}`;
+          });
         }
       });
       rowEl.addEventListener("drop", (ev) => {
-        if (!drag) return;
-        const d = drag;
-        drag = null;
-        clearDrop();
+        if (!drag2) return;
+        const d = drag2;
+        drag2 = null;
+        endDrag();
         if (target.kind === "col" && d.kind === "col") {
           ev.preventDefault();
           ev.stopPropagation();
@@ -2313,31 +2377,37 @@ ${lorem}` },
       return rowEl;
     };
     const secNode = (sec, si) => {
-      const key = sec.id || "sec" + si, closed = collapsed2.has(key);
+      const key = sec.id || "sec" + si, closed = collapsed2.has(key), band = sec.bg && sec.bg !== "none";
       const grip = h("span", {
         class: "grip",
         draggable: true,
         title: "Glisser pour r\xE9ordonner ou changer de page",
         ondragstart: (e) => {
           dragFrom = si;
+          startDrag();
           e.dataTransfer.effectAllowed = "move";
           e.dataTransfer.setData("text/plain", String(si));
         },
         ondragend: () => {
           dragFrom = null;
-          clearDrop();
+          endDrag();
         }
       }, ico("grip-vertical"));
-      const node = h("div", { class: "tn-sec" }, dropOn(row(`sec:${si}`, 0, [grip, tog(key), h("span", { class: "tn-ico", textContent: sec.bg && sec.bg !== "none" ? "\u25FC" : "\u25FB", style: sec.bg && sec.bg !== "none" ? { color: `var(--c-${sec.bg})`, textShadow: "0 0 0 #0005", WebkitTextStroke: "1px #0004" } : {} }), h("strong", { textContent: sec.title || "Section sans titre" })]), { kind: "sec", si }));
+      const dot = h("span", { class: "tn-dot" + (band ? "" : " none"), style: band ? { background: `var(--c-${sec.bg})` } : {} });
+      const node = h("div", { class: "tn-sec" });
+      node.append(dropOn(row(`sec:${si}`, "sec-row", [grip, dot, h("strong", { class: "tn-lab", textContent: sec.title || "Section sans titre" }), h("span", { class: "tn-sub", textContent: String(sec.subs.length) }), tog(key)]), { kind: "sec", si }));
       if (!closed) {
+        const body = h("div", { class: "tn-body" });
         sec.subs.forEach((sub, bi) => {
-          const sk = sub.id || `sub${si}${bi}`, sClosed = collapsed2.has(sk);
-          node.append(dropOn(row(`sub:${si}:${bi}`, 1, [gripFor({ kind: "sub", si, bi }), tog(sk), h("span", { textContent: sub.title || "Sous-section" }), h("span", { class: "tn-sub", textContent: sub.layout })]), { kind: "sub", si, bi }));
-          if (!sClosed) sub.cols.forEach((col, ci) => node.append(dropOn(row(`col:${si}:${bi}:${ci}`, 2, [gripFor({ kind: "col", si, bi, ci }), h("span", { class: "tn-ico", textContent: GLYPH[col.type] || "\xB7" }), h("span", { class: "tn-lab", textContent: colLabel(col) })]), { kind: "col", si, bi, ci })));
+          const sk = sub.id || `sub${si}${bi}`, sClosed = collapsed2.has(sk), subCard = h("div", { class: "tn-subcard" });
+          subCard.append(dropOn(row(`sub:${si}:${bi}`, "sub-row", [gripFor({ kind: "sub", si, bi }), ico("columns"), h("span", { class: "tn-lab", textContent: sub.title || "Sous-section" }), h("span", { class: "tn-sub", textContent: sub.layout }), tog(sk)]), { kind: "sub", si, bi }));
+          if (!sClosed) sub.cols.forEach((col, ci) => subCard.append(dropOn(row(`col:${si}:${bi}:${ci}`, "col-row", [gripFor({ kind: "col", si, bi, ci }), ico(ICON[col.type] || "text-size"), h("span", { class: "tn-lab", textContent: colLabel(col) })]), { kind: "col", si, bi, ci })));
+          body.append(subCard);
         });
-        node.append(add("+ sous-section", () => {
+        body.append(add("Sous-section", () => {
           sec.subs.push(newSub("1"));
-        }, 1));
+        }));
+        node.append(body);
       }
       node.addEventListener("dragover", (ev) => {
         if (dragFrom == null) return;
@@ -2347,6 +2417,8 @@ ${lorem}` },
         clearDrop();
         node.classList.add(after ? "drop-after" : "drop-before");
         node.dataset.after = after ? "1" : "";
+        const from = dragFrom;
+        preview(`sec:${si}:${after}`, (c) => `sec:${moveSection(c, from, si, after)}`);
       });
       node.addEventListener("drop", (ev) => {
         if (dragFrom == null) return;
@@ -2354,7 +2426,7 @@ ${lorem}` },
         ev.stopPropagation();
         const from = dragFrom, after = !!node.dataset.after;
         dragFrom = null;
-        clearDrop();
+        endDrag();
         const ni = moveSection(doc2, from, si, after);
         ctx2.restructure();
         ctx2.select(`sec:${ni}`);
@@ -2363,7 +2435,7 @@ ${lorem}` },
     };
     for (const pg of ["recto", "verso"]) {
       const zone = h("div", { class: "pg-zone" }, h("div", { class: "pg-head", textContent: pg === "recto" ? "Recto" : "Verso" }));
-      if (pg === "recto") zone.append(row("header", 0, [h("span", { class: "tn-ico", textContent: "\u25AC" }), h("strong", { textContent: "Header" }), h("span", { class: "tn-sub", textContent: strip(doc2.header.title).slice(0, 18) })]));
+      if (pg === "recto") zone.append(h("div", { class: "tn-sec tn-head" }, row("header", "head-row", [ico("layout-navbar"), h("strong", { class: "tn-lab", textContent: "Header" }), h("span", { class: "tn-sub", textContent: strip(doc2.header.title).slice(0, 18) })])));
       let n = 0;
       doc2.sections.forEach((sec, si) => {
         if (sec.page === pg) {
@@ -2372,21 +2444,23 @@ ${lorem}` },
         }
       });
       if (!n) zone.append(h("div", { class: "hint", textContent: "Aucune section \u2014 glissez-en une ici." }));
-      zone.append(add("+ section", () => {
+      zone.append(add("Section", () => {
         doc2.sections.push(newSection(pg));
-      }, 0));
+      }));
       zone.addEventListener("dragover", (ev) => {
         if (dragFrom == null) return;
         ev.preventDefault();
         clearDrop();
         zone.classList.add("drop-zone");
+        const from = dragFrom;
+        preview(`page:${pg}`, (c) => `sec:${moveSection(c, from, null, false, pg)}`);
       });
       zone.addEventListener("drop", (ev) => {
         if (dragFrom == null) return;
         ev.preventDefault();
         const from = dragFrom;
         dragFrom = null;
-        clearDrop();
+        endDrag();
         const ni = moveSection(doc2, from, null, false, pg);
         ctx2.restructure();
         ctx2.select(`sec:${ni}`);
@@ -2438,7 +2512,7 @@ ${lorem}` },
     const rgb = () => hsv2rgb(hsv);
     const sv = h("div", { class: "ce-sv" }, h("i", { class: "ce-knob" }));
     const hue = h("div", { class: "ce-hue" }, h("i", { class: "ce-knob" }));
-    const drag = (el2, fn) => {
+    const drag2 = (el2, fn) => {
       const at = (e) => {
         const r = el2.getBoundingClientRect();
         fn(clamp((e.clientX - r.left) / r.width, 0, 1), clamp((e.clientY - r.top) / r.height, 0, 1));
@@ -2455,12 +2529,12 @@ ${lorem}` },
         el2.addEventListener("pointerup", up);
       });
     };
-    drag(sv, (x, y) => {
+    drag2(sv, (x, y) => {
       hsv.s = x;
       hsv.v = 1 - y;
       update();
     });
-    drag(hue, (x) => {
+    drag2(hue, (x) => {
       hsv.h = x * 359.999;
       update();
     });
@@ -2580,7 +2654,7 @@ ${lorem}` },
         raf2 = requestAnimationFrame(() => onChange(hx));
       }
     }
-    const pop = h(
+    const pop2 = h(
       "div",
       { class: "ce", role: "dialog", "aria-label": title || t("Couleur") },
       h("div", { class: "ce-head" }, h("strong", { textContent: title || t("Couleur") }), h("button", { type: "button", class: "mini", "aria-label": t("Annuler"), onclick: () => close(false) }, ico("x"))),
@@ -2591,13 +2665,13 @@ ${lorem}` },
       sliders,
       h("div", { class: "row ce-act" }, h("button", { type: "button", textContent: "Annuler", onclick: () => close(false) }), h("button", { type: "button", class: "primary", textContent: "OK", onclick: () => close(true) }))
     );
-    document.body.append(pop);
+    document.body.append(pop2);
     const place = () => {
-      const a = anchor ? anchor.getBoundingClientRect() : { left: window.innerWidth - 20, top: 80, bottom: 80 }, w = pop.offsetWidth, hh = pop.offsetHeight;
+      const a = anchor ? anchor.getBoundingClientRect() : { left: window.innerWidth - 20, top: 80, bottom: 80 }, w = pop2.offsetWidth, hh = pop2.offsetHeight;
       let left = a.left - w - 14;
       if (left < 8) left = Math.min(window.innerWidth - w - 8, a.left);
-      pop.style.left = left + "px";
-      pop.style.top = clamp(a.top - 20, 8, window.innerHeight - hh - 8) + "px";
+      pop2.style.left = left + "px";
+      pop2.style.top = clamp(a.top - 20, 8, window.innerHeight - hh - 8) + "px";
     };
     update();
     place();
@@ -2609,12 +2683,12 @@ ${lorem}` },
       window.removeEventListener("keydown", onKey, true);
       if (!commit) onChange(start);
       else onChange(toHex(rgb()));
-      pop.remove();
+      pop2.remove();
       current = null;
       if (onClose) onClose(commit);
     }
     const outside = (e) => {
-      if (!pop.contains(e.target) && !(anchor && anchor.contains(e.target))) close(true);
+      if (!pop2.contains(e.target) && !(anchor && anchor.contains(e.target))) close(true);
     };
     const onKey = (e) => {
       if (e.key === "Escape") {
@@ -2626,6 +2700,112 @@ ${lorem}` },
     window.addEventListener("keydown", onKey, true);
     current = { close };
     return current;
+  }
+
+  // src/palette.js
+  function buildPalette(ctx2, redraw) {
+    const doc2 = ctx2.getDoc(), th = THEMES[doc2.theme] || THEMES.eu, pal = paletteOf(doc2.theme, doc2.colors), extras = extraColorKeys(doc2);
+    doc2.colorNames = doc2.colorNames || {};
+    const defName = (k) => extras.includes(k) ? k : t(th.names[k] || k);
+    const open = (k, sw) => openColorEditor({
+      anchor: sw,
+      hex: pal[k],
+      title: t(colorLabel(doc2, k)),
+      onChange: (hex) => {
+        doc2.colors[k] = hex;
+        sw.style.background = hex;
+        ctx2.changed();
+      },
+      onClose: redraw
+    });
+    const row = (k) => {
+      const isExtra = extras.includes(k), recolored = !isExtra && doc2.colors[k] && doc2.colors[k].toLowerCase() !== th.colors[k].toLowerCase(), renamed = !isExtra && !!doc2.colorNames[k];
+      const sw = h("button", { type: "button", class: "pal2-sw", title: t("Modifier la couleur"), "aria-label": t("Modifier la couleur"), style: { background: pal[k] }, onclick: () => open(k, sw) });
+      const name = h("input", { type: "text", value: doc2.colorNames[k] || defName(k), "aria-label": t("Nom de la couleur"), oninput: (e) => {
+        const v = e.target.value.trim();
+        if (v && v !== defName(k)) doc2.colorNames[k] = v;
+        else if (!isExtra) delete doc2.colorNames[k];
+        ctx2.changed();
+      } });
+      return h(
+        "div",
+        { class: "pal2-row", dataset: { key: k } },
+        sw,
+        name,
+        h("span", { class: "pal2-hex", textContent: pal[k].toUpperCase(), title: `CMJN ${cmykText(pal[k])}` }),
+        isExtra ? h("button", { type: "button", class: "mini danger", title: t("Supprimer"), "aria-label": t("Supprimer"), onclick: () => {
+          if (confirm(t("Supprimer cette couleur ? Ce qui l\u2019utilise passera en bleu."))) {
+            removeColor(doc2, k);
+            ctx2.changed();
+            redraw();
+          }
+        } }, ico("x")) : recolored || renamed ? h("button", { type: "button", class: "mini", title: t("R\xE9tablir la couleur du th\xE8me"), "aria-label": t("R\xE9tablir la couleur du th\xE8me"), onclick: () => {
+          delete doc2.colors[k];
+          delete doc2.colorNames[k];
+          ctx2.changed();
+          redraw();
+        } }, ico("restore")) : h("span")
+      );
+    };
+    return h(
+      "div",
+      { class: "pal2-wrap" },
+      h("div", { class: "pal2" }, Object.keys(pal).map(row)),
+      canAddColor(doc2) ? h("button", { type: "button", class: "pp-btn", onclick: () => {
+        const k = addColor(doc2, "#808080");
+        ctx2.changed();
+        redraw();
+        requestAnimationFrame(() => {
+          const b = document.querySelector(`[data-key="${k}"] .pal2-sw`);
+          if (b) b.click();
+        });
+      } }, ico("plus"), h("span", { textContent: t("Ajouter une couleur") })) : null
+    );
+  }
+  var pop = null;
+  function closePalette() {
+    if (!pop) return;
+    const p = pop;
+    pop = null;
+    document.removeEventListener("pointerdown", p.away, true);
+    document.removeEventListener("keydown", p.key, true);
+    p.el.remove();
+    p.ctx.restructure();
+  }
+  function openPalette(anchor, ctx2) {
+    if (pop && pop.anchor === anchor) {
+      closePalette();
+      return;
+    }
+    closePalette();
+    const body = h("div", { class: "pal-pop-body" });
+    const draw = () => body.replaceChildren(buildPalette(ctx2, draw));
+    const el2 = h(
+      "div",
+      { class: "pal-pop", role: "dialog", "aria-label": t("Couleurs du document") },
+      h(
+        "div",
+        { class: "pal-pop-head" },
+        h("b", { textContent: t("Couleurs du document") }),
+        h("button", { type: "button", class: "mini", "aria-label": t("Fermer"), onclick: closePalette }, ico("x"))
+      ),
+      body
+    );
+    draw();
+    document.body.append(el2);
+    const r = anchor.getBoundingClientRect(), w = el2.offsetWidth, hh = el2.offsetHeight;
+    el2.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left - w + r.width)) + "px";
+    el2.style.top = Math.max(8, Math.min(window.innerHeight - hh - 8, r.bottom + 6)) + "px";
+    const away = (e) => {
+      if (el2.contains(e.target) || anchor.contains(e.target) || e.target.closest(".ce")) return;
+      closePalette();
+    };
+    const key = (e) => {
+      if (e.key === "Escape" && !document.querySelector(".ce")) closePalette();
+    };
+    document.addEventListener("pointerdown", away, true);
+    document.addEventListener("keydown", key, true);
+    pop = { el: el2, anchor, away, key, ctx: ctx2 };
   }
 
   // src/editor.js
@@ -2907,6 +3087,7 @@ ${lorem}` },
   var paletteOptions = (doc2) => Object.fromEntries(paletteKeys(doc2).map((k) => [k, t(colorLabel(doc2, k))]));
 
   // src/props.js
+  var shut = /* @__PURE__ */ new Set();
   function buildProps(root, ctx2) {
     const doc2 = ctx2.getDoc(), path = ctx2.getSel();
     root.innerHTML = "";
@@ -2939,12 +3120,13 @@ ${lorem}` },
       { class: "f" },
       h("div", { class: "hint", textContent: label }),
       h("div", { class: "swrow" }, [
-        withNone ? h("button", { type: "button", class: "hv-sw none" + (!obj[k] || obj[k] === "none" ? " on" : ""), title: "Aucun", onclick: struct(() => {
+        withNone ? h("button", { type: "button", class: "hv-sw none" + (!obj[k] || obj[k] === "none" ? " on" : ""), title: t("Aucun"), onclick: struct(() => {
           obj[k] = "none";
         }) }) : null,
         ...keys.map((c) => h("button", { type: "button", class: "hv-sw" + (obj[k] === c ? " on" : ""), title: t(colorLabel(doc2, c)), style: { background: `var(--c-${c})` }, onclick: struct(() => {
           obj[k] = c;
-        }) }))
+        }) })),
+        h("button", { type: "button", class: "hv-sw pal-btn", title: t("Modifier, renommer ou ajouter des couleurs"), "aria-label": t("Modifier, renommer ou ajouter des couleurs"), onclick: (e) => openPalette(e.currentTarget, ctx2) }, ico("plus"))
       ])
     );
     const imgPicker = (label, get, set, max) => {
@@ -3093,71 +3275,6 @@ ${lorem}` },
         ctx2.restructure();
       } }, ico(ic))))
     );
-    const strokeControls = (obj) => h(
-      "div",
-      { class: "f outline" },
-      h("label", { class: "row" }, h("input", { type: "checkbox", checked: !!obj.stroke, onchange: struct(() => {
-        obj.stroke = !obj.stroke;
-      }) }), "Contour"),
-      obj.stroke ? h(
-        "div",
-        {},
-        swatches("Couleur du contour", obj, "strokeColor", paletteKeys(doc2)),
-        h("label", { class: "row" }, h("input", { type: "checkbox", checked: !!obj.fill, onchange: struct(() => {
-          obj.fill = !obj.fill;
-        }) }), "Fond blanc")
-      ) : null
-    );
-    const paletteEditor = () => {
-      const pal = paletteOf(doc2.theme, doc2.colors), extras = extraColorKeys(doc2);
-      const open = (k, sw) => openColorEditor({
-        anchor: sw,
-        hex: pal[k],
-        title: t(colorLabel(doc2, k)),
-        onChange: (hex) => {
-          doc2.colors[k] = hex;
-          sw.style.background = hex;
-          ctx2.changed();
-        },
-        onClose: () => ctx2.restructure()
-      });
-      const row = (k) => {
-        const isExtra = extras.includes(k), edited = !isExtra && doc2.colors[k] && doc2.colors[k].toLowerCase() !== th.colors[k].toLowerCase();
-        const sw = h("button", { type: "button", class: "pal2-sw", title: "Modifier la couleur", style: { background: pal[k] }, onclick: () => open(k, sw) });
-        return h(
-          "div",
-          { class: "pal2-row", dataset: { key: k } },
-          sw,
-          isExtra ? h("input", { type: "text", value: doc2.colorNames && doc2.colorNames[k] || k, oninput: (e) => {
-            doc2.colorNames[k] = e.target.value;
-            ctx2.changed();
-          } }) : h("span", { class: "pal2-name", textContent: t(colorLabel(doc2, k)) }),
-          h("span", { class: "pal2-hex", textContent: pal[k].toUpperCase(), title: `CMJN ${cmykText(pal[k])}` }),
-          isExtra ? h("button", { type: "button", class: "mini danger", title: "Supprimer", onclick: () => {
-            if (confirm(t("Supprimer cette couleur ? Ce qui l\u2019utilise passera en bleu."))) {
-              removeColor(doc2, k);
-              ctx2.restructure();
-            }
-          } }, ico("x")) : edited ? h("button", { type: "button", class: "mini", title: "R\xE9tablir la couleur du th\xE8me", onclick: struct(() => {
-            delete doc2.colors[k];
-          }) }, ico("restore")) : null
-        );
-      };
-      return h(
-        "div",
-        { class: "f" },
-        h("div", { class: "hint", textContent: `${t("Palette du th\xE8me")} (${Object.keys(pal).length}/${Object.keys(th.colors).length + 7})` }),
-        h("div", { class: "pal2" }, Object.keys(pal).map(row)),
-        canAddColor(doc2) ? h("button", { type: "button", class: "btn", onclick: () => {
-          const k = addColor(doc2, "#808080");
-          ctx2.restructure();
-          requestAnimationFrame(() => {
-            const b = root.querySelector(`[data-key="${k}"] .pal2-sw`);
-            if (b) b.click();
-          });
-        } }, ico("plus"), h("span", { textContent: "Ajouter une couleur" })) : null
-      );
-    };
     const cardPanel = (col2, W) => {
       const C = col2.card || (col2.card = newCard(W)), ct = C.content;
       const chosen = (fn) => {
@@ -3206,150 +3323,166 @@ ${lorem}` },
         )
       );
     };
-    const title = (t2, crumbs = []) => root.append(h(
+    const switchBtn = (on, label, fn) => h("button", { type: "button", role: "switch", "aria-checked": String(!!on), "aria-label": label, class: "pp-switch" + (on ? " on" : ""), onclick: fn });
+    const switchRow = (label, on, fn) => h("div", { class: "pp-switchrow" }, h("span", { textContent: label }), switchBtn(on, label, struct(fn)));
+    const card = (id, icon, name, nodes, toggle) => {
+      const open = !shut.has(id), live2 = open && (!toggle || toggle.on);
+      return h(
+        "section",
+        { class: "pp-card" },
+        h(
+          "div",
+          { class: "pp-card-h" },
+          ico(icon),
+          h("b", { textContent: name }),
+          h("span", { class: "pp-sp" }),
+          toggle ? switchBtn(toggle.on, name, struct(toggle.set)) : null,
+          h("button", { type: "button", class: "pp-chev", "aria-expanded": String(open), "aria-label": open ? t("Replier") : t("D\xE9plier"), onclick: () => {
+            open ? shut.add(id) : shut.delete(id);
+            ctx2.refreshProps();
+          } }, ico(open ? "chevron-up" : "chevron-down"))
+        ),
+        live2 ? h("div", { class: "pp-body" }, nodes.flat().filter(Boolean)) : null
+      );
+    };
+    const btn = (icon, label, fn, cls = "") => h("button", { type: "button", class: "pp-btn " + cls, onclick: fn }, ico(icon), h("span", { textContent: label }));
+    const boxControls = (obj, fillLabel = "Fond") => [
+      swatches(fillLabel, obj, "fillColor", fillKeys(doc2), true),
+      switchRow(t("Contour"), obj.stroke, () => {
+        obj.stroke = !obj.stroke;
+      }),
+      obj.stroke ? swatches("Couleur du contour", obj, "strokeColor", paletteKeys(doc2)) : null
+    ];
+    const title = (name, crumbs = []) => root.append(h(
       "div",
       { class: "pr-head" },
       h("div", { class: "crumbs" }, crumbs.flatMap(([l, p]) => [h("a", { textContent: l, onclick: () => ctx2.select(p) }), " \u203A "])),
-      h("h2", { textContent: t2 })
+      h("h2", { textContent: name })
     ));
-    const actions = (...b) => h("div", { class: "row pr-actions" }, ...b);
+    const actions = (...b) => h("div", { class: "pp-actions" }, ...b);
     const P = (path || "").split(":"), kind = P[0] || "doc", si = +P[1], bi = +P[2], ci = +P[3];
     const sec = doc2.sections[si], sub = sec && sec.subs[bi], col = sub && sub.cols[ci];
+    const ICONS2 = { text: "text-size", image: "photo", card: "layout-cards", figure: "number", viz: "chart-bar" };
     if (kind === "doc") {
       title("Document");
       root.append(
-        text(doc2, "name", "Nom du fichier"),
-        select(doc2, "theme", "Th\xE8me", Object.fromEntries(Object.entries(THEMES).map(([k, t2]) => [k, t2.label])), () => ctx2.restructure()),
-        select(doc2, "locale", "Format des nombres", LOCALES),
-        paletteEditor(),
+        card("doc-file", "file-text", t("Fichier"), [
+          text(doc2, "name", "Nom du fichier"),
+          select(doc2, "theme", "Th\xE8me", Object.fromEntries(Object.entries(THEMES).map(([k, x]) => [k, x.label])), () => ctx2.restructure()),
+          select(doc2, "locale", "Format des nombres", LOCALES)
+        ]),
+        card("doc-colors", "palette", t("Couleurs"), [
+          buildPalette(ctx2, () => ctx2.restructure()),
+          h("p", { class: "hint", textContent: "Chaque choix de couleur du document propose aussi \xAB + \xBB pour modifier, renommer ou ajouter une couleur." })
+        ]),
         h("p", { class: "hint", textContent: "S\xE9lectionnez un \xE9l\xE9ment dans la structure (\xE0 gauche) ou sur la page pour modifier ses propri\xE9t\xE9s." })
       );
     } else if (kind === "header") {
       const H = doc2.header;
       title("Header", [["Document", null]]);
       root.append(
-        text(H, "overline", "Surtitre"),
-        text(H, "title", "Titre (taille fixe)"),
-        text(H, "subtitle", "Sous-titre (optionnel \u2014 vide = masqu\xE9)"),
-        swatches("Couleur de fond", H, "bg", paletteKeys(doc2)),
-        swatches("Couleur du texte", H, "fg", paletteKeys(doc2)),
-        h("label", { class: "row" }, h("input", { type: "checkbox", checked: H.showImage, onchange: struct(() => {
+        card("hd-text", "typography", t("Texte"), [text(H, "overline", "Surtitre"), text(H, "title", "Titre (taille fixe)"), text(H, "subtitle", "Sous-titre (optionnel \u2014 vide = masqu\xE9)")]),
+        card("hd-colors", "palette", t("Couleurs"), [swatches("Couleur de fond", H, "bg", paletteKeys(doc2)), swatches("Couleur du texte", H, "fg", paletteKeys(doc2))]),
+        card("hd-image", "photo", t("Image"), [imageLibrary(H)], { on: H.showImage, set: () => {
           H.showImage = !H.showImage;
-        }) }), "Afficher l\u2019image"),
-        H.showImage ? imageLibrary(H) : null,
-        h("label", { class: "row" }, h("input", { type: "checkbox", checked: H.showLogo, onchange: struct(() => {
+        } }),
+        card("hd-logo", "certificate", t("Logo"), [logoPicker(H)], { on: H.showLogo, set: () => {
           H.showLogo = !H.showLogo;
-        }) }), "Afficher le logo"),
-        H.showLogo ? logoPicker(H) : null
+        } })
       );
     } else if (kind === "sec" && sec) {
       title(sec.title || "Section", [["Document", null]]);
       root.append(
-        text(sec, "title", "Titre de section"),
-        swatches("Fond de la section", sec, "bg", sectionBgs(doc2), true),
-        strokeControls(sec),
-        select(sec, "page", "Page", { recto: "Recto", verso: "Verso" }, () => ctx2.restructure()),
+        card("sec-main", "layout-rows", t("Section"), [
+          text(sec, "title", "Titre de section"),
+          select(sec, "page", "Page", { recto: "Recto", verso: "Verso" }, () => ctx2.restructure())
+        ]),
+        card("sec-bg", "color-swatch", t("Fond de la section"), [swatches("Fond", sec, "bg", fillKeys(doc2), true)]),
+        card("sec-frame", "border-all", t("Cadre"), boxControls(sec, "Fond du cadre")),
         actions(
-          h("button", { type: "button", textContent: "\u2191 Monter", onclick: struct(() => {
+          btn("arrow-up", t("Monter"), struct(() => {
             stepSection(doc2, si, -1);
-          }) }),
-          h("button", { type: "button", textContent: "\u2193 Descendre", onclick: struct(() => {
+          })),
+          btn("arrow-down", t("Descendre"), struct(() => {
             stepSection(doc2, si, 1);
-          }) }),
-          h("button", { type: "button", class: "danger", textContent: "Supprimer", title: "Supprimer (Suppr)", onclick: () => ctx2.remove(`sec:${si}`) })
+          })),
+          btn("trash", t("Supprimer"), () => ctx2.remove(`sec:${si}`), "danger")
         )
       );
     } else if (kind === "sub" && sub) {
       title(sub.title || "Sous-section", [["Document", null], [sec.title || "Section", `sec:${si}`]]);
+      const mv = (() => {
+        const s2 = h(
+          "select",
+          { onchange: (e) => {
+            if (!e.target.value) return;
+            const to = +e.target.value;
+            ctx2.moved(() => {
+              const n = moveSub(doc2, { si, bi }, { si: to, bi: null });
+              return `sub:${n.si}:${n.bi}`;
+            });
+          } },
+          h("option", { value: "", textContent: "\u2014" }),
+          doc2.sections.map((x, i) => h("option", { value: i, textContent: `${x.title || t("Section")} (${x.page === "recto" ? t("Recto") : t("Verso")})` }))
+        );
+        s2.value = "";
+        return s2;
+      })();
       root.append(
-        text(sub, "title", "Titre de sous-section (vide = masqu\xE9)"),
-        strokeControls(sub),
-        select(sub, "layout", "Colonnes", Object.fromEntries(Object.entries(GRID.layouts).map(([k, l]) => [k, l.label])), () => {
-          const n = GRID.layouts[sub.layout].spans.length;
-          sub.cols = sub.cols.slice(0, n);
-          while (sub.cols.length < n) sub.cols.push(newCol("text"));
-          refreshAutoCards(sub, (i) => columnWidth(doc2, si, bi, i));
-          ctx2.restructure();
-        }),
-        field("D\xE9placer vers la section", (() => {
-          const s2 = h(
-            "select",
-            { onchange: (e) => {
-              if (!e.target.value) return;
-              const to = +e.target.value;
-              ctx2.moved(() => {
-                const n = moveSub(doc2, { si, bi }, { si: to, bi: null });
-                return `sub:${n.si}:${n.bi}`;
-              });
-            } },
-            h("option", { value: "", textContent: "\u2014" }),
-            doc2.sections.map((x, i) => h("option", { value: i, textContent: `${x.title || t("Section")} (${x.page === "recto" ? t("Recto") : t("Verso")})` }))
-          );
-          s2.value = "";
-          return s2;
-        })()),
+        card("sub-main", "columns", t("Sous-section"), [
+          text(sub, "title", "Titre de sous-section (vide = masqu\xE9)"),
+          select(sub, "layout", "Colonnes", Object.fromEntries(Object.entries(GRID.layouts).map(([k, l]) => [k, l.label])), () => {
+            const n = GRID.layouts[sub.layout].spans.length;
+            sub.cols = sub.cols.slice(0, n);
+            while (sub.cols.length < n) sub.cols.push(newCol("text"));
+            refreshAutoCards(sub, (i) => columnWidth(doc2, si, bi, i));
+            ctx2.restructure();
+          }),
+          field("D\xE9placer vers la section", mv)
+        ]),
+        card("sub-box", "border-all", t("Fond et contour"), boxControls(sub)),
         actions(
-          h("button", { type: "button", textContent: "\u2191 Monter", onclick: struct(() => {
+          btn("arrow-up", t("Monter"), struct(() => {
             const j = bi - 1;
             if (j >= 0) [sec.subs[bi], sec.subs[j]] = [sec.subs[j], sec.subs[bi]];
-          }) }),
-          h("button", { type: "button", textContent: "\u2193 Descendre", onclick: struct(() => {
+          })),
+          btn("arrow-down", t("Descendre"), struct(() => {
             const j = bi + 1;
             if (j < sec.subs.length) [sec.subs[bi], sec.subs[j]] = [sec.subs[j], sec.subs[bi]];
-          }) }),
-          h("button", { type: "button", textContent: "Dupliquer", onclick: struct(() => {
+          })),
+          btn("copy", t("Dupliquer"), struct(() => {
             const c = JSON.parse(JSON.stringify(sub));
             c.id = (sub.id || "sub") + "c" + Date.now() % 1e5;
             sec.subs.splice(bi + 1, 0, c);
-          }) }),
-          h("button", { type: "button", class: "danger", textContent: "Supprimer", title: "Supprimer (Suppr)", onclick: () => ctx2.remove(`sub:${si}:${bi}`) })
+          })),
+          btn("trash", t("Supprimer"), () => ctx2.remove(`sub:${si}:${bi}`), "danger")
         )
       );
     } else if (kind === "col" && col) {
       title(`Colonne ${ci + 1}`, [["Document", null], [sec.title || "Section", `sec:${si}`], [sub.title || "Sous-section", `sub:${si}:${bi}`]]);
-      root.append(
-        field("Contenu", h(
-          "select",
-          { onchange: (e) => {
-            const keep = col.text, { valign, align, stroke, strokeColor, fill } = col;
-            Object.assign(col, newCol(e.target.value), { valign, align, stroke, strokeColor, fill });
-            if (e.target.value === "text" && keep) col.text = keep;
-            if (e.target.value === "card") {
-              col.card = newCard(columnWidth(doc2, si, bi, ci));
-              col.stroke = false;
-            }
-            ctx2.restructure();
-          } },
-          Object.entries(COL_TYPES).map(([v, l]) => h("option", { value: v, textContent: l, selected: col.type === v }))
-        )),
-        segmented("Alignement vertical dans la colonne", col, "valign", VALIGNS, { top: t("Haut"), center: t("Centre"), bottom: t("Bas") }),
-        col.type === "text" ? segmented("Alignement du texte", col, "align", ALIGNS, { left: t("Gauche"), center: t("Centr\xE9"), right: t("Droite"), justify: t("Justifi\xE9") }) : null,
-        field("\xC9changer le contenu avec\u2026", (() => {
-          const s2 = h(
-            "select",
-            { onchange: (e) => {
-              if (!e.target.value) return;
-              const [a, b, c] = e.target.value.split(":").map(Number);
-              ctx2.moved(() => {
-                swapCols(doc2, { si, bi, ci }, { si: a, bi: b, ci: c });
-                return `col:${a}:${b}:${c}`;
-              });
-            } },
-            h("option", { value: "", textContent: "\u2014" }),
-            allCols(doc2).filter((c) => !(c.si === si && c.bi === bi && c.ci === ci)).map((c) => h("option", { value: `${c.si}:${c.bi}:${c.ci}`, textContent: c.label + (doc2.sections[c.si].page !== sec.page ? ` (${c.page === "recto" ? t("Recto") : t("Verso")})` : "") }))
-          );
-          s2.value = "";
-          return s2;
-        })()),
-        h("button", { type: "button", class: "danger", title: "Supprimer (Suppr)", textContent: "Supprimer la colonne", onclick: () => ctx2.remove(`col:${si}:${bi}:${ci}`) })
-      );
-      if (col.type === "text") root.append(h("div", { class: "f" }, h("div", { class: "hint", textContent: "Texte" }), richEditor(col.text, (v) => {
+      const typeSel = field("Type de contenu", h(
+        "select",
+        { onchange: (e) => {
+          const keep = col.text, { valign, align, stroke, strokeColor, fillColor } = col;
+          Object.assign(col, newCol(e.target.value), { valign, align, stroke, strokeColor, fillColor });
+          if (e.target.value === "text" && keep) col.text = keep;
+          if (e.target.value === "card") {
+            col.card = newCard(columnWidth(doc2, si, bi, ci));
+            col.stroke = false;
+            col.fillColor = "none";
+          }
+          ctx2.restructure();
+        } },
+        Object.entries(COL_TYPES).map(([v, l]) => h("option", { value: v, textContent: l, selected: col.type === v }))
+      ));
+      let editor;
+      if (col.type === "text") editor = [h("div", { class: "f" }, h("div", { class: "hint", textContent: "Texte" }), richEditor(col.text, (v) => {
         col.text = v;
         ctx2.changed();
-      })));
+      }))];
       else if (col.type === "image") {
         const mode = col.imgMode || "ratio";
-        root.append(
+        editor = [
           imgPicker("Image", () => col.src, (v) => {
             col.src = v;
             col.natural = null;
@@ -3369,20 +3502,45 @@ ${lorem}` },
           mode === "custom" ? select(col, "imgFit", "Remplissage", { cover: "Recadrer pour remplir", contain: "Image enti\xE8re" }) : null,
           mode === "custom" && (col.imgW ?? 100) < 100 ? segmented("Position dans la colonne", col, "align", { left: ALIGNS.left, center: ALIGNS.center, right: ALIGNS.right }, { left: t("Gauche"), center: t("Centr\xE9"), right: t("Droite") }) : null,
           text(col, "caption", "L\xE9gende (optionnelle)")
-        );
-      } else if (col.type === "card") {
-        root.append(cardPanel(col, columnWidth(doc2, si, bi, ci)));
-      } else if (col.type === "figure") {
+        ];
+      } else if (col.type === "card") editor = [cardPanel(col, columnWidth(doc2, si, bi, ci))];
+      else if (col.type === "figure") {
         if (!col.figure) col.figure = FIGURE_DEFAULTS();
-        root.append(...buildFields(FIGURE_FIELDS, col.figure, ctx2, palOpts, h));
+        editor = buildFields(FIGURE_FIELDS, col.figure, ctx2, palOpts, h);
       } else {
         if (!col.viz) col.viz = newViz("bars");
-        root.append(
+        editor = [
           h("button", { type: "button", class: "primary", style: { width: "100%" }, onclick: () => ctx2.editViz({ col, sub, ci }) }, ico("pencil"), " Ouvrir l\u2019\xE9diteur de dataviz"),
           h("p", { class: "hint", textContent: "Tous les r\xE9glages de la dataviz (type, donn\xE9es, couleurs, options) se font dans l\u2019\xE9diteur." })
-        );
+        ];
       }
-      if (col.type !== "card") root.append(strokeControls(col));
+      const swap = field("\xC9changer le contenu avec\u2026", (() => {
+        const s2 = h(
+          "select",
+          { onchange: (e) => {
+            if (!e.target.value) return;
+            const [a, b, c] = e.target.value.split(":").map(Number);
+            ctx2.moved(() => {
+              swapCols(doc2, { si, bi, ci }, { si: a, bi: b, ci: c });
+              return `col:${a}:${b}:${c}`;
+            });
+          } },
+          h("option", { value: "", textContent: "\u2014" }),
+          allCols(doc2).filter((c) => !(c.si === si && c.bi === bi && c.ci === ci)).map((c) => h("option", { value: `${c.si}:${c.bi}:${c.ci}`, textContent: c.label + (doc2.sections[c.si].page !== sec.page ? ` (${c.page === "recto" ? t("Recto") : t("Verso")})` : "") }))
+        );
+        s2.value = "";
+        return s2;
+      })());
+      root.append(
+        card("col-content", ICONS2[col.type] || "text-size", t("Contenu"), [typeSel, ...editor]),
+        card("col-layout", "layout-align-middle", t("Disposition"), [
+          segmented("Alignement vertical dans la colonne", col, "valign", VALIGNS, { top: t("Haut"), center: t("Centre"), bottom: t("Bas") }),
+          col.type === "text" ? segmented("Alignement du texte", col, "align", ALIGNS, { left: t("Gauche"), center: t("Centr\xE9"), right: t("Droite"), justify: t("Justifi\xE9") }) : null,
+          swap
+        ]),
+        col.type !== "card" ? card("col-box", "border-all", t("Fond et contour"), boxControls(col)) : null,
+        actions(btn("trash", t("Supprimer la colonne"), () => ctx2.remove(`col:${si}:${bi}:${ci}`), "danger"))
+      );
     } else {
       title("\xC9l\xE9ment introuvable");
     }
@@ -3438,6 +3596,19 @@ ${lorem}` },
       buildForm();
       changed();
     } };
+    const palCtx = {
+      getDoc: ctx2.getDoc,
+      changed: () => {
+        applyVars(root, cssVars(doc2.theme, doc2.colors));
+        draw();
+        ctx2.changed();
+      },
+      restructure: () => {
+        applyVars(root, cssVars(doc2.theme, doc2.colors));
+        buildForm();
+        draw();
+      }
+    };
     function buildForm() {
       const top = form.scrollTop;
       form.innerHTML = "";
@@ -3452,6 +3623,7 @@ ${lorem}` },
         Object.entries(VIZ_OPTIONS).map(([v, l]) => h("option", { value: v, textContent: l, selected: col.viz.kind === v }))
       );
       form.append(h("label", { class: "f" }, "Type de dataviz", kindSel));
+      form.append(h("button", { type: "button", class: "pp-btn", style: { width: "100%", marginBottom: "10px" }, onclick: (e) => openPalette(e.currentTarget, palCtx) }, ico("palette"), h("span", { textContent: "Couleurs du document" })));
       if (t2.actions) form.append(h(
         "div",
         { class: "row", style: { flexWrap: "wrap", marginBottom: "10px" } },
@@ -3476,7 +3648,7 @@ ${lorem}` },
       ui.sel = i;
       focusItem(`segments.${i}`);
     }, redraw: changed };
-    let drag = null;
+    let drag2 = null;
     const toPt = (e) => {
       const svg = holder.querySelector("svg");
       if (!svg) return { x: 0, y: 0 };
@@ -3495,20 +3667,20 @@ ${lorem}` },
         return;
       }
       const [kind, i] = n.getAttribute("data-hit").split(":");
-      drag = t2.edit.start({ kind, i: +i }, col.viz.opts, meta, api, toPt(e));
-      if (drag) {
+      drag2 = t2.edit.start({ kind, i: +i }, col.viz.opts, meta, api, toPt(e));
+      if (drag2) {
         e.preventDefault();
         stage2.setPointerCapture(e.pointerId);
       }
       draw();
     });
     stage2.addEventListener("pointermove", (e) => {
-      if (drag) drag.move(toPt(e));
+      if (drag2) drag2.move(toPt(e));
     });
     const up = () => {
-      if (!drag) return;
-      const d = drag;
-      drag = null;
+      if (!drag2) return;
+      const d = drag2;
+      drag2 = null;
       if (d.end) d.end();
       ui.drag = null;
       changed();
@@ -3588,6 +3760,9 @@ ${lorem}` },
     };
     const sw = (key, on, title, fn) => h("button", { type: "button", class: "hv-sw" + (on ? " on" : "") + (key === "none" ? " none" : ""), title, style: key === "none" ? {} : { background: `var(--c-${key})` }, onclick: act(fn) });
     const btn = (label, title, fn, cls = "") => h("button", { type: "button", class: "mini " + cls, title, onclick: act(fn) }, ...[].concat(label).map((l) => typeof l === "string" ? l : l));
+    const palBtn = () => h("button", { type: "button", class: "hv-sw pal-btn", title: t("Modifier, renommer ou ajouter des couleurs"), "aria-label": t("Modifier, renommer ou ajouter des couleurs"), onclick: (e) => {
+      openPalette(e.currentTarget, ctx2);
+    } }, ico("plus"));
     const grp = (label, ...kids) => h("div", { class: "hv-grp" }, h("span", { class: "hv-lab", textContent: label }), ...kids.flat().filter(Boolean));
     function groups(chain, doc2) {
       const it = chain[0], g = [];
@@ -3608,7 +3783,11 @@ ${lorem}` },
           const j = it.bi + d;
           if (j >= 0 && j < sec.subs.length) [sec.subs[it.bi], sec.subs[j]] = [sec.subs[j], sec.subs[it.bi]];
         };
-        g.push(grp("Sous-section", del(`sub:${it.si}:${it.bi}`), btn(ico("arrow-up"), "Monter", mv(-1)), btn(ico("arrow-down"), "Descendre", mv(1))));
+        const sgrip = h("button", { type: "button", class: "mini grip-btn", title: "Glisser la sous-section (autre section possible)", onpointerdown: (e) => {
+          e.preventDefault();
+          ctx2.startSubDrag(e, { si: it.si, bi: it.bi });
+        } }, ico("grip-vertical"));
+        g.push(grp("Sous-section", sgrip, del(`sub:${it.si}:${it.bi}`), btn(ico("arrow-up"), "Monter", mv(-1)), btn(ico("arrow-down"), "Descendre", mv(1))));
       } else if (it.kind === "sec") {
         const sec = doc2.sections[it.si];
         g.push(grp(
@@ -3620,6 +3799,7 @@ ${lorem}` },
           sectionBgs(doc2).map((k) => sw(k, sec.bg === k, t(colorLabel(doc2, k)), () => {
             sec.bg = k;
           })),
+          palBtn(),
           btn(ico("arrow-up"), "Monter", () => {
             stepSection(doc2, it.si, -1);
           }),
@@ -3631,7 +3811,7 @@ ${lorem}` },
         const H = doc2.header;
         g.push(grp("Header", paletteKeys(doc2).map((k) => sw(k, H.bg === k, t(colorLabel(doc2, k)), () => {
           H.bg = k;
-        }))));
+        })), palBtn()));
       }
       return g;
     }
@@ -3816,6 +3996,8 @@ ${lorem}` },
   var raf = 0;
   var hover = null;
   var undoSnap = null;
+  var previewDoc = null;
+  var previewMark = null;
   function scaleValue() {
     if (zoomMode !== "fit") return parseFloat(zoomMode);
     const avail = stage.clientWidth - 44;
@@ -3823,7 +4005,7 @@ ${lorem}` },
   }
   function drawPreview() {
     const sc = scaleValue();
-    const r = renderDocument(doc);
+    const r = renderDocument(previewDoc || doc);
     stage.innerHTML = "";
     r.pages.forEach((p) => {
       const wrap = h(
@@ -3853,7 +4035,9 @@ ${lorem}` },
     if (nLocal) warnEl.append(h("a", { class: "note", href: "atelier.html", textContent: nLocal === 1 ? "1 image \xE0 publier \u2014 ouvrir l\u2019Atelier" : `${nLocal} images \xE0 publier \u2014 ouvrir l\u2019Atelier` }));
     if (!storage.ok) warnEl.append(h("div", { textContent: "Espace de stockage du navigateur plein : les derni\xE8res modifications ne sont pas enregistr\xE9es. Enregistrez le projet (.json) et all\xE9gez les images." }));
     if (hover) hover.hide();
-    if (selected) stage.querySelectorAll(`[data-sel="${selected}"]`).forEach((n) => n.classList.add("is-sel"));
+    if (previewDoc) {
+      if (previewMark) stage.querySelectorAll(`[data-sel="${previewMark}"]`).forEach((n) => n.classList.add("drag-live"));
+    } else if (selected) stage.querySelectorAll(`[data-sel="${selected}"]`).forEach((n) => n.classList.add("is-sel"));
   }
   var schedule = () => {
     cancelAnimationFrame(raf);
@@ -3895,6 +4079,26 @@ ${lorem}` },
       saveDoc(doc);
       schedule();
       drawTree();
+      const v = cssVars(doc.theme, doc.colors);
+      applyVars(propsEl, v);
+      applyVars(treeEl, v);
+    },
+    refreshProps: drawProps,
+    shown: () => previewDoc || doc,
+    /* Aperçu en direct d'un déplacement : `fn(copie)` l'applique à une copie du document et renvoie le chemin à repérer ; null = retour au vrai document */
+    preview(fn) {
+      if (!fn) {
+        if (previewDoc) {
+          previewDoc = null;
+          previewMark = null;
+          schedule();
+        }
+        return;
+      }
+      const c = JSON.parse(JSON.stringify(doc));
+      previewMark = fn(c);
+      previewDoc = c;
+      schedule();
     },
     refreshTree: drawTree,
     /* Déplacement de contenu : `fn` modifie le document et renvoie le chemin à sélectionner ensuite.
@@ -3959,7 +4163,7 @@ ${lorem}` },
     stage,
     getDoc: () => doc,
     ctx,
-    canShow: () => !sdrag && !document.body.classList.contains("ve-open") && !document.body.classList.contains("dragging"),
+    canShow: () => !drag && !document.body.classList.contains("ve-open") && !document.body.classList.contains("dragging"),
     select: (path) => ctx.select(path)
   });
   stage.addEventListener("click", (e) => {
@@ -3977,132 +4181,151 @@ ${lorem}` },
     const sec = doc.sections[si], sub = sec && sec.subs[bi], col = sub && sub.cols[ci];
     if (col) ctx.editViz({ col, sub, ci });
   });
-  var sdrag = null;
+  var drag = null;
   var suppressClick = false;
-  stage.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0) return;
-    const t2 = e.target.closest(".sec-title");
-    if (!t2) return;
-    const sec = t2.closest(".sec");
-    sdrag = { si: +sec.dataset.sel.split(":")[1], x: e.clientX, y: e.clientY, active: false, el: sec, target: null };
-  });
-  function dropTarget(x, y) {
+  var secIdx = (d, id) => d.sections.findIndex((x) => x.id === id);
+  var subIdx = (d, id) => {
+    for (let si = 0; si < d.sections.length; si++) {
+      const bi = d.sections[si].subs.findIndex((x) => x.id === id);
+      if (bi >= 0) return { si, bi };
+    }
+    return null;
+  };
+  var secOf = (el2) => +el2.dataset.sel.split(":")[1];
+  function secTarget(e) {
+    const sd = ctx.shown(), dg = drag;
     for (const page of stage.querySelectorAll(".page")) {
       const pr = page.getBoundingClientRect();
-      if (x < pr.left || x > pr.right || y < pr.top || y > pr.bottom) continue;
-      const secs = [...page.querySelectorAll(".sec")].filter((s2) => s2 !== sdrag.el);
-      const key = page.dataset.page;
-      for (const s2 of secs) {
-        const r = s2.getBoundingClientRect();
-        if (y < r.top + r.height / 2) return { page: key, si: +s2.dataset.sel.split(":")[1], after: false, y: r.top - 2 };
+      if (e.clientX < pr.left || e.clientX > pr.right || e.clientY < pr.top || e.clientY > pr.bottom) continue;
+      const key = page.dataset.page, id = (el2) => sd.sections[secOf(el2)].id;
+      const secs = [...page.querySelectorAll(".sec")].filter((x) => id(x) !== dg.id);
+      const mk = (ref, after) => ({ key: [key, ref, after], apply: (c) => {
+        const ni = moveSection(c, secIdx(c, dg.id), ref == null ? null : secIdx(c, ref), after, key);
+        return `sec:${ni}`;
+      } });
+      for (const x of secs) {
+        const r = x.getBoundingClientRect();
+        if (e.clientY < r.top + r.height / 2) return mk(id(x), false);
       }
-      if (secs.length) {
-        const last = secs[secs.length - 1], r = last.getBoundingClientRect();
-        return { page: key, si: +last.dataset.sel.split(":")[1], after: true, y: r.bottom + 2, x: r.left, w: r.width };
-      }
-      const c = page.querySelector(".content").getBoundingClientRect();
-      return { page: key, si: null, after: false, y: c.top + 2, x: c.left, w: c.width };
+      return secs.length ? mk(id(secs[secs.length - 1]), true) : mk(null, false);
     }
     return null;
   }
-  window.addEventListener("pointermove", (e) => {
-    if (!sdrag) return;
-    if (!sdrag.active) {
-      if (Math.hypot(e.clientX - sdrag.x, e.clientY - sdrag.y) < 6) return;
-      sdrag.active = true;
-      document.body.classList.add("dragging");
-      sdrag.el.classList.add("drag-src");
-      sdrag.line = h("div", { class: "drop-line" });
-      sdrag.ghost = h("div", { class: "drag-ghost", textContent: doc.sections[sdrag.si].title || "Section" });
-      document.body.append(sdrag.line, sdrag.ghost);
+  function subTarget(e) {
+    const sd = ctx.shown(), dg = drag;
+    for (const page of stage.querySelectorAll(".page")) {
+      const pr = page.getBoundingClientRect();
+      if (e.clientX < pr.left || e.clientX > pr.right || e.clientY < pr.top || e.clientY > pr.bottom) continue;
+      const secs = [...page.querySelectorAll(".sec")];
+      if (!secs.length) return null;
+      let sec = secs.find((x) => {
+        const r = x.getBoundingClientRect();
+        return e.clientY >= r.top && e.clientY <= r.bottom;
+      });
+      if (!sec) sec = e.clientY < secs[0].getBoundingClientRect().top ? secs[0] : secs[secs.length - 1];
+      const sid = sd.sections[secOf(sec)].id, subs = [...sec.querySelectorAll(".sub[data-sel]")].filter((x) => {
+        const q = x.dataset.sel.split(":");
+        return sd.sections[+q[1]].subs[+q[2]].id !== dg.id;
+      });
+      const idOf = (el2) => {
+        const q = el2.dataset.sel.split(":");
+        return sd.sections[+q[1]].subs[+q[2]].id;
+      };
+      const mk = (ref, after) => ({ key: [sid, ref, after], apply: (c) => {
+        const from = subIdx(c, dg.id), si = secIdx(c, sid), n = moveSub(c, from, { si, bi: ref == null ? null : subIdx(c, ref).bi }, after);
+        return `sub:${n.si}:${n.bi}`;
+      } });
+      for (const x of subs) {
+        const r = x.getBoundingClientRect();
+        if (e.clientY < r.top + r.height / 2) return mk(idOf(x), false);
+      }
+      return subs.length ? mk(idOf(subs[subs.length - 1]), true) : mk(null, false);
     }
-    sdrag.ghost.style.left = e.clientX + 14 + "px";
-    sdrag.ghost.style.top = e.clientY + 10 + "px";
-    const t2 = sdrag.target = dropTarget(e.clientX, e.clientY);
-    if (t2) {
-      const pr = stage.querySelector(`.page[data-page="${t2.page}"]`).getBoundingClientRect();
-      const sc = pr.width / PAGE.w, x = pr.left + PAGE.margin * sc, w = pr.width - 2 * PAGE.margin * sc;
-      Object.assign(sdrag.line.style, { display: "block", left: x + "px", width: w + "px", top: t2.y - 1 + "px" });
-    } else sdrag.line.style.display = "none";
-  });
-  function endSectionDrag() {
-    if (!sdrag) return;
-    const d = sdrag;
-    sdrag = null;
+    return null;
+  }
+  function colTarget(e) {
+    const dg = drag;
+    for (const sub of stage.querySelectorAll(".sub[data-sel]")) {
+      const cols = sub.querySelector(":scope > .cols");
+      if (!cols) continue;
+      const r = cols.getBoundingClientRect();
+      if (e.clientY < r.top || e.clientY > r.bottom || e.clientX < r.left || e.clientX > r.right) continue;
+      const list = [...cols.children].filter((x) => x.dataset && x.dataset.sel);
+      const hit = list.find((x) => {
+        const b = x.getBoundingClientRect();
+        return e.clientX >= b.left && e.clientX <= b.right;
+      }) || list.reduce((best, x) => {
+        const b = x.getBoundingClientRect(), d = Math.min(Math.abs(e.clientX - b.left), Math.abs(e.clientX - b.right));
+        return !best || d < best.d ? { x, d } : best;
+      }, null).x;
+      const [, si, bi, ci] = hit.dataset.sel.split(":").map(Number);
+      if (si === dg.from.si && bi === dg.from.bi && ci === dg.from.ci) return null;
+      return { key: [si, bi, ci], apply: (c) => {
+        swapCols(c, dg.from, { si, bi, ci });
+        return `col:${si}:${bi}:${ci}`;
+      } };
+    }
+    return null;
+  }
+  var TARGETS = { sec: secTarget, sub: subTarget, col: colTarget };
+  var dragLabel = () => drag.kind === "sec" ? (doc.sections[secIdx(doc, drag.id)] || {}).title || "Section" : drag.kind === "sub" ? (() => {
+    const p = subIdx(doc, drag.id);
+    return p && doc.sections[p.si].subs[p.bi].title || "Sous-section";
+  })() : "Contenu";
+  function dragActivate() {
+    drag.active = true;
+    hover.hide();
+    document.body.classList.add("dragging");
+    drag.ghost = h("div", { class: "drag-ghost", textContent: dragLabel() });
+    document.body.append(drag.ghost);
+  }
+  function dragEnd(commit) {
+    if (!drag) return;
+    const d = drag;
+    drag = null;
     if (!d.active) return;
-    document.body.classList.remove("dragging");
-    d.line.remove();
     d.ghost.remove();
+    document.body.classList.remove("dragging");
+    ctx.preview(null);
     suppressClick = true;
     setTimeout(() => {
       suppressClick = false;
     }, 0);
-    const t2 = d.target;
-    if (!t2) {
-      schedule();
-      return;
-    }
-    const ni = moveSection(doc, d.si, t2.si, t2.after, t2.page);
-    ctx.restructure();
-    ctx.select(`sec:${ni}`);
+    if (commit && d.drop) ctx.moved(() => d.drop.apply(doc));
+    else schedule();
   }
-  window.addEventListener("pointerup", endSectionDrag);
-  var cdrag = null;
-  var colAt = (x, y) => {
-    const n = document.elementFromPoint(x, y), c = n && n.closest && n.closest('.stage .col[data-sel^="col:"]');
-    return c || null;
-  };
-  ctx.startColDrag = (e, from) => {
-    const src = stage.querySelector(`.col[data-sel="col:${from.si}:${from.bi}:${from.ci}"]`);
-    cdrag = { from, src, target: null, ghost: h("div", { class: "drag-ghost", textContent: "Contenu" }) };
-    hover.hide();
-    document.body.classList.add("dragging");
-    document.body.append(cdrag.ghost);
-    if (src) src.classList.add("drag-src");
-    moveColDrag(e);
-  };
-  function moveColDrag(e) {
-    if (!cdrag) return;
-    cdrag.ghost.style.left = e.clientX + 14 + "px";
-    cdrag.ghost.style.top = e.clientY + 10 + "px";
-    const c = colAt(e.clientX, e.clientY), ok = c && c !== cdrag.src ? c : null;
-    if (ok !== cdrag.target) {
-      if (cdrag.target) cdrag.target.classList.remove("drop-col");
-      if (ok) ok.classList.add("drop-col");
-      cdrag.target = ok;
+  window.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    if (!drag.active) {
+      if (!drag.pending || Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
+      dragActivate();
     }
-  }
-  window.addEventListener("pointermove", moveColDrag);
-  function endColDrag(commit) {
-    if (!cdrag) return;
-    const d = cdrag;
-    cdrag = null;
-    d.ghost.remove();
-    document.body.classList.remove("dragging");
-    if (d.src) d.src.classList.remove("drag-src");
-    if (d.target) d.target.classList.remove("drop-col");
-    if (commit && d.target) {
-      const [, si, bi, ci] = d.target.dataset.sel.split(":").map(Number);
-      ctx.moved(() => {
-        swapCols(doc, d.from, { si, bi, ci });
-        return `col:${si}:${bi}:${ci}`;
-      });
-    }
-  }
-  window.addEventListener("pointerup", () => endColDrag(true));
-  window.addEventListener("pointercancel", () => endColDrag(false));
+    drag.ghost.style.left = e.clientX + 14 + "px";
+    drag.ghost.style.top = e.clientY + 10 + "px";
+    const t2 = TARGETS[drag.kind](e), key = t2 ? JSON.stringify(t2.key) : "";
+    if (key === drag.key) return;
+    drag.key = key;
+    drag.drop = t2;
+    ctx.preview(t2 ? t2.apply : null);
+  });
+  window.addEventListener("pointerup", () => dragEnd(true));
+  window.addEventListener("pointercancel", () => dragEnd(false));
   window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") endColDrag(false);
+    if (e.key === "Escape") dragEnd(false);
   });
-  window.addEventListener("pointercancel", () => {
-    if (sdrag && sdrag.active) {
-      sdrag.line.remove();
-      sdrag.ghost.remove();
-      document.body.classList.remove("dragging");
-    }
-    sdrag = null;
-    schedule();
+  stage.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    const st = e.target.closest(".sec-title"), bt = e.target.closest(".sub-title"), n = st || bt;
+    if (!n) return;
+    const el2 = n.closest(st ? ".sec" : ".sub"), q = el2.dataset.sel.split(":").map(Number);
+    drag = { kind: st ? "sec" : "sub", id: st ? doc.sections[q[1]].id : doc.sections[q[1]].subs[q[2]].id, x: e.clientX, y: e.clientY, pending: true, active: false };
   });
+  ctx.startColDrag = (e, from) => {
+    drag = { kind: "col", from, x: e.clientX, y: e.clientY, pending: true, active: false };
+  };
+  ctx.startSubDrag = (e, from) => {
+    drag = { kind: "sub", id: doc.sections[from.si].subs[from.bi].id, x: e.clientX, y: e.clientY, pending: true, active: false };
+  };
   var newBlank = () => {
     if (!confirm(t("Cr\xE9er une factsheet vierge ? Le document actuel sera remplac\xE9 : enregistrez-le d\u2019abord (.json) si besoin."))) return;
     doc = blankDoc();

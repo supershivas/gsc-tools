@@ -5,6 +5,7 @@ import { GRID, THEMES, sectionBgs, paletteKeys, colorLabel, cssVars, applyVars }
 import { t } from './i18n.js';
 import { COL_TYPES, newCol, newSub, stepSection } from './state.js';
 import { readImage } from './editor.js';
+import { openPalette } from './palette.js';
 
 const TYPE_LABELS = COL_TYPES;
 
@@ -20,6 +21,7 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
   const act = fn => () => { fn(); hide(); ctx.restructure(); };
   const sw = (key, on, title, fn) => h('button', { type: 'button', class: 'hv-sw' + (on ? ' on' : '') + (key === 'none' ? ' none' : ''), title, style: key === 'none' ? {} : { background: `var(--c-${key})` }, onclick: act(fn) });
   const btn = (label, title, fn, cls = '') => h('button', { type: 'button', class: 'mini ' + cls, title, onclick: act(fn) }, ...[].concat(label).map(l => typeof l === 'string' ? l : l));
+  const palBtn = () => h('button', { type: 'button', class: 'hv-sw pal-btn', title: t('Modifier, renommer ou ajouter des couleurs'), 'aria-label': t('Modifier, renommer ou ajouter des couleurs'), onclick: e => { openPalette(e.currentTarget, ctx); } }, ico('plus'));
   const grp = (label, ...kids) => h('div', { class: 'hv-grp' }, h('span', { class: 'hv-lab', textContent: label }), ...kids.flat().filter(Boolean));
 
   /* Barre courte : uniquement l'élément survolé (le plus interne) — édition rapide. Le reste est dans la colonne de droite. */
@@ -33,15 +35,16 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
     } else if (it.kind === 'sub') {
       const sec = doc.sections[it.si];
       const mv = d => () => { const j = it.bi + d; if (j >= 0 && j < sec.subs.length) [sec.subs[it.bi], sec.subs[j]] = [sec.subs[j], sec.subs[it.bi]]; };
-      g.push(grp('Sous-section', del(`sub:${it.si}:${it.bi}`), btn(ico('arrow-up'), 'Monter', mv(-1)), btn(ico('arrow-down'), 'Descendre', mv(1))));
+      const sgrip = h('button', { type: 'button', class: 'mini grip-btn', title: 'Glisser la sous-section (autre section possible)', onpointerdown: e => { e.preventDefault(); ctx.startSubDrag(e, { si: it.si, bi: it.bi }); } }, ico('grip-vertical'));
+      g.push(grp('Sous-section', sgrip, del(`sub:${it.si}:${it.bi}`), btn(ico('arrow-up'), 'Monter', mv(-1)), btn(ico('arrow-down'), 'Descendre', mv(1))));
     } else if (it.kind === 'sec') {
       const sec = doc.sections[it.si];
       g.push(grp('Section', del(`sec:${it.si}`), sw('none', !sec.bg || sec.bg === 'none', 'Sans fond', () => { sec.bg = 'none'; }),
-        sectionBgs(doc).map(k => sw(k, sec.bg === k, t(colorLabel(doc, k)), () => { sec.bg = k; })),
+        sectionBgs(doc).map(k => sw(k, sec.bg === k, t(colorLabel(doc, k)), () => { sec.bg = k; })), palBtn(),
         btn(ico('arrow-up'), 'Monter', () => { stepSection(doc, it.si, -1); }), btn(ico('arrow-down'), 'Descendre', () => { stepSection(doc, it.si, 1); })));
     } else if (it.kind === 'header') {
       const H = doc.header;
-      g.push(grp('Header', paletteKeys(doc).map(k => sw(k, H.bg === k, t(colorLabel(doc, k)), () => { H.bg = k; }))));
+      g.push(grp('Header', paletteKeys(doc).map(k => sw(k, H.bg === k, t(colorLabel(doc, k)), () => { H.bg = k; })), palBtn()));
     }
     return g;
   }

@@ -49,8 +49,8 @@ const TOPICS = [
     { title: 'Centré, sans contour', desc: 'Chiffre et icône centrés, pour une bande de plusieurs chiffres.', opts: fig({ icon: true, stroke: false, fill: false, align: 'center' }) },
   ] },
   { id: 'proprietes', icon: 'adjustments', label: 'Propriétés', panel: true, controls: [], render: (o, W, v, redraw) => renderPanel(o, v, redraw), variants: [
-    { title: 'Actuelle', base: true, style: 'a', desc: 'Le panneau tel qu’il est : tout à la suite, des étiquettes de 12 px, des écarts irréguliers et des cases à cocher entre les blocs.', opts: panelOpts() },
-    { title: 'Cartes repliables', style: 'b', desc: 'Un bloc par sujet (texte, couleurs, image, logo) dans une carte avec icône, interrupteur et chevron : on replie ce qu’on ne touche pas.', opts: panelOpts() },
+    { title: 'Ancienne', old: true, style: 'a', desc: 'Le panneau tel qu’il est : tout à la suite, des étiquettes de 12 px, des écarts irréguliers et des cases à cocher entre les blocs.', opts: panelOpts() },
+    { title: 'Cartes repliables', kept: 'tous les panneaux de propriétés', style: 'b', desc: 'Un bloc par sujet (texte, couleurs, image, logo) dans une carte avec icône, interrupteur et chevron : on replie ce qu’on ne touche pas.', opts: panelOpts() },
     { title: 'Onglets', style: 'c', desc: 'Trois onglets (texte, couleurs, médias) : un seul groupe à l’écran, plus de défilement, mais un clic pour changer de sujet.', opts: panelOpts() },
     { title: 'Sections à filet', style: 'd', desc: 'Tout reste visible, découpé en sections séparées par un filet, titre en majuscules et interrupteur à droite ; 24 px entre sections, 12 px entre champs.', opts: panelOpts() },
     { title: 'Inspecteur compact', style: 'e', desc: 'Comme D, mais l’étiquette est à gauche du champ (une ligne par réglage) : le plus court, proche d’un outil de design.', opts: panelOpts() },
@@ -110,7 +110,7 @@ function draw() {
     h('div', { class: 'labo-canvas' }, sheet));
   const chips = h('div', { class: 'labo-chips' }, TOPICS.map(x => h('button', { type: 'button', class: x.id === topicId ? 'on' : '', onclick: () => go(x.id, 0) }, h('i', { class: 'ti ti-' + x.icon }), x.label)));
   const head = h('div', { class: 'labo-title' }, h('b', { class: 'letter', textContent: LETTERS[vi] }), h('h2', { textContent: v.title }),
-    v.base ? h('span', { class: 'mark', textContent: 'actuelle' }) : null, v.kept ? h('span', { class: 'mark kept', textContent: `retenue — ${v.kept}` }) : null);
+    v.base ? h('span', { class: 'mark', textContent: 'actuelle' }) : null, v.old ? h('span', { class: 'mark', textContent: 'ancienne' }) : null, v.kept ? h('span', { class: 'mark kept', textContent: `retenue — ${v.kept}` }) : null);
   const main = h('main', { class: 'labo-main' }, chips, h('section', { class: 'labo-view' }, head, h('p', { class: 'labo-desc', textContent: v.desc }), h('div', { class: 'labo-work' + (tp.panel ? ' solo' : '') }, opts, view)));
   const bar = h('div', { class: 'labo-bar' },
     h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Précédente', disabled: vi === 0, onclick: () => go(topicId, vi - 1) }, h('i', { class: 'ti ti-chevron-left' })),
