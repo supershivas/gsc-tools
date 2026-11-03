@@ -57,10 +57,11 @@ const TOPICS = [
     { title: 'Inspecteur compact', style: 'e', desc: 'Comme D, mais l’étiquette est à gauche du champ (une ligne par réglage) : le plus court, proche d’un outil de design.', opts: panelOpts() },
   ] },
   { id: 'selection', icon: 'focus-2', label: 'Sélection', panel: true, controls: [], render: (o, W, v, redraw) => renderSelect(o, v, redraw), variants: [
-    { title: 'Fixe', base: true, style: 'steady', desc: 'Le cadre orange apparaît tout de suite et ne bouge pas : sobre, mais on le repère moins quand on change de sélection.', opts: selectOpts() },
-    { title: 'Scintillement', style: 'blink', desc: 'Le cadre clignote doucement (deux fois) avec un léger halo, puis reste fixe : attire l’œil sans déplacer quoi que ce soit.', opts: selectOpts() },
-    { title: 'Upscale', style: 'zoom', desc: 'Le cadre arrive un peu plus grand (105 %) et se pose sur l’élément en 0,3 s : l’effet « on zoome dessus ».', opts: selectOpts() },
-    { title: 'Upscale + halo', style: 'both', desc: 'Upscale, puis deux pulsations d’un halo orange qui s’éteint : le plus visible, mais le plus démonstratif.', opts: selectOpts() },
+    { title: 'Fixe', base: true, style: 'steady', desc: 'Le cadre orange ne bouge pas : sobre, mais on le repère moins quand on change de sélection.', opts: selectOpts() },
+    { title: 'Respiration', style: 'breathe', desc: 'Le trait s’éclaircit puis revient, en boucle lente (2,8 s) : le plus discret.', opts: selectOpts() },
+    { title: 'Souffle', style: 'swell', desc: 'Le cadre gonfle de 1,2 % puis se rétracte, en boucle lente : donne du volume sans changer de couleur.', opts: selectOpts() },
+    { title: 'Halo', style: 'halo', desc: 'Une onde orange très douce part du cadre toutes les 2,2 s.', opts: selectOpts() },
+    { title: 'Pointillés', style: 'ants', desc: 'Le contour est en pointillés qui défilent lentement (1,8 s) : on voit tout de suite quel élément est actif.', opts: selectOpts() },
   ] },
 ];
 const LETTERS = 'ABCDEFGHIJ';

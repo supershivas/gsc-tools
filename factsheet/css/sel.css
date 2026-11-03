@@ -1,15 +1,23 @@
 /* Cadre de sélection : dessiné par-dessus l'aperçu (hors de la page, donc jamais recadré ni exporté).
-   Variantes d'animation à l'apparition (classe .pop) — choisies dans le Labo, sujet « Sélection ». */
+   Variantes (classe v-…) choisies dans le Labo, sujet « Sélection » : toutes bouclent doucement tant que l'élément est sélectionné. */
 .sel-layer { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
 .sel-frame { position: absolute; box-sizing: border-box; border: 1.5px solid #F28C28; border-radius: 3px; }
-/* B : scintillement léger */
-.sel-frame.v-blink.pop { animation: sel-blink .9s ease-in-out 1; }
-@keyframes sel-blink { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 #f28c2800; } 20% { opacity: .25; } 40% { opacity: 1; box-shadow: 0 0 0 6px #f28c2855; } 60% { opacity: .4; } 80% { opacity: 1; box-shadow: 0 0 0 0 #f28c2800; } }
-/* C : upscale */
-.sel-frame.v-zoom.pop { animation: sel-zoom .32s cubic-bezier(.2, .9, .3, 1); }
-@keyframes sel-zoom { from { transform: scale(1.05); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-/* D : upscale puis halo */
-.sel-frame.v-both.pop { animation: sel-zoom .32s cubic-bezier(.2, .9, .3, 1), sel-glow 1.2s ease-out .32s 2; }
-@keyframes sel-glow { 0% { box-shadow: 0 0 0 0 #f28c2888; } 100% { box-shadow: 0 0 0 10px #f28c2800; } }
-@media (prefers-reduced-motion: reduce) { .sel-frame.pop { animation: none !important; } }
+/* B : respiration — le trait s'éclaircit puis revient */
+.sel-frame.v-breathe { animation: sel-breathe 2.8s ease-in-out infinite; }
+@keyframes sel-breathe { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+/* C : souffle — le cadre gonfle très légèrement (1,2 %) */
+.sel-frame.v-swell { animation: sel-swell 2.6s ease-in-out infinite; }
+@keyframes sel-swell { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.012); } }
+/* D : halo — une onde douce part du cadre */
+.sel-frame.v-halo { animation: sel-halo 2.2s ease-out infinite; }
+@keyframes sel-halo { 0% { box-shadow: 0 0 0 0 #f28c2873; } 80%, 100% { box-shadow: 0 0 0 8px #f28c2800; } }
+/* E : pointillés qui défilent lentement */
+.sel-frame.v-ants { border: 0; background:
+  repeating-linear-gradient(90deg, #F28C28 0 6px, transparent 6px 12px) 0 0 / 100% 1.5px no-repeat,
+  repeating-linear-gradient(90deg, #F28C28 0 6px, transparent 6px 12px) 0 100% / 100% 1.5px no-repeat,
+  repeating-linear-gradient(0deg, #F28C28 0 6px, transparent 6px 12px) 0 0 / 1.5px 100% no-repeat,
+  repeating-linear-gradient(0deg, #F28C28 0 6px, transparent 6px 12px) 100% 0 / 1.5px 100% no-repeat;
+  animation: sel-ants 1.8s linear infinite; }
+@keyframes sel-ants { to { background-position: 12px 0, -12px 100%, 0 -12px, 100% 12px; } }
+@media (prefers-reduced-motion: reduce) { .sel-frame { animation: none !important; } }
 @media print { .sel-layer { display: none !important; } }

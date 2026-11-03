@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.17.0 — 2026-11-03
+- Historique des modifications (icône horloge dans l'en-tête, menu Édition) : on revient à n'importe quel pas en un clic
+- Glisser-déposer : l'élément est pris comme un objet (son rendu suit le pointeur) pendant que la page se réorganise en direct
+- Corrige la page qui sautait à chaque retouche avec « Marges et espaces » ; message de déplacement/suppression en petit en bas à gauche ; animations de sélection en boucle douce (Labo)
+
 ## 1.16.0 — 2026-11-03
 - Annuler / rétablir (boutons au centre de l'en-tête, menu Édition, Cmd/Ctrl + Z) et nom du fichier modifiable dans l'en-tête ; plus d'onglet Document ni de choix de thème
 - Palette à deux tons : chaque couleur existe en pleine et en légère (20 %), seule liste proposée pour fonds, contours et textes

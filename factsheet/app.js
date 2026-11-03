@@ -307,6 +307,48 @@
     "Format des nombres": "Number format",
     "S\xE9lectionnez un \xE9l\xE9ment dans la structure (\xE0 gauche) ou sur la page pour modifier ses propri\xE9t\xE9s.": "Select an element in the structure (left) or on the page to edit its properties.",
     "Les couleurs, le format des nombres et le nom du fichier sont dans le menu \xC9dition.": "Colours, number format and file name are in the Edit menu.",
+    "Historique des modifications": "Edit history",
+    "Historique des modifications\u2026": "Edit history\u2026",
+    "Ouverture du document": "Document opened",
+    "Modification": "Edit",
+    "Section ajout\xE9e": "Section added",
+    "Section supprim\xE9e": "Section deleted",
+    "Sous-section ajout\xE9e": "Subsection added",
+    "Sous-section supprim\xE9e": "Subsection deleted",
+    "Colonne ajout\xE9e": "Column added",
+    "Colonne supprim\xE9e": "Column deleted",
+    "\xC9l\xE9ments d\xE9plac\xE9s": "Items moved",
+    "r\xE9glage": "setting",
+    "Colonne": "Column",
+    "texte": "text",
+    "titre": "title",
+    "sous-titre": "subtitle",
+    "surtitre": "overline",
+    "fond": "background",
+    "couleur du texte": "text colour",
+    "contour": "outline",
+    "couleur du contour": "outline colour",
+    "colonnes": "columns",
+    "page": "page",
+    "alignement vertical": "vertical alignment",
+    "alignement": "alignment",
+    "espacement": "spacing",
+    "format des nombres": "number format",
+    "image": "image",
+    "l\xE9gende": "caption",
+    "logo": "logo",
+    "couleurs": "colours",
+    "noms des couleurs": "colour names",
+    "dataviz": "dataviz",
+    "carte": "card",
+    "chiffre cl\xE9": "key figure",
+    "type de contenu": "content type",
+    "images": "images",
+    "nom du fichier": "file name",
+    "\xC9l\xE9ment supprim\xE9.": "Item deleted.",
+    "Annuler la suppression": "Undo deletion",
+    "Contenu d\xE9plac\xE9. V\xE9rifiez le remplissage des pages.": "Content moved. Check page fill.",
+    "Annuler le d\xE9placement": "Undo move",
     "Nouvelle factsheet vierge": "New blank factsheet",
     "Cr\xE9er une factsheet vierge ? Le document actuel sera remplac\xE9 : enregistrez-le d\u2019abord (.json) si besoin.": "Create a blank factsheet? The current document will be replaced: save it first (.json) if needed.",
     "Enregistrer (.json)": "Save (.json)",
@@ -4090,7 +4132,7 @@ ${lorem}` },
     return Math.max(0.4, Math.min(1, (avail - 24) / (2 * PAGE.w)));
   }
   function drawPreview() {
-    const sc = scaleValue();
+    const sc = scaleValue(), sx = stage.scrollLeft, sy = stage.scrollTop;
     const r = renderDocument(previewDoc || doc);
     stage.innerHTML = "";
     r.pages.forEach((p) => {
@@ -4102,6 +4144,8 @@ ${lorem}` },
       );
       stage.append(wrap);
     });
+    stage.scrollLeft = sx;
+    stage.scrollTop = sy;
     measure(r);
     drawSpacing();
     gauges.innerHTML = "";
@@ -4117,7 +4161,6 @@ ${lorem}` },
     });
     warnEl.innerHTML = "";
     r.warnings.forEach((w) => warnEl.append(h("div", { textContent: w })));
-    if (undoSnap) warnEl.append(h("div", { class: "note moved" }, h("span", { textContent: undoSnap.label }), h("button", { type: "button", class: "mini", textContent: undoSnap.undoLabel, onclick: undo })));
     const nLocal = localImageCount(doc);
     if (nLocal) warnEl.append(h("a", { class: "note", href: "atelier.html", textContent: nLocal === 1 ? "1 image \xE0 publier \u2014 ouvrir l\u2019Atelier" : `${nLocal} images \xE0 publier \u2014 ouvrir l\u2019Atelier` }));
     if (!storage.ok) warnEl.append(h("div", { textContent: "Espace de stockage du navigateur plein : les derni\xE8res modifications ne sont pas enregistr\xE9es. Enregistrez le projet (.json) et all\xE9gez les images." }));
@@ -4155,10 +4198,12 @@ ${lorem}` },
     layoutObs.disconnect();
     stage.querySelectorAll(".page .content, .page .hd").forEach((c) => layoutObs.observe(c));
   };
+  var legendEl = h("div", { class: "sp-legend" });
+  document.querySelector(".bar").append(legendEl);
   var SPACING_KINDS = { margin: "Marges de page", sec: "Entre sections", sub: "Entre sous-sections", col: "Entre colonnes" };
   function drawSpacing() {
     stage.querySelectorAll(".sp-layer").forEach((n) => n.remove());
-    warnEl.querySelectorAll(".sp-legend").forEach((n) => n.remove());
+    legendEl.replaceChildren();
     if (!showSpacing) return;
     stage.querySelectorAll(".pwrap").forEach((w) => {
       const page = w.querySelector(".page");
@@ -4197,9 +4242,20 @@ ${lorem}` },
       });
       w.append(layer);
     });
-    warnEl.append(h("div", { class: "note sp-legend" }, Object.entries(SPACING_KINDS).map(([k, l]) => h("span", {}, h("i", { class: "sp-" + k }), t(l)))));
+    legendEl.replaceChildren(...Object.entries(SPACING_KINDS).map(([k, l]) => h("span", {}, h("i", { class: "sp-" + k }), t(l))));
   }
-  var HIST = { stack: [], i: -1, at: 0, burst: false, applying: false, max: 100 };
+  var noteTimer = 0;
+  function noteToast(label, undoLabel) {
+    document.querySelectorAll(".fs-toast").forEach((n) => n.remove());
+    clearTimeout(noteTimer);
+    const el2 = h("div", { class: "fs-toast", role: "status" }, h("span", { textContent: t(label) }), h("button", { type: "button", textContent: t(undoLabel), onclick: () => {
+      el2.remove();
+      undo();
+    } }));
+    document.body.append(el2);
+    noteTimer = setTimeout(() => el2.remove(), 6e3);
+  }
+  var HIST = { stack: [], meta: [], i: -1, at: 0, burst: false, applying: false, max: 100 };
   var imgIds = /* @__PURE__ */ new Map();
   var imgById = [];
   var tokenOf = (v) => {
@@ -4213,16 +4269,102 @@ ${lorem}` },
   };
   var snapshot = () => JSON.stringify(doc, (k, v) => typeof v === "string" && v.length > 300 && v.startsWith("data:") ? tokenOf(v) : v);
   var restore = (str) => JSON.parse(str, (k, v) => typeof v === "string" && v.startsWith("img") ? imgById[+v.slice(4)] : v);
+  var FIELDS = {
+    text: "texte",
+    title: "titre",
+    subtitle: "sous-titre",
+    overline: "surtitre",
+    bg: "fond",
+    fg: "couleur du texte",
+    stroke: "contour",
+    strokeColor: "couleur du contour",
+    fillColor: "fond",
+    layout: "colonnes",
+    page: "page",
+    valign: "alignement vertical",
+    align: "alignement",
+    density: "espacement",
+    locale: "format des nombres",
+    src: "image",
+    caption: "l\xE9gende",
+    logoVariant: "logo",
+    logos: "logo",
+    colors: "couleurs",
+    colorNames: "noms des couleurs",
+    viz: "dataviz",
+    card: "carte",
+    figure: "chiffre cl\xE9",
+    type: "type de contenu",
+    imageId: "image",
+    images: "images",
+    showImage: "image",
+    showLogo: "logo",
+    name: "nom du fichier"
+  };
+  var firstDiff = (a, b, path = []) => {
+    if (a === b) return null;
+    if (!a || !b || typeof a !== "object" || typeof b !== "object") return { path };
+    if (Array.isArray(a) && Array.isArray(b) && a.length !== b.length) return { path, grew: b.length - a.length };
+    for (const k of /* @__PURE__ */ new Set([...Object.keys(a), ...Object.keys(b)])) {
+      const r = firstDiff(a[k], b[k], [...path, k]);
+      if (r) return r;
+    }
+    return null;
+  };
+  function describe(prevStr, nextStr) {
+    if (prevStr == null) return t("Ouverture du document");
+    let d;
+    try {
+      const A = restore(prevStr), B = restore(nextStr);
+      d = firstDiff(A, B);
+      var doc2 = B;
+    } catch (e) {
+      return t("Modification");
+    }
+    if (!d) return t("Modification");
+    const p = d.path, name = (x) => String(x || "").trim().slice(0, 22);
+    let where = "", field = "";
+    if (p[0] === "header") {
+      where = t("Header");
+      field = p[1];
+    } else if (p[0] === "sections") {
+      if (p.length === 1) return d.grew > 0 ? t("Section ajout\xE9e") : d.grew < 0 ? t("Section supprim\xE9e") : t("\xC9l\xE9ments d\xE9plac\xE9s");
+      const sec = doc2.sections[p[1]];
+      where = `${t("Section")} \xAB ${name(sec && sec.title)} \xBB`;
+      if (p[2] === "subs") {
+        if (p.length === 3) return d.grew > 0 ? t("Sous-section ajout\xE9e") : d.grew < 0 ? t("Sous-section supprim\xE9e") : t("\xC9l\xE9ments d\xE9plac\xE9s");
+        const sub = sec && sec.subs[p[3]];
+        where = `${t("Sous-section")} \xAB ${name(sub && sub.title)} \xBB`;
+        if (p[4] === "cols") {
+          if (p.length === 5) return d.grew > 0 ? t("Colonne ajout\xE9e") : d.grew < 0 ? t("Colonne supprim\xE9e") : t("\xC9l\xE9ments d\xE9plac\xE9s");
+          where = `${t("Colonne")} ${+p[5] + 1}`;
+          field = p[6];
+        } else field = p[4];
+      } else field = p[2];
+    } else {
+      where = t("Document");
+      field = p[0];
+    }
+    if (field === "id") return t("\xC9l\xE9ments d\xE9plac\xE9s");
+    return `${where} \xB7 ${FIELDS[field] ? t(FIELDS[field]) : t("r\xE9glage")}`;
+  }
   function record(burst) {
     if (HIST.applying) return;
     const sn = snapshot();
     if (HIST.i >= 0 && HIST.stack[HIST.i] === sn) return;
     const now = Date.now();
-    if (burst && HIST.burst && HIST.i === HIST.stack.length - 1 && HIST.i > 0 && now - HIST.at < 1e3) HIST.stack[HIST.i] = sn;
-    else {
+    if (burst && HIST.burst && HIST.i === HIST.stack.length - 1 && HIST.i > 0 && now - HIST.at < 1e3) {
+      HIST.stack[HIST.i] = sn;
+      HIST.meta[HIST.i] = { label: describe(HIST.stack[HIST.i - 1], sn), at: HIST.meta[HIST.i].at };
+    } else {
       HIST.stack.length = HIST.i + 1;
+      HIST.meta.length = HIST.i + 1;
       HIST.stack.push(sn);
-      if (HIST.stack.length > HIST.max) HIST.stack.shift();
+      HIST.meta.push({ label: describe(HIST.stack[HIST.i], sn), at: now });
+      if (HIST.stack.length > HIST.max) {
+        HIST.stack.shift();
+        HIST.meta.shift();
+      }
       HIST.i = HIST.stack.length - 1;
     }
     HIST.at = now;
@@ -4313,11 +4455,11 @@ ${lorem}` },
     /* Déplacement de contenu : `fn` modifie le document et renvoie le chemin à sélectionner ensuite.
        L'état d'avant est gardé pour « Annuler le déplacement » (jusqu'à la prochaine modification). */
     moved(fn, label = "Contenu d\xE9plac\xE9. V\xE9rifiez le remplissage des pages.", undoLabel = "Annuler le d\xE9placement") {
-      const snap = JSON.stringify(doc), to = fn();
-      undoSnap = { snap, label, undoLabel };
+      const to = fn();
       selected = to || null;
       ctx.restructure();
       ctx.select(selected);
+      noteToast(label, undoLabel);
     },
     /* Supprime l'élément sélectionné (section, sous-section ou colonne) — annulable */
     remove(path) {
@@ -4477,15 +4619,33 @@ ${lorem}` },
     return null;
   }
   var TARGETS = { sec: secTarget, sub: subTarget, col: colTarget };
-  var dragLabel = () => drag.kind === "sec" ? (doc.sections[secIdx(doc, drag.id)] || {}).title || "Section" : drag.kind === "sub" ? (() => {
-    const p = subIdx(doc, drag.id);
-    return p && doc.sections[p.si].subs[p.bi].title || "Sous-section";
-  })() : "Contenu";
+  function dragSource() {
+    if (drag.kind === "sec") return stage.querySelector(`.sec[data-sel="sec:${secIdx(doc, drag.id)}"]`);
+    if (drag.kind === "sub") {
+      const p = subIdx(doc, drag.id);
+      return p && stage.querySelector(`.sub[data-sel="sub:${p.si}:${p.bi}"]`);
+    }
+    return stage.querySelector(`.col[data-sel="col:${drag.from.si}:${drag.from.bi}:${drag.from.ci}"]`);
+  }
   function dragActivate() {
     drag.active = true;
     hover.hide();
     document.body.classList.add("dragging");
-    drag.ghost = h("div", { class: "drag-ghost", textContent: dragLabel() });
+    const el2 = dragSource();
+    if (!el2) {
+      drag.ghost = h("div");
+      return;
+    }
+    const r = el2.getBoundingClientRect(), page = el2.closest(".page"), sc = page.getBoundingClientRect().width / PAGE.w;
+    const holder = h("div", { class: "page drag-page", style: { width: r.width / sc + "px", transform: `scale(${sc})` } });
+    holder.setAttribute("style", (page.getAttribute("style") || "") + `;width:${r.width / sc}px;transform:scale(${sc})`);
+    const clone = el2.cloneNode(true);
+    clone.classList.remove("drag-live");
+    clone.style.margin = "0";
+    clone.removeAttribute("data-sel");
+    holder.append(clone);
+    drag.grab = { dx: Math.min(Math.max(drag.x - r.left, 10), Math.max(10, r.width - 10)), dy: Math.min(Math.max(drag.y - r.top, 10), Math.max(10, r.height - 10)) };
+    drag.ghost = h("div", { class: "drag-obj", style: { width: r.width + "px", height: r.height + "px" } }, holder);
     document.body.append(drag.ghost);
   }
   function dragEnd(commit) {
@@ -4509,8 +4669,10 @@ ${lorem}` },
       if (!drag.pending || Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
       dragActivate();
     }
-    drag.ghost.style.left = e.clientX + 14 + "px";
-    drag.ghost.style.top = e.clientY + 10 + "px";
+    if (drag.grab) {
+      drag.ghost.style.left = e.clientX - drag.grab.dx + "px";
+      drag.ghost.style.top = e.clientY - drag.grab.dy + "px";
+    }
     const t2 = TARGETS[drag.kind](e), key = t2 ? JSON.stringify(t2.key) : "";
     if (key === drag.key) return;
     drag.key = key;
@@ -4582,6 +4744,7 @@ ${lorem}` },
   var MOD = MAC ? "\u2318" : "Ctrl+";
   var undoBtn = h("button", { type: "button", class: "icon-btn fs-hbtn", title: `${t("Annuler l\u2019action")} (${MOD}Z)`, "aria-label": t("Annuler l\u2019action"), onclick: () => undo() }, ico("arrow-back-up"));
   var redoBtn = h("button", { type: "button", class: "icon-btn fs-hbtn", title: `${t("R\xE9tablir")} (${MAC ? "\u21E7\u2318Z" : "Ctrl+Y"})`, "aria-label": t("R\xE9tablir"), onclick: () => redo() }, ico("arrow-forward-up"));
+  var histBtn = h("button", { type: "button", class: "icon-btn fs-hbtn", title: t("Historique des modifications"), "aria-label": t("Historique des modifications"), onclick: () => toggleHistory() }, ico("history"));
   var nameIn = h("input", {
     type: "text",
     class: "fs-name",
@@ -4597,12 +4760,60 @@ ${lorem}` },
   var fitName = () => {
     nameIn.style.width = Math.max(10, nameIn.value.length + 1) + "ch";
   };
-  var centerEl = h("div", { class: "fs-center" }, undoBtn, redoBtn, nameIn);
+  var centerEl = h("div", { class: "fs-center" }, undoBtn, redoBtn, histBtn, nameIn);
   function syncCenter() {
     undoBtn.disabled = !canUndo();
     redoBtn.disabled = !canRedo();
     if (document.activeElement !== nameIn) nameIn.value = doc.name || "";
     fitName();
+    if (histPop) drawHistory();
+  }
+  var histPop = null;
+  var clock = (ms) => new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  function drawHistory() {
+    const list = h("ul", { class: "hist-list" });
+    for (let k = HIST.stack.length - 1; k >= 0; k--) {
+      const m = HIST.meta[k] || {};
+      list.append(h("li", {}, h(
+        "button",
+        { type: "button", class: "hist-item" + (k === HIST.i ? " on" : "") + (k > HIST.i ? " future" : ""), onclick: () => goTo(k) },
+        h("span", { class: "hist-dot" }),
+        h("span", { class: "hist-lab", textContent: m.label || "" }),
+        h("time", { textContent: clock(m.at || Date.now()) })
+      )));
+    }
+    histPop.body.replaceChildren(list);
+  }
+  function toggleHistory() {
+    if (histPop) {
+      histPop.close();
+      return;
+    }
+    const el2 = h("div", { class: "hist-pop", role: "dialog", "aria-label": t("Historique des modifications") }, h(
+      "div",
+      { class: "hist-head" },
+      h("b", { textContent: t("Historique des modifications") }),
+      h("button", { type: "button", class: "mini", "aria-label": t("Fermer"), onclick: () => histPop.close() }, ico("x"))
+    ), h("div", { class: "hist-body" }));
+    document.body.append(el2);
+    const r = histBtn.getBoundingClientRect();
+    el2.style.left = Math.max(8, r.left - 40) + "px";
+    el2.style.top = r.bottom + 6 + "px";
+    const away = (e) => {
+      if (!el2.contains(e.target) && !histBtn.contains(e.target)) histPop.close();
+    };
+    const key = (e) => {
+      if (e.key === "Escape") histPop.close();
+    };
+    document.addEventListener("pointerdown", away, true);
+    document.addEventListener("keydown", key, true);
+    histPop = { body: el2.querySelector(".hist-body"), close() {
+      document.removeEventListener("pointerdown", away, true);
+      document.removeEventListener("keydown", key, true);
+      el2.remove();
+      histPop = null;
+    } };
+    drawHistory();
   }
   window.FS_UI = {
     menus: [
@@ -4617,6 +4828,7 @@ ${lorem}` },
       { label: "\xC9dition", items: [
         { label: "Annuler l\u2019action", icon: "arrow-back-up", hint: MOD + "Z", run: () => undo(), disabled: () => !canUndo() },
         { label: "R\xE9tablir", icon: "arrow-forward-up", hint: MAC ? "\u21E7\u2318Z" : "Ctrl+Y", run: () => redo(), disabled: () => !canRedo() },
+        { label: "Historique des modifications\u2026", icon: "history", run: () => toggleHistory() },
         "-",
         { label: "Couleurs du document\u2026", icon: "palette", run: () => openPalette(nameIn, ctx) },
         { heading: "Format des nombres" },

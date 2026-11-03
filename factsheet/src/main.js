@@ -28,7 +28,7 @@ function scaleValue() {
 }
 
 function drawPreview() {
-  const sc = scaleValue();
+  const sc = scaleValue(), sx = stage.scrollLeft, sy = stage.scrollTop;
   const r = renderDocument(previewDoc || doc);
   stage.innerHTML = '';
   r.pages.forEach(p => {
@@ -37,6 +37,7 @@ function drawPreview() {
       h('div', { class: 'pscale', style: { transform: `scale(${sc})` } }, p.el));
     stage.append(wrap);
   });
+  stage.scrollLeft = sx; stage.scrollTop = sy;   // une retouche ne doit jamais faire sauter la page
   measure(r);
   drawSpacing();
   gauges.innerHTML = '';
@@ -49,7 +50,6 @@ function drawPreview() {
   });
   warnEl.innerHTML = '';
   r.warnings.forEach(w => warnEl.append(h('div', { textContent: w })));
-  if (undoSnap) warnEl.append(h('div', { class: 'note moved' }, h('span', { textContent: undoSnap.label }), h('button', { type: 'button', class: 'mini', textContent: undoSnap.undoLabel, onclick: undo })));
   const nLocal = localImageCount(doc);
   if (nLocal) warnEl.append(h('a', { class: 'note', href: 'atelier.html', textContent: nLocal === 1 ? '1 image à publier — ouvrir l’Atelier' : `${nLocal} images à publier — ouvrir l’Atelier` }));
   if (!storage.ok) warnEl.append(h('div', { textContent: 'Espace de stockage du navigateur plein : les dernières modifications ne sont pas enregistrées. Enregistrez le projet (.json) et allégez les images.' }));
@@ -78,9 +78,10 @@ const layoutObs = new ResizeObserver(() => { cancelAnimationFrame(layRaf); layRa
 const watchLayout = () => { layoutObs.disconnect(); stage.querySelectorAll('.page .content, .page .hd').forEach(c => layoutObs.observe(c)); };
 
 /* Marges et espaces : filigrane coloré par-dessus l'aperçu (hors des pages, donc jamais exporté) */
+const legendEl = h('div', { class: 'sp-legend' }); document.querySelector('.bar').append(legendEl);   // dans la barre (taille fixe) : ne déplace jamais l'aperçu
 const SPACING_KINDS = { margin: 'Marges de page', sec: 'Entre sections', sub: 'Entre sous-sections', col: 'Entre colonnes' };
 function drawSpacing() {
-  stage.querySelectorAll('.sp-layer').forEach(n => n.remove()); warnEl.querySelectorAll('.sp-legend').forEach(n => n.remove());
+  stage.querySelectorAll('.sp-layer').forEach(n => n.remove()); legendEl.replaceChildren();
   if (!showSpacing) return;   // la mise en page peut bouger après coup (polices, images) : le filigrane suit
   stage.querySelectorAll('.pwrap').forEach(w => {
     const page = w.querySelector('.page'); if (!page) return;
@@ -102,22 +103,68 @@ function drawSpacing() {
     });
     w.append(layer);
   });
-  warnEl.append(h('div', { class: 'note sp-legend' }, Object.entries(SPACING_KINDS).map(([k, l]) => h('span', {}, h('i', { class: 'sp-' + k }), t(l)))));
+  legendEl.replaceChildren(...Object.entries(SPACING_KINDS).map(([k, l]) => h('span', {}, h('i', { class: 'sp-' + k }), t(l))));
 }
+/* Petit message en bas à gauche (déplacement, suppression) avec « Annuler » ; disparaît seul */
+let noteTimer = 0;
+function noteToast(label, undoLabel) {
+  document.querySelectorAll('.fs-toast').forEach(n => n.remove()); clearTimeout(noteTimer);
+  const el = h('div', { class: 'fs-toast', role: 'status' }, h('span', { textContent: t(label) }), h('button', { type: 'button', textContent: t(undoLabel), onclick: () => { el.remove(); undo(); } }));
+  document.body.append(el); noteTimer = setTimeout(() => el.remove(), 6000);
+}
+
 /* ---------- Historique (annuler / rétablir) ----------
    Un instantané du document après chaque modification ; la frappe est regroupée (1 s). Les images en data URL sont
    remplacées par un numéro dans les instantanés pour ne pas multiplier les mégaoctets. */
-const HIST = { stack: [], i: -1, at: 0, burst: false, applying: false, max: 100 };
+const HIST = { stack: [], meta: [], i: -1, at: 0, burst: false, applying: false, max: 100 };
 const imgIds = new Map(), imgById = [];
 const tokenOf = v => { let n = imgIds.get(v); if (n == null) { n = imgById.length; imgById.push(v); imgIds.set(v, n); } return `\u0001img${n}`; };
 const snapshot = () => JSON.stringify(doc, (k, v) => (typeof v === 'string' && v.length > 300 && v.startsWith('data:') ? tokenOf(v) : v));
 const restore = str => JSON.parse(str, (k, v) => (typeof v === 'string' && v.startsWith('\u0001img') ? imgById[+v.slice(4)] : v));
+/* Libellé d'un pas d'historique : première différence entre l'état précédent et le nouveau, dite en mots */
+const FIELDS = { text: 'texte', title: 'titre', subtitle: 'sous-titre', overline: 'surtitre', bg: 'fond', fg: 'couleur du texte', stroke: 'contour', strokeColor: 'couleur du contour', fillColor: 'fond',
+  layout: 'colonnes', page: 'page', valign: 'alignement vertical', align: 'alignement', density: 'espacement', locale: 'format des nombres', src: 'image', caption: 'légende', logoVariant: 'logo',
+  logos: 'logo', colors: 'couleurs', colorNames: 'noms des couleurs', viz: 'dataviz', card: 'carte', figure: 'chiffre clé', type: 'type de contenu', imageId: 'image', images: 'images', showImage: 'image', showLogo: 'logo', name: 'nom du fichier' };
+const firstDiff = (a, b, path = []) => {
+  if (a === b) return null;
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return { path };
+  if (Array.isArray(a) && Array.isArray(b) && a.length !== b.length) return { path, grew: b.length - a.length };
+  for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) { const r = firstDiff(a[k], b[k], [...path, k]); if (r) return r; }
+  return null;
+};
+function describe(prevStr, nextStr) {
+  if (prevStr == null) return t('Ouverture du document');
+  let d; try { const A = restore(prevStr), B = restore(nextStr); d = firstDiff(A, B); var doc2 = B; } catch (e) { return t('Modification'); }
+  if (!d) return t('Modification');
+  const p = d.path, name = x => String(x || '').trim().slice(0, 22);
+  let where = '', field = '';
+  if (p[0] === 'header') { where = t('Header'); field = p[1]; }
+  else if (p[0] === 'sections') {
+    if (p.length === 1) return d.grew > 0 ? t('Section ajoutée') : d.grew < 0 ? t('Section supprimée') : t('Éléments déplacés');
+    const sec = doc2.sections[p[1]]; where = `${t('Section')} « ${name(sec && sec.title)} »`;
+    if (p[2] === 'subs') {
+      if (p.length === 3) return d.grew > 0 ? t('Sous-section ajoutée') : d.grew < 0 ? t('Sous-section supprimée') : t('Éléments déplacés');
+      const sub = sec && sec.subs[p[3]]; where = `${t('Sous-section')} « ${name(sub && sub.title)} »`;
+      if (p[4] === 'cols') {
+        if (p.length === 5) return d.grew > 0 ? t('Colonne ajoutée') : d.grew < 0 ? t('Colonne supprimée') : t('Éléments déplacés');
+        where = `${t('Colonne')} ${+p[5] + 1}`; field = p[6];
+      } else field = p[4];
+    } else field = p[2];
+  } else { where = t('Document'); field = p[0]; }
+  if (field === 'id') return t('Éléments déplacés');
+  return `${where} · ${FIELDS[field] ? t(FIELDS[field]) : t('réglage')}`;
+}
 function record(burst) {
   if (HIST.applying) return;
   const sn = snapshot(); if (HIST.i >= 0 && HIST.stack[HIST.i] === sn) return;
   const now = Date.now();
-  if (burst && HIST.burst && HIST.i === HIST.stack.length - 1 && HIST.i > 0 && now - HIST.at < 1000) HIST.stack[HIST.i] = sn;
-  else { HIST.stack.length = HIST.i + 1; HIST.stack.push(sn); if (HIST.stack.length > HIST.max) HIST.stack.shift(); HIST.i = HIST.stack.length - 1; }
+  if (burst && HIST.burst && HIST.i === HIST.stack.length - 1 && HIST.i > 0 && now - HIST.at < 1000) { HIST.stack[HIST.i] = sn; HIST.meta[HIST.i] = { label: describe(HIST.stack[HIST.i - 1], sn), at: HIST.meta[HIST.i].at }; }
+  else {
+    HIST.stack.length = HIST.i + 1; HIST.meta.length = HIST.i + 1;
+    HIST.stack.push(sn); HIST.meta.push({ label: describe(HIST.stack[HIST.i], sn), at: now });
+    if (HIST.stack.length > HIST.max) { HIST.stack.shift(); HIST.meta.shift(); }
+    HIST.i = HIST.stack.length - 1;
+  }
   HIST.at = now; HIST.burst = !!burst; syncCenter();
 }
 function goTo(i) {
@@ -153,8 +200,8 @@ const ctx = {
   /* Déplacement de contenu : `fn` modifie le document et renvoie le chemin à sélectionner ensuite.
      L'état d'avant est gardé pour « Annuler le déplacement » (jusqu'à la prochaine modification). */
   moved(fn, label = 'Contenu déplacé. Vérifiez le remplissage des pages.', undoLabel = 'Annuler le déplacement') {
-    const snap = JSON.stringify(doc), to = fn();
-    undoSnap = { snap, label, undoLabel }; selected = to || null; ctx.restructure(); ctx.select(selected);
+    const to = fn();
+    selected = to || null; ctx.restructure(); ctx.select(selected); noteToast(label, undoLabel);
   },
   /* Supprime l'élément sélectionné (section, sous-section ou colonne) — annulable */
   remove(path) {
@@ -265,10 +312,22 @@ function colTarget(e) {
   return null;
 }
 const TARGETS = { sec: secTarget, sub: subTarget, col: colTarget };
-const dragLabel = () => drag.kind === 'sec' ? (doc.sections[secIdx(doc, drag.id)] || {}).title || 'Section' : drag.kind === 'sub' ? (() => { const p = subIdx(doc, drag.id); return (p && doc.sections[p.si].subs[p.bi].title) || 'Sous-section'; })() : 'Contenu';
+/* L'élément est « pris » comme un objet : son rendu réel suit le pointeur (surélevé), pendant que le reste de la page se réorganise en direct */
+function dragSource() {
+  if (drag.kind === 'sec') return stage.querySelector(`.sec[data-sel="sec:${secIdx(doc, drag.id)}"]`);
+  if (drag.kind === 'sub') { const p = subIdx(doc, drag.id); return p && stage.querySelector(`.sub[data-sel="sub:${p.si}:${p.bi}"]`); }
+  return stage.querySelector(`.col[data-sel="col:${drag.from.si}:${drag.from.bi}:${drag.from.ci}"]`);
+}
 function dragActivate() {
   drag.active = true; hover.hide(); document.body.classList.add('dragging');
-  drag.ghost = h('div', { class: 'drag-ghost', textContent: dragLabel() }); document.body.append(drag.ghost);
+  const el = dragSource(); if (!el) { drag.ghost = h('div'); return; }
+  const r = el.getBoundingClientRect(), page = el.closest('.page'), sc = page.getBoundingClientRect().width / PAGE.w;
+  const holder = h('div', { class: 'page drag-page', style: { width: r.width / sc + 'px', transform: `scale(${sc})` } });
+  holder.setAttribute('style', (page.getAttribute('style') || '') + `;width:${r.width / sc}px;transform:scale(${sc})`);
+  const clone = el.cloneNode(true); clone.classList.remove('drag-live'); clone.style.margin = '0'; clone.removeAttribute('data-sel'); holder.append(clone);
+  drag.grab = { dx: Math.min(Math.max(drag.x - r.left, 10), Math.max(10, r.width - 10)), dy: Math.min(Math.max(drag.y - r.top, 10), Math.max(10, r.height - 10)) };
+  drag.ghost = h('div', { class: 'drag-obj', style: { width: r.width + 'px', height: r.height + 'px' } }, holder);
+  document.body.append(drag.ghost);
 }
 function dragEnd(commit) {
   if (!drag) return; const d = drag; drag = null;
@@ -280,7 +339,7 @@ function dragEnd(commit) {
 window.addEventListener('pointermove', e => {
   if (!drag) return;
   if (!drag.active) { if (!drag.pending || Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return; dragActivate(); }
-  drag.ghost.style.left = e.clientX + 14 + 'px'; drag.ghost.style.top = e.clientY + 10 + 'px';
+  if (drag.grab) { drag.ghost.style.left = e.clientX - drag.grab.dx + 'px'; drag.ghost.style.top = e.clientY - drag.grab.dy + 'px'; }
   const t = TARGETS[drag.kind](e), key = t ? JSON.stringify(t.key) : '';
   if (key === drag.key) return;
   drag.key = key; drag.drop = t;
@@ -333,13 +392,40 @@ const MAC = /Mac|iPhone|iPad/.test(navigator.platform || '');
 const MOD = MAC ? '⌘' : 'Ctrl+', SHIFT = MAC ? '⇧' : 'Shift+';
 const undoBtn = h('button', { type: 'button', class: 'icon-btn fs-hbtn', title: `${t('Annuler l’action')} (${MOD}Z)`, 'aria-label': t('Annuler l’action'), onclick: () => undo() }, ico('arrow-back-up'));
 const redoBtn = h('button', { type: 'button', class: 'icon-btn fs-hbtn', title: `${t('Rétablir')} (${MAC ? '⇧⌘Z' : 'Ctrl+Y'})`, 'aria-label': t('Rétablir'), onclick: () => redo() }, ico('arrow-forward-up'));
+const histBtn = h('button', { type: 'button', class: 'icon-btn fs-hbtn', title: t('Historique des modifications'), 'aria-label': t('Historique des modifications'), onclick: () => toggleHistory() }, ico('history'));
 const nameIn = h('input', { type: 'text', class: 'fs-name', spellcheck: false, 'aria-label': t('Nom du fichier'), title: t('Nom du fichier'),
   oninput: e => { doc.name = e.target.value; fitName(); ctx.changed(); } });
 const fitName = () => { nameIn.style.width = Math.max(10, nameIn.value.length + 1) + 'ch'; };
-const centerEl = h('div', { class: 'fs-center' }, undoBtn, redoBtn, nameIn);
+const centerEl = h('div', { class: 'fs-center' }, undoBtn, redoBtn, histBtn, nameIn);
 function syncCenter() {
   undoBtn.disabled = !canUndo(); redoBtn.disabled = !canRedo();
   if (document.activeElement !== nameIn) nameIn.value = doc.name || ''; fitName();
+  if (histPop) drawHistory();
+}
+
+/* Historique des modifications : liste des pas (le plus récent en haut) ; un clic revient à cet état */
+let histPop = null;
+const clock = ms => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+function drawHistory() {
+  const list = h('ul', { class: 'hist-list' });
+  for (let k = HIST.stack.length - 1; k >= 0; k--) {
+    const m = HIST.meta[k] || {};
+    list.append(h('li', {}, h('button', { type: 'button', class: 'hist-item' + (k === HIST.i ? ' on' : '') + (k > HIST.i ? ' future' : ''), onclick: () => goTo(k) },
+      h('span', { class: 'hist-dot' }), h('span', { class: 'hist-lab', textContent: m.label || '' }), h('time', { textContent: clock(m.at || Date.now()) }))));
+  }
+  histPop.body.replaceChildren(list);
+}
+function toggleHistory() {
+  if (histPop) { histPop.close(); return; }
+  const el = h('div', { class: 'hist-pop', role: 'dialog', 'aria-label': t('Historique des modifications') }, h('div', { class: 'hist-head' }, h('b', { textContent: t('Historique des modifications') }),
+    h('button', { type: 'button', class: 'mini', 'aria-label': t('Fermer'), onclick: () => histPop.close() }, ico('x'))), h('div', { class: 'hist-body' }));
+  document.body.append(el);
+  const r = histBtn.getBoundingClientRect(); el.style.left = Math.max(8, r.left - 40) + 'px'; el.style.top = r.bottom + 6 + 'px';
+  const away = e => { if (!el.contains(e.target) && !histBtn.contains(e.target)) histPop.close(); };
+  const key = e => { if (e.key === 'Escape') histPop.close(); };
+  document.addEventListener('pointerdown', away, true); document.addEventListener('keydown', key, true);
+  histPop = { body: el.querySelector('.hist-body'), close() { document.removeEventListener('pointerdown', away, true); document.removeEventListener('keydown', key, true); el.remove(); histPop = null; } };
+  drawHistory();
 }
 
 window.FS_UI = {
@@ -354,6 +440,7 @@ window.FS_UI = {
     { label: 'Édition', items: [
       { label: 'Annuler l’action', icon: 'arrow-back-up', hint: MOD + 'Z', run: () => undo(), disabled: () => !canUndo() },
       { label: 'Rétablir', icon: 'arrow-forward-up', hint: MAC ? '⇧⌘Z' : 'Ctrl+Y', run: () => redo(), disabled: () => !canRedo() },
+      { label: 'Historique des modifications…', icon: 'history', run: () => toggleHistory() },
       '-',
       { label: 'Couleurs du document…', icon: 'palette', run: () => openPalette(nameIn, ctx) },
       { heading: 'Format des nombres' },
