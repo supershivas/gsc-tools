@@ -19,6 +19,7 @@ export default {
       ['China', 'Asia', 12, 78.2, 1410], ['Nigeria', 'Africa', 2.1, 53.9, 223], ['Egypt', 'Africa', 3.6, 71.8, 112], ['Brazil', 'Americas', 8.9, 75.9, 215]]
       .map(([label, group, x, y, size]) => ({ label, group, x, y, size })),
   }),
+  heights: ['ratio', 'fixed', 'fill'],
   fields: [
     { k: 'ratio', t: 'select', label: 'Format du graphique', options: { '2:1': '2:1 (large)', '16:9': '16:9', '3:2': '3:2', '1:1': '1:1 (carré)' } },
     { k: 'xTitle', t: 'text', label: 'Titre de l’axe horizontal', g: 'labels' },

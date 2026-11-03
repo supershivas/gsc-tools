@@ -111,6 +111,7 @@ function renderCol(col, w, path, env) {
   } else {
     const node = renderViz(col.viz, w, env);
     wrap.append(node || h('div', { class: 'viz-ph' }, h('span', { textContent: 'dataviz' })));
+    if (node && env.fills && col.viz.opts && col.viz.opts.hmode === 'fill') env.fills.push({ page: env.page, col, w, node, wrap, env });
   }
   return wrap;
 }
@@ -170,9 +171,10 @@ function renderSection(sec, si, env, pos) {
 export function renderDocument(doc) {
   setDensity(doc.density);
   const vars = cssVars(doc.theme, doc.colors);
-  const env = { locale: doc.locale || 'en-GB', pal: paletteOf(doc.theme, doc.colors) };
+  const env = { locale: doc.locale || 'en-GB', pal: paletteOf(doc.theme, doc.colors), fills: [], page: '' };
   const pages = [];
   for (const key of ['recto', 'verso']) {
+    env.page = key;
     const page = h('div', { class: `page page-${key}`, dataset: { page: key } });
     applyVars(page, vars);
     const top = key === 'recto' ? HEADER.h : 0;
@@ -184,13 +186,35 @@ export function renderDocument(doc) {
     const lastBand = list.length && isBand(list[list.length - 1].s);
     pages.push({ el: page, key, content, top, lastBand, max: PAGE.h - top - (lastBand ? 0 : PAGE.marginBottom) });
   }
-  return { pages, warnings: [] };
+  return { pages, warnings: [], fills: env.fills };
 }
 
 /** À appeler une fois les pages dans le DOM (mesures réelles). */
+/** Dataviz en mode « Remplir la place disponible » : elles se partagent l'espace libre de leur page (quelques passes, bornées par hmin/hmax) */
+function fillPage(p, fills) {
+  const mine = fills.filter(f => f.page === p.key);
+  if (!mine.length) return;
+  const chartH = f => { const n = f.node, sv = n.tagName.toLowerCase() === 'svg' ? n : n.querySelector('svg'); return +(sv && sv.getAttribute('height')) || n.offsetHeight || 0; };
+  mine.forEach(f => { f.h = chartH(f); });
+  for (let pass = 0; pass < 6; pass++) {
+    const free = p.max - p.content.offsetHeight;
+    if (free >= 0 && free < 3.5) break;
+    let moved = 0;
+    for (const f of mine) {
+      const o = f.col.viz.opts, target = Math.max(o.hmin || 90, Math.min(o.hmax || 900, f.h + free / mine.length));
+      if (Math.abs(target - f.h) < 0.5) continue;
+      const n = renderViz(f.col.viz, f.w, { ...f.env, fills: null, fillH: target });
+      if (!n) continue;
+      f.node.replaceWith(n); f.node = n; f.h = chartH(f); moved++;
+    }
+    if (!moved) break;
+  }
+}
+
 export function measure(result) {
   const warnings = [];
   for (const p of result.pages) {
+    if (result.fills && result.fills.length) fillPage(p, result.fills);
     p.used = p.content.offsetHeight;
     p.overflow = p.used > p.max + 0.5;
     if (p.overflow) warnings.push(`${p.key === 'recto' ? 'Recto' : 'Verso'} : le contenu dépasse de ${Math.ceil(p.used - p.max)} px — déplacez une section vers l’autre page ou raccourcissez-la.`);

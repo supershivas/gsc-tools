@@ -1,6 +1,6 @@
 /* Barres horizontales : libellés à gauche, valeur au bout de la barre. Groupées ou empilées. */
 import { VIZ, TYPE } from '../tokens.js';
-import { s, SW, colorRef, pxOf, fmt, mw, SANS, SERIF, drawLegend, numVal, fitText } from './util.js';
+import { heightOf, s, SW, colorRef, pxOf, fmt, mw, SANS, SERIF, drawLegend, numVal, fitText } from './util.js';
 import { t } from '../i18n.js';
 
 const hPath = (x, y, w, h, r) => { r = Math.max(0, Math.min(r, h / 2, w)); return `M${x},${y}H${x + w - r}A${r},${r} 0 0 1 ${x + w},${y + r}V${y + h - r}A${r},${r} 0 0 1 ${x + w - r},${y + h}H${x}Z`; };
@@ -13,6 +13,7 @@ export default {
     series: [{ name: t('Valeur'), color: 'blue' }],
     rows: [{ label: t('Premier critère'), v: [72] }, { label: t('Deuxième critère'), v: [58] }, { label: t('Troisième critère'), v: [41] }, { label: t('Quatrième critère'), v: [23] }],
   }),
+  heights: ['auto', 'fixed', 'fill'],
   fields: [
     { k: 'style', t: 'select', label: 'Plusieurs séries', options: { grouped: 'Côte à côte', stacked: 'Empilées' } },
     { k: 'legend', t: 'bool', label: 'Afficher la légende' },
@@ -30,9 +31,17 @@ export default {
     const valW = o.showValues ? mw(fmt(1000, env.locale, o.decimals) + suffix, 700, '"Source Serif 4", serif', numPx) + VIZ.barGap * 2 : 0;
     const x0 = labW, span = Math.max(30, W - labW - valW);
     let max = 0; rows.forEach(r => { max = Math.max(max, stacked ? total(r) : Math.max(0, ...series.map((_, j) => numVal(r, j)))); }); if (!max) max = 1;
-    const bh = VIZ.hBar, rh = stacked ? bh : k * bh + (k - 1) * VIZ.barGap;
-    const bodyH = rows.length * rh + Math.max(0, rows.length - 1) * VIZ.hRowGap;
-    const H = bodyH + (o.legend ? VIZ.legendGap + VIZ.legendH : 0);
+    const legBlock = o.legend ? VIZ.legendGap + VIZ.legendH : 0, gaps = Math.max(0, rows.length - 1) * VIZ.hRowGap;
+    const natBh = VIZ.hBar, natBody = rows.length * (stacked ? natBh : k * natBh + (k - 1) * VIZ.barGap) + gaps;
+    /* hauteur fixe ou « remplir » : les barres s'épaississent (ou s'amincissent) pour occuper la hauteur demandée ; automatique = hauteur naturelle */
+    let bh = natBh;
+    if (o.hmode === 'fixed' || o.hmode === 'fill') {
+      const target = heightOf(o, W, env, natBody + legBlock), f = Math.max(0.5, Math.min(4, (target - legBlock - gaps) / Math.max(1, natBody - gaps)));
+      bh = Math.max(3, natBh * f);
+    }
+    const rh = stacked ? bh : k * bh + (k - 1) * VIZ.barGap;
+    const bodyH = rows.length * rh + gaps;
+    const H = bodyH + legBlock;
     const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });
     svg.append(s('line', { x1: x0, y1: 0, x2: x0, y2: bodyH, stroke: 'currentColor', 'stroke-width': SW }));
     rows.forEach((r, i) => {

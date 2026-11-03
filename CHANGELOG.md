@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.23.0 — 2026-11-03
+- Dataviz : option Hauteur (automatique, proportion, fixe, remplir la place disponible de la page)
+- Mode « Remplir » : la dataviz occupe l'espace restant de sa page, partagé entre plusieurs dataviz, sans déborder
+
 ## 1.22.0 — 2026-11-03
 - Dataviz : nuage de points, résultats d'enquête (points), sunburst, bulles hiérarchiques, treemap, Sankey
 - Dataviz : pictogrammes en 4 variantes (barres, barres verticales, simple vertical, simple horizontal), SVG importable intégré au JSON

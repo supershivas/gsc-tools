@@ -162,7 +162,7 @@ export function heightOf(o, W, env, auto, ratioDef = '16:9') {
   else if (mode === 'fixed') H = +o.hfixed || round3(W * ratio);
   else if (mode === 'fill' && env && env.fillH) H = clamp(env.fillH);
   else H = W * ratio;
-  return Math.max(90, round3(H));
+  return Math.max(90, mode === 'fill' ? Math.floor(H / 3) * 3 : round3(H));   // « remplir » arrondit vers le bas : jamais de débordement
 }
 
 /* ---------- Légende qui passe à la ligne ---------- */

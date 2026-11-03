@@ -1,6 +1,6 @@
 /* Courbes : trait 0,5 pt (design system), points remplis de la couleur de la série et cerclés 0,5 pt. */
 import { VIZ, TYPE } from '../tokens.js';
-import { s, SW, colorRef, pxOf, fmt, round3, drawLegend, numVal, fitText, SANS, SERIF } from './util.js';
+import { heightOf, s, SW, colorRef, pxOf, fmt, round3, drawLegend, numVal, fitText, SANS, SERIF } from './util.js';
 import { t } from '../i18n.js';
 
 export default {
@@ -11,6 +11,7 @@ export default {
     series: [{ name: `${t('Série')} 1`, color: 'blue' }, { name: `${t('Série')} 2`, color: 'yellow' }],
     rows: [{ label: '2021', v: [20, 45] }, { label: '2022', v: [34, 40] }, { label: '2023', v: [52, 38] }, { label: '2024', v: [60, 49] }, { label: '2025', v: [78, 55] }],
   }),
+  heights: ['ratio', 'fixed', 'fill'],
   fields: [
     { k: 'ratio', t: 'select', label: 'Format du graphique', options: { '2:1': '2:1 (large)', '16:9': '16:9', '3:2': '3:2', '1:1': '1:1 (carré)' } },
     { k: 'zero', t: 'bool', label: 'Axe vertical démarrant à zéro' },
@@ -22,7 +23,7 @@ export default {
   ],
   render(o, W, env) {
     const series = o.series || [], rows = o.rows || [], n = Math.max(1, rows.length);
-    const H = Math.max(round3(W * (VIZ.ratios[o.ratio] || 0.5625)), 120);
+    const H = Math.max(120, heightOf(o, W, env, null));
     const baseY = H - (o.legend ? VIZ.legendGap + VIZ.legendH : 0) - VIZ.catH, top = (o.showValues ? VIZ.plotTop : 0) + VIZ.pointR, plotH = baseY - top - VIZ.pointR;
     const all = rows.flatMap(r => series.map((_, j) => numVal(r, j)));
     let lo = o.zero === false ? Math.min(...all) : 0, hi = Math.max(...all, lo + 1e-9);

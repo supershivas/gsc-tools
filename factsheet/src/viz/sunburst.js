@@ -16,6 +16,7 @@ function arc(a0, a1, r0, r1) {
 export default {
   label: 'Sunburst', icon: 'chart-arcs', family: 'hier',
   defaults: () => ({ ratio: '1:1', hole: 0.22, showLabels: true, showTotal: true, legend: true, decimals: 0, suffix: '', rows: hierRows() }),
+  heights: ['ratio', 'fixed', 'fill'],
   fields: [
     { k: 'ratio', t: 'select', label: 'Format du graphique', options: { '1:1': '1:1 (carré)', '3:2': '3:2', '16:9': '16:9' } },
     { k: 'hole', t: 'number', label: 'Trou central (0 à 0,6 du rayon)', min: 0, max: 0.6, step: 0.02 },

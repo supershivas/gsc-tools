@@ -9,6 +9,7 @@ import { t } from '../i18n.js';
 export default {
   label: 'Bulles hiérarchiques', icon: 'chart-bubble', family: 'hier',
   defaults: () => ({ ratio: '1:1', pad: 6, showLabels: true, showValues: true, parents: true, legend: true, decimals: 0, suffix: '', rows: hierRows() }),
+  heights: ['ratio', 'fixed', 'fill'],
   fields: [
     { k: 'ratio', t: 'select', label: 'Format du graphique', options: { '1:1': '1:1 (carré)', '3:2': '3:2', '16:9': '16:9' } },
     { k: 'pad', t: 'number', label: 'Espace entre les bulles (px)', min: 0, max: 24 },

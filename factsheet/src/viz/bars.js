@@ -1,6 +1,6 @@
 /* Barres verticales : une série, groupées, jumelées (barre arrière décalée, comme sur les captures) ou empilées. */
 import { VIZ, TYPE } from '../tokens.js';
-import { s, SW, colorRef, pxOf, fmt, SANS, SERIF, round3, textLines, drawLines, drawLegend, numVal, fitText } from './util.js';
+import { heightOf, s, SW, colorRef, pxOf, fmt, SANS, SERIF, round3, textLines, drawLines, drawLegend, numVal, fitText } from './util.js';
 
 const barPath = (x, y, w, h, r) => {
   r = Math.max(0, Math.min(r, w / 2, h));
@@ -19,6 +19,7 @@ export default {
     ],
     callout: { on: true, value: '+64%', text: 'text to the figures' },
   }),
+  heights: ['ratio', 'fixed', 'fill'],
   fields: [
     { k: 'style', t: 'select', label: 'Plusieurs séries', options: { overlap: 'Jumelées (2 séries qui se chevauchent)', grouped: 'Côte à côte', stacked: 'Empilées' } },
     { k: 'ratio', t: 'select', label: 'Format du graphique', options: { '2:1': '2:1 (large)', '16:9': '16:9', '3:2': '3:2', '1:1': '1:1 (carré)' } },
@@ -34,7 +35,7 @@ export default {
   render(o, W, env) {
     const series = o.series || [], rows = o.rows || [], k = Math.max(1, series.length), n = Math.max(1, rows.length);
     const stacked = o.style === 'stacked', overlap = o.style === 'overlap' && k === 2;
-    const H = Math.max(round3(W * (VIZ.ratios[o.ratio] || 0.5625)), 120);
+    const H = Math.max(120, heightOf(o, W, env, null));
     const co = o.callout && o.callout.on && rows.length > 1 ? o.callout : null;
     const x1 = W - (co ? VIZ.calloutW : 0);
     const baseY = H - (o.legend ? VIZ.legendGap + VIZ.legendH : 0) - VIZ.catH, plotTop = VIZ.plotTop, plotH = baseY - plotTop;

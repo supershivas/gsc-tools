@@ -597,6 +597,17 @@
     "Trait": "Outline",
     "Flux circulaires non pris en charge": "Circular flows are not supported",
     "Importer": "Import",
+    /* hauteur des dataviz */
+    "Automatique (hauteur naturelle)": "Automatic (natural height)",
+    "Proportion de la largeur": "Proportion of the width",
+    "Fixe": "Fixed",
+    "Remplir la place disponible": "Fill the available space",
+    "Hauteur": "Height",
+    "Hauteur du graphique (px)": "Chart height (px)",
+    "Hauteur minimale (px)": "Minimum height (px)",
+    "Hauteur maximale (px)": "Maximum height (px)",
+    "Place disponible pour cet aper\xE7u (px)": "Available space for this preview (px)",
+    "Dans le document, la dataviz occupe la place restante de la page (partag\xE9e s\u2019il y en a plusieurs), entre ces deux bornes.": "In the document, the dataviz takes the remaining space on the page (shared if there are several), between these two limits.",
     /* types de dataviz */
     "Barres (jumel\xE9es, group\xE9es, empil\xE9es)": "Bars (overlapping, grouped, stacked)",
     "Plusieurs s\xE9ries": "Multiple series",
@@ -1209,7 +1220,7 @@
     else if (mode === "fixed") H = +o.hfixed || round3(W * ratio);
     else if (mode === "fill" && env && env.fillH) H = clamp2(env.fillH);
     else H = W * ratio;
-    return Math.max(90, round3(H));
+    return Math.max(90, mode === "fill" ? Math.floor(H / 3) * 3 : round3(H));
   }
   function layoutLegend(items, W) {
     const capPx = pxOf(TYPE.caption.size), fixed = VIZ.legendSwatch + VIZ.barGap * 2, gap = VIZ.legendH * 1.2, lines = [[]];
@@ -1542,6 +1553,7 @@
       ],
       callout: { on: true, value: "+64%", text: "text to the figures" }
     }),
+    heights: ["ratio", "fixed", "fill"],
     fields: [
       { k: "style", t: "select", label: "Plusieurs s\xE9ries", options: { overlap: "Jumel\xE9es (2 s\xE9ries qui se chevauchent)", grouped: "C\xF4te \xE0 c\xF4te", stacked: "Empil\xE9es" } },
       { k: "ratio", t: "select", label: "Format du graphique", options: { "2:1": "2:1 (large)", "16:9": "16:9", "3:2": "3:2", "1:1": "1:1 (carr\xE9)" } },
@@ -1557,7 +1569,7 @@
     render(o, W, env) {
       const series = o.series || [], rows = o.rows || [], k = Math.max(1, series.length), n = Math.max(1, rows.length);
       const stacked = o.style === "stacked", overlap = o.style === "overlap" && k === 2;
-      const H = Math.max(round3(W * (VIZ.ratios[o.ratio] || 0.5625)), 120);
+      const H = Math.max(120, heightOf(o, W, env, null));
       const co = o.callout && o.callout.on && rows.length > 1 ? o.callout : null;
       const x1 = W - (co ? VIZ.calloutW : 0);
       const baseY = H - (o.legend ? VIZ.legendGap + VIZ.legendH : 0) - VIZ.catH, plotTop = VIZ.plotTop, plotH = baseY - plotTop;
@@ -1733,6 +1745,7 @@
       series: [{ name: t("Valeur"), color: "blue" }],
       rows: [{ label: t("Premier crit\xE8re"), v: [72] }, { label: t("Deuxi\xE8me crit\xE8re"), v: [58] }, { label: t("Troisi\xE8me crit\xE8re"), v: [41] }, { label: t("Quatri\xE8me crit\xE8re"), v: [23] }]
     }),
+    heights: ["auto", "fixed", "fill"],
     fields: [
       { k: "style", t: "select", label: "Plusieurs s\xE9ries", options: { grouped: "C\xF4te \xE0 c\xF4te", stacked: "Empil\xE9es" } },
       { k: "legend", t: "bool", label: "Afficher la l\xE9gende" },
@@ -1754,9 +1767,16 @@
         max2 = Math.max(max2, stacked ? total(r) : Math.max(0, ...series.map((_, j) => numVal(r, j))));
       });
       if (!max2) max2 = 1;
-      const bh = VIZ.hBar, rh = stacked ? bh : k * bh + (k - 1) * VIZ.barGap;
-      const bodyH = rows.length * rh + Math.max(0, rows.length - 1) * VIZ.hRowGap;
-      const H = bodyH + (o.legend ? VIZ.legendGap + VIZ.legendH : 0);
+      const legBlock = o.legend ? VIZ.legendGap + VIZ.legendH : 0, gaps = Math.max(0, rows.length - 1) * VIZ.hRowGap;
+      const natBh = VIZ.hBar, natBody = rows.length * (stacked ? natBh : k * natBh + (k - 1) * VIZ.barGap) + gaps;
+      let bh = natBh;
+      if (o.hmode === "fixed" || o.hmode === "fill") {
+        const target = heightOf(o, W, env, natBody + legBlock), f = Math.max(0.5, Math.min(4, (target - legBlock - gaps) / Math.max(1, natBody - gaps)));
+        bh = Math.max(3, natBh * f);
+      }
+      const rh = stacked ? bh : k * bh + (k - 1) * VIZ.barGap;
+      const bodyH = rows.length * rh + gaps;
+      const H = bodyH + legBlock;
       const svg = s("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: "block", overflow: "visible" } });
       svg.append(s("line", { x1: x0, y1: 0, x2: x0, y2: bodyH, stroke: "currentColor", "stroke-width": SW }));
       rows.forEach((r, i) => {
@@ -1804,6 +1824,7 @@
       series: [{ name: `${t("S\xE9rie")} 1`, color: "blue" }, { name: `${t("S\xE9rie")} 2`, color: "yellow" }],
       rows: [{ label: "2021", v: [20, 45] }, { label: "2022", v: [34, 40] }, { label: "2023", v: [52, 38] }, { label: "2024", v: [60, 49] }, { label: "2025", v: [78, 55] }]
     }),
+    heights: ["ratio", "fixed", "fill"],
     fields: [
       { k: "ratio", t: "select", label: "Format du graphique", options: { "2:1": "2:1 (large)", "16:9": "16:9", "3:2": "3:2", "1:1": "1:1 (carr\xE9)" } },
       { k: "zero", t: "bool", label: "Axe vertical d\xE9marrant \xE0 z\xE9ro" },
@@ -1815,7 +1836,7 @@
     ],
     render(o, W, env) {
       const series = o.series || [], rows = o.rows || [], n = Math.max(1, rows.length);
-      const H = Math.max(round3(W * (VIZ.ratios[o.ratio] || 0.5625)), 120);
+      const H = Math.max(120, heightOf(o, W, env, null));
       const baseY = H - (o.legend ? VIZ.legendGap + VIZ.legendH : 0) - VIZ.catH, top = (o.showValues ? VIZ.plotTop : 0) + VIZ.pointR, plotH = baseY - top - VIZ.pointR;
       const all = rows.flatMap((r) => series.map((_, j) => numVal(r, j)));
       let lo = o.zero === false ? Math.min(...all) : 0, hi = Math.max(...all, lo + 1e-9);
@@ -2541,6 +2562,7 @@
     icon: "chart-arcs",
     family: "hier",
     defaults: () => ({ ratio: "1:1", hole: 0.22, showLabels: true, showTotal: true, legend: true, decimals: 0, suffix: "", rows: hierRows() }),
+    heights: ["ratio", "fixed", "fill"],
     fields: [
       { k: "ratio", t: "select", label: "Format du graphique", options: { "1:1": "1:1 (carr\xE9)", "3:2": "3:2", "16:9": "16:9" } },
       { k: "hole", t: "number", label: "Trou central (0 \xE0 0,6 du rayon)", min: 0, max: 0.6, step: 0.02 },
@@ -2594,6 +2616,7 @@
     icon: "chart-bubble",
     family: "hier",
     defaults: () => ({ ratio: "1:1", pad: 6, showLabels: true, showValues: true, parents: true, legend: true, decimals: 0, suffix: "", rows: hierRows() }),
+    heights: ["ratio", "fixed", "fill"],
     fields: [
       { k: "ratio", t: "select", label: "Format du graphique", options: { "1:1": "1:1 (carr\xE9)", "3:2": "3:2", "16:9": "16:9" } },
       { k: "pad", t: "number", label: "Espace entre les bulles (px)", min: 0, max: 24 },
@@ -2642,6 +2665,7 @@
     icon: "chart-treemap",
     family: "hier",
     defaults: () => ({ ratio: "3:2", pad: 3, showLabels: true, showValues: true, groupLabels: true, legend: false, decimals: 0, suffix: "", rows: hierRows() }),
+    heights: ["ratio", "fixed", "fill"],
     fields: [
       { k: "ratio", t: "select", label: "Format du graphique", options: { "2:1": "2:1 (large)", "16:9": "16:9", "3:2": "3:2", "1:1": "1:1 (carr\xE9)" } },
       { k: "pad", t: "number", label: "Espace entre les cases (px)", min: 0, max: 12 },
@@ -3115,6 +3139,7 @@
         ["Health", "Hospitals", 20, ""]
       ].map(([source, target, value2, color]) => ({ source, target, value: value2, color }))
     }),
+    heights: ["ratio", "fixed", "fill"],
     fields: [
       { k: "ratio", t: "select", label: "Format du graphique", options: { "2:1": "2:1 (large)", "16:9": "16:9", "3:2": "3:2", "1:1": "1:1 (carr\xE9)" } },
       { k: "align", t: "select", label: "Alignement des n\u0153uds", options: { justify: "Justifi\xE9", left: "\xC0 gauche", right: "\xC0 droite", center: "Centr\xE9" } },
@@ -3214,6 +3239,7 @@
         ["Brazil", "Americas", 8.9, 75.9, 215]
       ].map(([label, group, x, y, size]) => ({ label, group, x, y, size }))
     }),
+    heights: ["ratio", "fixed", "fill"],
     fields: [
       { k: "ratio", t: "select", label: "Format du graphique", options: { "2:1": "2:1 (large)", "16:9": "16:9", "3:2": "3:2", "1:1": "1:1 (carr\xE9)" } },
       { k: "xTitle", t: "text", label: "Titre de l\u2019axe horizontal", g: "labels" },
@@ -3523,6 +3549,7 @@
         ratio: "3:2",
         rows: [["Women", 62, ""], ["Men", 48, ""], ["Young people", 35, ""], ["Seniors", 21, ""]].map(([label, value2, color]) => ({ label, value: value2, color }))
       }),
+      heights: multi ? null : ["ratio", "fixed", "fill"],
       fields: [
         { k: "perIcon", t: "number", label: multi ? "Valeur d\u2019un pictogramme" : "Valeur du pictogramme plein (ex. 100)", min: 1e-4, step: "any" },
         { k: "color", t: "color", label: "Couleur des pictogrammes" },
@@ -4162,6 +4189,7 @@ ${lorem}` },
     } else {
       const node = renderViz(col.viz, w, env);
       wrap.append(node || h("div", { class: "viz-ph" }, h("span", { textContent: "dataviz" })));
+      if (node && env.fills && col.viz.opts && col.viz.opts.hmode === "fill") env.fills.push({ page: env.page, col, w, node, wrap, env });
     }
     return wrap;
   }
@@ -4216,9 +4244,10 @@ ${lorem}` },
   function renderDocument(doc2) {
     setDensity(doc2.density);
     const vars = cssVars(doc2.theme, doc2.colors);
-    const env = { locale: doc2.locale || "en-GB", pal: paletteOf(doc2.theme, doc2.colors) };
+    const env = { locale: doc2.locale || "en-GB", pal: paletteOf(doc2.theme, doc2.colors), fills: [], page: "" };
     const pages = [];
     for (const key of ["recto", "verso"]) {
+      env.page = key;
       const page = h("div", { class: `page page-${key}`, dataset: { page: key } });
       applyVars(page, vars);
       const top = key === "recto" ? HEADER.h : 0;
@@ -4230,11 +4259,39 @@ ${lorem}` },
       const lastBand = list.length && isBand(list[list.length - 1].s);
       pages.push({ el: page, key, content, top, lastBand, max: PAGE.h - top - (lastBand ? 0 : PAGE.marginBottom) });
     }
-    return { pages, warnings: [] };
+    return { pages, warnings: [], fills: env.fills };
+  }
+  function fillPage(p, fills) {
+    const mine = fills.filter((f) => f.page === p.key);
+    if (!mine.length) return;
+    const chartH = (f) => {
+      const n = f.node, sv = n.tagName.toLowerCase() === "svg" ? n : n.querySelector("svg");
+      return +(sv && sv.getAttribute("height")) || n.offsetHeight || 0;
+    };
+    mine.forEach((f) => {
+      f.h = chartH(f);
+    });
+    for (let pass = 0; pass < 6; pass++) {
+      const free = p.max - p.content.offsetHeight;
+      if (free >= 0 && free < 3.5) break;
+      let moved = 0;
+      for (const f of mine) {
+        const o = f.col.viz.opts, target = Math.max(o.hmin || 90, Math.min(o.hmax || 900, f.h + free / mine.length));
+        if (Math.abs(target - f.h) < 0.5) continue;
+        const n = renderViz(f.col.viz, f.w, { ...f.env, fills: null, fillH: target });
+        if (!n) continue;
+        f.node.replaceWith(n);
+        f.node = n;
+        f.h = chartH(f);
+        moved++;
+      }
+      if (!moved) break;
+    }
   }
   function measure(result) {
     const warnings = [];
     for (const p of result.pages) {
+      if (result.fills && result.fills.length) fillPage(p, result.fills);
       p.used = p.content.offsetHeight;
       p.overflow = p.used > p.max + 0.5;
       if (p.overflow) warnings.push(`${p.key === "recto" ? "Recto" : "Verso"} : le contenu d\xE9passe de ${Math.ceil(p.used - p.max)} px \u2014 d\xE9placez une section vers l\u2019autre page ou raccourcissez-la.`);
@@ -5713,7 +5770,9 @@ ${lorem}` },
   var tab = "viz";
   var LABEL_KEYS = /* @__PURE__ */ new Set(["legend", "showValues", "decimals", "suffix", "totalTpl", "layout"]);
   var SERIES_COLORS2 = ["sky", "yellow", "blue", "slate", "grey"];
-  var groupOf = (f) => f.g || (f.t === "table" || f.t === "list" ? "data" : f.k === "ratio" ? "format" : LABEL_KEYS.has(f.k) ? "labels" : "style");
+  var MODE_LABELS = { auto: "Automatique (hauteur naturelle)", ratio: "Proportion de la largeur", fixed: "Fixe", fill: "Remplir la place disponible" };
+  var availH = 360;
+  var groupOf = (f) => f.g || (f.t === "table" || f.t === "list" ? "data" : f.k === "ratio" ? "ratio" : LABEL_KEYS.has(f.k) ? "labels" : "style");
   function openVizEditor({ col, sub, ci, bg, width: colW, ctx: ctx2 }) {
     if (current2) return;
     const doc2 = ctx2.getDoc();
@@ -5749,7 +5808,7 @@ ${lorem}` },
       return Math.max(0.5, Math.min(2, (stage2.clientWidth - 80) / (width + 48)));
     }
     function draw() {
-      const r = renderVizFull(col.viz, width, { locale: doc2.locale || "en-GB", ui, pal: paletteOf(doc2.theme, doc2.colors) });
+      const r = renderVizFull(col.viz, width, { locale: doc2.locale || "en-GB", ui, pal: paletteOf(doc2.theme, doc2.colors), fillH: availH });
       holder.innerHTML = "";
       if (r && r.node) {
         holder.append(r.node);
@@ -5819,6 +5878,40 @@ ${lorem}` },
       }
       return box;
     }
+    function heightCard(ty) {
+      const o = col.viz.opts, modes = ty.heights, mode = modes.includes(o.hmode) ? o.hmode : modes[0], rf = (ty.fields || []).find((f) => f.k === "ratio");
+      const set = (k, v) => {
+        o[k] = v;
+        ui.sel = -1;
+      };
+      const sel = h("select", { onchange: (e) => {
+        set("hmode", e.target.value);
+        fctx.restructure();
+      } }, modes.map((m2) => h("option", { value: m2, textContent: t(MODE_LABELS[m2]), selected: m2 === mode })));
+      const num2 = (k, label, def, min2, max2, step = 3) => h("label", { class: "f" }, label, h("input", { type: "number", value: o[k] ?? def, min: min2, max: max2, step, oninput: (e) => {
+        const v = parseFloat(e.target.value);
+        if (!isNaN(v)) {
+          o[k] = v;
+          changed();
+        }
+      } }));
+      const nodes = [h("label", { class: "f" }, t("Hauteur"), sel)];
+      if (mode === "ratio" && rf) nodes.push(...buildFields([rf], o, fctx, {}, h));
+      if (mode === "fixed") nodes.push(num2("hfixed", t("Hauteur du graphique (px)"), Math.round(width * 0.5625 / 3) * 3, 90, 900));
+      if (mode === "fill") nodes.push(
+        num2("hmin", t("Hauteur minimale (px)"), 120, 90, 900),
+        num2("hmax", t("Hauteur maximale (px)"), 600, 90, 900),
+        h("label", { class: "f" }, t("Place disponible pour cet aper\xE7u (px)"), h("input", { type: "number", value: availH, min: 90, max: 1200, step: 15, oninput: (e) => {
+          const v = parseFloat(e.target.value);
+          if (!isNaN(v)) {
+            availH = v;
+            draw();
+          }
+        } })),
+        h("p", { class: "hint", textContent: t("Dans le document, la dataviz occupe la place restante de la page (partag\xE9e s\u2019il y en a plusieurs), entre ces deux bornes.") })
+      );
+      return card("dv-height", "ruler-2", t("Hauteur"), nodes);
+    }
     function buildForm() {
       const top = form.scrollTop;
       form.innerHTML = "";
@@ -5842,6 +5935,7 @@ ${lorem}` },
           card("dv-type", "chart-dots", t("Type"), [typePicker()]),
           card("dv-head", "typography", t("Titre et source"), buildFields([{ k: "title", t: "text", label: "Titre de la dataviz (facultatif)" }, { k: "source", t: "text", label: "Source (facultatif)" }], head, fctx, {}, h)),
           ty.panel ? card("dv-picto", "mood-smile", t("Pictogramme"), ty.panel(col.viz.opts, fctx)) : null,
+          ty.heights ? heightCard(ty) : null,
           F("format").length ? card("dv-format", "ruler-2", t("Dimensions"), gen(F("format"))) : null,
           card("dv-colors", "palette", t("Couleurs"), [h("button", { type: "button", class: "pp-btn", onclick: (e) => openPalette(e.currentTarget, palCtx) }, ico("palette"), h("span", { textContent: t("Couleurs du document") }))]),
           F("labels").length ? card("dv-labels", "letter-case", t("\xC9tiquettes"), gen(F("labels"))) : null,

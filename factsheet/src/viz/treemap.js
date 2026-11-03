@@ -9,6 +9,7 @@ import { t } from '../i18n.js';
 export default {
   label: 'Treemap', icon: 'chart-treemap', family: 'hier',
   defaults: () => ({ ratio: '3:2', pad: 3, showLabels: true, showValues: true, groupLabels: true, legend: false, decimals: 0, suffix: '', rows: hierRows() }),
+  heights: ['ratio', 'fixed', 'fill'],
   fields: [
     { k: 'ratio', t: 'select', label: 'Format du graphique', options: { '2:1': '2:1 (large)', '16:9': '16:9', '3:2': '3:2', '1:1': '1:1 (carré)' } },
     { k: 'pad', t: 'number', label: 'Espace entre les cases (px)', min: 0, max: 12 },

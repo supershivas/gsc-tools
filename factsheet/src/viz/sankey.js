@@ -13,6 +13,7 @@ export default {
     rows: [['Budget', 'Research', 50, ''], ['Budget', 'Education', 30, ''], ['Budget', 'Health', 20, ''], ['Research', 'Universities', 35, ''], ['Research', 'Companies', 15, ''],
       ['Education', 'Universities', 10, ''], ['Education', 'Schools', 20, ''], ['Health', 'Hospitals', 20, '']].map(([source, target, value, color]) => ({ source, target, value, color })),
   }),
+  heights: ['ratio', 'fixed', 'fill'],
   fields: [
     { k: 'ratio', t: 'select', label: 'Format du graphique', options: { '2:1': '2:1 (large)', '16:9': '16:9', '3:2': '3:2', '1:1': '1:1 (carré)' } },
     { k: 'align', t: 'select', label: 'Alignement des nœuds', options: { justify: 'Justifié', left: 'À gauche', right: 'À droite', center: 'Centré' } },
