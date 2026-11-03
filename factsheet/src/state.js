@@ -71,12 +71,15 @@ export function defaultDoc() {
       bg: 'blue', fg: 'white',
       overline: 'FACTSHEET - MONTH 20YY', title: 'MAIN TITLE', subtitle: 'Subtitle',
       images: [newHeaderImage(1), newHeaderImage(2)], imageId: null,   // bibliothèque d'images du header (autant que l'on veut)
-      logos: { default: null, mono: null, white: null, negative: null }, logoVariant: 'default',
+      logos: DEFAULT_LOGOS(), logoVariant: 'default',
       showImage: true, showLogo: true,
     },
     sections: [s1, s2, s3],
   };
 }
+
+/* ---------- Logos publiés dans le dépôt (disponibles sur tous les appareils) ---------- */
+const DEFAULT_LOGOS = () => ({ default: 'assets/c069bffefa.png', mono: 'assets/d9742f1219.png', white: 'assets/4a5a41080e.png', negative: null });
 
 /* ---------- Persistance locale + fichier ---------- */
 const KEY = 'factsheet-creator-v1';
@@ -146,7 +149,9 @@ function migrateHeader(H, src) {
   delete H.image;
   if (src.logo && !src.logos) H.logos.default = src.logo;
   delete H.logo;
-  H.logos = Object.assign({ default: null, mono: null, white: null, negative: null }, H.logos);
+  // une version vide reprend le logo publié (document créé avant la publication, autre appareil)
+  const def = DEFAULT_LOGOS(), cur = H.logos || {};
+  H.logos = Object.assign({}, def, Object.fromEntries(Object.entries(cur).filter(([, v]) => v)));
   if (!LOGO_VARIANTS[H.logoVariant]) H.logoVariant = 'default';
   H.images = (H.images || []).filter(i => i && typeof i === 'object').map((i, k) => ({ id: i.id || uid('img'), name: i.name || `${t('Image')} ${k + 1}`, src: i.src || null }));
   if (!H.images.length) H.images = [newHeaderImage(1), newHeaderImage(2)];

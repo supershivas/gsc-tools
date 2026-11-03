@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.10.1 — 2026-11-03
+- Factsheet creator : les logos (normal, mono, blanc) sont publiés dans le dépôt et présents par défaut sur tous les appareils
+
 ## 1.10.0 — 2026-10-31
 - Europa 3D : vitrage très réfléchissant, spots linéaires (3 par vitre haute, 1 par petite fenêtre) qui éclairent de l'intérieur
 - Europa 3D : salles de réunion, dont une salle circulaire au niveau 5 inspirée du Conseil européen

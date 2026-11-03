@@ -1765,7 +1765,7 @@ ${lorem}` },
         images: [newHeaderImage(1), newHeaderImage(2)],
         imageId: null,
         // bibliothèque d'images du header (autant que l'on veut)
-        logos: { default: null, mono: null, white: null, negative: null },
+        logos: DEFAULT_LOGOS(),
         logoVariant: "default",
         showImage: true,
         showLogo: true
@@ -1773,6 +1773,7 @@ ${lorem}` },
       sections: [s1, s2, s3]
     };
   }
+  var DEFAULT_LOGOS = () => ({ default: "assets/c069bffefa.png", mono: "assets/d9742f1219.png", white: "assets/4a5a41080e.png", negative: null });
   var KEY2 = "factsheet-creator-v1";
   function loadDoc() {
     try {
@@ -1862,7 +1863,8 @@ ${lorem}` },
     delete H.image;
     if (src.logo && !src.logos) H.logos.default = src.logo;
     delete H.logo;
-    H.logos = Object.assign({ default: null, mono: null, white: null, negative: null }, H.logos);
+    const def = DEFAULT_LOGOS(), cur = H.logos || {};
+    H.logos = Object.assign({}, def, Object.fromEntries(Object.entries(cur).filter(([, v]) => v)));
     if (!LOGO_VARIANTS[H.logoVariant]) H.logoVariant = "default";
     H.images = (H.images || []).filter((i) => i && typeof i === "object").map((i, k) => ({ id: i.id || uid("img"), name: i.name || `${t("Image")} ${k + 1}`, src: i.src || null }));
     if (!H.images.length) H.images = [newHeaderImage(1), newHeaderImage(2)];
