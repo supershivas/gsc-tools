@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.22.0 — 2026-11-03
+- Dataviz : nuage de points, résultats d'enquête (points), sunburst, bulles hiérarchiques, treemap, Sankey
+- Dataviz : pictogrammes en 4 variantes (barres, barres verticales, simple vertical, simple horizontal), SVG importable intégré au JSON
+
 ## 1.21.0 — 2026-11-03
 - Éditeur de dataviz : panneau en cartes repliables comme l'accueil, onglets Visualisation et Données
 - Données : tableau éditable, collage depuis Excel, import CSV/TSV/JSON, export CSV

@@ -6,7 +6,7 @@
 import { h, ico } from './render.js';
 import { openPalette } from './palette.js';
 import { buildFields, paletteOptions } from './editor.js';
-import { colWidth, cssVars, applyVars } from './tokens.js';
+import { colWidth, cssVars, applyVars, paletteOf } from './tokens.js';
 import { VIZ_TYPES, VIZ_FAMILIES, newViz, renderVizFull } from './viz/index.js';
 import { cardEl } from './cards.js';
 import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
@@ -49,7 +49,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     return Math.max(0.5, Math.min(2, (stage.clientWidth - 80) / (width + 48)));
   }
   function draw() {
-    const r = renderVizFull(col.viz, width, { locale: doc.locale || 'en-GB', ui });
+    const r = renderVizFull(col.viz, width, { locale: doc.locale || 'en-GB', ui, pal: paletteOf(doc.theme, doc.colors) });
     holder.innerHTML = '';
     if (r && r.node) { holder.append(r.node); meta = r.meta || null; svgW = width; }
     const t = VIZ_TYPES[col.viz.kind];
@@ -83,6 +83,8 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
           const nv = newViz(k), o = col.viz.opts, n = nv.opts;
           nv.head = col.viz.head;
           if (o.rows && o.series && n.rows && n.series) { n.rows = o.rows; n.series = o.series; }   // les données tabulaires suivent d'un type à l'autre
+          const dk = VIZ_TYPES[col.viz.kind].data, nk = v.data;
+          if (dk && nk && dk.k === nk.k && dk.cols.map(c => c.k).join() === nk.cols.map(c => c.k).join()) n[nk.k] = o[dk.k];
           col.viz = nv; ui.sel = -1; fctx.restructure();
         } }, ico(v.icon || 'chart-bar'), h('span', { textContent: t(v.label) })))));
     }
@@ -110,6 +112,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
       form.append(
         card('dv-type', 'chart-dots', t('Type'), [typePicker()]),
         card('dv-head', 'typography', t('Titre et source'), buildFields([{ k: 'title', t: 'text', label: 'Titre de la dataviz (facultatif)' }, { k: 'source', t: 'text', label: 'Source (facultatif)' }], head, fctx, {}, h)),
+        ty.panel ? card('dv-picto', 'mood-smile', t('Pictogramme'), ty.panel(col.viz.opts, fctx)) : null,
         F('format').length ? card('dv-format', 'ruler-2', t('Dimensions'), gen(F('format'))) : null,
         card('dv-colors', 'palette', t('Couleurs'), [h('button', { type: 'button', class: 'pp-btn', onclick: e => openPalette(e.currentTarget, palCtx) }, ico('palette'), h('span', { textContent: t('Couleurs du document') }))]),
         F('labels').length ? card('dv-labels', 'letter-case', t('Étiquettes'), gen(F('labels'))) : null,

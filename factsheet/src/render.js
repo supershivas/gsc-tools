@@ -1,6 +1,6 @@
 /* Rendu du document en pages A4 (HTML). Aucune valeur de mise en page en dur :
    tout vient de tokens.js via les variables CSS (--s*, --gap-*, --t-*, --c-*). */
-import { PAGE, GRID, HEADER, GAP, cssVars, applyVars, colWidth, insetW, setDensity } from './tokens.js';
+import { PAGE, GRID, HEADER, GAP, cssVars, applyVars, colWidth, insetW, setDensity, paletteOf } from './tokens.js';
 import { IMAGE_RATIOS } from './state.js';
 import { renderViz } from './viz/index.js';
 import { renderFigure } from './figure.js';
@@ -170,7 +170,7 @@ function renderSection(sec, si, env, pos) {
 export function renderDocument(doc) {
   setDensity(doc.density);
   const vars = cssVars(doc.theme, doc.colors);
-  const env = { locale: doc.locale || 'en-GB' };
+  const env = { locale: doc.locale || 'en-GB', pal: paletteOf(doc.theme, doc.colors) };
   const pages = [];
   for (const key of ['recto', 'verso']) {
     const page = h('div', { class: `page page-${key}`, dataset: { page: key } });

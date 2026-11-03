@@ -60,10 +60,10 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS) {
 /* ---------- Adaptateur « enregistrements » : lignes = objets, colonnes décrites par le type de dataviz ---------- */
 export function recordsAdapter(spec, obj, palOpts) {
   const rows = obj[spec.k] || (obj[spec.k] = []), cols = spec.cols;
-  const conv = (c, v) => c.t === 'number' ? (num(v) ?? 0) : c.t === 'color' ? (palOpts[v] ? v : c.def || 'blue') : v;
+  const conv = (c, v) => c.t === 'number' ? (num(v) ?? 0) : c.t === 'color' ? (palOpts[v] ? v : c.auto ? '' : c.def || 'blue') : v;
   const blank = () => Object.fromEntries(cols.map(c => [c.k, c.def ?? (c.t === 'number' ? 0 : '')]));
   return {
-    cols: cols.map(c => ({ name: c.label, type: c.t === 'number' ? 'number' : 'text', select: c.t === 'color' ? palOpts : c.options || null })),
+    cols: cols.map(c => ({ name: c.label, type: c.t === 'number' ? 'number' : 'text', select: c.t === 'color' ? (c.auto ? { '': t('Auto'), ...palOpts } : palOpts) : c.options || null })),
     rows: () => rows.length,
     get: (i, j) => String(rows[i][cols[j].k] ?? ''),
     set: (i, j, v) => { rows[i][cols[j].k] = conv(cols[j], v); },

@@ -19,10 +19,15 @@ Après modification de `src/` : `npm install` (une fois) puis `npm run build` po
 Chaque type exporte `{ label, defaults(), fields[], render(opts, width, env) }` ; le panneau d'édition génère son formulaire depuis `fields`. Pour ajouter un type : créer le fichier et l'inscrire dans `viz/index.js`.
 Les couleurs sont des clés de palette (le thème recolore tout). Largeur = celle de la colonne (1/3, 1/2, 2/3, pleine) ; l'anneau passe de « libellés autour » (pleine largeur) à « légende sous l'anneau » (colonnes plus étroites).
 
+### Types ajoutés (v1.22)
+`scatter` (nuage de points / bulles), `survey` (résultats d'enquête : un point par répondant en nuage hexagonal, anneaux = réponses, un nuage par groupe), `sunburst`, `bubbles` (pack), `treemap` (hiérarchies : `viz/hier.js`, colonnes Niveau 1/2/3 + valeur, d3-hierarchy), `sankey` (d3-sankey), pictogrammes (`viz/picto.js`, 4 types : barres, barres verticales, simple vertical, simple horizontal ; SVG importé nettoyé par `sanitizeSvg` et stocké dans `opts.customIcons`, donc dans le JSON).
+Un type peut déclarer `data: { k, cols[], item }` : l'onglet Données affiche alors un tableau d'enregistrements (`vizdata.js`, `recordsAdapter`) ; `family` et `icon` le rangent dans le sélecteur de type ; `panel(opts, ctx)` ajoute une carte (pictogrammes). Aides communes dans `viz/util.js` : `autoColor`/`CYCLE`, `inkOn` (texte lisible sur un fond), `heightOf`, `layoutLegend` (légende qui passe à la ligne).
+
 ## Textes dans les dataviz
 Règle : un texte ne déborde jamais de sa dataviz. Helpers dans `viz/util.js` (`fitSize`, `fitText`, `ellipsize`) : la taille est réduite ponctuellement (jusqu'à 50-70 % selon l'élément), puis le texte est tronqué avec « … » en dernier recours. Appliqué au texte central du donut (calculé sur la corde de l'anneau), aux libellés et valeurs des barres/courbes, à l'accolade, aux légendes, au chiffre clé ; les mots trop longs des libellés sont coupés. Tout nouveau type de dataviz doit utiliser ces helpers.
 
 ## Éditeur de dataviz
+Deux onglets, comme Flourish : **Visualisation** (cartes repliables `src/cards.js`, les mêmes que les propriétés : Type, Titre et source, Dimensions, Couleurs, Étiquettes, Options) et **Données** (`src/vizdata.js` : tableau éditable, collage Excel/Sheets cellule par cellule, import CSV/TSV/JSON par bouton ou glisser-déposer, export CSV). Les champs d'un type sont rangés par clé (`groupOf`, ou `g: 'format' | 'labels' | 'style' | 'data'`) ; titre et source facultatifs : `viz.head`.
 Bouton « ✎ Éditer la dataviz… » dans la fiche d'une colonne, ou double-clic sur une dataviz dans l'aperçu : modale plein écran (`src/vizeditor.js`) commune à **tous** les types — formulaire généré depuis `fields`, aperçu à la largeur réelle de la colonne (ou 1/3, 1/2, 2/3, pleine largeur pour tester), zoom, Annuler (restaure) / Terminer, Échap = annuler.
 Un type peut ajouter :
 - `actions: [{ label, run(opts) }]` — boutons au-dessus du formulaire ;

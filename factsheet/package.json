@@ -6,6 +6,8 @@
     "build": "esbuild src/main.js --bundle --format=iife --outfile=app.js && esbuild src/viewer3d.js --bundle --minify --format=iife --outfile=viewer3d.js && esbuild src/atelier.js --bundle --minify --format=iife --outfile=atelier.js && esbuild src/labo.js --bundle --minify --format=iife --outfile=labo.js"
   },
   "devDependencies": {
+    "d3-hierarchy": "^3.1.3",
+    "d3-sankey": "^0.12.3",
     "esbuild": "^0.25.0",
     "three": "^0.170.0"
   }

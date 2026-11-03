@@ -6,12 +6,19 @@ import bars from './bars.js';
 import iconlist from './iconlist.js';
 import hbars from './hbars.js';
 import line from './line.js';
+import sunburst from './sunburst.js';
+import bubbles from './bubbles.js';
+import treemap from './treemap.js';
+import sankey from './sankey.js';
+import scatter from './scatter.js';
+import survey from './survey.js';
+import { pictoTypes } from './picto.js';
 import { el } from './util.js';
 
-export const VIZ_TYPES = { donut, bars, hbars, line, icons: iconlist };
+export const VIZ_TYPES = { donut, bars, hbars, line, scatter, survey, sunburst, bubbles, treemap, sankey, ...pictoTypes, icons: iconlist };
 export const VIZ_OPTIONS = Object.fromEntries(Object.entries(VIZ_TYPES).map(([k, v]) => [k, v.label]));
 /** Familles proposées dans le sélecteur de type (clé française, passée par t()) */
-export const VIZ_FAMILIES = { compare: 'Comparaison', part: 'Proportions', trend: 'Évolution', list: 'Listes' };
+export const VIZ_FAMILIES = { compare: 'Comparaison', part: 'Proportions', trend: 'Évolution', hier: 'Hiérarchies', flow: 'Flux', picto: 'Pictogrammes', list: 'Listes' };
 
 export const newViz = (kind = 'bars') => ({ kind, opts: VIZ_TYPES[kind].defaults(), head: { title: '', source: '' } });
 

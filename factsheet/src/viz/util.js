@@ -140,3 +140,45 @@ export function drawLegend(svg, series, y, W = Infinity) {
   });
 }
 export const numVal = (r, j) => Math.max(0, +(r.v || [])[j] || 0);
+
+/* ---------- Couleurs automatiques, lisibilité, hauteur ---------- */
+/** Ordre des couleurs quand rien n'est choisi (clés de palette) */
+export const CYCLE = ['blue', 'sky', 'yellow', 'slate', 'grey'];
+export const autoColor = (c, i) => c || CYCLE[i % CYCLE.length];
+const lum = hex => { const n = parseInt(String(hex).replace('#', ''), 16); if (isNaN(n)) return 1; const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(n >> 16 & 255) + 0.7152 * f(n >> 8 & 255) + 0.0722 * f(n & 255); };
+/** couleur de texte lisible sur le fond `key` (blanc sur fond sombre, sinon la couleur du texte) ; `alpha` = opacité du fond sur du blanc */
+export function inkOn(env, key, alpha = 1) {
+  const hex = key === 'white' ? '#FFFFFF' : (env && env.pal && env.pal[String(key).replace(/^tint-/, '')]) || null;
+  if (!hex) return 'currentColor';
+  const l = lum(hex), mixed = 1 - alpha + alpha * l;
+  return mixed < 0.45 ? '#FFFFFF' : 'currentColor';
+}
+/** hauteur d'une dataviz : modes auto | ratio | fixed | fill (voir « Hauteur » de l'éditeur). `auto` = hauteur naturelle du type. */
+export function heightOf(o, W, env, auto, ratioDef = '16:9') {
+  const mode = o.hmode || 'ratio', ratio = VIZ.ratios[o.ratio || ratioDef] || 0.5625;
+  const clamp = v => Math.max(o.hmin || 90, Math.min(o.hmax || 900, v));
+  let H;
+  if (mode === 'auto' && auto != null) H = auto;
+  else if (mode === 'fixed') H = +o.hfixed || round3(W * ratio);
+  else if (mode === 'fill' && env && env.fillH) H = clamp(env.fillH);
+  else H = W * ratio;
+  return Math.max(90, round3(H));
+}
+
+/* ---------- Légende qui passe à la ligne ---------- */
+export function layoutLegend(items, W) {
+  const capPx = pxOf(TYPE.caption.size), fixed = VIZ.legendSwatch + VIZ.barGap * 2, gap = VIZ.legendH * 1.2, lines = [[]]; let x = 0;
+  for (const it of items) {
+    const name = ellipsize(it.name || '', TYPE.caption.weight, SANS, capPx, Math.max(30, W - fixed)), w = fixed + mw(name, TYPE.caption.weight, SANS, capPx);
+    if (x > 0 && x + w > W) { lines.push([]); x = 0; }
+    lines[lines.length - 1].push({ color: it.color, name, x, w }); x += w + gap;
+  }
+  return { lines, h: lines.length * VIZ.legendH + (lines.length - 1) * 3, capPx, fixed };
+}
+export function drawLegendWrap(svg, L, y) {
+  L.lines.forEach((line, i) => line.forEach(e => {
+    const yy = y + i * (VIZ.legendH + 3);
+    svg.append(s('rect', { x: e.x + SW / 2, y: yy + (VIZ.legendH - VIZ.legendSwatch) / 2 + SW / 2, width: VIZ.legendSwatch - SW, height: VIZ.legendSwatch - SW, rx: VIZ.barRadius, fill: colorRef(e.color), stroke: 'currentColor', 'stroke-width': SW }));
+    svg.append(s('text', { x: e.x + L.fixed, y: yy + VIZ.legendH / 2 + 0.33 * L.capPx, 'font-size': L.capPx, 'font-weight': TYPE.caption.weight }, e.name));
+  }));
+}

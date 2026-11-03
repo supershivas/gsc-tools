@@ -1,9 +1,8 @@
 {
-  "version": "1.21.0",
+  "version": "1.22.0",
   "date": "2026-11-03",
   "changes": [
-    "Éditeur de dataviz : panneau en cartes repliables comme l'accueil, onglets Visualisation et Données",
-    "Données : tableau éditable, collage depuis Excel, import CSV/TSV/JSON, export CSV",
-    "Titre et source facultatifs sur toute dataviz ; le tableau suit quand on change de type"
+    "Dataviz : nuage de points, résultats d'enquête (points), sunburst, bulles hiérarchiques, treemap, Sankey",
+    "Dataviz : pictogrammes en 4 variantes (barres, barres verticales, simple vertical, simple horizontal), SVG importable intégré au JSON"
   ]
 }
