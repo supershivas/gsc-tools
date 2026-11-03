@@ -349,6 +349,13 @@
     "Annuler la suppression": "Undo deletion",
     "Contenu d\xE9plac\xE9. V\xE9rifiez le remplissage des pages.": "Content moved. Check page fill.",
     "Annuler le d\xE9placement": "Undo move",
+    "Marges": "Margins",
+    "Sections": "Sections",
+    "Sous-sections": "Subsections",
+    "Colonnes": "Columns",
+    "Serr\xE9": "Tight",
+    "Actuel": "Current",
+    "Large": "Wide",
     "Nouvelle factsheet vierge": "New blank factsheet",
     "Cr\xE9er une factsheet vierge ? Le document actuel sera remplac\xE9 : enregistrez-le d\u2019abord (.json) si besoin.": "Create a blank factsheet? The current document will be replaced: save it first (.json) if needed.",
     "Enregistrer (.json)": "Save (.json)",
@@ -3960,12 +3967,12 @@ ${lorem}` },
       if (secIt) {
         const sec = doc2.sections[secIt.si], pageEl = secIt.el.closest(".page"), pr = pageEl.getBoundingClientRect(), sc = pr.width / PAGE.w, limit = pr.bottom - PAGE.marginBottom * sc;
         const subH = TYPE.subsection.lh + GAP.subsectionTitle + TYPE.body.lh, secH = TYPE.section.lh + GAP.sectionTitle + subH;
-        const place = (b, it, inset, top2, want) => {
+        const place = (b, it, inset2, top2, want) => {
           const hh = Math.min(want * sc, limit - top2);
           if (hh < 20) return 0;
           const q = it.el.getBoundingClientRect();
           b._at = it;
-          Object.assign(b.style, { display: "flex", left: q.left + inset + "px", width: q.width - 2 * inset + "px", top: top2 + "px", height: hh + "px" });
+          Object.assign(b.style, { display: "flex", left: q.left + inset2 + "px", width: q.width - 2 * inset2 + "px", top: top2 + "px", height: hh + "px" });
           return top2 + hh;
         };
         let y = secIt.el.getBoundingClientRect().bottom;
@@ -3978,7 +3985,8 @@ ${lorem}` },
           place(addSecBtn, secIt, PAGE.margin * sc, y + GAP.sectionBefore * sc, secH);
         }
       }
-      Object.assign(out.style, { display: "block", left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px" });
+      const pg = chain[0].el.closest(".page"), inset = chain[0].kind === "sec" && pg ? PAGE.margin * pg.getBoundingClientRect().width / PAGE.w : 0, GAPX = 3;
+      Object.assign(out.style, { display: "block", left: r.left + inset - GAPX + "px", top: r.top - GAPX + "px", width: r.width - 2 * inset + 2 * GAPX + "px", height: r.height + 2 * GAPX + "px" });
     });
     stage2.addEventListener("pointerleave", later);
     for (const el2 of [bar, addSubBtn, addSecBtn]) {
@@ -4200,8 +4208,23 @@ ${lorem}` },
     stage.querySelectorAll(".page .content, .page .hd").forEach((c) => layoutObs.observe(c));
   };
   var legendEl = h("div", { class: "sp-legend" });
-  document.querySelector(".bar").append(legendEl);
-  var SPACING_KINDS = { margin: "Marges de page", sec: "Entre sections", sub: "Entre sous-sections", col: "Entre colonnes" };
+  var spToggle = h("button", { type: "button", class: "sp-toggle", title: t("Marges et espaces"), "aria-pressed": "false", onclick: () => {
+    showSpacing = !showSpacing;
+    schedule();
+    syncSpacingCtl();
+  } }, ico("ruler-measure"), h("span", { textContent: t("Marges et espaces") }));
+  var densBtns = Object.entries(DENSITIES).map(([k, d]) => h("button", { type: "button", title: `${t(d.label)} \u2014 ${Math.round(d.f * 100)} %`, onclick: () => {
+    doc.density = k;
+    ctx.restructure();
+    syncSpacingCtl();
+  } }, d.label));
+  function syncSpacingCtl() {
+    spToggle.classList.toggle("on", showSpacing);
+    spToggle.setAttribute("aria-pressed", String(showSpacing));
+    Object.keys(DENSITIES).forEach((k, i) => densBtns[i].classList.toggle("on", (doc.density || "normal") === k));
+  }
+  document.querySelector(".bar").append(h("div", { class: "sp-ctl" }, spToggle, h("div", { class: "seg", role: "group", "aria-label": t("Espacement") }, densBtns)), legendEl);
+  var SPACING_KINDS = { margin: "Marges", sec: "Sections", sub: "Sous-sections", col: "Colonnes" };
   function drawSpacing() {
     stage.querySelectorAll(".sp-layer").forEach((n) => n.remove());
     legendEl.replaceChildren();
@@ -4768,6 +4791,7 @@ ${lorem}` },
     if (document.activeElement !== nameIn) nameIn.value = doc.name || "";
     fitName();
     if (histPop) drawHistory();
+    syncSpacingCtl();
   }
   var histPop = null;
   var clock = (ms) => new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -4851,10 +4875,12 @@ ${lorem}` },
         { label: "Marges et espaces", icon: "ruler-measure", checked: () => showSpacing, run: () => {
           showSpacing = !showSpacing;
           schedule();
+          syncSpacingCtl();
         } },
         ...Object.entries(DENSITIES).map(([k, d]) => ({ label: `${d.label} \u2014 ${Math.round(d.f * 100)} %`, checked: () => (doc.density || "normal") === k, run: () => {
           doc.density = k;
           ctx.restructure();
+          syncSpacingCtl();
         } })),
         "-",
         { label: "Aper\xE7u 3D", icon: "3d-cube-sphere", run: () => open3d() }
@@ -4941,6 +4967,7 @@ ${lorem}` },
     window.addEventListener("afterprint", done);
     window.print();
   });
+  syncSpacingCtl();
   record(false);
   syncCenter();
 })();

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.18.0 — 2026-11-03
+- Marges et espaces : bouton et trois densités (Serré, Actuel, Large) directement dans la barre au-dessus de l'aperçu
+- Le cadre du survol a la même forme que le cadre de sélection (largeur des marges pour une section, 3 px d'air, coins de 3 px)
+
 ## 1.17.2 — 2026-11-03
 - Titre de sous-section : curseur main (déplaçable) et texte non sélectionnable, comme le titre de section
 

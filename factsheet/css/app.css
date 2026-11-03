@@ -127,7 +127,7 @@ body.ve-open{overflow:hidden}
 .hv-sw{width:16px;height:16px;border-radius:50%;border:1px solid #0004;padding:0;cursor:pointer}
 .hv-sw.none{background:linear-gradient(135deg,#fff 45%,#d33 45% 55%,#fff 55%)}
 .hv-sw.on{outline:2px solid #F28C28;outline-offset:1px}
-.hv-out{position:fixed;z-index:39;pointer-events:none;border:1.5px dashed #F28C28;border-radius:3px}
+.hv-out{position:fixed;z-index:39;pointer-events:none;box-sizing:border-box;border:1.5px dashed #F28C28;border-radius:3px}
 @media print{.hv-bar,.hv-out{display:none!important}}
 
 /* ---------- Structure (gauche) / propriétés (droite) ---------- */
@@ -315,3 +315,18 @@ body.v3d-open{overflow:hidden}
 .drag-obj{position:fixed;z-index:60;pointer-events:none;box-shadow:0 18px 44px #0006,0 2px 6px #0003;border-radius:4px;opacity:.94;overflow:visible;background:#fff}
 .drag-page{position:absolute!important;left:0;top:0;height:auto!important;overflow:visible!important;transform-origin:0 0;box-shadow:none!important;background:transparent!important}
 .stage .page .drag-live{opacity:.35;outline:2px dashed #F28C28;outline-offset:2px}
+
+/* Marges et espaces : accès direct dans la barre */
+.bar .sp-ctl{display:flex;align-items:center;gap:8px;margin-left:auto}
+.bar .sp-ctl+.sp-legend{margin-left:14px}
+.bar .sp-ctl .seg{margin:0}
+.bar .sp-ctl button{padding:3px 9px;font-size:12px}
+.bar .sp-ctl .sp-toggle{display:inline-flex;align-items:center;gap:6px}
+.bar .sp-ctl .sp-toggle.on{background:var(--ui-blue);border-color:var(--ui-blue);color:#fff}
+.bar .sp-legend{margin-left:14px}
+
+.bar{flex-wrap:nowrap;overflow:hidden}
+.bar .gauges{flex:none}
+.bar .sp-ctl{flex:none}
+.bar .sp-legend{flex:1 1 0;min-width:0;overflow:hidden;gap:10px;margin-left:14px;justify-content:flex-end}
+.bar .sp-legend{flex-wrap:nowrap}.bar .sp-legend span{flex:none}

@@ -97,7 +97,9 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
         place(addSecBtn, secIt, PAGE.margin * sc, y + GAP.sectionBefore * sc, secH);
       }
     }
-    Object.assign(out.style, { display: 'block', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+    /* même forme que le cadre de sélection : largeur des marges pour une section, 3 px d'air, coins de 3 px */
+    const pg = chain[0].el.closest('.page'), inset = chain[0].kind === 'sec' && pg ? PAGE.margin * pg.getBoundingClientRect().width / PAGE.w : 0, GAPX = 3;
+    Object.assign(out.style, { display: 'block', left: r.left + inset - GAPX + 'px', top: r.top - GAPX + 'px', width: r.width - 2 * inset + 2 * GAPX + 'px', height: r.height + 2 * GAPX + 'px' });
   });
   stage.addEventListener('pointerleave', later);
   for (const el of [bar, addSubBtn, addSecBtn]) { el.addEventListener('pointerenter', () => clearTimeout(timer)); el.addEventListener('pointerleave', later); }

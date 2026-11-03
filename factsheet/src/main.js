@@ -78,8 +78,15 @@ const layoutObs = new ResizeObserver(() => { cancelAnimationFrame(layRaf); layRa
 const watchLayout = () => { layoutObs.disconnect(); stage.querySelectorAll('.page .content, .page .hd').forEach(c => layoutObs.observe(c)); };
 
 /* Marges et espaces : filigrane coloré par-dessus l'aperçu (hors des pages, donc jamais exporté) */
-const legendEl = h('div', { class: 'sp-legend' }); document.querySelector('.bar').append(legendEl);   // dans la barre (taille fixe) : ne déplace jamais l'aperçu
-const SPACING_KINDS = { margin: 'Marges de page', sec: 'Entre sections', sub: 'Entre sous-sections', col: 'Entre colonnes' };
+const legendEl = h('div', { class: 'sp-legend' });
+const spToggle = h('button', { type: 'button', class: 'sp-toggle', title: t('Marges et espaces'), 'aria-pressed': 'false', onclick: () => { showSpacing = !showSpacing; schedule(); syncSpacingCtl(); } }, ico('ruler-measure'), h('span', { textContent: t('Marges et espaces') }));
+const densBtns = Object.entries(DENSITIES).map(([k, d]) => h('button', { type: 'button', title: `${t(d.label)} — ${Math.round(d.f * 100)} %`, onclick: () => { doc.density = k; ctx.restructure(); syncSpacingCtl(); } }, d.label));
+function syncSpacingCtl() {
+  spToggle.classList.toggle('on', showSpacing); spToggle.setAttribute('aria-pressed', String(showSpacing));
+  Object.keys(DENSITIES).forEach((k, i) => densBtns[i].classList.toggle('on', (doc.density || 'normal') === k));
+}
+document.querySelector('.bar').append(h('div', { class: 'sp-ctl' }, spToggle, h('div', { class: 'seg', role: 'group', 'aria-label': t('Espacement') }, densBtns)), legendEl);   // dans la barre (taille fixe) : ne déplace jamais l'aperçu
+const SPACING_KINDS = { margin: 'Marges', sec: 'Sections', sub: 'Sous-sections', col: 'Colonnes' };
 function drawSpacing() {
   stage.querySelectorAll('.sp-layer').forEach(n => n.remove()); legendEl.replaceChildren();
   if (!showSpacing) return;   // la mise en page peut bouger après coup (polices, images) : le filigrane suit
@@ -401,6 +408,7 @@ function syncCenter() {
   undoBtn.disabled = !canUndo(); redoBtn.disabled = !canRedo();
   if (document.activeElement !== nameIn) nameIn.value = doc.name || ''; fitName();
   if (histPop) drawHistory();
+  syncSpacingCtl();
 }
 
 /* Historique des modifications : liste des pas (le plus récent en haut) ; un clic revient à cet état */
@@ -449,8 +457,8 @@ window.FS_UI = {
       { heading: 'Zoom' }, zoomItem('Ajuster', 'fit'), zoomItem('50 %', '0.5'), zoomItem('75 %', '0.75'), zoomItem('100 %', '1'), zoomItem('200 %', '2'), zoomItem('400 %', '4'),
       '-',
       { heading: 'Espacement' },
-      { label: 'Marges et espaces', icon: 'ruler-measure', checked: () => showSpacing, run: () => { showSpacing = !showSpacing; schedule(); } },
-      ...Object.entries(DENSITIES).map(([k, d]) => ({ label: `${d.label} — ${Math.round(d.f * 100)} %`, checked: () => (doc.density || 'normal') === k, run: () => { doc.density = k; ctx.restructure(); } })),
+      { label: 'Marges et espaces', icon: 'ruler-measure', checked: () => showSpacing, run: () => { showSpacing = !showSpacing; schedule(); syncSpacingCtl(); } },
+      ...Object.entries(DENSITIES).map(([k, d]) => ({ label: `${d.label} — ${Math.round(d.f * 100)} %`, checked: () => (doc.density || 'normal') === k, run: () => { doc.density = k; ctx.restructure(); syncSpacingCtl(); } })),
       '-',
       { label: 'Aperçu 3D', icon: '3d-cube-sphere', run: () => open3d() }] },
   ],
@@ -511,4 +519,4 @@ document.getElementById('exportGo').addEventListener('click', async () => {
   window.print();
 });
 
-record(false); syncCenter();   // état de départ de l'historique
+syncSpacingCtl(); record(false); syncCenter();   // état de départ de l'historique
