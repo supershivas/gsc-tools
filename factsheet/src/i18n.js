@@ -15,7 +15,7 @@ export const getLang = () => lang;
 const EN = {
   /* page */
   'Zoom': 'Zoom', 'Ajuster': 'Fit', 'Langue': 'Language',
-  'Enregistrer (.json)': 'Save (.json)', 'Ouvrir…': 'Open…', 'Exporter PDF…': 'Export PDF…', 'Aperçu 3D': '3D preview',
+  'Nouvelle factsheet vierge': 'New blank factsheet', 'Créer une factsheet vierge ? Le document actuel sera remplacé : enregistrez-le d’abord (.json) si besoin.': 'Create a blank factsheet? The current document will be replaced: save it first (.json) if needed.', 'Enregistrer (.json)': 'Save (.json)', 'Ouvrir…': 'Open…', 'Exporter PDF…': 'Export PDF…', 'Aperçu 3D': '3D preview',
   'Fichier de projet invalide.': 'Invalid project file.', 'Image illisible.': 'Unreadable image.',
   'Recto': 'Front', 'Verso': 'Back', 'recto': 'front', 'verso': 'back',
   'Exporter en PDF': 'Export to PDF', 'Annuler': 'Cancel', 'Exporter': 'Export', 'Terminer': 'Done',

@@ -263,6 +263,8 @@
     "Zoom": "Zoom",
     "Ajuster": "Fit",
     "Langue": "Language",
+    "Nouvelle factsheet vierge": "New blank factsheet",
+    "Cr\xE9er une factsheet vierge ? Le document actuel sera remplac\xE9 : enregistrez-le d\u2019abord (.json) si besoin.": "Create a blank factsheet? The current document will be replaced: save it first (.json) if needed.",
     "Enregistrer (.json)": "Save (.json)",
     "Ouvrir\u2026": "Open\u2026",
     "Exporter PDF\u2026": "Export PDF\u2026",
@@ -1724,6 +1726,11 @@
     bg: "none",
     subs: [newSub("1")]
   });
+  function blankDoc() {
+    const d = defaultDoc();
+    d.sections = [newSection("recto")];
+    return d;
+  }
   function defaultDoc() {
     const lorem = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim.";
     const viz = (kind, extra) => ({ ...newCol("viz"), viz: { ...newViz(kind), ...extra || {} } });
@@ -4096,6 +4103,13 @@ ${lorem}` },
     sdrag = null;
     schedule();
   });
+  var newBlank = () => {
+    if (!confirm(t("Cr\xE9er une factsheet vierge ? Le document actuel sera remplac\xE9 : enregistrez-le d\u2019abord (.json) si besoin."))) return;
+    doc = blankDoc();
+    selected = null;
+    undoSnap = null;
+    ctx.restructure();
+  };
   var file = h("input", { type: "file", accept: ".json,application/json", hidden: true });
   document.body.append(file);
   var saveProject = () => {
@@ -4135,6 +4149,7 @@ ${lorem}` },
   window.FS_UI = {
     menus: [
       { label: "Fichier", items: [
+        { label: "Nouvelle factsheet vierge", icon: "file-plus", run: newBlank },
         { label: "Enregistrer (.json)", icon: "device-floppy", run: saveProject },
         { label: "Ouvrir\u2026", icon: "folder-open", run: () => file.click() },
         { label: "Exporter PDF\u2026", icon: "file-type-pdf", run: () => openExport() },

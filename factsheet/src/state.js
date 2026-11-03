@@ -39,6 +39,13 @@ export const newSection = (page = 'recto') => ({
   id: uid('sec'), title: t('Titre de section'), page, bg: 'none', subs: [newSub('1')],
 });
 
+/** Factsheet vierge : header et logos d'origine, une seule section vide au recto */
+export function blankDoc() {
+  const d = defaultDoc();
+  d.sections = [newSection('recto')];
+  return d;
+}
+
 export function defaultDoc() {
   const lorem = 'Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim.';
   const viz = (kind, extra) => ({ ...newCol('viz'), viz: { ...newViz(kind), ...(extra || {}) } });

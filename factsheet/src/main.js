@@ -1,5 +1,5 @@
 import { PAGE } from './tokens.js';
-import { loadDoc, saveDoc, migrate, defaultDoc, moveSection, storage, localImageCount, swapCols, removeCol } from './state.js';
+import { loadDoc, saveDoc, migrate, defaultDoc, blankDoc, moveSection, storage, localImageCount, swapCols, removeCol } from './state.js';
 import { renderDocument, measure, h, columnWidth } from './render.js';
 import { buildTree } from './tree.js';
 import { buildProps } from './props.js';
@@ -202,6 +202,10 @@ window.addEventListener('keydown', e => { if (e.key === 'Escape') endColDrag(fal
 window.addEventListener('pointercancel', () => { if (sdrag && sdrag.active) { sdrag.line.remove(); sdrag.ghost.remove(); document.body.classList.remove('dragging'); } sdrag = null; schedule(); });
 
 /* Fichier / Affichage : menus de l'en-tête (rendus par js/shell.js) ; la langue est dans les réglages */
+const newBlank = () => {
+  if (!confirm(t('Créer une factsheet vierge ? Le document actuel sera remplacé : enregistrez-le d’abord (.json) si besoin.'))) return;
+  doc = blankDoc(); selected = null; undoSnap = null; ctx.restructure();
+};
 const file = h('input', { type: 'file', accept: '.json,application/json', hidden: true });
 document.body.append(file);
 const saveProject = () => {
@@ -227,6 +231,7 @@ const zoomItem = (label, v) => ({ label, checked: () => zoomMode === v, run: () 
 window.FS_UI = {
   menus: [
     { label: 'Fichier', items: [
+      { label: 'Nouvelle factsheet vierge', icon: 'file-plus', run: newBlank },
       { label: 'Enregistrer (.json)', icon: 'device-floppy', run: saveProject },
       { label: 'Ouvrir…', icon: 'folder-open', run: () => file.click() },
       { label: 'Exporter PDF…', icon: 'file-type-pdf', run: () => openExport() },

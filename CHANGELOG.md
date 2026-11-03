@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.12.0 — 2026-11-03
+- Factsheet creator : menu Fichier › Nouvelle factsheet vierge (header et logos d'origine, une section vide)
+
 ## 1.11.0 — 2026-11-03
 - Factsheet creator : logo négatif et image du header par défaut (toujours disponibles) ; les logos ne se retirent plus, on peut charger une autre image à leur place
 - Labo : 5 présentations du panneau de propriétés à comparer (sujet « Propriétés »)
