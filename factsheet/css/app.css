@@ -95,7 +95,8 @@ details.drop-after{box-shadow:0 3px 0 var(--ui-blue)}
 .grip:active{cursor:grabbing}
 details>summary .badge:empty{display:none}
 /* Aperçu : titre de section = poignée de glisser */
-.stage .page .sec-title{cursor:grab;user-select:none}
+.stage .page .sec-title,.stage .page .sub-title{cursor:grab;user-select:none;-webkit-user-select:none}
+.stage .page .sec-title:active,.stage .page .sub-title:active{cursor:grabbing}
 .sec.drag-src{opacity:.35}
 .drop-line{position:fixed;height:3px;background:#F28C28;border-radius:2px;z-index:50;pointer-events:none;box-shadow:0 0 0 1px #fff}
 .drag-ghost{position:fixed;z-index:60;pointer-events:none;background:#fff;border:1px solid #F28C28;border-radius:6px;padding:3px 10px;font-size:12px;box-shadow:0 4px 14px #0003;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

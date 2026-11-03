@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.17.2 — 2026-11-03
+- Titre de sous-section : curseur main (déplaçable) et texte non sélectionnable, comme le titre de section
+
 ## 1.17.1 — 2026-11-03
 - Cadre de sélection : variante Halo (onde douce en boucle), avec 3 px d'air autour de l'élément
 
