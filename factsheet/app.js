@@ -6205,7 +6205,9 @@ ${lorem}` },
         later();
         return;
       }
-      const key = chain[0].el.dataset.sel;
+      const secC = chain.find((c2) => c2.kind === "sec"), lastSubEl = secC && !chain.some((c2) => c2.kind === "sub") ? [...secC.el.querySelectorAll(".sub")].pop() : null;
+      const below = !!lastSubEl && e.clientY > lastSubEl.getBoundingClientRect().bottom;
+      const key = chain[0].el.dataset.sel + (below ? "|below" : "");
       clearTimeout(timer);
       if (key === cur) return;
       cur = key;
@@ -6220,7 +6222,9 @@ ${lorem}` },
       let left2 = Math.min(r.right - bw, window.innerWidth - bw - 8);
       left2 = Math.max(left2, st.left + 4);
       Object.assign(bar.style, { left: left2 + "px", top: top + "px" });
-      const subIt = chain.find((c2) => c2.kind === "sub"), secIt = chain.find((c2) => c2.kind === "sec");
+      let subIt = chain.find((c2) => c2.kind === "sub");
+      const secIt = chain.find((c2) => c2.kind === "sec");
+      if (below) subIt = { kind: "sub", si: secIt.si, bi: secIt.el.querySelectorAll(".sub").length - 1, el: lastSubEl };
       addSubBtn.style.display = addSecBtn.style.display = "none";
       if (secIt) {
         const sec = doc2.sections[secIt.si], pageEl2 = secIt.el.closest(".page"), pr = pageEl2.getBoundingClientRect(), sc = pr.width / PAGE.w, limit = pr.bottom - PAGE.marginBottom * sc;

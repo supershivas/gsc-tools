@@ -87,7 +87,10 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
       return;
     }
     if (!chain.length) { later(); return; }
-    const key = chain[0].el.dataset.sel;
+    /* section avec fond : le pointeur traverse son retrait bas (ni sous-section ni colonne) en allant vers les boutons « + » — on les garde */
+    const secC = chain.find(c => c.kind === 'sec'), lastSubEl = secC && !chain.some(c => c.kind === 'sub') ? [...secC.el.querySelectorAll('.sub')].pop() : null;
+    const below = !!lastSubEl && e.clientY > lastSubEl.getBoundingClientRect().bottom;
+    const key = chain[0].el.dataset.sel + (below ? '|below' : '');
     clearTimeout(timer);
     if (key === cur) return;
     cur = key;
@@ -100,7 +103,8 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
     Object.assign(bar.style, { left: left + 'px', top: top + 'px' });
     /* Boutons « + » : seulement là où il y a de la place dessous (dernière section de la page, dernière sous-section de la section).
        Ils ont la hauteur du bloc créé et sont décalés de l'écart réel entre deux blocs, pour montrer où il apparaîtra. */
-    const subIt = chain.find(c => c.kind === 'sub'), secIt = chain.find(c => c.kind === 'sec');
+    let subIt = chain.find(c => c.kind === 'sub'); const secIt = chain.find(c => c.kind === 'sec');
+    if (below) subIt = { kind: 'sub', si: secIt.si, bi: secIt.el.querySelectorAll('.sub').length - 1, el: lastSubEl };
     addSubBtn.style.display = addSecBtn.style.display = 'none';
     if (secIt) {
       const sec = doc.sections[secIt.si], pageEl = secIt.el.closest('.page'), pr = pageEl.getBoundingClientRect(), sc = pr.width / PAGE.w, limit = pr.bottom - PAGE.marginBottom * sc;

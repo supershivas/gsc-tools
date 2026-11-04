@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.26.1 — 2026-11-04
+- Section avec fond : les boutons « Nouvelle sous-section » / « Nouvelle section » ne disparaissent plus quand le pointeur traverse le bas de la section pour les atteindre
+
 ## 1.26.0 — 2026-11-04
 - Filet de 0,5 pt entre les sous-sections, sur toute la largeur de la page : blanc sur un fond de section, bleu UE sur fond blanc
 - Interrupteur « Filet entre les sous-sections » dans les propriétés de la section
