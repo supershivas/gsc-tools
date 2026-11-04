@@ -395,3 +395,17 @@ textarea.dg-ml{display:block;width:100%;min-width:90px;border:0;border-radius:0;
 @media (hover:hover){.hv-grip:hover{border-color:#F28C28;color:#F28C28}}
 .hv-guide{position:fixed;z-index:41;height:0;border-top:1.5px dashed #F28C28;pointer-events:none}
 @media print{.hv-grip,.hv-guide{display:none!important}}
+
+/* choix de couleur : pastille (+ nom) et liste de pastilles */
+.cs{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 8px;border:1px solid var(--ui-line);border-radius:8px;background:#fff;font-size:13px;color:var(--ui-ink,#1c1c1e);cursor:pointer}
+.cs-text{display:flex;width:100%}.cs-lab{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+.cs .ti{font-size:14px;color:var(--ui-mute);margin-left:auto}
+.cs-dot{flex:none;width:16px;height:16px;border-radius:50%;border:1px solid #0004;box-sizing:border-box}
+.cs-dot.auto{background:linear-gradient(135deg,#fff 45%,#d33 45% 55%,#fff 55%)}
+.dg-h .cs,.dg td .cs{min-height:28px;padding:0 6px;border-radius:6px}.dg td .cs{border:0;width:100%}
+.cs-pop{position:fixed;z-index:80;display:grid;grid-template-columns:1fr 1fr;gap:2px;max-height:320px;overflow:auto;padding:6px;background:#fff;border:1px solid var(--ui-line);border-radius:10px;box-shadow:0 8px 24px #0003;box-sizing:border-box}
+.cs-opt{display:flex;align-items:center;gap:8px;min-height:32px;padding:0 8px;border:0;border-radius:6px;background:transparent;font-size:13px;text-align:left;min-width:0}
+.cs-opt span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cs-opt.on{background:#eef2ff;color:var(--ui-blue)}
+@media (hover:hover){.cs-opt:hover{background:var(--ui-bg)}.cs:hover{border-color:var(--ui-blue)}}
+@media print{.cs-pop{display:none!important}}

@@ -2,6 +2,7 @@
 import { h, inline, ico } from './render.js';
 import { t } from './i18n.js';
 import { helpBtn } from './help.js';
+import { colorSelect } from './colorselect.js';
 import { GRID, THEMES, paletteKeys, sectionBgs, colorLabel } from './tokens.js';
 import { COL_TYPES, IMAGE_RATIOS, LOCALES, newCol, newSub, newSection, uid, moveSection, stepSection } from './state.js';
 import { VIZ_TYPES, VIZ_OPTIONS, newViz } from './viz/index.js';
@@ -128,8 +129,9 @@ export function buildFields(spec, obj, ctx, palOpts, h2) {
         h2('div', { class: 'hint', textContent: t('Une ligne par paragraphe. {total} = somme des valeurs. Le texte passe à la ligne et ne dépasse jamais l’anneau.') })));
     }
     else if (f.t === 'bool') out.push(h2('label', { class: 'row', style: { marginBottom: '8px' } }, h2('input', { type: 'checkbox', checked: !!getP(obj, f.k), onchange: live(t => setP(obj, f.k, t.checked)) }), f.label, helpBtn(f.label)));
-    else if (f.t === 'select' || f.t === 'color') {
-      const opts = f.t === 'color' ? palOpts : f.options;
+    else if (f.t === 'color') out.push(h2('div', { class: 'f' }, h2('div', { class: 'hint' }, f.label, helpBtn(f.label)), colorSelect({ value: getP(obj, f.k) ?? 'blue', options: palOpts, text: true, onChange: v => { setP(obj, f.k, v); ctx.changed(); } })));
+    else if (f.t === 'select') {
+      const opts = f.options;
       const sel = h2('select', { onchange: live(t => setP(obj, f.k, t.value)) }, Object.entries(opts).map(([v, l]) => h2('option', { value: v, textContent: l })));
       sel.value = getP(obj, f.k) ?? Object.keys(opts)[0];
       out.push(h2('label', { class: 'f' }, f.label, helpBtn(f.label), sel));

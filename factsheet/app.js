@@ -3612,7 +3612,7 @@
         return { node: v };
       }
       const dateNode = (txt, x, y, anchor) => s("text", { x, y: y + lh / 2 + 0.33 * numPx, "text-anchor": anchor, "font-size": numPx, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, txt);
-      const dot = (cx, cy, color) => s("circle", { cx, cy, r: R, fill: colorRef(color || "blue"), stroke: "currentColor", "stroke-width": SW });
+      const dot2 = (cx, cy, color) => s("circle", { cx, cy, r: R, fill: colorRef(color || "blue"), stroke: "currentColor", "stroke-width": SW });
       const block = (it, maxW) => ({ lines: textLines(it.title || "", it.text || "", capPx, maxW), dateH: showDates && it.date ? lh : 0 });
       const stretch = (natural2) => o.hmode === "fixed" || o.hmode === "fill" || o.hmode === "match" ? Math.max(0, heightOf(o, W, env, natural2) - natural2) : 0;
       const tail = o.tail || "dashed", TL = 24;
@@ -3649,7 +3649,7 @@
         }
         laid.forEach((l, i) => {
           const y = yOf(l, i), x = l.left ? lineX - R - 10 : lineX + R + 10, anchor = l.left ? "end" : "start";
-          svg2.append(dot(lineX, y + lh / 2, l.it.color));
+          svg2.append(dot2(lineX, y + lh / 2, l.it.color));
           if (l.b.dateH) svg2.append(dateNode(l.it.date, x, y, anchor));
           svg2.append(drawLines(l.b.lines, x, y + l.b.dateH, lh, capPx, anchor));
         });
@@ -3672,7 +3672,7 @@
       }
       items.forEach((it, i) => {
         const b = blocks[i], above = alt && i % 2 === 1, an = anchorAt(i), x = tx(i, an);
-        svg.append(dot(xs[i], lineY, it.color));
+        svg.append(dot2(xs[i], lineY, it.color));
         if (alt) {
           const y0 = above ? lineY - R - 8 - hOf(b) : lineY + R + 8;
           if (b.dateH) svg.append(dateNode(it.date, x, y0, an));
@@ -4837,13 +4837,13 @@ ${short}`)])
     const pop2 = h(
       "div",
       { class: "ce", role: "dialog", "aria-label": title || t("Couleur") },
-      h("div", { class: "ce-head" }, h("strong", { textContent: title || t("Couleur") }), h("button", { type: "button", class: "mini", "aria-label": t("Annuler"), onclick: () => close(false) }, ico("x"))),
+      h("div", { class: "ce-head" }, h("strong", { textContent: title || t("Couleur") }), h("button", { type: "button", class: "mini", "aria-label": t("Annuler"), onclick: () => close2(false) }, ico("x"))),
       sv,
       hue,
       h("div", { class: "ce-cmp" }, h("span", { class: "ce-pair" }, before, after), hexIn, eye),
       tabs,
       sliders,
-      h("div", { class: "row ce-act" }, h("button", { type: "button", textContent: "Annuler", onclick: () => close(false) }), h("button", { type: "button", class: "primary", textContent: "OK", onclick: () => close(true) }))
+      h("div", { class: "row ce-act" }, h("button", { type: "button", textContent: "Annuler", onclick: () => close2(false) }), h("button", { type: "button", class: "primary", textContent: "OK", onclick: () => close2(true) }))
     );
     document.body.append(pop2);
     const place3 = () => {
@@ -4855,7 +4855,7 @@ ${short}`)])
     };
     update(false, !!cm);
     place3();
-    function close(commit) {
+    function close2(commit) {
       if (done) return;
       done = true;
       cancelAnimationFrame(raf2);
@@ -4868,17 +4868,17 @@ ${short}`)])
       if (onClose) onClose(commit);
     }
     const outside = (e) => {
-      if (!pop2.contains(e.target) && !(anchor && anchor.contains(e.target))) close(true);
+      if (!pop2.contains(e.target) && !(anchor && anchor.contains(e.target))) close2(true);
     };
     const onKey = (e) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        close(false);
-      } else if (e.key === "Enter" && e.target.tagName !== "BUTTON") close(true);
+        close2(false);
+      } else if (e.key === "Enter" && e.target.tagName !== "BUTTON") close2(true);
     };
     setTimeout(() => document.addEventListener("pointerdown", outside, true));
     window.addEventListener("keydown", onKey, true);
-    current = { close };
+    current = { close: close2 };
     return current;
   }
 
@@ -4905,7 +4905,7 @@ ${short}`)])
     doc2.colorNames = doc2.colorNames || {};
     const defName = (k) => extras.includes(k) ? k : t(th.names[k] || k);
     const cm = paletteCmyk(doc2), cmTxt = (k) => cm[k].map((v) => Math.round(v)).join(" \xB7 ");
-    const open = (k, sw) => openColorEditor({
+    const open2 = (k, sw) => openColorEditor({
       anchor: sw,
       hex: pal[k],
       cmyk: cm[k],
@@ -4921,7 +4921,7 @@ ${short}`)])
     });
     const row = (k) => {
       const isExtra = extras.includes(k), recolored = !isExtra && doc2.colors[k] && doc2.colors[k].toLowerCase() !== th.colors[k].toLowerCase(), renamed = !isExtra && !!doc2.colorNames[k];
-      const sw = h("button", { type: "button", class: "pal2-sw", title: t("Modifier la couleur"), "aria-label": t("Modifier la couleur"), style: { background: pal[k] }, onclick: () => open(k, sw) });
+      const sw = h("button", { type: "button", class: "pal2-sw", title: t("Modifier la couleur"), "aria-label": t("Modifier la couleur"), style: { background: pal[k] }, onclick: () => open2(k, sw) });
       const name = h("input", { type: "text", value: doc2.colorNames[k] || defName(k), "aria-label": t("Nom de la couleur"), oninput: (e) => {
         const v = e.target.value.trim();
         if (v && v !== defName(k)) doc2.colorNames[k] = v;
@@ -5051,9 +5051,9 @@ ${short}`)])
     } }, ico("grip-vertical"));
     const secNode = (sec, si) => {
       const key = sec.id || "sec" + si, closed = collapsed2.has(key), band = sec.bg && sec.bg !== "none";
-      const dot = h("span", { class: "tn-dot" + (band ? "" : " none"), style: band ? { background: `var(--c-${sec.bg})` } : {} });
+      const dot2 = h("span", { class: "tn-dot" + (band ? "" : " none"), style: band ? { background: `var(--c-${sec.bg})` } : {} });
       const node = h("div", { class: "tn-sec", dataset: { sid: sec.id } });
-      node.append(row(`sec:${si}`, "sec-row", [grip("Glisser pour r\xE9ordonner ou changer de page", { kind: "sec", id: sec.id }), dot, h("strong", { class: "tn-lab", textContent: sec.title || "Section sans titre" }), h("span", { class: "tn-sub", textContent: String(sec.subs.length) }), tog(key)]));
+      node.append(row(`sec:${si}`, "sec-row", [grip("Glisser pour r\xE9ordonner ou changer de page", { kind: "sec", id: sec.id }), dot2, h("strong", { class: "tn-lab", textContent: sec.title || "Section sans titre" }), h("span", { class: "tn-sub", textContent: String(sec.subs.length) }), tog(key)]));
       if (!closed) {
         const body = h("div", { class: "tn-body" });
         sec.subs.forEach((sub, bi) => {
@@ -5175,9 +5175,9 @@ ${short}`)])
 
   // src/cards.js
   function cardEl(id, icon, name, nodes, { shut: shut3, refresh, toggle = null, live = true }) {
-    const open = !shut3.has(id), show2 = open && live;
+    const open2 = !shut3.has(id), show2 = open2 && live;
     const flip = () => {
-      open ? shut3.add(id) : shut3.delete(id);
+      open2 ? shut3.add(id) : shut3.delete(id);
       refresh();
     };
     return h(
@@ -5197,12 +5197,72 @@ ${short}`)])
         h("button", {
           type: "button",
           class: "pp-chev",
-          "aria-expanded": String(open),
-          "aria-label": open ? t("Replier") : t("D\xE9plier")
-        }, ico(open ? "chevron-up" : "chevron-down"))
+          "aria-expanded": String(open2),
+          "aria-label": open2 ? t("Replier") : t("D\xE9plier")
+        }, ico(open2 ? "chevron-up" : "chevron-down"))
       ),
       show2 ? h("div", { class: "pp-body" }, nodes.flat().filter(Boolean)) : null
     );
+  }
+
+  // src/colorselect.js
+  var FALLBACK = cssVars(DEFAULT_THEME, {});
+  var dot = (k) => h("i", { class: "cs-dot" + (k === "" ? " auto" : ""), style: k === "" ? {} : { background: `var(--c-${k}, ${FALLBACK["--c-" + k] || "transparent"})` } });
+  var open = null;
+  var close = () => {
+    if (!open) return;
+    const o = open;
+    open = null;
+    document.removeEventListener("pointerdown", o.away, true);
+    document.removeEventListener("keydown", o.key, true);
+    o.pop.remove();
+    o.btn.setAttribute("aria-expanded", "false");
+  };
+  function colorSelect({ value: value2, options, onChange, text = false }) {
+    let cur = value2;
+    const label = (k) => k === "" ? t("Auto") : t(options[k] ?? k);
+    const btn = h("button", { type: "button", class: "cs" + (text ? " cs-text" : ""), "aria-haspopup": "listbox", "aria-expanded": "false", title: label(cur) });
+    const paint = () => {
+      btn.replaceChildren(...[dot(cur), text ? h("span", { class: "cs-lab", textContent: label(cur) }) : null, ico("chevron-down")].filter(Boolean));
+      btn.title = label(cur);
+    };
+    paint();
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (open && open.btn === btn) {
+        close();
+        return;
+      }
+      close();
+      const pop2 = h("div", { class: "cs-pop", role: "listbox" }, Object.keys(options).map((k) => h("button", {
+        type: "button",
+        role: "option",
+        class: "cs-opt" + (k === cur ? " on" : ""),
+        "aria-selected": String(k === cur),
+        onclick: () => {
+          cur = k;
+          paint();
+          close();
+          onChange(k);
+        }
+      }, dot(k), h("span", { textContent: label(k) }))));
+      (btn.closest(".ve, .props, .panel, .labo-opts") || document.body).append(pop2);
+      const r = btn.getBoundingClientRect(), w = Math.min(320, Math.max(300, r.width)), hh = pop2.offsetHeight;
+      Object.assign(pop2.style, { width: w + "px", left: Math.max(8, Math.min(window.innerWidth - w - 8, r.left)) + "px", top: (r.bottom + hh + 12 > window.innerHeight ? Math.max(8, r.top - hh - 4) : r.bottom + 4) + "px" });
+      btn.setAttribute("aria-expanded", "true");
+      const away = (ev) => {
+        if (!pop2.contains(ev.target) && !btn.contains(ev.target)) close();
+      }, key = (ev) => {
+        if (ev.key === "Escape") {
+          ev.stopPropagation();
+          close();
+        }
+      };
+      document.addEventListener("pointerdown", away, true);
+      document.addEventListener("keydown", key, true);
+      open = { pop: pop2, btn, away, key };
+    });
+    return btn;
   }
 
   // src/editor.js
@@ -5407,8 +5467,12 @@ ${short}`)])
           h2("div", { class: "hint", textContent: t("Une ligne par paragraphe. {total} = somme des valeurs. Le texte passe \xE0 la ligne et ne d\xE9passe jamais l\u2019anneau.") })
         ));
       } else if (f.t === "bool") out.push(h2("label", { class: "row", style: { marginBottom: "8px" } }, h2("input", { type: "checkbox", checked: !!getP(obj, f.k), onchange: live((t2) => setP(obj, f.k, t2.checked)) }), f.label, helpBtn(f.label)));
-      else if (f.t === "select" || f.t === "color") {
-        const opts = f.t === "color" ? palOpts : f.options;
+      else if (f.t === "color") out.push(h2("div", { class: "f" }, h2("div", { class: "hint" }, f.label, helpBtn(f.label)), colorSelect({ value: getP(obj, f.k) ?? "blue", options: palOpts, text: true, onChange: (v) => {
+        setP(obj, f.k, v);
+        ctx2.changed();
+      } })));
+      else if (f.t === "select") {
+        const opts = f.options;
         const sel = h2("select", { onchange: live((t2) => setP(obj, f.k, t2.value)) }, Object.entries(opts).map(([v, l]) => h2("option", { value: v, textContent: l })));
         sel.value = getP(obj, f.k) ?? Object.keys(opts)[0];
         out.push(h2("label", { class: "f" }, f.label, helpBtn(f.label), sel));
@@ -5588,7 +5652,7 @@ ${short}`)])
     };
     const swatches = (label, obj, k, keys, withNone) => {
       const light = keys.filter((c2) => c2.startsWith("tint-")), solid = keys.filter((c2) => !c2.startsWith("tint-"));
-      const dot = (c2) => h("button", { type: "button", class: "hv-sw" + (obj[k] === c2 ? " on" : ""), title: t(colorLabel(doc2, c2)), "aria-label": t(colorLabel(doc2, c2)), style: { background: `var(--c-${c2})` }, onclick: struct(() => {
+      const dot2 = (c2) => h("button", { type: "button", class: "hv-sw" + (obj[k] === c2 ? " on" : ""), title: t(colorLabel(doc2, c2)), "aria-label": t(colorLabel(doc2, c2)), style: { background: `var(--c-${c2})` }, onclick: struct(() => {
         obj[k] = c2;
       }) });
       const gap = () => h("span", { class: "hv-sw ghost" });
@@ -5598,13 +5662,13 @@ ${short}`)])
       const pal = h("button", { type: "button", class: "hv-sw pal-btn", title: t("Modifier, renommer ou ajouter des couleurs"), "aria-label": t("Modifier, renommer ou ajouter des couleurs"), onclick: (e) => openPalette(e.currentTarget, ctx2) }, ico("plus"));
       const lightRow = solid.map((c2) => {
         const tc = "tint-" + c2;
-        return light.includes(tc) ? dot(tc) : gap();
+        return light.includes(tc) ? dot2(tc) : gap();
       });
       return h(
         "div",
         { class: "f" },
         h("div", { class: "hint" }, label, helpBtn(label)),
-        h("div", { class: "swrow" }, withNone ? none : null, ...solid.map(dot), pal),
+        h("div", { class: "swrow" }, withNone ? none : null, ...solid.map(dot2), pal),
         light.length ? h("div", { class: "swrow" }, withNone ? gap() : null, ...lightRow) : null
       );
     };
@@ -6185,7 +6249,7 @@ ${short}`)])
     const conv = (c2, v) => c2.t === "number" ? num(v) ?? 0 : c2.t === "color" ? palOpts[v] ? v : c2.auto ? "" : c2.def || "blue" : v;
     const blank = () => Object.fromEntries(cols.map((c2) => [c2.k, c2.def ?? (c2.t === "number" ? 0 : "")]));
     return {
-      cols: cols.map((c2) => ({ name: c2.label, type: c2.t === "number" ? "number" : "text", ml: !!c2.ml, select: c2.t === "color" ? c2.auto ? { "": t("Auto"), ...palOpts } : palOpts : c2.options || null })),
+      cols: cols.map((c2) => ({ name: c2.label, type: c2.t === "number" ? "number" : "text", ml: !!c2.ml, select: c2.t === "color" ? c2.auto ? { "": t("Auto"), ...palOpts } : palOpts : c2.options || null, isColor: c2.t === "color" })),
       rows: () => rows.length,
       get: (i, j) => String(rows[i][cols[j].k] ?? ""),
       set: (i, j, v) => {
@@ -6266,14 +6330,10 @@ ${short}`)])
       const th = h("th", {}, c2.onRename ? h(
         "div",
         { class: "dg-h" },
-        c2.palOpts ? (() => {
-          const s2 = h("select", { class: "dg-color", title: t("Couleur"), onchange: (e) => {
-            c2.onColor(e.target.value);
-            ctx2.changed();
-          } }, Object.entries(c2.palOpts).map(([v, l]) => h("option", { value: v, textContent: l })));
-          s2.value = c2.color;
-          return s2;
-        })() : null,
+        c2.palOpts ? colorSelect({ value: c2.color, options: c2.palOpts, onChange: (v) => {
+          c2.onColor(v);
+          ctx2.changed();
+        } }) : null,
         h("input", { type: "text", value: c2.name, placeholder: `${t("S\xE9rie")} ${j}`, oninput: (e) => {
           c2.onRename(e.target.value);
           ctx2.changed();
@@ -6290,6 +6350,10 @@ ${short}`)])
     const cell = (i, j) => {
       const c2 = ad.cols[j], v = ad.get(i, j);
       const common = { "data-r": i, "data-c": j };
+      if (c2.isColor) return h("td", {}, colorSelect({ value: v, options: c2.select, text: true, onChange: (nv) => {
+        ad.set(i, j, nv);
+        ctx2.changed();
+      } }));
       if (c2.select) {
         const s2 = h("select", { ...common, onchange: (e) => {
           ad.set(i, j, e.target.value);
@@ -6606,7 +6670,7 @@ ${short}`)])
       zoom = e.target.value;
       draw();
     } }, [["fit", "Ajuster"], ["1", "100 %"], ["1.5", "150 %"], ["2", "200 %"]].map(([v, l]) => h("option", { value: v, textContent: l })));
-    const close = (keep) => {
+    const close2 = (keep) => {
       if (!keep) {
         col.viz = JSON.parse(snapshot2);
       }
@@ -6617,7 +6681,7 @@ ${short}`)])
       ctx2.restructure();
     };
     const onKey = (e) => {
-      if (e.key === "Escape") close(false);
+      if (e.key === "Escape") close2(false);
     };
     window.addEventListener("keydown", onKey);
     root.append(
@@ -6628,8 +6692,8 @@ ${short}`)])
         h("label", { class: "zoom" }, "Aper\xE7u \xE0 la largeur ", wSel),
         h("label", { class: "zoom" }, "Zoom ", zSel),
         h("span", { style: { flex: 1 } }),
-        h("button", { type: "button", textContent: "Annuler", onclick: () => close(false) }),
-        h("button", { type: "button", class: "primary", textContent: "Terminer", onclick: () => close(true) })
+        h("button", { type: "button", textContent: "Annuler", onclick: () => close2(false) }),
+        h("button", { type: "button", class: "primary", textContent: "Terminer", onclick: () => close2(true) })
       ),
       body
     );

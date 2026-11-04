@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.39.0 — 2026-11-04
+- Éditeur de dataviz : les choix de couleur sont des pastilles (nom ajouté quand il y a la place) ouvrant une liste de pastilles avec leurs noms, au lieu de listes déroulantes de texte
+
 ## 1.38.0 — 2026-11-04
 - Dataviz : réordonner les éléments à la souris (barres, lignes, frise, pictogrammes, liste à icônes) ; les autres se réajustent en direct avec des écarts proportionnels ; l'ordre est celui du JSON
 - Dataviz : poignée de hauteur sous chaque dataviz dans l'aperçu (se cale sur la colonne voisine) et nouveau mode « Adapter à la colonne voisine »

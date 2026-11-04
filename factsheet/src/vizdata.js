@@ -3,6 +3,7 @@
    { cols: [{ name, label, type, node?, onRename?, onDelete? }], rows(), get(i, j), set(i, j, v), addRow(), delRow(i), addCol?(), load(matrix, hasHeader) } */
 import { h, ico } from './render.js';
 import { t } from './i18n.js';
+import { colorSelect } from './colorselect.js';
 
 const num = c => { const n = parseFloat(String(c).replace(/\s/g, '').replace(',', '.')); return isNaN(n) ? null : n; };
 
@@ -63,7 +64,7 @@ export function recordsAdapter(spec, obj, palOpts) {
   const conv = (c, v) => c.t === 'number' ? (num(v) ?? 0) : c.t === 'color' ? (palOpts[v] ? v : c.auto ? '' : c.def || 'blue') : v;
   const blank = () => Object.fromEntries(cols.map(c => [c.k, c.def ?? (c.t === 'number' ? 0 : '')]));
   return {
-    cols: cols.map(c => ({ name: c.label, type: c.t === 'number' ? 'number' : 'text', ml: !!c.ml, select: c.t === 'color' ? (c.auto ? { '': t('Auto'), ...palOpts } : palOpts) : c.options || null })),
+    cols: cols.map(c => ({ name: c.label, type: c.t === 'number' ? 'number' : 'text', ml: !!c.ml, select: c.t === 'color' ? (c.auto ? { '': t('Auto'), ...palOpts } : palOpts) : c.options || null, isColor: c.t === 'color' })),
     rows: () => rows.length,
     get: (i, j) => String(rows[i][cols[j].k] ?? ''),
     set: (i, j, v) => { rows[i][cols[j].k] = conv(cols[j], v); },
@@ -104,7 +105,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data' } = {}) {
   const head = h('tr', {}, h('th', { class: 'dg-n' }), ...ad.cols.map((c, j) => {
     const th = h('th', {}, c.onRename
       ? h('div', { class: 'dg-h' },
-        c.palOpts ? (() => { const s = h('select', { class: 'dg-color', title: t('Couleur'), onchange: e => { c.onColor(e.target.value); ctx.changed(); } }, Object.entries(c.palOpts).map(([v, l]) => h('option', { value: v, textContent: l }))); s.value = c.color; return s; })() : null,
+        c.palOpts ? colorSelect({ value: c.color, options: c.palOpts, onChange: v => { c.onColor(v); ctx.changed(); } }) : null,
         h('input', { type: 'text', value: c.name, placeholder: `${t('Série')} ${j}`, oninput: e => { c.onRename(e.target.value); ctx.changed(); } }),
         c.onDelete ? h('button', { type: 'button', class: 'mini danger', title: t('Supprimer'), onclick: () => { c.onDelete(); rebuild(); } }, ico('x')) : null)
       : h('span', { textContent: c.name }));
@@ -115,6 +116,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data' } = {}) {
   const cell = (i, j) => {
     const c = ad.cols[j], v = ad.get(i, j);
     const common = { 'data-r': i, 'data-c': j };
+    if (c.isColor) return h('td', {}, colorSelect({ value: v, options: c.select, text: true, onChange: nv => { ad.set(i, j, nv); ctx.changed(); } }));
     if (c.select) {
       const s = h('select', { ...common, onchange: e => { ad.set(i, j, e.target.value); ctx.changed(); } }, Object.entries(c.select).map(([k, l]) => h('option', { value: k, textContent: l })));
       s.value = v; return h('td', {}, s);
