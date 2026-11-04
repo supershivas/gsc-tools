@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.34.0 — 2026-11-04
+- Export PDF CMJN généré par l'app : vectoriel, couleurs DeviceCMYK exactes de la palette (noir seul pour les textes noirs), polices incorporées, fond perdu et traits de coupe avec TrimBox et BleedBox
+- Les images importées sont converties en CMJN (sans profil ICC) ; l'ancien export par l'impression du navigateur (RVB) reste disponible
+- Correction : le contour pointillé parasite autour des cartes de l'aperçu a disparu
+
 ## 1.33.0 — 2026-11-04
 - Factsheet par défaut : plus aucun texte hors cadre (anneau, frise), la dernière dataviz est remplacée par du texte
 - Les mesures de texte attendent le chargement des polices (plus de débordement au premier affichage)

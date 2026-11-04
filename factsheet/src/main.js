@@ -530,11 +530,11 @@ window.addEventListener('keydown', e => {
 /* Aperçu 3D : les pages sont dessinées ici, la scène three.js est dans viewer3d.js (chargé à la première ouverture) */
 let viewerLoad = null;
 /* le bundle est chargé avec la version en paramètre : après une mise à jour, jamais l'ancienne copie du cache du navigateur (GitHub Pages : 10 min) */
-const loadViewer = () => window.FS3D ? Promise.resolve(window.FS3D) : (viewerLoad = viewerLoad || new Promise(async (res, rej) => {
+const loadBundle = async file => {
   let v = Date.now(); try { v = (await (await fetch('../version.json', { cache: 'no-store' })).json()).version || v; } catch (e) { /* hors ligne : on garde l'horodatage */ }
-  const s = h('script', { src: 'viewer3d.js?v=' + v, onload: () => res(window.FS3D), onerror: () => { viewerLoad = null; rej(new Error('viewer3d')); } });
-  document.head.append(s);
-}));
+  return new Promise((res, rej) => document.head.append(h('script', { src: `${file}?v=${v}`, onload: res, onerror: () => rej(new Error(file)) })));
+};
+const loadViewer = () => window.FS3D ? Promise.resolve(window.FS3D) : (viewerLoad = viewerLoad || loadBundle('viewer3d.js').then(() => window.FS3D, e => { viewerLoad = null; throw e; }));
 async function open3d() {
   hover.hide();
   let viewer;
@@ -563,6 +563,18 @@ function openExport() {
   dlg.showModal();
 }
 document.getElementById('exportCancel').addEventListener('click', () => dlg.close());
+/* PDF CMJN : bundle pdfexport.js (pdf-lib) chargé à la demande ; l'app écrit elle-même le PDF */
+document.getElementById('exportCmyk').addEventListener('click', async e => {
+  const btn = e.currentTarget, label = btn.textContent; btn.disabled = true; btn.textContent = t('Génération du PDF…');
+  try {
+    if (!window.FSPDF) await loadBundle('pdfexport.js');
+    const bytes = await window.FSPDF.build(doc, exportMode);
+    const name = (doc.name || 'factsheet') + (exportMode === 'net' ? '' : '-' + exportMode) + '-cmjn.pdf';
+    const a = h('a', { href: URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' })), download: name }); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    dlg.close();
+  } catch (err) { console.error(err); alert(t('Impossible de générer le PDF CMJN.') + ' ' + (err && err.message || '')); }
+  finally { btn.disabled = false; btn.textContent = label; }
+});
 document.getElementById('exportGo').addEventListener('click', async () => {
   dlg.close();
   const prev = document.title; document.title = (doc.name || 'factsheet') + (exportMode === 'net' ? '' : '-' + exportMode);

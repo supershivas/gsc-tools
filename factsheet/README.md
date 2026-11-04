@@ -82,3 +82,6 @@ Bouton « Exporter PDF… » : choix **A4 net** (210×297), **fond perdu 3 mm** 
 
 ## Phases suivantes
 Interactions pour les autres types (barres : glisser les valeurs…) · 6 finitions.
+
+## Export PDF CMJN
+`src/pdf/pdf.js` (bundle `pdfexport.js`) : le document est rendu hors écran puis relu élément par élément et réécrit en PDF vectoriel DeviceCMYK avec pdf-lib. Couleurs : valeurs CMJN de la palette (`THEMES.eu.cmyk`, `doc.cmyk` pour celles saisies dans l'onglet CMJN du sélecteur), conversion simple pour les couleurs hors palette et les pixels des images ; noir et gris = noir seul. Texte : polices incorporées (`fonts/pdf/`), chaque mot posé à la position mesurée dans le navigateur. Modes : A4 net, fond perdu 3 mm, fond perdu + traits de coupe (TrimBox, BleedBox). L'export par l'impression du navigateur (RVB) est conservé dans la même boîte de dialogue.

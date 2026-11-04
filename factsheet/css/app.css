@@ -50,9 +50,9 @@ details>.body{padding:2px 10px 10px}
 details details{background:#fafbfc}
 details.sel{border-color:#F28C28;box-shadow:0 0 0 2px #f28c2855}
 .badge{margin-left:auto;font-size:10px;font-weight:600;padding:1px 7px;border-radius:9px;background:#e8eefc;color:var(--ui-blue);text-transform:uppercase}
-.col-card{border:1px dashed var(--ui-line);border-radius:8px;padding:8px;margin-top:8px}
-.col-card.sel{border-color:#F28C28;background:#fff8ef}
-.col-card .chd{font-size:11px;color:var(--ui-mute);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.panel .col-card{border:1px dashed var(--ui-line);border-radius:8px;padding:8px;margin-top:8px}
+.panel .col-card.sel{border-color:#F28C28;background:#fff8ef}
+.panel .col-card .chd{font-size:11px;color:var(--ui-mute);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
 .hint{font-size:12px;color:var(--ui-mute);margin:4px 0 0}
 .thumb{height:40px;max-width:100%;border:1px solid var(--ui-line);border-radius:4px;background:#f3f4f7;object-fit:contain}
 .thumb.dark{background:#1C1C1E}

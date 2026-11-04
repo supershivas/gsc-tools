@@ -156,7 +156,7 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
       /* repères : px relatifs à la page du document → points sur la feuille */
       const base = [KX, 0, 0, -KY, off, Hp - off];
       const ops = []; const push = (...o) => ops.push(...o); const flush = () => { if (ops.length) { page.pushOperators(...ops); ops.length = 0; } };
-      const alphaOps = a => { if (a >= 0.999) return null; const k = a.toFixed(3); if (!gsCache.has(k)) { const d = pdf.context.obj({ Type: 'ExtGState', ca: a, CA: a }); gsCache.set(k, page.node.newExtGState('GS', d)); } return setGraphicsState(gsCache.get(k)); };
+      const alphaOps = (a, A = a) => { if (a >= 0.999 && A >= 0.999) return null; const k = a.toFixed(3) + '|' + A.toFixed(3); if (!gsCache.has(k)) { const d = pdf.context.obj({ Type: 'ExtGState', ca: a, CA: A }); gsCache.set(k, page.node.newExtGState('GS', d)); } return setGraphicsState(gsCache.get(k)); };
       const toPt = (x, y) => apply(base, x, y);
       const setFill = c => push(setFillingCmykColor(...c)), setStroke = c => push(setStrokingCmykColor(...c));
       /* chemins : liste de commandes en coordonnées utilisateur, transformées par M (utilisateur → px de page) */
@@ -171,7 +171,7 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
         if (!fillC && !strokeC) return;
         const swM = Math.sqrt(Math.abs(M[0] * M[3] - M[1] * M[2])) * Math.sqrt(KX * KY);   // largeur de trait en points
         push(pushGraphicsState());
-        const a = alphaOps(Math.min(fillC ? fillA : 1, strokeC ? strokeA : 1)); if (a) push(a);
+        const a = alphaOps(fillC ? fillA : 1, strokeC ? strokeA : 1); if (a) push(a);
         if (fillC) { setFill(fillC); emitPath(path, M); push(evenodd ? PDFOperator.of(PDFOperatorNames.FillEvenOdd) : fill()); }
         if (strokeC && sw > 0) {
           setStroke(strokeC); push(setLineWidth(sw * swM)); if (cap) push(setLineCap(cap)); if (join) push(setLineJoin(join));
