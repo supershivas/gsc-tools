@@ -392,6 +392,10 @@
     "Annuler": "Cancel",
     "Exporter": "Export",
     "Terminer": "Done",
+    "Aucun (anneau seul)": "None (ring only)",
+    "Trait de liaison : longueur au-del\xE0 de la colonne (px)": "Link line: length beyond the column (px)",
+    "Trait de liaison : couleur": "Link line: colour",
+    "Trait de liaison vers l\u2019ext\xE9rieur (jusqu\u2019au bord de la colonne et au-del\xE0)": "Link line outwards (to the column edge and beyond)",
     "Au-dessus": "Above",
     "Libell\xE9s dans les barres": "Labels inside the bars",
     "Graduations : nombre de segments dans la barre la plus longue (0 = aucune)": "Graduations: number of segments in the longest bar (0 = none)",
@@ -1472,6 +1476,7 @@
     });
   }
   var norm = (a2) => (a2 % 360 + 360) % 360;
+  var hasLabel = (g) => !!(String(g.title || "").trim() || String(g.text || "").trim());
   var ORANGE = "#F28C28";
   var donut_default = {
     label: "Anneau / camembert",
@@ -1481,6 +1486,8 @@
     heights: ["auto", "fixed", "fill"],
     defaults: () => ({
       style: "donut",
+      linkExtra: 24,
+      linkColor: "blue",
       totalTpl: "\u20AC{total}\nbillion",
       decimals: 1,
       layout: "auto",
@@ -1501,7 +1508,9 @@
       { k: "decimals", t: "number", label: "D\xE9cimales du total", min: 0, max: 4 },
       { k: "ringAlign", t: "select", label: "Position verticale de l\u2019anneau", options: { top: "En haut", center: "Centr\xE9 sur le contenu", bottom: "En bas" } },
       { k: "leading", t: "select", label: "Interlignage des textes", options: { tight: "Serr\xE9 (15 px)", normal: "Normal (18 px)", loose: "Large (21 px)" } },
-      { k: "layout", t: "select", label: "Libell\xE9s", options: { auto: "Auto (selon la largeur)", around: "Autour de l\u2019anneau", legend: "L\xE9gende sous l\u2019anneau" } },
+      { k: "layout", t: "select", label: "Libell\xE9s", options: { auto: "Auto (selon la largeur)", around: "Autour de l\u2019anneau", legend: "L\xE9gende sous l\u2019anneau", none: "Aucun (anneau seul)" } },
+      { k: "linkExtra", t: "number", label: "Trait de liaison : longueur au-del\xE0 de la colonne (px)", min: 0, max: 120 },
+      { k: "linkColor", t: "color", label: "Trait de liaison : couleur", def: "blue" },
       { k: "orient", t: "select", label: "Orientation de l\u2019anneau", options: { largest: "Plus grand segment \xE0 un angle donn\xE9", first: "1er segment en haut", manual: "Manuelle (glisser l\u2019anneau dans l\u2019\xE9diteur)" } },
       { k: "largestAngle", t: "number", label: "Angle du plus grand segment (\xB0 \u2014 0 = haut, 210 = bas gauche)", min: 0, max: 359 },
       { k: "startAngle", t: "number", label: "Angle de d\xE9part du 1er segment (\xB0 \u2014 mode manuel)", min: 0, max: 359, step: "any" },
@@ -1517,7 +1526,8 @@
           { k: "value", t: "number", label: "Valeur", min: 0, step: "any" },
           { k: "title", t: "text", label: "Titre (gras)" },
           { k: "text", t: "area", label: "Texte" },
-          { k: "side", t: "select", label: "C\xF4t\xE9 du libell\xE9", options: { auto: "Auto", left: "Gauche", right: "Droite" } }
+          { k: "side", t: "select", label: "C\xF4t\xE9 du libell\xE9", options: { auto: "Auto", left: "Gauche", right: "Droite" } },
+          { k: "link", t: "bool", label: "Trait de liaison vers l\u2019ext\xE9rieur (jusqu\u2019au bord de la colonne et au-del\xE0)" }
         ]
       }
     ],
@@ -1598,7 +1608,7 @@
       const LH = LEAD[o.leading] || LEAD.normal;
       const segs = (o.segments || []).filter((g) => +g.value > 0);
       const total = segs.reduce((a3, g) => a3 + +g.value, 0);
-      const around = o.layout === "around" || o.layout !== "legend" && W >= VIZ.aroundMinW;
+      const bare = o.layout === "none", around = !bare && (o.layout === "around" || o.layout !== "legend" && W >= VIZ.aroundMinW);
       if (!segs.length) return { node: s("svg", { width: W, height: 60 }) };
       const sweeps = segs.map((g) => g.value / total * 360);
       let mi = 0;
@@ -1614,7 +1624,7 @@
         a2 += sweeps[i];
         return r;
       });
-      const D = around ? Math.max(VIZ.ringMin, Math.min(VIZ.ringMax, round3(W * 0.3))) : Math.min(VIZ.ringLegend, round3(W - 6));
+      const D = around ? Math.max(VIZ.ringMin, Math.min(VIZ.ringMax, round3(W * 0.3))) : bare ? Math.min(VIZ.ringMax, round3(W - 6)) : Math.min(VIZ.ringLegend, round3(W - 6));
       const pie = o.style === "pie";
       const Ro = D / 2 - SW, Ri = pie ? 0 : Ro * (1 - VIZ.ringPct);
       const sector = (cx2, cy2, p) => {
@@ -1699,26 +1709,31 @@
         });
         return out;
       };
+      const linkNodes = (cx2, cy2) => arcs.filter((p) => p.g.link).map((p) => {
+        const th = p.g.anchorT != null ? p.a0 + (p.a1 - p.a0) * p.g.anchorT : (p.a0 + p.a1) / 2, dir = Math.sin(rad(th)) >= 0 ? 1 : -1;
+        const x = cx2 + Ro * Math.sin(rad(th)), y = cy2 - Ro * Math.cos(rad(th)), x2 = dir > 0 ? W + (+o.linkExtra || 0) : -(+o.linkExtra || 0);
+        return s("path", { d: `M${x},${y}H${x2}`, fill: "none", stroke: colorRef(o.linkColor || "blue"), "stroke-width": SW, "stroke-linecap": "round" });
+      });
       const metaBase = { start, arcs: arcs.map((p) => ({ i: idxOf(p.g), a0: p.a0, a1: p.a1 })), Ro, Ri, W };
       if (!around) {
         const cx2 = W / 2, cy2 = Ro + SW, svg2 = s("svg", { width: W, height: 10, style: { display: "block", overflow: "visible" } });
-        svg2.append(...ringNodes(cx2, cy2), centerNode(cx2, cy2));
+        svg2.append(...ringNodes(cx2, cy2), centerNode(cx2, cy2), ...linkNodes(cx2, cy2));
         let y = cy2 + Ro + GAP.subsectionTitle * 2;
         const sw = VIZ.legendSwatch, tx = sw + VIZ.iconGap;
-        for (const p of arcs) {
+        for (const p of bare ? [] : arcs.filter((q) => hasLabel(q.g))) {
           const lines = textLines(p.g.title, p.g.text, BODY, W - tx);
           svg2.append(s("rect", { x: SW / 2, y: y + (LH - sw) / 2 + SW / 2, width: sw - SW, height: sw - SW, rx: VIZ.barRadius, fill: colorRef(p.g.color), stroke: "currentColor", "stroke-width": SW }));
           svg2.append(drawLines(lines, tx, y, LH, BODY));
           y += lines.length * LH + VIZ.blockGap;
         }
-        const H2 = Math.ceil(y - VIZ.blockGap);
+        const H2 = bare || !arcs.some((q) => hasLabel(q.g)) ? Math.ceil(cy2 + Ro + SW) : Math.ceil(y - VIZ.blockGap);
         svg2.setAttribute("height", H2);
         svg2.setAttribute("viewBox", `0 0 ${W} ${H2}`);
         return { node: svg2, meta: { ...metaBase, cx: cx2, cy: cy2, H: H2, around: false, items: [] } };
       }
       const room = (W - D) / 2, labelW = Math.max(60, Math.min(room - VIZ.leaderRoom, 264));
       const cx = W / 2;
-      const items = arcs.map((p) => {
+      const items = arcs.filter((p) => hasLabel(p.g)).map((p) => {
         const mid = norm((p.a0 + p.a1) / 2);
         const autoSide = mid < 180 ? 1 : -1;
         const side = p.g.side === "left" ? -1 : p.g.side === "right" ? 1 : autoSide;
@@ -1748,7 +1763,7 @@
       H = Math.ceil(Math.max(H, cy + Ro + SW));
       const svg = s("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: "block", overflow: "visible" } });
       if (ui && ui.drag === "label") for (const sd of [-1, 1]) svg.append(s("rect", { x: sd > 0 ? W - labelW : 0, y: 0, width: labelW, height: H, fill: ORANGE, "fill-opacity": 0.08, stroke: ORANGE, "stroke-dasharray": "4 3", "stroke-width": 1, "pointer-events": "none" }));
-      svg.append(...ringNodes(cx, cy), centerNode(cx, cy));
+      svg.append(...ringNodes(cx, cy), centerNode(cx, cy), ...linkNodes(cx, cy));
       for (const it of items) {
         const right2 = it.side > 0, x = right2 ? W - labelW : 0, ly = it.top + LH / 2;
         const E = { x: right2 ? x - VIZ.leaderGap : x + it.first + VIZ.leaderGap, y: ly };

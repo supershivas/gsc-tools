@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.50.0 — 2026-11-04
+- Anneau : un segment sans titre ni texte n'a plus de libellé ni de trait de repère, et l'option « Aucun (anneau seul) » supprime tous les libellés
+- Anneau : « trait de liaison » par segment, horizontal, du bord du segment jusqu'au bord de la colonne et au-delà (longueur et couleur réglables), pour le relier à l'accolade d'une colonne voisine
+
 ## 1.49.0 — 2026-11-04
 - Chiffre à côté : nouvelle position « Au-dessus » (gros chiffre au-dessus de la dataviz, du texte ou de la carte)
 - Barres horizontales : libellés dans les barres et graduations (segments)

@@ -16,13 +16,14 @@ function resolveColumn(items, topLim, gap) {          // empile sans chevaucheme
 
 function clearManual(o) { (o.segments || []).forEach(g => { delete g.pin; delete g.anchorT; delete g.side; }); }
 const norm = a => ((a % 360) + 360) % 360;
+const hasLabel = g => !!(String(g.title || '').trim() || String(g.text || '').trim());   // un segment sans titre ni texte n'a ni libellé ni trait de repère
 const ORANGE = '#F28C28';
 
 export default {
   label: 'Anneau / camembert',
   icon: 'chart-donut', family: 'part', boxed: true, heights: ['auto', 'fixed', 'fill'],
   defaults: () => ({
-    style: 'donut', totalTpl: '€{total}\nbillion', decimals: 1, layout: 'auto', orient: 'largest', largestAngle: 210, startAngle: 0,
+    style: 'donut', linkExtra: 24, linkColor: 'blue', totalTpl: '€{total}\nbillion', decimals: 1, layout: 'auto', orient: 'largest', largestAngle: 210, startAngle: 0,
     segments: [
       { color: 'grey', value: 114.4, title: '€114.4 billion', text: 'provided from or guaranteed by the EU budget (including **€43.9 billion** within Ukraine Facility and **€16.9 billion** from Ukraine Support Loan)' },
       { color: 'blue', value: 77.9, title: '€77.9 billion', text: 'in military support from Member States' },
@@ -37,7 +38,9 @@ export default {
     { k: 'decimals', t: 'number', label: 'Décimales du total', min: 0, max: 4 },
     { k: 'ringAlign', t: 'select', label: 'Position verticale de l’anneau', options: { top: 'En haut', center: 'Centré sur le contenu', bottom: 'En bas' } },
     { k: 'leading', t: 'select', label: 'Interlignage des textes', options: { tight: 'Serré (15 px)', normal: 'Normal (18 px)', loose: 'Large (21 px)' } },
-    { k: 'layout', t: 'select', label: 'Libellés', options: { auto: 'Auto (selon la largeur)', around: 'Autour de l’anneau', legend: 'Légende sous l’anneau' } },
+    { k: 'layout', t: 'select', label: 'Libellés', options: { auto: 'Auto (selon la largeur)', around: 'Autour de l’anneau', legend: 'Légende sous l’anneau', none: 'Aucun (anneau seul)' } },
+    { k: 'linkExtra', t: 'number', label: 'Trait de liaison : longueur au-delà de la colonne (px)', min: 0, max: 120 },
+    { k: 'linkColor', t: 'color', label: 'Trait de liaison : couleur', def: 'blue' },
     { k: 'orient', t: 'select', label: 'Orientation de l’anneau', options: { largest: 'Plus grand segment à un angle donné', first: '1er segment en haut', manual: 'Manuelle (glisser l’anneau dans l’éditeur)' } },
     { k: 'largestAngle', t: 'number', label: 'Angle du plus grand segment (° — 0 = haut, 210 = bas gauche)', min: 0, max: 359 },
     { k: 'startAngle', t: 'number', label: 'Angle de départ du 1er segment (° — mode manuel)', min: 0, max: 359, step: 'any' },
@@ -45,7 +48,8 @@ export default {
       item: () => ({ color: 'sky', value: 10, title: t('Titre'), text: t('Texte') }),
       fields: [{ k: 'color', t: 'color', label: 'Couleur' }, { k: 'value', t: 'number', label: 'Valeur', min: 0, step: 'any' },
         { k: 'title', t: 'text', label: 'Titre (gras)' }, { k: 'text', t: 'area', label: 'Texte' },
-        { k: 'side', t: 'select', label: 'Côté du libellé', options: { auto: 'Auto', left: 'Gauche', right: 'Droite' } }] },
+        { k: 'side', t: 'select', label: 'Côté du libellé', options: { auto: 'Auto', left: 'Gauche', right: 'Droite' } },
+        { k: 'link', t: 'bool', label: 'Trait de liaison vers l’extérieur (jusqu’au bord de la colonne et au-delà)' }] },
   ],
   actions: [
     { label: '↺ Positions auto', title: 'Efface les positions manuelles des libellés, points d’ancrage et côtés', run(o) { clearManual(o); } },
@@ -92,7 +96,7 @@ export default {
     const LH = LEAD[o.leading] || LEAD.normal;
     const segs = (o.segments || []).filter(g => +g.value > 0);
     const total = segs.reduce((a, g) => a + +g.value, 0);
-    const around = o.layout === 'around' || (o.layout !== 'legend' && W >= VIZ.aroundMinW);
+    const bare = o.layout === 'none', around = !bare && (o.layout === 'around' || (o.layout !== 'legend' && W >= VIZ.aroundMinW));
     if (!segs.length) return { node: s('svg', { width: W, height: 60 }) };
 
     // angles
@@ -104,7 +108,7 @@ export default {
     const arcs = segs.map((g, i) => { const r = { g, a0: a, a1: a + sweeps[i] }; a += sweeps[i]; return r; });
 
     // anneau
-    const D = around ? Math.max(VIZ.ringMin, Math.min(VIZ.ringMax, round3(W * 0.3))) : Math.min(VIZ.ringLegend, round3(W - 6));
+    const D = around ? Math.max(VIZ.ringMin, Math.min(VIZ.ringMax, round3(W * 0.3))) : bare ? Math.min(VIZ.ringMax, round3(W - 6)) : Math.min(VIZ.ringLegend, round3(W - 6));
     const pie = o.style === 'pie';
     const Ro = D / 2 - SW, Ri = pie ? 0 : Ro * (1 - VIZ.ringPct);
     const sector = (cx, cy, p) => {
@@ -150,21 +154,27 @@ export default {
       if (ui) arcs.forEach(p => { if (idxOf(p.g) === sel) out.push(s('path', { d: sector(cx, cy, p), fill: 'none', stroke: ORANGE, 'stroke-width': 2, 'stroke-linejoin': 'round', 'pointer-events': 'none' })); });
       return out;
     };
+    /* trait de liaison : part du bord extérieur du segment, horizontal, jusqu'au bord de la colonne puis `linkExtra` px au-delà (ex. vers l'accolade d'une colonne voisine) */
+    const linkNodes = (cx, cy) => arcs.filter(p => p.g.link).map(p => {
+      const th = p.g.anchorT != null ? p.a0 + (p.a1 - p.a0) * p.g.anchorT : (p.a0 + p.a1) / 2, dir = Math.sin(rad(th)) >= 0 ? 1 : -1;
+      const x = cx + Ro * Math.sin(rad(th)), y = cy - Ro * Math.cos(rad(th)), x2 = dir > 0 ? W + (+o.linkExtra || 0) : -(+o.linkExtra || 0);
+      return s('path', { d: `M${x},${y}H${x2}`, fill: 'none', stroke: colorRef(o.linkColor || 'blue'), 'stroke-width': SW, 'stroke-linecap': 'round' });
+    });
     const metaBase = { start, arcs: arcs.map(p => ({ i: idxOf(p.g), a0: p.a0, a1: p.a1 })), Ro, Ri, W };
 
     /* ----- Mode légende (colonnes étroites) ----- */
     if (!around) {
       const cx = W / 2, cy = Ro + SW, svg = s('svg', { width: W, height: 10, style: { display: 'block', overflow: 'visible' } });
-      svg.append(...ringNodes(cx, cy), centerNode(cx, cy));
+      svg.append(...ringNodes(cx, cy), centerNode(cx, cy), ...linkNodes(cx, cy));
       let y = cy + Ro + GAP.subsectionTitle * 2;
       const sw = VIZ.legendSwatch, tx = sw + VIZ.iconGap;
-      for (const p of arcs) {
+      for (const p of bare ? [] : arcs.filter(q => hasLabel(q.g))) {
         const lines = textLines(p.g.title, p.g.text, BODY, W - tx);
         svg.append(s('rect', { x: SW / 2, y: y + (LH - sw) / 2 + SW / 2, width: sw - SW, height: sw - SW, rx: VIZ.barRadius, fill: colorRef(p.g.color), stroke: 'currentColor', 'stroke-width': SW }));
         svg.append(drawLines(lines, tx, y, LH, BODY));
         y += lines.length * LH + VIZ.blockGap;
       }
-      const H = Math.ceil(y - VIZ.blockGap);
+      const H = bare || !arcs.some(q => hasLabel(q.g)) ? Math.ceil(cy + Ro + SW) : Math.ceil(y - VIZ.blockGap);
       svg.setAttribute('height', H); svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
       return { node: svg, meta: { ...metaBase, cx, cy, H, around: false, items: [] } };
     }
@@ -172,7 +182,7 @@ export default {
     /* ----- Mode « autour de l'anneau » ----- */
     const room = (W - D) / 2, labelW = Math.max(60, Math.min(room - VIZ.leaderRoom, 264));
     const cx = W / 2;
-    const items = arcs.map(p => {
+    const items = arcs.filter(p => hasLabel(p.g)).map(p => {
       const mid = norm((p.a0 + p.a1) / 2);
       const autoSide = mid < 180 ? 1 : -1;
       const side = p.g.side === 'left' ? -1 : p.g.side === 'right' ? 1 : autoSide;
@@ -199,7 +209,7 @@ export default {
     H = Math.ceil(Math.max(H, cy + Ro + SW));
     const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });
     if (ui && ui.drag === 'label') for (const sd of [-1, 1]) svg.append(s('rect', { x: sd > 0 ? W - labelW : 0, y: 0, width: labelW, height: H, fill: ORANGE, 'fill-opacity': 0.08, stroke: ORANGE, 'stroke-dasharray': '4 3', 'stroke-width': 1, 'pointer-events': 'none' }));
-    svg.append(...ringNodes(cx, cy), centerNode(cx, cy));
+    svg.append(...ringNodes(cx, cy), centerNode(cx, cy), ...linkNodes(cx, cy));
     for (const it of items) {
       const right = it.side > 0, x = right ? W - labelW : 0, ly = it.top + LH / 2;
       const E = { x: right ? x - VIZ.leaderGap : x + it.first + VIZ.leaderGap, y: ly };
