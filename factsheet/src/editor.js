@@ -73,8 +73,8 @@ const mkToHtml = t => {
 function htmlToMk(root) {
   const lines = []; let cur = [];
   const emit = () => {
-    const runs = []; for (const r of cur) { const l = runs[runs.length - 1]; if (l && l.b === r.b && l.i === r.i && l.u === r.u) l.t += r.t; else runs.push({ ...r }); }
-    return runs.filter(r => r.t !== '').map(r => { let t = r.t; if (!t.trim()) return t; if (r.i) t = `~~${t}~~`; if (r.b) t = `**${t}**`; if (r.u) t = `__${t}__`; return t; }).join('');
+    const runs = []; for (const r of cur) { const l = runs[runs.length - 1]; if (l && l.b === r.b && l.i === r.i && l.u === r.u && l.sup === r.sup && l.sub === r.sub) l.t += r.t; else runs.push({ ...r }); }
+    return runs.filter(r => r.t !== '').map(r => { let t = r.t; if (!t.trim()) return t; if (r.sub) t = `,,${t},,`; if (r.sup) t = `^^${t}^^`; if (r.i) t = `~~${t}~~`; if (r.b) t = `**${t}**`; if (r.u) t = `__${t}__`; return t; }).join('');
   };
   const flush = bullet => { const t = emit().trim(); cur = []; if (t) lines.push((bullet ? '- ' : '') + t); };
   const walk = (n, st, bullet) => {
@@ -84,6 +84,8 @@ function htmlToMk(root) {
     if (tag === 'BR') { cur.push({ t: '\u2028', ...st }); return; }   // retour à la ligne (Maj + Entrée) : reste dans le paragraphe
     if (tag === 'B' || tag === 'STRONG' || fw === 'bold' || +fw >= 600) s.b = true;
     if (tag === 'I' || tag === 'EM' || n.style.fontStyle === 'italic') s.i = true;
+    if (tag === 'SUP') s.sup = true;
+    if (tag === 'SUB') s.sub = true;
     if (tag === 'U' || /underline/.test(n.style.textDecoration)) s.u = true;
     if (tag === 'UL' || tag === 'OL') { for (const c of n.childNodes) walk(c, s, true); return; }
     const block = tag === 'LI' || tag === 'DIV' || tag === 'P';
@@ -92,7 +94,7 @@ function htmlToMk(root) {
     for (const c of n.childNodes) walk(c, s, b2);
     if (block) flush(b2);
   };
-  for (const c of root.childNodes) walk(c, { b: false, i: false, u: false }, false);
+  for (const c of root.childNodes) walk(c, { b: false, i: false, u: false, sup: false, sub: false }, false);
   flush(false);
   return lines.join('\n');
 }
@@ -100,7 +102,7 @@ export function richEditor(value, onChange, opts = {}) {
   const ed = h('div', { class: 're', contentEditable: 'true', spellcheck: 'true', innerHTML: mkToHtml(value) });
   const cmd = c => () => { ed.focus(); document.execCommand(c); onChange(htmlToMk(ed)); sync(); };
   const mk = (label, title, c, style) => { const b = h('button', { type: 'button', class: 'mini', textContent: label, title, style, dataset: { cmd: c }, onmousedown: e => e.preventDefault(), onclick: cmd(c) }); return b; };
-  const bar = h('div', { class: 'row fmt' }, mk('B', 'Gras', 'bold', { fontWeight: 800 }), mk('I', 'Italique', 'italic', { fontStyle: 'italic' }), mk('U', 'Souligné', 'underline', { textDecoration: 'underline' }), opts.bullets === false ? null : (() => { const b = mk('', 'Liste à puces', 'insertUnorderedList'); b.append(ico('list')); return b; })());
+  const bar = h('div', { class: 'row fmt' }, mk('B', 'Gras', 'bold', { fontWeight: 800 }), mk('I', 'Italique', 'italic', { fontStyle: 'italic' }), mk('U', 'Souligné', 'underline', { textDecoration: 'underline' }), mk('x²', 'Exposant', 'superscript'), mk('x₂', 'Indice', 'subscript'), opts.bullets === false ? null : (() => { const b = mk('', 'Liste à puces', 'insertUnorderedList'); b.append(ico('list')); return b; })());
   const sync = () => bar.querySelectorAll('[data-cmd]').forEach(b => { let on = false; try { on = document.queryCommandState(b.dataset.cmd); } catch (e) {} b.classList.toggle('on', on); });
   ed.addEventListener('input', () => onChange(htmlToMk(ed)));
   ed.addEventListener('keyup', sync); ed.addEventListener('mouseup', sync); ed.addEventListener('focus', sync);

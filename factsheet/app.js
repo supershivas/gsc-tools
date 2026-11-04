@@ -392,6 +392,8 @@
     "Annuler": "Cancel",
     "Exporter": "Export",
     "Terminer": "Done",
+    "Exposant": "Superscript",
+    "Indice": "Subscript",
     "Entr\xE9e = nouveau paragraphe \xB7 Maj + Entr\xE9e = retour \xE0 la ligne": "Enter = new paragraph \xB7 Shift + Enter = line break",
     "Cercle autour de l\u2019ic\xF4ne": "Circle around the icon",
     "Espace entre les \xE9l\xE9ments": "Space between items",
@@ -1356,7 +1358,7 @@
         out.push({ runs: cur, head });
       }
     };
-    if (title && title.trim()) add("**" + title.replace(/\*\*|__|~~/g, "") + "**", true);
+    if (title && title.trim()) add("**" + title.replace(/\*\*|__|~~|\^\^|,,/g, "") + "**", true);
     if (text && text.trim()) add(text, false);
     return out;
   }
@@ -1459,8 +1461,8 @@
     if (!env || !env.ui) return null;
     return s("rect", { x, y, width: Math.max(1, w), height: Math.max(1, h2), fill: "rgba(0,0,0,0)", "data-reorder": `${key}:${i}`, "data-axis": axis, style: { cursor: "grab" } });
   }
-  var inlineMk = (t2) => String(t2 ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/__(.+?)__/g, "<u>$1</u>").replace(/~~(.+?)~~/g, "<i>$1</i>").replace(/\u2028/g, "<br>");
-  var stripMk = (t2) => String(t2 ?? "").replace(/\u2028/g, " ").replace(/\*\*|__|~~/g, "");
+  var inlineMk = (t2) => String(t2 ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/__(.+?)__/g, "<u>$1</u>").replace(/~~(.+?)~~/g, "<i>$1</i>").replace(/\^\^(.+?)\^\^/g, "<sup>$1</sup>").replace(/,,(.+?),,/g, "<sub>$1</sub>").replace(/\u2028/g, "<br>");
+  var stripMk = (t2) => String(t2 ?? "").replace(/\u2028/g, " ").replace(/\*\*|__|~~|\^\^|,,/g, "");
 
   // src/viz/donut.js
   var BODY = pxOf(TYPE.body.size);
@@ -4929,7 +4931,7 @@ ${short}`)])
       wrap.style.justifyContent = { start: "flex-start", center: "center", end: "flex-end" }[al];
       w = insetW(w);
     } else wrap.style.alignSelf = al;
-    const strip2 = (x) => String(x || "").replace(/\*\*|__|~~/g, "").replace(/^[-•]\s+/gm, "").split("\n").find((l) => l.trim()) || "";
+    const strip2 = (x) => String(x || "").replace(/\*\*|__|~~|\^\^|,,/g, "").replace(/^[-•]\s+/gm, "").split("\n").find((l) => l.trim()) || "";
     const side = (label, core) => composeSide(col.side, w, env, { pct: "", value: "", total: "", label }, core).node;
     if (col.type === "text") wrap.append(side(strip2(col.text), (ww) => ({ node: col.side && col.side.pos !== "none" ? h("div", { style: { width: ww + "px" } }, richText(col.text, col.align)) : richText(col.text, col.align) })));
     else if (col.type === "image") {
@@ -5475,7 +5477,7 @@ ${short}`)])
   }
 
   // src/tree.js
-  var strip = (t2) => String(t2 || "").replace(/\*\*|__|~~/g, "").replace(/^[-•]\s+/gm, "").replace(/\s+/g, " ").trim();
+  var strip = (t2) => String(t2 || "").replace(/\*\*|__|~~|\^\^|,,/g, "").replace(/^[-•]\s+/gm, "").replace(/\s+/g, " ").trim();
   var ICON = { text: "text-size", image: "photo", figure: "number", card: "layout-cards", viz: "chart-bar" };
   function colLabel(col) {
     if (col.type === "text") return strip(col.text).slice(0, 34) || "Texte vide";
@@ -5805,12 +5807,14 @@ ${short}`)])
       const runs = [];
       for (const r of cur) {
         const l = runs[runs.length - 1];
-        if (l && l.b === r.b && l.i === r.i && l.u === r.u) l.t += r.t;
+        if (l && l.b === r.b && l.i === r.i && l.u === r.u && l.sup === r.sup && l.sub === r.sub) l.t += r.t;
         else runs.push({ ...r });
       }
       return runs.filter((r) => r.t !== "").map((r) => {
         let t2 = r.t;
         if (!t2.trim()) return t2;
+        if (r.sub) t2 = `,,${t2},,`;
+        if (r.sup) t2 = `^^${t2}^^`;
         if (r.i) t2 = `~~${t2}~~`;
         if (r.b) t2 = `**${t2}**`;
         if (r.u) t2 = `__${t2}__`;
@@ -5835,6 +5839,8 @@ ${short}`)])
       }
       if (tag === "B" || tag === "STRONG" || fw === "bold" || +fw >= 600) s2.b = true;
       if (tag === "I" || tag === "EM" || n.style.fontStyle === "italic") s2.i = true;
+      if (tag === "SUP") s2.sup = true;
+      if (tag === "SUB") s2.sub = true;
       if (tag === "U" || /underline/.test(n.style.textDecoration)) s2.u = true;
       if (tag === "UL" || tag === "OL") {
         for (const c2 of n.childNodes) walk2(c2, s2, true);
@@ -5846,7 +5852,7 @@ ${short}`)])
       for (const c2 of n.childNodes) walk2(c2, s2, b2);
       if (block) flush2(b2);
     };
-    for (const c2 of root.childNodes) walk2(c2, { b: false, i: false, u: false }, false);
+    for (const c2 of root.childNodes) walk2(c2, { b: false, i: false, u: false, sup: false, sub: false }, false);
     flush2(false);
     return lines.join("\n");
   }
@@ -5862,7 +5868,7 @@ ${short}`)])
       const b = h("button", { type: "button", class: "mini", textContent: label, title, style, dataset: { cmd: c2 }, onmousedown: (e) => e.preventDefault(), onclick: cmd(c2) });
       return b;
     };
-    const bar = h("div", { class: "row fmt" }, mk("B", "Gras", "bold", { fontWeight: 800 }), mk("I", "Italique", "italic", { fontStyle: "italic" }), mk("U", "Soulign\xE9", "underline", { textDecoration: "underline" }), opts.bullets === false ? null : (() => {
+    const bar = h("div", { class: "row fmt" }, mk("B", "Gras", "bold", { fontWeight: 800 }), mk("I", "Italique", "italic", { fontStyle: "italic" }), mk("U", "Soulign\xE9", "underline", { textDecoration: "underline" }), mk("x\xB2", "Exposant", "superscript"), mk("x\u2082", "Indice", "subscript"), opts.bullets === false ? null : (() => {
       const b = mk("", "Liste \xE0 puces", "insertUnorderedList");
       b.append(ico("list"));
       return b;

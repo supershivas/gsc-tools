@@ -6,7 +6,7 @@ import { cssVars, applyVars } from './tokens.js';
 import { newSection, newSub } from './state.js';
 import { VIZ_TYPES } from './viz/index.js';
 
-const strip = t => String(t || '').replace(/\*\*|__|~~/g, '').replace(/^[-•]\s+/gm, '').replace(/\s+/g, ' ').trim();
+const strip = t => String(t || '').replace(/\*\*|__|~~|\^\^|,,/g, '').replace(/^[-•]\s+/gm, '').replace(/\s+/g, ' ').trim();
 const ICON = { text: 'text-size', image: 'photo', figure: 'number', card: 'layout-cards', viz: 'chart-bar' };
 
 function colLabel(col) {

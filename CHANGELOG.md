@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.53.0 — 2026-11-04
+- Texte riche : exposant et indice (x², x₂) en plus du gras, de l'italique et du souligné, dans tous les champs de texte riche
+
 ## 1.52.0 — 2026-11-04
 - Partout où l'on choisit une icône (liste à icônes, waffle, pictogrammes, icônes sous les barres, chiffre clé, en-tête du chiffre clé, cartes), « Importer un SVG… » est proposé au bas de la liste
 - Les icônes SVG importées sont communes à tout le document : disponibles dans tous les choix d'icône, y compris celles importées avant dans une dataviz

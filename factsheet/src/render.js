@@ -109,7 +109,7 @@ function renderCol(col, w, path, env) {
   const al = { top: 'start', center: 'center', bottom: 'end' }[col.valign] || 'start';
   if (isBox(col) && col.type !== 'card') { strokeStyle(wrap)(col); wrap.style.justifyContent = { start: 'flex-start', center: 'center', end: 'flex-end' }[al]; w = insetW(w); }
   else wrap.style.alignSelf = al;
-  const strip = x => String(x || '').replace(/\*\*|__|~~/g, '').replace(/^[-•]\s+/gm, '').split('\n').find(l => l.trim()) || '';
+  const strip = x => String(x || '').replace(/\*\*|__|~~|\^\^|,,/g, '').replace(/^[-•]\s+/gm, '').split('\n').find(l => l.trim()) || '';
   const side = (label, core) => composeSide(col.side, w, env, { pct: '', value: '', total: '', label }, core).node;
   if (col.type === 'text') wrap.append(side(strip(col.text), ww => ({ node: col.side && col.side.pos !== 'none' ? h('div', { style: { width: ww + 'px' } }, richText(col.text, col.align)) : richText(col.text, col.align) })));
   else if (col.type === 'image') {
