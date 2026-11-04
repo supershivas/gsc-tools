@@ -1,5 +1,6 @@
 /* Barres verticales : une série, groupées, jumelées (barre arrière décalée, comme sur les captures) ou empilées. */
 import { VIZ, TYPE } from '../tokens.js';
+import { iconNode, iconImportPanel } from './picto.js';
 import { reorderHit, heightOf, s, SW, colorRef, pxOf, fmt, SANS, SERIF, round3, textLines, drawLines, drawLegend, numVal, fitText } from './util.js';
 
 const barPath = (x, y, w, h, r) => {
@@ -30,7 +31,8 @@ export default {
     { k: 'callout.on', t: 'bool', label: 'Afficher l’accolade « évolution »' },
     { k: 'callout.value', t: 'text', label: 'Valeur de l’accolade (ex. +64 %)' },
     { k: 'callout.text', t: 'text', label: 'Texte de l’accolade' },
-    { t: 'table', k: 'rows', series: 'series', maxSeries: 4, label: 'Données' },
+    { t: 'table', k: 'rows', series: 'series', maxSeries: 4, label: 'Données', icons: true },
+    { t: 'node', g: 'data', build: (root, ctx) => { const n = document.createElement('div'); n.className = 'f'; n.append(...iconImportPanel(root, ctx)); return n; } },
   ],
   render(o, W, env) {
     const series = o.series || [], rows = o.rows || [], k = Math.max(1, series.length), n = Math.max(1, rows.length);
@@ -38,7 +40,8 @@ export default {
     const H = Math.max(120, heightOf(o, W, env, null));
     const co = o.callout && o.callout.on && rows.length > 1 ? o.callout : null;
     const x1 = W - (co ? VIZ.calloutW : 0);
-    const baseY = H - (o.legend ? VIZ.legendGap + VIZ.legendH : 0) - VIZ.catH, plotTop = VIZ.plotTop, plotH = baseY - plotTop;
+    const hasIcons = rows.some(r => r.icon && r.icon !== 'none'), iconSz = 33, catH = VIZ.catH + (hasIcons ? iconSz + 6 : 0);
+    const baseY = H - (o.legend ? VIZ.legendGap + VIZ.legendH : 0) - catH, plotTop = VIZ.plotTop, plotH = baseY - plotTop;
     const total = r => series.reduce((a, _, j) => a + numVal(r, j), 0);
     const metric = r => stacked ? total(r) : numVal(r, 0);       // valeur suivie par l'accolade
     let max = 0; rows.forEach(r => { if (stacked) max = Math.max(max, total(r)); else series.forEach((_, j) => { max = Math.max(max, numVal(r, j)); }); }); if (!max) max = 1;
@@ -89,9 +92,10 @@ export default {
       if (stacked) valText(barX[i][0] + bw / 2, yOf(total(r)) - 3, total(r));
       else series.forEach((_, j) => valText(barX[i][j] + bw / 2, yOf(numVal(r, j)) - 3, numVal(r, j)));
     });
-    rows.forEach((r, i) => { const f = fitText(r.label || '', TYPE.caption.weight, SANS, capPx, slot - 3, 0.6); svg.append(s('text', { x: slot * (i + 0.5), y: baseY + VIZ.catH / 2 + 0.33 * f.size + 1, 'text-anchor': 'middle', 'font-size': f.size, 'font-weight': TYPE.caption.weight }, f.text)); });
+    rows.forEach((r, i) => { const f = fitText(r.label || '', TYPE.caption.weight, SANS, capPx, slot - 3, 0.6); svg.append(s('text', { x: slot * (i + 0.5), y: baseY + (catH - VIZ.catH) + VIZ.catH / 2 + 0.33 * f.size + 1, 'text-anchor': 'middle', 'font-size': f.size, 'font-weight': TYPE.caption.weight }, f.text)); });
+    if (hasIcons) rows.forEach((r, i) => { if (r.icon && r.icon !== 'none') svg.append(iconNode(o, r.icon, slot * (i + 0.5) - iconSz / 2, baseY + 6, iconSz, iconSz, 'blue')); });
     if (o.legend) drawLegend(svg, series, H - VIZ.legendH, W);
-    rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'x', slot * i, 0, slot, baseY + VIZ.catH)));
+    rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'x', slot * i, 0, slot, baseY + catH)));
     return { node: svg };
   },
 };

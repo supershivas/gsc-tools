@@ -5,6 +5,7 @@ import { h, ico } from './render.js';
 import { t } from './i18n.js';
 import { colorSelect } from './colorselect.js';
 import { iconSelect } from './iconselect.js';
+import { pictoChoices } from './viz/picto.js';
 
 const num = c => { const n = parseFloat(String(c).replace(/\s/g, '').replace(',', '.')); return isNaN(n) ? null : n; };
 
@@ -38,12 +39,14 @@ export const hasHeader = (m, numericCols) => m.length > 1 && numericCols.some(j 
 export function tableAdapter(f, obj, palOpts, SERIES_COLORS) {
   const rows = obj[f.k], series = obj[f.series], max = f.maxSeries || 4;
   const fix = () => rows.forEach(r => { r.v = Array.from({ length: series.length }, (_, j) => +(r.v || [])[j] || 0); });
+  const ns = series.length, iconCol = f.icons ? [{ name: t('Icône'), type: 'text', isIcon: true, select: { none: t('Aucune'), ...pictoChoices(obj) } }] : [];
   return {
+    root: obj,
     cols: [{ name: t('Libellé'), type: 'text' }, ...series.map((sr, j) => ({ name: sr.name || '', type: 'number', color: sr.color, palOpts,
-      onColor: v => { sr.color = v; }, onRename: v => { sr.name = v; }, onDelete: series.length > 1 ? () => { series.splice(j, 1); fix(); } : null }))],
+      onColor: v => { sr.color = v; }, onRename: v => { sr.name = v; }, onDelete: series.length > 1 ? () => { series.splice(j, 1); fix(); } : null })), ...iconCol],
     rows: () => rows.length,
-    get: (i, j) => j === 0 ? rows[i].label || '' : String((rows[i].v || [])[j - 1] ?? 0),
-    set(i, j, v) { if (j === 0) rows[i].label = v; else { const n = num(v); (rows[i].v || (rows[i].v = []))[j - 1] = n === null ? 0 : n; } },
+    get: (i, j) => j === 0 ? rows[i].label || '' : j > ns ? rows[i].icon || 'none' : String((rows[i].v || [])[j - 1] ?? 0),
+    set(i, j, v) { if (j === 0) rows[i].label = v; else if (j > ns) rows[i].icon = v; else { const n = num(v); (rows[i].v || (rows[i].v = []))[j - 1] = n === null ? 0 : n; } },
     addRow: () => rows.push({ label: '', v: series.map(() => 0) }),
     delRow: i => { if (rows.length > 1) rows.splice(i, 1); },
     addCol: series.length < max ? () => { series.push({ name: `${t('Série')} ${series.length + 1}`, color: SERIES_COLORS[series.length % SERIES_COLORS.length] }); fix(); } : null,

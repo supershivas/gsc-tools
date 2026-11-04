@@ -16,6 +16,8 @@ export default {
   heights: ['auto', 'fixed', 'fill'],
   fields: [
     { k: 'style', t: 'select', label: 'Plusieurs séries', options: { grouped: 'Côte à côte', stacked: 'Empilées' } },
+    { k: 'labelIn', t: 'bool', label: 'Libellés dans les barres' },
+    { k: 'segments', t: 'number', label: 'Graduations : nombre de segments dans la barre la plus longue (0 = aucune)', min: 0, max: 20 },
     { k: 'legend', t: 'bool', label: 'Afficher la légende' },
     { k: 'showValues', t: 'bool', label: 'Afficher les valeurs' },
     { k: 'decimals', t: 'number', label: 'Décimales des valeurs', min: 0, max: 4 },
@@ -26,7 +28,7 @@ export default {
     const series = o.series || [], rows = o.rows || [], k = Math.max(1, series.length);
     const stacked = o.style === 'stacked';
     const capPx = pxOf(TYPE.caption.size), numPx = pxOf(TYPE.captionNum.size), suffix = o.suffix || '';
-    const labW = Math.min(W * 0.4, Math.max(0, ...rows.map(r => mw(r.label || '', TYPE.caption.weight, SANS, capPx))) + VIZ.iconGap);
+    const labW = o.labelIn ? 0 : Math.min(W * 0.4, Math.max(0, ...rows.map(r => mw(r.label || '', TYPE.caption.weight, SANS, capPx))) + VIZ.iconGap);
     const total = r => series.reduce((a, _, j) => a + numVal(r, j), 0);
     const valW = o.showValues ? mw(fmt(1000, env.locale, o.decimals) + suffix, 700, '"Source Serif 4", serif', numPx) + VIZ.barGap * 2 : 0;
     const x0 = labW, span = Math.max(30, W - labW - valW);
@@ -43,10 +45,16 @@ export default {
     const bodyH = rows.length * rh + gaps;
     const H = bodyH + legBlock;
     const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });
-    svg.append(s('line', { x1: x0, y1: 0, x2: x0, y2: bodyH, stroke: 'currentColor', 'stroke-width': SW }));
+    if (!o.labelIn) svg.append(s('line', { x1: x0, y1: 0, x2: x0, y2: bodyH, stroke: 'currentColor', 'stroke-width': SW }));
+    const nSeg = Math.max(0, Math.min(20, Math.floor(+o.segments || 0)));
+    /* graduations (traits de séparation des segments) et libellé dans la barre */
+    const decor = (yy, w, lab) => {
+      for (let q = 1; q < nSeg; q++) { const xx = x0 + span * q / nSeg; if (xx < x0 + w - 0.5) svg.append(s('line', { x1: xx, y1: yy, x2: xx, y2: yy + bh, stroke: 'currentColor', 'stroke-width': SW })); }
+      if (lab) { const f = fitText(lab, TYPE.caption.weight, SANS, capPx, Math.max(20, w - VIZ.iconGap * 2), 0.6); svg.append(s('text', { x: x0 + VIZ.iconGap, y: yy + bh / 2 + 0.33 * f.size, 'font-size': f.size, 'font-weight': TYPE.caption.weight }, f.text)); }
+    };
     rows.forEach((r, i) => {
       const y = i * (rh + VIZ.hRowGap);
-      { const f = fitText(r.label || '', TYPE.caption.weight, SANS, capPx, labW - VIZ.iconGap, 0.7); svg.append(s('text', { x: 0, y: y + rh / 2 + 0.33 * f.size, 'font-size': f.size, 'font-weight': TYPE.caption.weight }, f.text)); }
+      if (!o.labelIn) { const f = fitText(r.label || '', TYPE.caption.weight, SANS, capPx, labW - VIZ.iconGap, 0.7); svg.append(s('text', { x: 0, y: y + rh / 2 + 0.33 * f.size, 'font-size': f.size, 'font-weight': TYPE.caption.weight }, f.text)); }
       let end = x0;
       if (stacked) {
         let acc = 0;
@@ -55,9 +63,11 @@ export default {
           const xa = x0 + acc / max * span, w = v / max * span; acc += v; end = xa + w;
           svg.append(s('path', { d: acc >= total(r) ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`, fill: colorRef(sr.color), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round' }));
         });
+        decor(y, end - x0, o.labelIn ? r.label : '');
       } else series.forEach((sr, j) => {
         const w = numVal(r, j) / max * span, yy = y + j * (bh + VIZ.barGap); end = Math.max(end, x0 + w);
         svg.append(s('path', { d: hPath(x0, yy, Math.max(w, 0.0001), bh, VIZ.barRadius), fill: colorRef(sr.color), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round' }));
+        decor(yy, w, j === 0 && o.labelIn ? r.label : '');
         if (o.showValues) svg.append(s('text', { x: x0 + w + VIZ.barGap * 1.5, y: yy + bh / 2 + 0.33 * numPx, 'font-size': numPx, 'font-weight': 700, style: { fontFamily: 'var(--t-captionNum-family)' } }, fmt(numVal(r, j), env.locale, o.decimals) + suffix));
       });
       if (stacked && o.showValues) svg.append(s('text', { x: end + VIZ.barGap * 1.5, y: y + bh / 2 + 0.33 * numPx, 'font-size': numPx, 'font-weight': 700, style: { fontFamily: 'var(--t-captionNum-family)' } }, fmt(total(r), env.locale, o.decimals) + suffix));

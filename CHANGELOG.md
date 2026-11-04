@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.49.0 — 2026-11-04
+- Chiffre à côté : nouvelle position « Au-dessus » (gros chiffre au-dessus de la dataviz, du texte ou de la carte)
+- Barres horizontales : libellés dans les barres et graduations (segments)
+- Barres verticales : une icône (bibliothèque ou SVG importé, par exemple un drapeau) sous chaque barre, colonne « Icône » des données
+
 ## 1.48.0 — 2026-11-04
 - Chiffre clé : jusqu'à 3 chiffres côte à côte, barre de progression sous chaque chiffre, en-tête avec icône et petites capitales
 - Liste à icônes : option « Accolade à gauche »

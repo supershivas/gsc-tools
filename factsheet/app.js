@@ -392,6 +392,9 @@
     "Annuler": "Cancel",
     "Exporter": "Export",
     "Terminer": "Done",
+    "Au-dessus": "Above",
+    "Libell\xE9s dans les barres": "Labels inside the bars",
+    "Graduations : nombre de segments dans la barre la plus longue (0 = aucune)": "Graduations: number of segments in the longest bar (0 = none)",
     "Accolade \xE0 gauche": "Bracket on the left",
     "Hachures": "Stripes",
     "Barre de progression sous le chiffre (% ; 0 = pas de barre)": "Progress bar under the figure (%; 0 = no bar)",
@@ -1770,136 +1773,6 @@
     }
   };
 
-  // src/viz/bars.js
-  var barPath = (x, y, w, h2, r) => {
-    r = Math.max(0, Math.min(r, w / 2, h2));
-    return `M${x},${y + h2}L${x},${y + r}A${r},${r} 0 0 1 ${x + r},${y}L${x + w - r},${y}A${r},${r} 0 0 1 ${x + w},${y + r}L${x + w},${y + h2}Z`;
-  };
-  var bars_default = {
-    label: "Barres (jumel\xE9es, group\xE9es, empil\xE9es)",
-    icon: "chart-bar",
-    family: "compare",
-    defaults: () => ({
-      style: "overlap",
-      ratio: "16:9",
-      legend: true,
-      showValues: false,
-      decimals: 0,
-      suffix: "",
-      series: [{ name: "Label 1", color: "sky" }, { name: "Label 2", color: "yellow" }],
-      rows: [
-        { label: "2021", v: [50, 48] },
-        { label: "2022", v: [56, 54] },
-        { label: "2023", v: [72, 34] },
-        { label: "2024", v: [80, 38] },
-        { label: "2025", v: [82, 36] }
-      ],
-      callout: { on: true, value: "+64%", text: "text to the figures" }
-    }),
-    heights: ["ratio", "fixed", "fill"],
-    fields: [
-      { k: "style", t: "select", label: "Plusieurs s\xE9ries", options: { overlap: "Jumel\xE9es (2 s\xE9ries qui se chevauchent)", grouped: "C\xF4te \xE0 c\xF4te", stacked: "Empil\xE9es" } },
-      { k: "ratio", t: "select", label: "Format du graphique", options: { "2:1": "2:1 (large)", "16:9": "16:9", "3:2": "3:2", "1:1": "1:1 (carr\xE9)" } },
-      { k: "legend", t: "bool", label: "Afficher la l\xE9gende" },
-      { k: "showValues", t: "bool", label: "Afficher les valeurs (empil\xE9es : total)" },
-      { k: "decimals", t: "number", label: "D\xE9cimales des valeurs", min: 0, max: 4 },
-      { k: "suffix", t: "text", label: "Unit\xE9 apr\xE8s la valeur (%, M\u20AC\u2026)" },
-      { k: "callout.on", t: "bool", label: "Afficher l\u2019accolade \xAB \xE9volution \xBB" },
-      { k: "callout.value", t: "text", label: "Valeur de l\u2019accolade (ex. +64 %)" },
-      { k: "callout.text", t: "text", label: "Texte de l\u2019accolade" },
-      { t: "table", k: "rows", series: "series", maxSeries: 4, label: "Donn\xE9es" }
-    ],
-    render(o, W, env) {
-      const series = o.series || [], rows = o.rows || [], k = Math.max(1, series.length), n = Math.max(1, rows.length);
-      const stacked = o.style === "stacked", overlap = o.style === "overlap" && k === 2;
-      const H = Math.max(120, heightOf(o, W, env, null));
-      const co = o.callout && o.callout.on && rows.length > 1 ? o.callout : null;
-      const x1 = W - (co ? VIZ.calloutW : 0);
-      const baseY = H - (o.legend ? VIZ.legendGap + VIZ.legendH : 0) - VIZ.catH, plotTop = VIZ.plotTop, plotH = baseY - plotTop;
-      const total = (r) => series.reduce((a2, _, j) => a2 + numVal(r, j), 0);
-      const metric = (r) => stacked ? total(r) : numVal(r, 0);
-      let max2 = 0;
-      rows.forEach((r) => {
-        if (stacked) max2 = Math.max(max2, total(r));
-        else series.forEach((_, j) => {
-          max2 = Math.max(max2, numVal(r, j));
-        });
-      });
-      if (!max2) max2 = 1;
-      const slot = x1 / n;
-      const bw = stacked ? Math.min(slot * 0.5, VIZ.barMaxW) : overlap ? Math.min(slot * 0.44, VIZ.barMaxW) : Math.min((slot * 0.72 - (k - 1) * VIZ.barGap) / k, VIZ.barMaxW);
-      const capPx = pxOf(TYPE.caption.size), numPx = pxOf(TYPE.captionNum.size);
-      const yOf = (v) => baseY - v / max2 * plotH;
-      const suffix = o.suffix || "";
-      const svg = s("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: "block", overflow: "visible" } });
-      const barX = rows.map((_, i) => {
-        const cx = slot * (i + 0.5), xs = [];
-        if (stacked) series.forEach((_2, j) => {
-          xs[j] = cx - bw / 2;
-        });
-        else if (overlap) {
-          const gx = cx - bw * (1 + VIZ.pairOffset) / 2;
-          xs[1] = gx;
-          xs[0] = gx + bw * VIZ.pairOffset;
-        } else {
-          const tw = k * bw + (k - 1) * VIZ.barGap, gx = cx - tw / 2;
-          series.forEach((_2, j) => {
-            xs[j] = gx + j * (bw + VIZ.barGap);
-          });
-        }
-        return xs;
-      });
-      if (co) {
-        const yFirst = yOf(metric(rows[0])), yLast = yOf(metric(rows[rows.length - 1]));
-        const bx = x1 + VIZ.calloutGap / 2;
-        svg.append(s(
-          "g",
-          { fill: "none", stroke: "currentColor", "stroke-width": SW },
-          s("line", { x1: barX[0][0] + bw, y1: yFirst, x2: bx, y2: yFirst, "stroke-dasharray": "1.5 2" }),
-          s("path", { d: `M${bx - VIZ.calloutGap},${yLast}H${bx}V${yFirst}` })
-        ));
-        const cPx = pxOf(TYPE.callout.size), midY = (yFirst + yLast) / 2, tx = bx + VIZ.calloutGap + VIZ.leaderGap;
-        const tl = textLines("", co.text || "", capPx, VIZ.calloutW - (tx - x1) - 3);
-        const blockH = TYPE.callout.lh + tl.length * TYPE.caption.lh, top = Math.max(0, midY - blockH / 2);
-        const cv = fitText(co.value || "", TYPE.callout.weight, SANS, cPx, VIZ.calloutW - (tx - x1) - 3);
-        svg.append(s("text", { x: tx, y: top + TYPE.callout.lh / 2 + 0.33 * cv.size, "font-size": cv.size, "font-weight": TYPE.callout.weight }, cv.text));
-        svg.append(drawLines(tl.map((l) => ({ ...l, runs: l.runs.map((r) => ({ ...r, b: false })) })), tx, top + TYPE.callout.lh, TYPE.caption.lh, capPx));
-      }
-      const bar = (x, y, h2, color, round) => s("path", { d: round ? barPath(x, y, bw, Math.max(h2, 1e-4), VIZ.barRadius) : `M${x},${y}h${bw}v${h2}h${-bw}Z`, fill: colorRef(color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" });
-      rows.forEach((r, i) => {
-        if (stacked) {
-          let acc = 0;
-          series.forEach((sr, j) => {
-            const v = numVal(r, j);
-            if (!v) return;
-            const y0 = yOf(acc + v), h2 = yOf(acc) - y0;
-            acc += v;
-            svg.append(bar(barX[i][j], y0, h2, sr.color, j === series.length - 1 || acc >= total(r)));
-          });
-        } else series.forEach((sr, j) => {
-          const y = yOf(numVal(r, j));
-          svg.append(bar(barX[i][j], y, baseY - y, sr.color, true));
-        });
-      });
-      const vMax = slot / (stacked ? 1 : k) - 2;
-      const valText = (x, y, v) => {
-        const f = fitText(fmt(v, env.locale, o.decimals) + suffix, 700, SERIF, numPx, vMax, 0.5);
-        svg.append(s("text", { x, y, "text-anchor": "middle", "font-size": f.size, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, f.text));
-      };
-      if (o.showValues) rows.forEach((r, i) => {
-        if (stacked) valText(barX[i][0] + bw / 2, yOf(total(r)) - 3, total(r));
-        else series.forEach((_, j) => valText(barX[i][j] + bw / 2, yOf(numVal(r, j)) - 3, numVal(r, j)));
-      });
-      rows.forEach((r, i) => {
-        const f = fitText(r.label || "", TYPE.caption.weight, SANS, capPx, slot - 3, 0.6);
-        svg.append(s("text", { x: slot * (i + 0.5), y: baseY + VIZ.catH / 2 + 0.33 * f.size + 1, "text-anchor": "middle", "font-size": f.size, "font-weight": TYPE.caption.weight }, f.text));
-      });
-      if (o.legend) drawLegend(svg, series, H - VIZ.legendH, W);
-      rows.forEach((_, i) => svg.append(reorderHit(env, "rows", i, "x", slot * i, 0, slot, baseY + VIZ.catH)));
-      return { node: svg };
-    }
-  };
-
   // src/viz/icons.js
   var ICONS = {
     check: { label: "Valid\xE9", d: "M5 12.5l4.5 4.5L19 7.5" },
@@ -2275,6 +2148,146 @@
   }
   var pictoTypes = { pictoBars: make("rows"), pictoCols: make("cols"), pictoV: make("single_v"), pictoH: make("single_h") };
 
+  // src/viz/bars.js
+  var barPath = (x, y, w, h2, r) => {
+    r = Math.max(0, Math.min(r, w / 2, h2));
+    return `M${x},${y + h2}L${x},${y + r}A${r},${r} 0 0 1 ${x + r},${y}L${x + w - r},${y}A${r},${r} 0 0 1 ${x + w},${y + r}L${x + w},${y + h2}Z`;
+  };
+  var bars_default = {
+    label: "Barres (jumel\xE9es, group\xE9es, empil\xE9es)",
+    icon: "chart-bar",
+    family: "compare",
+    defaults: () => ({
+      style: "overlap",
+      ratio: "16:9",
+      legend: true,
+      showValues: false,
+      decimals: 0,
+      suffix: "",
+      series: [{ name: "Label 1", color: "sky" }, { name: "Label 2", color: "yellow" }],
+      rows: [
+        { label: "2021", v: [50, 48] },
+        { label: "2022", v: [56, 54] },
+        { label: "2023", v: [72, 34] },
+        { label: "2024", v: [80, 38] },
+        { label: "2025", v: [82, 36] }
+      ],
+      callout: { on: true, value: "+64%", text: "text to the figures" }
+    }),
+    heights: ["ratio", "fixed", "fill"],
+    fields: [
+      { k: "style", t: "select", label: "Plusieurs s\xE9ries", options: { overlap: "Jumel\xE9es (2 s\xE9ries qui se chevauchent)", grouped: "C\xF4te \xE0 c\xF4te", stacked: "Empil\xE9es" } },
+      { k: "ratio", t: "select", label: "Format du graphique", options: { "2:1": "2:1 (large)", "16:9": "16:9", "3:2": "3:2", "1:1": "1:1 (carr\xE9)" } },
+      { k: "legend", t: "bool", label: "Afficher la l\xE9gende" },
+      { k: "showValues", t: "bool", label: "Afficher les valeurs (empil\xE9es : total)" },
+      { k: "decimals", t: "number", label: "D\xE9cimales des valeurs", min: 0, max: 4 },
+      { k: "suffix", t: "text", label: "Unit\xE9 apr\xE8s la valeur (%, M\u20AC\u2026)" },
+      { k: "callout.on", t: "bool", label: "Afficher l\u2019accolade \xAB \xE9volution \xBB" },
+      { k: "callout.value", t: "text", label: "Valeur de l\u2019accolade (ex. +64 %)" },
+      { k: "callout.text", t: "text", label: "Texte de l\u2019accolade" },
+      { t: "table", k: "rows", series: "series", maxSeries: 4, label: "Donn\xE9es", icons: true },
+      { t: "node", g: "data", build: (root, ctx2) => {
+        const n = document.createElement("div");
+        n.className = "f";
+        n.append(...iconImportPanel(root, ctx2));
+        return n;
+      } }
+    ],
+    render(o, W, env) {
+      const series = o.series || [], rows = o.rows || [], k = Math.max(1, series.length), n = Math.max(1, rows.length);
+      const stacked = o.style === "stacked", overlap = o.style === "overlap" && k === 2;
+      const H = Math.max(120, heightOf(o, W, env, null));
+      const co = o.callout && o.callout.on && rows.length > 1 ? o.callout : null;
+      const x1 = W - (co ? VIZ.calloutW : 0);
+      const hasIcons = rows.some((r) => r.icon && r.icon !== "none"), iconSz = 33, catH = VIZ.catH + (hasIcons ? iconSz + 6 : 0);
+      const baseY = H - (o.legend ? VIZ.legendGap + VIZ.legendH : 0) - catH, plotTop = VIZ.plotTop, plotH = baseY - plotTop;
+      const total = (r) => series.reduce((a2, _, j) => a2 + numVal(r, j), 0);
+      const metric = (r) => stacked ? total(r) : numVal(r, 0);
+      let max2 = 0;
+      rows.forEach((r) => {
+        if (stacked) max2 = Math.max(max2, total(r));
+        else series.forEach((_, j) => {
+          max2 = Math.max(max2, numVal(r, j));
+        });
+      });
+      if (!max2) max2 = 1;
+      const slot = x1 / n;
+      const bw = stacked ? Math.min(slot * 0.5, VIZ.barMaxW) : overlap ? Math.min(slot * 0.44, VIZ.barMaxW) : Math.min((slot * 0.72 - (k - 1) * VIZ.barGap) / k, VIZ.barMaxW);
+      const capPx = pxOf(TYPE.caption.size), numPx = pxOf(TYPE.captionNum.size);
+      const yOf = (v) => baseY - v / max2 * plotH;
+      const suffix = o.suffix || "";
+      const svg = s("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: "block", overflow: "visible" } });
+      const barX = rows.map((_, i) => {
+        const cx = slot * (i + 0.5), xs = [];
+        if (stacked) series.forEach((_2, j) => {
+          xs[j] = cx - bw / 2;
+        });
+        else if (overlap) {
+          const gx = cx - bw * (1 + VIZ.pairOffset) / 2;
+          xs[1] = gx;
+          xs[0] = gx + bw * VIZ.pairOffset;
+        } else {
+          const tw = k * bw + (k - 1) * VIZ.barGap, gx = cx - tw / 2;
+          series.forEach((_2, j) => {
+            xs[j] = gx + j * (bw + VIZ.barGap);
+          });
+        }
+        return xs;
+      });
+      if (co) {
+        const yFirst = yOf(metric(rows[0])), yLast = yOf(metric(rows[rows.length - 1]));
+        const bx = x1 + VIZ.calloutGap / 2;
+        svg.append(s(
+          "g",
+          { fill: "none", stroke: "currentColor", "stroke-width": SW },
+          s("line", { x1: barX[0][0] + bw, y1: yFirst, x2: bx, y2: yFirst, "stroke-dasharray": "1.5 2" }),
+          s("path", { d: `M${bx - VIZ.calloutGap},${yLast}H${bx}V${yFirst}` })
+        ));
+        const cPx = pxOf(TYPE.callout.size), midY = (yFirst + yLast) / 2, tx = bx + VIZ.calloutGap + VIZ.leaderGap;
+        const tl = textLines("", co.text || "", capPx, VIZ.calloutW - (tx - x1) - 3);
+        const blockH = TYPE.callout.lh + tl.length * TYPE.caption.lh, top = Math.max(0, midY - blockH / 2);
+        const cv = fitText(co.value || "", TYPE.callout.weight, SANS, cPx, VIZ.calloutW - (tx - x1) - 3);
+        svg.append(s("text", { x: tx, y: top + TYPE.callout.lh / 2 + 0.33 * cv.size, "font-size": cv.size, "font-weight": TYPE.callout.weight }, cv.text));
+        svg.append(drawLines(tl.map((l) => ({ ...l, runs: l.runs.map((r) => ({ ...r, b: false })) })), tx, top + TYPE.callout.lh, TYPE.caption.lh, capPx));
+      }
+      const bar = (x, y, h2, color, round) => s("path", { d: round ? barPath(x, y, bw, Math.max(h2, 1e-4), VIZ.barRadius) : `M${x},${y}h${bw}v${h2}h${-bw}Z`, fill: colorRef(color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" });
+      rows.forEach((r, i) => {
+        if (stacked) {
+          let acc = 0;
+          series.forEach((sr, j) => {
+            const v = numVal(r, j);
+            if (!v) return;
+            const y0 = yOf(acc + v), h2 = yOf(acc) - y0;
+            acc += v;
+            svg.append(bar(barX[i][j], y0, h2, sr.color, j === series.length - 1 || acc >= total(r)));
+          });
+        } else series.forEach((sr, j) => {
+          const y = yOf(numVal(r, j));
+          svg.append(bar(barX[i][j], y, baseY - y, sr.color, true));
+        });
+      });
+      const vMax = slot / (stacked ? 1 : k) - 2;
+      const valText = (x, y, v) => {
+        const f = fitText(fmt(v, env.locale, o.decimals) + suffix, 700, SERIF, numPx, vMax, 0.5);
+        svg.append(s("text", { x, y, "text-anchor": "middle", "font-size": f.size, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, f.text));
+      };
+      if (o.showValues) rows.forEach((r, i) => {
+        if (stacked) valText(barX[i][0] + bw / 2, yOf(total(r)) - 3, total(r));
+        else series.forEach((_, j) => valText(barX[i][j] + bw / 2, yOf(numVal(r, j)) - 3, numVal(r, j)));
+      });
+      rows.forEach((r, i) => {
+        const f = fitText(r.label || "", TYPE.caption.weight, SANS, capPx, slot - 3, 0.6);
+        svg.append(s("text", { x: slot * (i + 0.5), y: baseY + (catH - VIZ.catH) + VIZ.catH / 2 + 0.33 * f.size + 1, "text-anchor": "middle", "font-size": f.size, "font-weight": TYPE.caption.weight }, f.text));
+      });
+      if (hasIcons) rows.forEach((r, i) => {
+        if (r.icon && r.icon !== "none") svg.append(iconNode(o, r.icon, slot * (i + 0.5) - iconSz / 2, baseY + 6, iconSz, iconSz, "blue"));
+      });
+      if (o.legend) drawLegend(svg, series, H - VIZ.legendH, W);
+      rows.forEach((_, i) => svg.append(reorderHit(env, "rows", i, "x", slot * i, 0, slot, baseY + catH)));
+      return { node: svg };
+    }
+  };
+
   // src/viz/iconlist.js
   var iconlist_default = {
     label: "Liste \xE0 ic\xF4nes",
@@ -2351,6 +2364,8 @@
     heights: ["auto", "fixed", "fill"],
     fields: [
       { k: "style", t: "select", label: "Plusieurs s\xE9ries", options: { grouped: "C\xF4te \xE0 c\xF4te", stacked: "Empil\xE9es" } },
+      { k: "labelIn", t: "bool", label: "Libell\xE9s dans les barres" },
+      { k: "segments", t: "number", label: "Graduations : nombre de segments dans la barre la plus longue (0 = aucune)", min: 0, max: 20 },
       { k: "legend", t: "bool", label: "Afficher la l\xE9gende" },
       { k: "showValues", t: "bool", label: "Afficher les valeurs" },
       { k: "decimals", t: "number", label: "D\xE9cimales des valeurs", min: 0, max: 4 },
@@ -2361,7 +2376,7 @@
       const series = o.series || [], rows = o.rows || [], k = Math.max(1, series.length);
       const stacked = o.style === "stacked";
       const capPx = pxOf(TYPE.caption.size), numPx = pxOf(TYPE.captionNum.size), suffix = o.suffix || "";
-      const labW = Math.min(W * 0.4, Math.max(0, ...rows.map((r) => mw(r.label || "", TYPE.caption.weight, SANS, capPx))) + VIZ.iconGap);
+      const labW = o.labelIn ? 0 : Math.min(W * 0.4, Math.max(0, ...rows.map((r) => mw(r.label || "", TYPE.caption.weight, SANS, capPx))) + VIZ.iconGap);
       const total = (r) => series.reduce((a2, _, j) => a2 + numVal(r, j), 0);
       const valW = o.showValues ? mw(fmt(1e3, env.locale, o.decimals) + suffix, 700, '"Source Serif 4", serif', numPx) + VIZ.barGap * 2 : 0;
       const x0 = labW, span = Math.max(30, W - labW - valW);
@@ -2381,10 +2396,21 @@
       const bodyH = rows.length * rh + gaps;
       const H = bodyH + legBlock;
       const svg = s("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: "block", overflow: "visible" } });
-      svg.append(s("line", { x1: x0, y1: 0, x2: x0, y2: bodyH, stroke: "currentColor", "stroke-width": SW }));
+      if (!o.labelIn) svg.append(s("line", { x1: x0, y1: 0, x2: x0, y2: bodyH, stroke: "currentColor", "stroke-width": SW }));
+      const nSeg = Math.max(0, Math.min(20, Math.floor(+o.segments || 0)));
+      const decor = (yy, w, lab) => {
+        for (let q = 1; q < nSeg; q++) {
+          const xx = x0 + span * q / nSeg;
+          if (xx < x0 + w - 0.5) svg.append(s("line", { x1: xx, y1: yy, x2: xx, y2: yy + bh, stroke: "currentColor", "stroke-width": SW }));
+        }
+        if (lab) {
+          const f = fitText(lab, TYPE.caption.weight, SANS, capPx, Math.max(20, w - VIZ.iconGap * 2), 0.6);
+          svg.append(s("text", { x: x0 + VIZ.iconGap, y: yy + bh / 2 + 0.33 * f.size, "font-size": f.size, "font-weight": TYPE.caption.weight }, f.text));
+        }
+      };
       rows.forEach((r, i) => {
         const y = i * (rh + VIZ.hRowGap);
-        {
+        if (!o.labelIn) {
           const f = fitText(r.label || "", TYPE.caption.weight, SANS, capPx, labW - VIZ.iconGap, 0.7);
           svg.append(s("text", { x: 0, y: y + rh / 2 + 0.33 * f.size, "font-size": f.size, "font-weight": TYPE.caption.weight }, f.text));
         }
@@ -2399,10 +2425,12 @@
             end = xa + w;
             svg.append(s("path", { d: acc >= total(r) ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`, fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" }));
           });
+          decor(y, end - x0, o.labelIn ? r.label : "");
         } else series.forEach((sr, j) => {
           const w = numVal(r, j) / max2 * span, yy = y + j * (bh + VIZ.barGap);
           end = Math.max(end, x0 + w);
           svg.append(s("path", { d: hPath(x0, yy, Math.max(w, 1e-4), bh, VIZ.barRadius), fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" }));
+          decor(yy, w, j === 0 && o.labelIn ? r.label : "");
           if (o.showValues) svg.append(s("text", { x: x0 + w + VIZ.barGap * 1.5, y: yy + bh / 2 + 0.33 * numPx, "font-size": numPx, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, fmt(numVal(r, j), env.locale, o.decimals) + suffix));
         });
         if (stacked && o.showValues) svg.append(s("text", { x: end + VIZ.barGap * 1.5, y: y + bh / 2 + 0.33 * numPx, "font-size": numPx, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, fmt(total(r), env.locale, o.decimals) + suffix));
@@ -4333,7 +4361,7 @@
   }
   var fill = (str, tk) => String(str ?? "").replace(/\{(pct|value|total|label)\}/g, (_, k) => tk ? tk[k] : "");
   var SIDE_FIELDS = [
-    { k: "pos", t: "select", label: "Chiffre \xE0 c\xF4t\xE9", options: { none: "Aucun", right: "\xC0 droite", left: "\xC0 gauche" } },
+    { k: "pos", t: "select", label: "Chiffre \xE0 c\xF4t\xE9", options: { none: "Aucun", right: "\xC0 droite", left: "\xC0 gauche", top: "Au-dessus" } },
     { k: "value", t: "text", rich: true, label: "Chiffre ({pct} = part de la 1re donn\xE9e)" },
     { k: "text", t: "text", rich: true, label: "Texte sous le chiffre (vide = libell\xE9 de la 1re donn\xE9e)" },
     { k: "share", t: "number", label: "Largeur du contenu (% de la largeur)", min: 25, max: 80 },
@@ -4342,7 +4370,13 @@
   ];
   var newColSide = () => ({ pos: "none", value: "14 %", text: "", share: 60, align: "top", scale: "1.5" });
   function composeSide(sd, W, env, tk, core) {
-    if (!sd || sd.pos !== "right" && sd.pos !== "left") return core(W);
+    if (!sd || sd.pos !== "right" && sd.pos !== "left" && sd.pos !== "top") return core(W);
+    if (sd.pos === "top") {
+      const r2 = core(W);
+      if (!r2) return r2;
+      const fig2 = renderFigure({ value: fill(sd.value, tk), icon: "none", scale: +sd.scale || 1, text: fill((sd.text || "").trim() || "{label}", tk) }, W, "left");
+      return { ...r2, node: el("div", { class: "viz-side-top", style: { width: W + "px", display: "flex", flexDirection: "column", gap: "12px" } }, fig2, r2.node) };
+    }
     const GAPF = 18, wv = Math.round(W * Math.max(25, Math.min(80, +sd.share || 60)) / 100), wf = Math.max(40, W - wv - GAPF), r = core(wv);
     if (!r) return r;
     const fig = renderFigure({ value: fill(sd.value, tk), icon: "none", scale: +sd.scale || 1, text: fill((sd.text || "").trim() || "{label}", tk) }, wf, "left");
@@ -6617,7 +6651,9 @@ ${short}`)])
     const fix = () => rows.forEach((r) => {
       r.v = Array.from({ length: series.length }, (_, j) => +(r.v || [])[j] || 0);
     });
+    const ns = series.length, iconCol = f.icons ? [{ name: t("Ic\xF4ne"), type: "text", isIcon: true, select: { none: t("Aucune"), ...pictoChoices(obj) } }] : [];
     return {
+      root: obj,
       cols: [{ name: t("Libell\xE9"), type: "text" }, ...series.map((sr, j) => ({
         name: sr.name || "",
         type: "number",
@@ -6633,11 +6669,12 @@ ${short}`)])
           series.splice(j, 1);
           fix();
         } : null
-      }))],
+      })), ...iconCol],
       rows: () => rows.length,
-      get: (i, j) => j === 0 ? rows[i].label || "" : String((rows[i].v || [])[j - 1] ?? 0),
+      get: (i, j) => j === 0 ? rows[i].label || "" : j > ns ? rows[i].icon || "none" : String((rows[i].v || [])[j - 1] ?? 0),
       set(i, j, v) {
         if (j === 0) rows[i].label = v;
+        else if (j > ns) rows[i].icon = v;
         else {
           const n = num(v);
           (rows[i].v || (rows[i].v = []))[j - 1] = n === null ? 0 : n;
@@ -6654,8 +6691,8 @@ ${short}`)])
       colLabel: t("+ S\xE9rie"),
       load(m2, head) {
         const body = head ? m2.slice(1) : m2, nser = Math.min(max2, Math.max(1, ...body.map((c2) => c2.length - 1)));
-        const ns = Array.from({ length: nser }, (_, j) => ({ name: head && m2[0][j + 1] || series[j] && series[j].name || `${t("S\xE9rie")} ${j + 1}`, color: series[j] && series[j].color || SERIES_COLORS3[j % SERIES_COLORS3.length] }));
-        series.splice(0, series.length, ...ns);
+        const ns2 = Array.from({ length: nser }, (_, j) => ({ name: head && m2[0][j + 1] || series[j] && series[j].name || `${t("S\xE9rie")} ${j + 1}`, color: series[j] && series[j].color || SERIES_COLORS3[j % SERIES_COLORS3.length] }));
+        series.splice(0, series.length, ...ns2);
         rows.splice(0, rows.length, ...body.map((c2) => ({ label: c2[0] || "", v: Array.from({ length: nser }, (_, j) => num(c2[j + 1]) ?? 0) })));
       },
       numericCols: Array.from({ length: Math.max(0, series.length) }, (_, j) => j + 1),

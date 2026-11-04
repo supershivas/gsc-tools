@@ -69,7 +69,7 @@ export { fill as fillTokens };
 
 /** Champs de la carte « Chiffre à côté » (dataviz, texte, carte) */
 export const SIDE_FIELDS = [
-  { k: 'pos', t: 'select', label: 'Chiffre à côté', options: { none: 'Aucun', right: 'À droite', left: 'À gauche' } },
+  { k: 'pos', t: 'select', label: 'Chiffre à côté', options: { none: 'Aucun', right: 'À droite', left: 'À gauche', top: 'Au-dessus' } },
   { k: 'value', t: 'text', rich: true, label: 'Chiffre ({pct} = part de la 1re donnée)' }, { k: 'text', t: 'text', rich: true, label: 'Texte sous le chiffre (vide = libellé de la 1re donnée)' },
   { k: 'share', t: 'number', label: 'Largeur du contenu (% de la largeur)', min: 25, max: 80 },
   { k: 'scale', t: 'select', label: 'Taille du chiffre', options: { 1: 'Normal', 1.5: 'Grand', 2: 'Très grand' } },
@@ -81,7 +81,12 @@ export const newColSide = () => ({ pos: 'none', value: '14 %', text: '', share: 
 /** Un contenu + un chiffre clé à côté : le contenu est dessiné à la part de largeur choisie, le chiffre occupe le reste.
     core(w) → { node, … } ; tk = jetons du chiffre (voir sideTokens) */
 export function composeSide(sd, W, env, tk, core) {
-  if (!sd || (sd.pos !== 'right' && sd.pos !== 'left')) return core(W);
+  if (!sd || (sd.pos !== 'right' && sd.pos !== 'left' && sd.pos !== 'top')) return core(W);
+  if (sd.pos === 'top') {   // chiffre au-dessus du contenu, sur toute la largeur
+    const r = core(W); if (!r) return r;
+    const fig = renderFigure({ value: fill(sd.value, tk), icon: 'none', scale: +sd.scale || 1, text: fill((sd.text || '').trim() || '{label}', tk) }, W, 'left');
+    return { ...r, node: el('div', { class: 'viz-side-top', style: { width: W + 'px', display: 'flex', flexDirection: 'column', gap: '12px' } }, fig, r.node) };
+  }
   const GAPF = 18, wv = Math.round(W * Math.max(25, Math.min(80, +sd.share || 60)) / 100), wf = Math.max(40, W - wv - GAPF), r = core(wv); if (!r) return r;
   const fig = renderFigure({ value: fill(sd.value, tk), icon: 'none', scale: +sd.scale || 1, text: fill((sd.text || '').trim() || '{label}', tk) }, wf, 'left');
   const align = { center: 'center', bottom: 'flex-end' }[sd.align] || 'flex-start';
