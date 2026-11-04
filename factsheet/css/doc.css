@@ -72,9 +72,15 @@
 .vf-text,.vi-text,.vf-value{overflow-wrap:anywhere;min-width:0}
 .fg-head{display:flex;align-items:center;gap:var(--viz-iconGap)}
 .fg-ic{flex:none;display:block}
+.fg-row{display:flex;align-items:flex-start}
+.fg-cell{min-width:0}
+.fg-over{display:flex;align-items:center;gap:var(--viz-iconGap);margin-bottom:18px;color:var(--c-blue);font-weight:600;letter-spacing:.06em;line-height:1.3}
 /* Contours : trait 0,5 pt, coins de 3 px, retrait = padding des encadrés (largeurs déduites dans render.js) */
 .stroked{border:var(--stroke) solid var(--stroke-color,var(--c-text));border-radius:var(--radius);padding:var(--gap-boxPad)}
 .filled{background:var(--c-white)}
+.hatched{position:relative;isolation:isolate}
+.hatch{position:absolute;inset:0;overflow:hidden;border-radius:inherit;z-index:-1;pointer-events:none}
+.hatch svg{display:block}
 .col.stroked{align-self:stretch;display:flex;flex-direction:column}
 .img-box.fit{aspect-ratio:4/3;height:auto}.img-box.fit.has{background:none}
 .img-box.fit img{width:100%;height:100%;object-fit:contain}

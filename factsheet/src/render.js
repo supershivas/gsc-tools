@@ -3,7 +3,7 @@
 import { PAGE, GRID, HEADER, GAP, cssVars, applyVars, colWidth, insetW, setDensity, paletteOf } from './tokens.js';
 import { IMAGE_RATIOS } from './state.js';
 import { renderViz, composeSide } from './viz/index.js';
-import { inlineMk } from './viz/util.js';
+import { inlineMk, s } from './viz/util.js';
 import { renderFigure } from './figure.js';
 import { renderCard } from './card.js';
 
@@ -65,12 +65,19 @@ function renderHeader(doc) {
 /* Cadre : contour (trait 0,5 pt, coins de 3 px) et/ou fond de couleur. Un fond sans contour garde le même retrait (trait transparent),
    donc le même calcul de largeur : le retrait intérieur est déduit des largeurs transmises aux enfants (voir insetW). */
 const hasFill = o => !!o.fillColor && o.fillColor !== 'none';
-export const isBox = o => !!(o.stroke || hasFill(o));
+const hasHatch = o => !!o.hatch && o.hatch !== 'none';
+export const isBox = o => !!(o.stroke || hasFill(o) || hasHatch(o));
 const strokeStyle = node => o => {
   if (!isBox(o)) return;
   node.classList.add('stroked');
   node.style.setProperty('--stroke-color', o.stroke ? `var(--c-${o.strokeColor || 'text'})` : 'transparent');
   if (hasFill(o)) node.style.background = `var(--c-${o.fillColor})`;
+  if (hasHatch(o)) {   // hachures : bandes obliques en vrais éléments SVG (taillés par overflow), sous le contenu
+    node.classList.add('hatched');
+    const P = 24, Wd = 900, Ht = 1200, lines = [];
+    for (let x = -Ht; x < Wd; x += P) lines.push(s('line', { x1: x, y1: Ht, x2: x + Ht, y2: 0, stroke: `var(--c-${o.hatch})`, 'stroke-width': P / 2 }));
+    node.prepend(h('div', { class: 'hatch', 'aria-hidden': 'true' }, s('svg', { width: Wd, height: Ht, viewBox: `0 0 ${Wd} ${Ht}` }, ...lines)));
+  }
 };
 
 /** Image selon le mode choisi : ratio fixe (défaut), « fit » = largeur de la colonne et proportions de l'image, ou taille personnalisée */

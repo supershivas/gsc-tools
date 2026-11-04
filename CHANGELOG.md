@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.48.0 — 2026-11-04
+- Chiffre clé : jusqu'à 3 chiffres côte à côte, barre de progression sous chaque chiffre, en-tête avec icône et petites capitales
+- Liste à icônes : option « Accolade à gauche »
+- Fond et contour : hachures en bandes obliques (couleur au choix) pour les colonnes et sous-sections ; nouvelle icône « Alerte »
+
 ## 1.47.0 — 2026-11-04
 - Poignée de hauteur aussi sous les colonnes texte, image, carte et chiffre : glisser règle la hauteur minimale, repère orange sur la colonne voisine, double-clic = adapter à la voisine (aussi dans Propriétés › Hauteur)
 - Liste à icônes : le texte des éléments garde ses retours à la ligne dans le document

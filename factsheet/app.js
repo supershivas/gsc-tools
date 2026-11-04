@@ -392,6 +392,15 @@
     "Annuler": "Cancel",
     "Exporter": "Export",
     "Terminer": "Done",
+    "Accolade \xE0 gauche": "Bracket on the left",
+    "Hachures": "Stripes",
+    "Barre de progression sous le chiffre (% ; 0 = pas de barre)": "Progress bar under the figure (%; 0 = no bar)",
+    "Autres chiffres \xE0 c\xF4t\xE9 (jusqu\u2019\xE0 2)": "Other figures beside (up to 2)",
+    "Barre de progression (% ; 0 = pas de barre)": "Progress bar (%; 0 = no bar)",
+    "Couleur de la barre": "Bar colour",
+    "Couleur du reste de la barre": "Colour of the rest of the bar",
+    "En-t\xEAte (petites capitales, ex. \xAB Sous occupation \xBB)": "Heading (capitals, e.g. \u201CUnder occupation\u201D)",
+    "Ic\xF4ne de l\u2019en-t\xEAte": "Heading icon",
     "Hauteur minimale (px, 0 = automatique)": "Minimum height (px, 0 = automatic)",
     "Ou glisser la poign\xE9e sous la colonne dans l\u2019aper\xE7u : elle se cale sur la colonne voisine.": "Or drag the handle under the column in the preview: it snaps to the neighbouring column.",
     "Glisser : hauteur du contenu (se cale sur la colonne voisine) \xB7 double-clic : adapter \xE0 la colonne voisine": "Drag: content height (snaps to the neighbouring column) \xB7 double-click: match the neighbouring column",
@@ -1911,6 +1920,7 @@
     star: { label: "\xC9toile", d: "M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9L3.5 9.7l5.9-.8z" },
     sliders: { label: "R\xE9glages", d: "M4 7h10 M18 7h2 M16 5a2 2 0 1 0 0 4a2 2 0 1 0 0-4z M4 17h2 M10 17h10 M8 15a2 2 0 1 0 0 4a2 2 0 1 0 0-4z" },
     send: { label: "Envoi", d: "M21 3L3 10.5l7 3 3 7z M10 13.5L21 3" },
+    alert: { label: "Alerte", d: "M12 4L3 19.5h18z M12 10v4.5 M12 17.2v.1" },
     pencil: { label: "R\xE9daction", d: "M4 20l1-4L16 5l3 3L8 19z M14 7l3 3" }
   };
   var ICON_OPTIONS = Object.fromEntries(Object.entries(ICONS).map(([k, v]) => [k, v.label]));
@@ -2276,6 +2286,7 @@
       { icon: "pencil", text: t("Troisi\xE8me \xE9l\xE9ment de liste") }
     ] }),
     fields: [
+      { k: "bracket", t: "bool", label: "Accolade \xE0 gauche" },
       { k: "scale", t: "select", label: "Taille des ic\xF4nes et du texte", options: { 1: "Normal", 1.5: "Grand", 2: "Tr\xE8s grand" } },
       {
         k: "items",
@@ -2307,6 +2318,14 @@
         );
         list.append(el("div", { class: "vi-row", style: { ...sc !== 1 ? { minHeight: C + "px" } : {}, ...env && env.ui ? { cursor: "grab" } : {} }, ...env && env.ui ? { "data-reorder": `items:${idx}`, "data-axis": "y" } : {} }, svg, el("div", { class: "vi-text", style: sc !== 1 ? { fontSize: bodyPx + "px", lineHeight: TYPE.body.lh * sc + "px" } : null, innerHTML: inlineMk(it.text) })));
       });
+      if (o.bracket) {
+        const line = `${SW}px solid var(--c-blue)`;
+        Object.assign(list.style, { position: "relative", paddingLeft: "33px" });
+        list.append(
+          el("div", { class: "vi-brace", style: { position: "absolute", left: "9px", top: "0", bottom: "0", width: "9px", boxSizing: "border-box", borderLeft: line, borderTop: line, borderBottom: line, borderRadius: "6px 0 0 6px" } }),
+          el("div", { class: "vi-brace-tick", style: { position: "absolute", left: "0", top: "50%", width: "9px", borderTop: line } })
+        );
+      }
       return { node: list };
     }
   };
@@ -4199,7 +4218,21 @@
     { k: "value", t: "text", rich: true, label: "Chiffre (texte libre : \xAB 5 000 \xBB, \xAB 64 % \xBB\u2026)" },
     { k: "icon", t: "select", label: "Ic\xF4ne devant le chiffre", options: { none: "Aucune", ...ICON_OPTIONS }, icons: true },
     { k: "iconStyle", t: "select", label: "Style de l\u2019ic\xF4ne", options: { plain: "Pictogramme seul", circle: "Dans une pastille" } },
-    { k: "text", t: "area", label: "Texte" }
+    { k: "text", t: "area", label: "Texte" },
+    { k: "bar", t: "number", label: "Barre de progression sous le chiffre (% ; 0 = pas de barre)", min: 0, max: 100 },
+    {
+      k: "more",
+      t: "list",
+      label: "Autres chiffres \xE0 c\xF4t\xE9 (jusqu\u2019\xE0 2)",
+      min: 0,
+      max: 2,
+      item: () => ({ value: "50 %", text: "Lorem ipsum", bar: 0 }),
+      fields: [{ k: "value", t: "text", rich: true, label: "Chiffre" }, { k: "text", t: "text", rich: true, label: "Texte" }, { k: "bar", t: "number", label: "Barre de progression (% ; 0 = pas de barre)", min: 0, max: 100 }]
+    },
+    { k: "barColor", t: "color", label: "Couleur de la barre", def: "yellow" },
+    { k: "barRest", t: "color", label: "Couleur du reste de la barre", def: "tint-blue" },
+    { k: "headText", t: "text", label: "En-t\xEAte (petites capitales, ex. \xAB Sous occupation \xBB)" },
+    { k: "headIcon", t: "select", label: "Ic\xF4ne de l\u2019en-t\xEAte", options: { none: "Aucune", ...ICON_OPTIONS }, icons: true }
   ];
   function figureIcon(key, size, circle) {
     const ic = ICONS[key];
@@ -4212,7 +4245,33 @@
       s("path", { d: ic.d, fill: "none", stroke: "currentColor", "stroke-width": SW / k, "stroke-linecap": "round", "stroke-linejoin": "round", transform: `translate(${o} ${o}) scale(${k})` })
     );
   }
+  function progressBar(pct, W, o) {
+    const H = 15, p = Math.max(0, Math.min(100, +pct || 0)), w = Math.max(10, W), x = SW / 2, iw = w - SW, r = 4.5, fw = iw * p / 100;
+    const hh = H - SW, rr = Math.min(r, fw / 2), fill2 = colorRef(o.barColor || "yellow");
+    const part = p >= 100 ? s("rect", { x, y: x, width: iw, height: hh, rx: r, fill: fill2 }) : s("path", { d: `M${x + rr} ${x}H${x + fw}V${x + hh}H${x + rr}A${rr} ${rr} 0 0 1 ${x} ${x + hh - rr}V${x + rr}A${rr} ${rr} 0 0 1 ${x + rr} ${x}Z`, fill: fill2 });
+    return s(
+      "svg",
+      { width: w, height: H, viewBox: `0 0 ${w} ${H}`, class: "fg-bar", style: { display: "block", marginTop: "9px" } },
+      s("rect", { x, y: x, width: iw, height: hh, rx: r, fill: colorRef(o.barRest || "tint-blue") }),
+      p > 0 ? part : null,
+      s("rect", { x, y: x, width: iw, height: H - SW, rx: r, fill: "none", stroke: "var(--c-blue)", "stroke-width": SW })
+    );
+  }
   function renderFigure(o, W, align) {
+    const more = Array.isArray(o.more) ? o.more : [], headText = String(o.headText || "").trim(), headIcon = o.headIcon && o.headIcon !== "none";
+    if (!more.length && !headText && !headIcon && !(+o.bar > 0)) return oneFigure(o, W, align, o);
+    const gap = 18, n = 1 + more.length, w = ((W || 9999) - gap * (n - 1)) / n;
+    const row = el("div", { class: "fg-row", style: { gap: gap + "px" } }, ...[o, ...more].map((it) => el("div", { class: "fg-cell", style: { width: w + "px" } }, oneFigure(it, w, align, o))));
+    if (!headText && !headIcon) return row;
+    const ic = headIcon ? figureIcon(o.headIcon, 54, false) : null;
+    return el(
+      "div",
+      { class: "fg-all" },
+      el("div", { class: "fg-over" }, ic, headText ? el("span", { textContent: headText.toUpperCase() }) : null),
+      row
+    );
+  }
+  function oneFigure(o, W, align, g) {
     const base0 = pxOf(TYPE.figure.size), base = base0 * (+o.scale || 1), lh = TYPE.figure.lh, icon = o.icon && o.icon !== "none" ? figureIcon(o.icon, lh, o.iconStyle === "circle") : null;
     const avail = (W || 9999) - (icon ? lh + VIZ.iconGap : 0) - 1;
     const fs = fitSize(stripMk(o.value), TYPE.figure.weight, SERIF, base, avail, 0.4);
@@ -4227,7 +4286,8 @@
       "div",
       { class: "fg", style: align && align !== "left" ? { textAlign: align } : {} },
       head,
-      o.text && o.text.trim() ? el("div", { class: "vf-text", innerHTML: inlineMk(o.text) }) : null
+      o.text && o.text.trim() ? el("div", { class: "vf-text", innerHTML: inlineMk(o.text) }) : null,
+      +o.bar > 0 ? progressBar(o.bar, W, g) : null
     );
   }
 
@@ -4755,12 +4815,19 @@ ${short}`)])
     return el2;
   }
   var hasFill = (o) => !!o.fillColor && o.fillColor !== "none";
-  var isBox = (o) => !!(o.stroke || hasFill(o));
+  var hasHatch = (o) => !!o.hatch && o.hatch !== "none";
+  var isBox = (o) => !!(o.stroke || hasFill(o) || hasHatch(o));
   var strokeStyle = (node) => (o) => {
     if (!isBox(o)) return;
     node.classList.add("stroked");
     node.style.setProperty("--stroke-color", o.stroke ? `var(--c-${o.strokeColor || "text"})` : "transparent");
     if (hasFill(o)) node.style.background = `var(--c-${o.fillColor})`;
+    if (hasHatch(o)) {
+      node.classList.add("hatched");
+      const P = 24, Wd = 900, Ht = 1200, lines = [];
+      for (let x = -Ht; x < Wd; x += P) lines.push(s("line", { x1: x, y1: Ht, x2: x + Ht, y2: 0, stroke: `var(--c-${o.hatch})`, "stroke-width": P / 2 }));
+      node.prepend(h("div", { class: "hatch", "aria-hidden": "true" }, s("svg", { width: Wd, height: Ht, viewBox: `0 0 ${Wd} ${Ht}` }, ...lines)));
+    }
   };
   function renderImage(col, w) {
     const mode = col.imgMode || "ratio";
@@ -5833,7 +5900,7 @@ ${short}`)])
               { class: "row" },
               h2("button", { type: "button", class: "mini", onclick: mv(-1) }, ico("arrow-up")),
               h2("button", { type: "button", class: "mini", onclick: mv(1) }, ico("arrow-down")),
-              arr.length > (f.min || 1) ? h2("button", { type: "button", class: "mini danger", title: "Supprimer", onclick: () => {
+              arr.length > (f.min ?? 1) ? h2("button", { type: "button", class: "mini danger", title: "Supprimer", onclick: () => {
                 arr.splice(i, 1);
                 ctx2.restructure();
               } }, ico("x")) : null
@@ -6217,6 +6284,7 @@ ${short}`)])
       switchRow(t("Contour"), obj.stroke, () => {
         obj.stroke = !obj.stroke;
       }),
+      swatches("Hachures", obj, "hatch", toneKeys(doc2), true),
       obj.stroke ? swatches("Couleur du contour", obj, "strokeColor", toneKeys(doc2)) : null
     ];
     const title = (name, crumbs = []) => root.append(h(

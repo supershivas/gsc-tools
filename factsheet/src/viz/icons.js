@@ -18,6 +18,7 @@ export const ICONS = {
   star:     { label: 'Étoile',      d: 'M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9L3.5 9.7l5.9-.8z' },
   sliders:  { label: 'Réglages',    d: 'M4 7h10 M18 7h2 M16 5a2 2 0 1 0 0 4a2 2 0 1 0 0-4z M4 17h2 M10 17h10 M8 15a2 2 0 1 0 0 4a2 2 0 1 0 0-4z' },
   send:     { label: 'Envoi',       d: 'M21 3L3 10.5l7 3 3 7z M10 13.5L21 3' },
+  alert:    { label: 'Alerte',      d: 'M12 4L3 19.5h18z M12 10v4.5 M12 17.2v.1' },
   pencil:   { label: 'Rédaction',   d: 'M4 20l1-4L16 5l3 3L8 19z M14 7l3 3' },
 };
 export const ICON_OPTIONS = Object.fromEntries(Object.entries(ICONS).map(([k, v]) => [k, v.label]));

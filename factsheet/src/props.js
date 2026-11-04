@@ -128,6 +128,7 @@ export function buildProps(root, ctx) {
   const boxControls = (obj, fillLabel = 'Fond') => [
     swatches(fillLabel, obj, 'fillColor', toneKeys(doc), true),
     switchRow(t('Contour'), obj.stroke, () => { obj.stroke = !obj.stroke; }),
+    swatches('Hachures', obj, 'hatch', toneKeys(doc), true),
     obj.stroke ? swatches('Couleur du contour', obj, 'strokeColor', toneKeys(doc)) : null];
   const title = (name, crumbs = []) => root.append(h('div', { class: 'pr-head' },
     h('div', { class: 'crumbs' }, crumbs.flatMap(([l, p]) => [h('a', { textContent: l, onclick: () => ctx.select(p) }), ' › '])),

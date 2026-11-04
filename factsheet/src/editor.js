@@ -148,7 +148,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
         box.append(h2('div', { class: 'col-card', dataset: { path: `${f.k}.${i}` } },
           h2('div', { class: 'chd' }, h2('span', { textContent: `#${i + 1}` }), h2('span', { class: 'row' },
             h2('button', { type: 'button', class: 'mini', onclick: mv(-1) }, ico('arrow-up')), h2('button', { type: 'button', class: 'mini', onclick: mv(1) }, ico('arrow-down')),
-            arr.length > (f.min || 1) ? h2('button', { type: 'button', class: 'mini danger', title: 'Supprimer', onclick: () => { arr.splice(i, 1); ctx.restructure(); } }, ico('x')) : null)),
+            arr.length > (f.min ?? 1) ? h2('button', { type: 'button', class: 'mini danger', title: 'Supprimer', onclick: () => { arr.splice(i, 1); ctx.restructure(); } }, ico('x')) : null)),
           buildFields(f.fields, it, ctx, palOpts, h2, root)));
       });
       if (arr.length < (f.max || 12)) box.append(h2('button', { type: 'button', textContent: '+ Ajouter', onclick: () => { arr.push(f.item(arr.length)); ctx.restructure(); } }));
