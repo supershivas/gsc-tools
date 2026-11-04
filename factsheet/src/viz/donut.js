@@ -22,7 +22,7 @@ export default {
   label: 'Anneau / camembert',
   icon: 'chart-donut', family: 'part',
   defaults: () => ({
-    style: 'donut', totalTpl: '€{total} billion', decimals: 1, layout: 'auto', orient: 'largest', largestAngle: 210, startAngle: 0,
+    style: 'donut', totalTpl: '€{total}\nbillion', decimals: 1, layout: 'auto', orient: 'largest', largestAngle: 210, startAngle: 0,
     segments: [
       { color: 'grey', value: 114.4, title: '€114.4 billion', text: 'provided from or guaranteed by the EU budget (including **€43.9 billion** within Ukraine Facility and **€16.9 billion** from Ukraine Support Loan)' },
       { color: 'blue', value: 77.9, title: '€77.9 billion', text: 'in military support from Member States' },
@@ -139,8 +139,7 @@ export default {
         if (ok || k < 0.25) break; k *= 0.94;
       }
       const g = s('g', { 'text-anchor': 'middle' });
-      /* textLength : la ligne garde exactement la largeur mesurée, même si la police réelle n'est pas encore celle de la mesure (jamais de débordement de l'anneau) */
-      lines.forEach(l => g.append(s('text', { x: cx, y: cy - tot / 2 + l.y0 + l.h / 2 + 0.33 * l.z, 'font-size': l.z, 'font-weight': LV[l.lv].w, textLength: mw(l.text, LV[l.lv].w, LV[l.lv].f, l.z), lengthAdjust: 'spacingAndGlyphs', style: { fontFamily: LV[l.lv].fam } }, l.text)));
+      lines.forEach(l => g.append(s('text', { x: cx, y: cy - tot / 2 + l.y0 + l.h / 2 + 0.33 * l.z, 'font-size': l.z, 'font-weight': LV[l.lv].w, style: { fontFamily: LV[l.lv].fam } }, l.text)));
       return g;
     };
     const ringNodes = (cx, cy) => {

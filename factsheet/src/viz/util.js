@@ -31,9 +31,11 @@ export const round3 = n => Math.round(n / 3) * 3;      // reste sur la grille de
 
 /* ---------- Mesure ---------- */
 const mctx = document.createElement('canvas').getContext('2d');
+const REF = 200;
 export function mw(text, weight, family, sizePx) {
-  mctx.font = `${weight} ${sizePx * 100}px ${family}`;
-  return mctx.measureText(text).width / 100;
+  /* taille de référence fixe : certains navigateurs plafonnent la taille de police du canvas (~2000 px), ce qui sous-mesurait les grands textes (ex. 32 px × 100) */
+  mctx.font = `${weight} ${REF}px ${family}`;
+  return mctx.measureText(text).width * sizePx / REF;
 }
 export const SANS = FONT.sans, SERIF = FONT.serif;
 

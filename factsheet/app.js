@@ -681,6 +681,9 @@
     "Le navigateur ouvre sa fen\xEAtre d\u2019impression : choisissez ": "The browser opens its print window: choose ",
     " comme destination, ": " as destination, ",
     ". Le PDF contient 2 pages (recto, verso) en vectoriel avec polices incorpor\xE9es, mais en RVB.": ". The PDF has 2 pages (front, back), vector, with embedded fonts, but in RGB.",
+    /* PNG 3D */
+    "Exporter en PNG": "Export as PNG",
+    "PNG transparent": "Transparent PNG",
     /* types de dataviz */
     "Barres (jumel\xE9es, group\xE9es, empil\xE9es)": "Bars (overlapping, grouped, stacked)",
     "Plusieurs s\xE9ries": "Multiple series",
@@ -1135,9 +1138,10 @@
   var colorRef = (c2) => /^(#|rgb|var\()/.test(c2 || "") ? c2 : `var(--c-${c2 || "blue"})`;
   var round3 = (n) => Math.round(n / 3) * 3;
   var mctx = document.createElement("canvas").getContext("2d");
+  var REF = 200;
   function mw(text, weight, family, sizePx) {
-    mctx.font = `${weight} ${sizePx * 100}px ${family}`;
-    return mctx.measureText(text).width / 100;
+    mctx.font = `${weight} ${REF}px ${family}`;
+    return mctx.measureText(text).width * sizePx / REF;
   }
   var SANS = FONT.sans;
   var SERIF = FONT.serif;
@@ -1358,7 +1362,7 @@
     family: "part",
     defaults: () => ({
       style: "donut",
-      totalTpl: "\u20AC{total} billion",
+      totalTpl: "\u20AC{total}\nbillion",
       decimals: 1,
       layout: "auto",
       orient: "largest",
@@ -1563,7 +1567,7 @@
           k *= 0.94;
         }
         const g = s("g", { "text-anchor": "middle" });
-        lines.forEach((l) => g.append(s("text", { x: cx2, y: cy2 - tot / 2 + l.y0 + l.h / 2 + 0.33 * l.z, "font-size": l.z, "font-weight": LV[l.lv].w, textLength: mw(l.text, LV[l.lv].w, LV[l.lv].f, l.z), lengthAdjust: "spacingAndGlyphs", style: { fontFamily: LV[l.lv].fam } }, l.text)));
+        lines.forEach((l) => g.append(s("text", { x: cx2, y: cy2 - tot / 2 + l.y0 + l.h / 2 + 0.33 * l.z, "font-size": l.z, "font-weight": LV[l.lv].w, style: { fontFamily: LV[l.lv].fam } }, l.text)));
         return g;
       };
       const ringNodes = (cx2, cy2) => {
@@ -7671,7 +7675,10 @@ ${short}`)])
         close: t("Fermer"),
         hint: t("Glisser : tourner la feuille \xB7 clic droit ou Maj : la d\xE9placer \xB7 molette : zoomer"),
         error: t("Impossible de g\xE9n\xE9rer l\u2019aper\xE7u 3D dans ce navigateur."),
-        noWebgl: t("WebGL indisponible.")
+        noWebgl: t("WebGL indisponible."),
+        png: t("Exporter en PNG"),
+        pngT: t("PNG transparent"),
+        filename: doc.name || "factsheet"
       },
       load: () => rasterizeDocument(doc, 2)
     });

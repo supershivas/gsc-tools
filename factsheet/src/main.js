@@ -541,7 +541,7 @@ async function open3d() {
   try { viewer = await loadViewer(); } catch (e) { alert(t('Impossible de générer l’aperçu 3D dans ce navigateur.')); return; }
   viewer.open({
     labels: { title: t('Aperçu 3D du document'), loading: t('Préparation de l’aperçu…'), flip: t('Retourner'), spread: t('Deux pages'), single: t('Une feuille'),
-      reset: t('Recentrer'), close: t('Fermer'), hint: t('Glisser : tourner la feuille · clic droit ou Maj : la déplacer · molette : zoomer'), error: t('Impossible de générer l’aperçu 3D dans ce navigateur.'), noWebgl: t('WebGL indisponible.') },
+      reset: t('Recentrer'), close: t('Fermer'), hint: t('Glisser : tourner la feuille · clic droit ou Maj : la déplacer · molette : zoomer'), error: t('Impossible de générer l’aperçu 3D dans ce navigateur.'), noWebgl: t('WebGL indisponible.'), png: t('Exporter en PNG'), pngT: t('PNG transparent'), filename: doc.name || 'factsheet' },
     load: () => rasterizeDocument(doc, 2),
   });
 }

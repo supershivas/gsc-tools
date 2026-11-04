@@ -62,6 +62,7 @@ JS vanilla statique, hébergé sur GitHub Pages (push sur `main` = déploiement)
 
 ## Pièges connus
 
+- Mesure de texte (`mw`, `viz/util.js`) : le canvas mesure à une taille de référence fixe (200 px) puis met à l'échelle ; ne jamais mesurer à `taille × 100` (certains navigateurs plafonnent la police du canvas vers 2000 px et sous-mesurent les grands textes). Ne pas imposer `textLength` aux textes SVG : une mesure fausse écrase le texte.
 - Cache de GitHub Pages : 10 min (`max-age=600`) sur tous les fichiers. `factsheet/index.html` charge donc CSS, `app.js` et `js/shell.js` avec `?v=<version>` (petit script de démarrage) ; les bundles chargés à la demande (`viewer3d.js`, `pdfexport.js`) aussi (`loadBundle`, `main.js`). Tout nouveau CSS/JS du Factsheet creator doit passer par ce démarrage.
 - Déploiement Pages : l'identifiant d'un déploiement est le SHA du commit. Si un déploiement reste bloqué et qu'on l'annule, relancer le même commit (« Re-run » ou `workflow_dispatch`) échoue aussitôt avec « Deployment cancelled » : il faut pousser un nouveau commit (même purement documentaire) pour obtenir un nouveau SHA.
 - Rien de ce qui est ajouté ou retiré à chaque rendu ne doit changer la taille de `#stage` (ni `#warnings`, ni la barre au-dessus) : un `ResizeObserver` relance le rendu et la page saute. La légende « Marges et espaces » vit dans la barre (`.bar`), de hauteur fixe ; `drawPreview` restaure aussi le scroll.

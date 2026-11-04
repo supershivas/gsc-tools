@@ -87,8 +87,9 @@ function open(opts) {
   const bFlip = btn('rotate-2', L.flip, () => flip());
   const bMode = btn('layout-columns', L.spread, () => setMode(mode === 'single' ? 'spread' : 'single'));
   const bReset = btn('focus-2', L.reset, () => resetView());
+  const bPng = btn('photo-down', L.png, () => savePng(true)), bPngT = btn('photo-off', L.pngT, () => savePng(false));
   const bClose = btn('x', L.close, () => close());
-  root.append(el('div', { class: 'v3d-bar' }, el('strong', { textContent: L.title }), el('span', { class: 'v3d-sp' }), bFlip, bMode, bReset, bClose),
+  root.append(el('div', { class: 'v3d-bar' }, el('strong', { textContent: L.title }), el('span', { class: 'v3d-sp' }), bFlip, bMode, bReset, bPng, bPngT, bClose),
     stage, el('div', { class: 'v3d-hint', textContent: L.hint }), msg);
   document.body.append(root); document.body.classList.add('v3d-open');
 
@@ -164,6 +165,22 @@ function open(opts) {
     sheetA.position.x = m === 'spread' ? -(W + GAP) / 2 : 0; sheetB.position.x = (W + GAP) / 2;
     if (m === 'spread' && flipped) { flipped = false; flipFrom = flipTo = sheetA.rotation.y = 0; flipT = 1; }
     interacted = false; tgt.dist = distFor(m); tgt.x = tgt.y = 0; if (quick) cur.dist = tgt.dist;
+  }
+  /* PNG : rendu de la scène telle qu'on la voit (feuille, courbure, ombre), en 2× la taille affichée, fond transparent */
+  function savePng(withBg) {
+    if (!renderer) return;
+    const pr = renderer.getPixelRatio(), cv = renderer.domElement;
+    renderer.setPixelRatio(Math.min(pr * 2, 4096 / Math.max(stage.clientWidth, stage.clientHeight)));
+    renderer.render(scene, camera);
+    /* fond clair du visualiseur (dégradé) derrière la feuille, ou fond transparent */
+    const out = el('canvas'); out.width = cv.width; out.height = cv.height; const g = out.getContext('2d');
+    if (withBg) { const r = g.createRadialGradient(out.width / 2, out.height * 0.35, 0, out.width / 2, out.height * 0.35, Math.hypot(out.width, out.height) * 0.6); r.addColorStop(0, '#f4f6fb'); r.addColorStop(1, '#dfe3ee'); g.fillStyle = r; g.fillRect(0, 0, out.width, out.height); }
+    g.drawImage(cv, 0, 0);
+    renderer.setPixelRatio(pr); renderer.render(scene, camera);
+    out.toBlob(blob => {
+      if (!blob) return;
+      const a = el('a', { href: URL.createObjectURL(blob), download: (L.filename || 'factsheet') + (withBg ? '' : '-transparent') + '-3d.png' }); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    }, 'image/png');
   }
   function flip() { if (mode !== 'single') return; flipped = !flipped; flipFrom = sheetA.rotation.y; flipTo = flipped ? Math.PI : 0; flipT = 0; }
   function resize() {

@@ -1,8 +1,9 @@
 {
-  "version": "1.34.1",
+  "version": "1.35.0",
   "date": "2026-11-04",
   "changes": [
-    "Texte au centre de l'anneau : la largeur mesurée est imposée au rendu (plus de débordement même si la police n'est pas celle de la mesure) et marges de sécurité accrues",
-    "Démarrage versionné du Factsheet creator : CSS et JS chargés avec la version en paramètre, une mise à jour n'est plus servie avec d'anciens fichiers du cache (10 min sur GitHub Pages)"
+    "Texte au centre de l'anneau : fin de l'effet « aplati » ; la mesure des textes n'est plus faussée par les navigateurs qui plafonnent la taille de police du canvas (les grands textes étaient sous-mesurés)",
+    "Anneau par défaut : retour à la ligne entre le chiffre et « billion » dans l'éditeur",
+    "Aperçu 3D : export en PNG (fond clair du visualiseur, ou fond transparent), en 2× la taille affichée"
   ]
 }
