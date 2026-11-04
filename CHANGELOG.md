@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.54.0 — 2026-11-04
+- Barres horizontales et verticales : valeurs, libellés et noms des séries peuvent s'écrire dans les barres (si ça rentre)
+- Barres : épaisseur des barres et espaces (entre les lignes ou les groupes, entre les barres d'un même groupe) réglables
+
 ## 1.53.0 — 2026-11-04
 - Texte riche : exposant et indice (x², x₂) en plus du gras, de l'italique et du souligné, dans tous les champs de texte riche
 
