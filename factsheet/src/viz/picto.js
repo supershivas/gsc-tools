@@ -97,12 +97,12 @@ const VARIANTS = {
 function make(variant) {
   const multi = variant === 'rows' || variant === 'cols';
   return {
-    label: VARIANTS[variant].label, icon: VARIANTS[variant].icon, family: 'picto',
+    label: VARIANTS[variant].label, icon: VARIANTS[variant].icon, family: 'picto', boxed: variant === 'rows' || variant === 'cols',
     defaults: () => ({
       icon: 'picto:person', color: 'blue', recolor: true, customIcons: [], perIcon: multi ? 10 : 100, showValues: true, decimals: 0, suffix: multi ? '' : ' %', ratio: '3:2',
       rows: [['Women', 62, ''], ['Men', 48, ''], ['Young people', 35, ''], ['Seniors', 21, '']].map(([label, value, color]) => ({ label, value, color })),
     }),
-    heights: multi ? null : ['ratio', 'fixed', 'fill'],
+    heights: multi ? ['auto', 'fixed', 'fill'] : ['ratio', 'fixed', 'fill'],
     fields: [
       { k: 'perIcon', t: 'number', label: multi ? 'Valeur d’un pictogramme' : 'Valeur du pictogramme plein (ex. 100)', min: 0.0001, step: 'any' },
       { k: 'color', t: 'color', label: 'Couleur des pictogrammes' },

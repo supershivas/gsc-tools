@@ -17,7 +17,7 @@ function hexDisc(n, d) {
 }
 
 export default {
-  label: 'Résultats d’enquête', icon: 'chart-circles', family: 'part',
+  label: 'Résultats d’enquête', icon: 'chart-circles', family: 'part', boxed: true, heights: ['auto', 'fixed', 'fill'],
   defaults: () => ({
     perDot: 0, perRow: 0, groupLabels: true, legend: true, showPercent: true, decimals: 0,
     rows: [['Female', 'Very satisfied', 180], ['Female', 'Satisfied', 210], ['Female', 'Neutral', 110], ['Female', 'Dissatisfied', 70], ['Female', 'Very dissatisfied', 30],

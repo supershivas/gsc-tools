@@ -14,7 +14,7 @@ import scatter from './scatter.js';
 import survey from './survey.js';
 import timeline from './timeline.js';
 import { pictoTypes } from './picto.js';
-import { el } from './util.js';
+import { el, heightOf } from './util.js';
 
 export const VIZ_TYPES = { donut, bars, hbars, line, timeline, scatter, survey, sunburst, bubbles, treemap, sankey, ...pictoTypes, icons: iconlist };
 export const VIZ_OPTIONS = Object.fromEntries(Object.entries(VIZ_TYPES).map(([k, v]) => [k, v.label]));
@@ -32,6 +32,16 @@ export function switchKind(viz, k) {
   return nv;
 }
 
+/** Types qui gardent leur hauteur naturelle (`boxed`) : en mode fixe ou « remplir », le contenu est posé dans un conteneur de la hauteur voulue,
+    en haut, au centre ou en bas (`opts.valign`) — jamais rogné si le conteneur est plus bas que le contenu */
+function boxed(t, o, W, env, node) {
+  if (!t.boxed || !node || (o.hmode !== 'fixed' && o.hmode !== 'fill')) return node;
+  const natural = +node.getAttribute('height') || 0, H = Math.max(natural, heightOf(o, W, env, natural));
+  if (H <= natural + 0.5) return node;
+  const box = el('div', { class: 'viz-box', style: { height: H + 'px', display: 'flex', alignItems: { center: 'center', bottom: 'flex-end' }[o.valign] || 'flex-start' } }, node);
+  box.dataset.vizH = H; return box;
+}
+
 /** Titre et source facultatifs, communs à tous les types (`viz.head`) */
 function withHead(viz, node) {
   const hd = viz.head || {};
@@ -47,7 +57,7 @@ function withHead(viz, node) {
 export function renderViz(viz, width, env) {
   const t = viz && VIZ_TYPES[viz.kind];
   if (!t) return null;
-  try { return withHead(viz, t.render(viz.opts || t.defaults(), width, env || {}).node); }
+  try { const o = viz.opts || t.defaults(); return withHead(viz, boxed(t, o, width, env || {}, t.render(o, width, env || {}).node)); }
   catch (e) { console.error('dataviz', viz.kind, e); return null; }
 }
 
@@ -55,6 +65,6 @@ export function renderViz(viz, width, env) {
 export function renderVizFull(viz, width, env) {
   const t = viz && VIZ_TYPES[viz.kind];
   if (!t) return null;
-  try { const r = t.render(viz.opts || t.defaults(), width, env || {}); return { ...r, node: withHead(viz, r.node), wrapped: !!(viz.head && (viz.head.title || viz.head.source)) }; }
+  try { const o = viz.opts || t.defaults(), r = t.render(o, width, env || {}); return { ...r, node: withHead(viz, boxed(t, o, width, env || {}, r.node)), wrapped: !!(viz.head && (viz.head.title || viz.head.source)) }; }
   catch (e) { console.error('dataviz', viz.kind, e); return null; }
 }

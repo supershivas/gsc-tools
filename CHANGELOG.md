@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.36.0 — 2026-11-04
+- Anneau : alignement vertical du contenu dans son conteneur (haut, centré, bas) quand la hauteur est fixe ou « remplir » ; interlignage des textes un peu réduit (18 px) et réglable
+- Alignement vertical et hauteur de conteneur aussi pour l'enquête et les pictogrammes en barres
+- Frise : extrémités de la ligne en pointillés (par défaut), en trait plein, ou aucune (la ligne commence au premier cercle)
+- Labo : sujet « Dataviz » avec les 16 types, fausses données modifiables, hauteur de conteneur, alignement vertical, options du type et déplacement direct de l'anneau
+
 ## 1.35.0 — 2026-11-04
 - Texte au centre de l'anneau : fin de l'effet « aplati » ; la mesure des textes n'est plus faussée par les navigateurs qui plafonnent la taille de police du canvas (les grands textes étaient sous-mesurés)
 - Anneau par défaut : retour à la ligne entre le chiffre et « billion » dans l'éditeur

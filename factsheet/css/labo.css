@@ -122,3 +122,7 @@ body.labo { height: 100dvh; display: flex; flex-direction: column; overflow: hid
 .sel-demo .sel-block { cursor: pointer; }
 .sel-demo .col-figure { padding: 12px; border: .5pt solid var(--c-text); border-radius: 3px; }
 .sel-demo .sel-replay { position: absolute; right: 16px; bottom: 16px; width: auto; }
+
+/* sujet Dataviz */
+.labo-vizbox{box-sizing:content-box}.labo-vizbox.fixed{outline:1px dashed #F28C28;outline-offset:2px}
+.labo-group input[type=range]{width:100%}.labo-group output{font-size:12px;color:var(--ui-mute)}

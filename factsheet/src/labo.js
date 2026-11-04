@@ -4,13 +4,28 @@
    adresse #sujet-LETTRE ; flèches du clavier et balayage pour changer de variante. */
 import { initI18n, t } from './i18n.js';
 import { h } from './render.js';
-import { cssVars, applyVars, colWidth, insetW, DEFAULT_THEME } from './tokens.js';
+import { cssVars, applyVars, colWidth, insetW, DEFAULT_THEME, paletteOf } from './tokens.js';
 import { renderCard } from './card.js';
 import { CARD_DEFAULTS, CARD_CHECKS } from './cardmodel.js';
 import { renderFigure, FIGURE_DEFAULTS } from './figure.js';
 import { ICON_OPTIONS } from './viz/icons.js';
 import { renderPanel, panelOpts } from './labo-panel.js';
 import { renderSelect, selectOpts } from './labo-select.js';
+import { VIZ_TYPES, renderVizFull } from './viz/index.js';
+import { buildFields, paletteOptions } from './editor.js';
+import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
+
+/* ---------- Sujet « Dataviz » : tous les types, fausses données, réglages en direct ---------- */
+const VIZ_DESC = {
+  donut: 'Anneau ou camembert : glisser l’anneau (rotation), un libellé (position, côté) ou le point blanc (ancrage du trait).', bars: 'Barres jumelées, groupées ou empilées, avec accolade « évolution ».',
+  hbars: 'Barres horizontales : la hauteur des barres suit la hauteur du conteneur.', line: 'Courbes à plusieurs séries.', timeline: 'Frise verticale ou horizontale ; extrémités de la ligne au choix.',
+  scatter: 'Nuage de points ou bulles, un groupe = une couleur.', survey: 'Un point par répondant, anneaux = réponses, un nuage par groupe.', sunburst: 'Anneaux concentriques, un par niveau de la hiérarchie.',
+  bubbles: 'Cercles proportionnels regroupés par branche.', treemap: 'Rectangles proportionnels regroupés par branche.', sankey: 'Flux entre nœuds, épaisseur = valeur.',
+  pictoBars: 'Rangées de pictogrammes, une par catégorie.', pictoCols: 'Colonnes de pictogrammes empilés.', pictoV: 'Un pictogramme par catégorie, rempli en hauteur.', pictoH: 'Un pictogramme par ligne, rempli en largeur.', icons: 'Liste à icônes.',
+};
+const VALIGN_FLEX = { top: 'flex-start', center: 'center', bottom: 'flex-end' };
+const vizVariant = kind => { const ty = VIZ_TYPES[kind]; return { title: ty.label, desc: VIZ_DESC[kind] || '', opts: { kind, viz: ty.defaults(), head: { title: '', source: '' }, boxH: 0, valign: 'top' } }; };
+
 
 const WIDTHS = { '1/3': colWidth('1-1-1', 0), '1/2': colWidth('1-1', 0), '2/3': colWidth('2-1', 0), 'full': colWidth('1', 0) };
 
@@ -49,6 +64,7 @@ const TOPICS = [
     { title: 'Icône en pastille', desc: 'Même icône dans une pastille ronde de 0,5 pt, comme dans la liste à icônes.', opts: fig({ icon: true, iconCircle: true }) },
     { title: 'Centré, sans contour', desc: 'Chiffre et icône centrés, pour une bande de plusieurs chiffres.', opts: fig({ icon: true, stroke: false, fill: false, align: 'center' }) },
   ] },
+  { id: 'dataviz', icon: 'chart-dots', label: 'Dataviz', controls: [], render: (o, W, v, paint) => renderVizTopic(o, W, paint), extra: vizExtra, variants: Object.keys(VIZ_TYPES).map(vizVariant) },
   { id: 'proprietes', icon: 'adjustments', label: 'Propriétés', panel: true, controls: [], render: (o, W, v, redraw) => renderPanel(o, v, redraw), variants: [
     { title: 'Ancienne', old: true, style: 'a', desc: 'Le panneau tel qu’il est : tout à la suite, des étiquettes de 12 px, des écarts irréguliers et des cases à cocher entre les blocs.', opts: panelOpts() },
     { title: 'Cartes repliables', kept: 'tous les panneaux de propriétés', style: 'b', desc: 'Un bloc par sujet (texte, couleurs, image, logo) dans une carte avec icône, interrupteur et chevron : on replie ce qu’on ne touche pas.', opts: panelOpts() },
@@ -64,7 +80,7 @@ const TOPICS = [
     { title: 'Pointillés', style: 'ants', desc: 'Le contour est en pointillés qui défilent lentement (1,8 s) : on voit tout de suite quel élément est actif.', opts: selectOpts() },
   ] },
 ];
-const LETTERS = 'ABCDEFGHIJ';
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 /* ---------- état ---------- */
 const state = {};   // `${topic}-${lettre}` → options modifiées (en mémoire seulement)
@@ -73,7 +89,7 @@ let topicId = TOPICS[0].id, vi = 0;
 const root = document.getElementById('labo');
 
 function fromHash() {
-  const m = /^#([a-z]+)-([A-J])$/.exec(location.hash);
+  const m = /^#([a-z]+)-([A-Z])$/.exec(location.hash);
   const tp = m && TOPICS.find(x => x.id === m[1]);
   if (tp && LETTERS.indexOf(m[2]) < tp.variants.length) { topicId = tp.id; vi = LETTERS.indexOf(m[2]); }
 }
@@ -112,6 +128,46 @@ const optCard = (id, icon, name, nodes) => {
       h('button', { type: 'button', class: 'pp-chev', 'aria-expanded': String(open), 'aria-label': open ? 'Replier' : 'Déplier', onclick: () => { open ? shut.add(id) : shut.delete(id); draw(); } }, h('i', { class: 'ti ti-chevron-' + (open ? 'up' : 'down') }))),
     open ? h('div', { class: 'pp-body' }, nodes) : null);
 };
+/* Rendu : la dataviz dans un conteneur de hauteur réglable ; interactions à la souris pour les types qui en ont (anneau) */
+function renderVizTopic(o, W, paint) {
+  const ty = VIZ_TYPES[o.kind], opts = o.viz, ui = (o.__ui ||= { sel: -1, drag: null });
+  if (ty.heights && o.boxH) Object.assign(opts, { hmode: 'fixed', hfixed: o.boxH, valign: o.valign }); else if (ty.heights) { delete opts.hmode; delete opts.hfixed; }
+  const r = renderVizFull({ kind: o.kind, opts, head: o.head }, W, { locale: 'en-GB', pal: paletteOf(DEFAULT_THEME, {}), ui: ty.edit ? ui : undefined });
+  const box = h('div', { class: 'labo-vizbox' + (o.boxH ? ' fixed' : ''), style: { width: W + 'px', minHeight: o.boxH ? o.boxH + 'px' : null, display: 'flex', alignItems: VALIGN_FLEX[o.valign] || 'flex-start' } });
+  box.append(r ? r.node : h('div', { textContent: 'Rendu impossible' }));
+  if (ty.edit && r) {
+    const toPt = e => { const svg = document.querySelector('.labo-vizbox svg'); if (!svg) return { x: 0, y: 0 }; const rc = svg.getBoundingClientRect(), k = rc.width / W || 1; return { x: (e.clientX - rc.left) / k, y: (e.clientY - rc.top) / k }; };
+    box.addEventListener('pointerdown', e => {
+      const n = e.target.closest && e.target.closest('[data-hit]'); if (!n || e.button) return;
+      const [kind, i] = n.getAttribute('data-hit').split(':'), api = { ui, select(k) { ui.sel = k; }, redraw: paint };
+      const drag = ty.edit.start({ kind, i: +i }, opts, r.meta, api, toPt(e)); if (!drag) return;
+      e.preventDefault();
+      const move = ev => drag.move(toPt(ev)), up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); if (drag.end) drag.end(); ui.drag = null; paint(); };
+      window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); paint();
+    });
+  }
+  return box;
+}
+/* Cartes de réglages : conteneur, titre, options du type, données (fausses, modifiables) */
+function vizExtra(o, v, paint, redraw) {
+  const ty = VIZ_TYPES[o.kind], pal = paletteOptions({ theme: DEFAULT_THEME, colors: {} }), ctx = { changed: paint, restructure: () => { paint(); redraw(); } };
+  const range = h('input', { type: 'range', min: 0, max: 900, step: 3, value: o.boxH || 0 });
+  const out = h('output', { textContent: o.boxH ? `${o.boxH} px` : 'auto' });
+  range.addEventListener('input', () => { o.boxH = +range.value; out.textContent = o.boxH ? `${o.boxH} px` : 'auto'; paint(); });
+  const align = { type: 'radio', k: 'valign', label: 'Alignement vertical dans le conteneur', choices: { top: 'En haut', center: 'Centré', bottom: 'En bas' } };
+  const optionFields = (ty.fields || []).filter(f => f.t !== 'table' && f.t !== 'list' && f.g !== 'data');
+  const dataNodes = [];
+  for (const f of ty.fields || []) { if (f.t === 'table') dataNodes.push(gridEditor(tableAdapter(f, o.viz, pal, ['sky', 'yellow', 'blue', 'slate', 'grey']), ctx, { downloadName: o.kind })); else if (f.t === 'list') dataNodes.push(...buildFields([f], o.viz, ctx, pal, h)); }
+  if (ty.data) dataNodes.push(gridEditor(recordsAdapter(ty.data, o.viz, pal), ctx, { downloadName: o.kind }));
+  return [
+    optCard('viz-box', 'box-padding', 'Conteneur', [h('label', { class: 'labo-group' }, h('div', { class: 'labo-lab', textContent: 'Hauteur du conteneur (0 = automatique)' }), range, out), control(null, align, o, paint),
+      h('p', { class: 'hint', textContent: ty.edit ? 'Dans l’aperçu : glisser l’anneau, un libellé ou le point blanc.' : 'Les éléments de ce type ne se déplacent pas encore à la souris.' })]),
+    optCard('viz-head', 'typography', 'Titre et source', buildFields([{ k: 'title', t: 'text', label: 'Titre' }, { k: 'source', t: 'text', label: 'Source' }], o.head, ctx, {}, h)),
+    optionFields.length ? optCard('viz-opts', 'adjustments', 'Options du type', buildFields(optionFields, o.viz, ctx, pal, h)) : null,
+    dataNodes.length ? optCard('viz-data', 'table', 'Données (fausses)', dataNodes) : null,
+  ];
+}
+
 function draw() {
   const tp = TOPICS.find(x => x.id === topicId), v = tp.variants[vi], o = optsOf(tp, vi);
   document.title = `${t('Labo')} — GSC tools`;
@@ -123,6 +179,7 @@ function draw() {
   const opts = tp.panel ? null : h('aside', { class: 'labo-opts' },
     settings.length ? optCard('settings', 'adjustments', 'Réglages', settings.map(c => control(tp, c, o, paint))) : null,
     checks.length ? optCard('options', 'list-check', 'Options', checks.map(c => control(tp, c, o, paint))) : null,
+    ...(tp.extra ? tp.extra(o, v, paint, draw) : []),
     h('button', { type: 'button', class: 'pp-btn', onclick: () => { delete state[`${tp.id}-${LETTERS[vi]}`]; draw(); } }, h('i', { class: 'ti ti-restore' }), h('span', { textContent: 'Réinitialiser la variante' })));
   const view = h('div', { class: 'labo-stage' },
     tp.panel ? null : h('div', { class: 'labo-tools' },

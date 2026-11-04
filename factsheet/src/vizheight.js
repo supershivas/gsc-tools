@@ -19,5 +19,9 @@ export function heightNodes(ty, o, { ctx, width, avail }) {
     if (avail) nodes.push(h('label', { class: 'f' }, t('Place disponible pour cet aperçu (px)'), helpBtn('Place disponible pour cet aperçu (px)'), h('input', { type: 'number', value: avail.get(), min: 90, max: 1200, step: 15, oninput: e => { const v = parseFloat(e.target.value); if (!isNaN(v)) avail.set(v); } })));
     nodes.push(h('p', { class: 'hint', textContent: t('Dans le document, la dataviz occupe la place restante de la page (partagée s’il y en a plusieurs), entre ces deux bornes.') }));
   }
+  if (ty.boxed && (mode === 'fixed' || mode === 'fill')) {
+    const vs = h('select', { onchange: e => { o.valign = e.target.value; ctx.restructure(); } }, ['top', 'center', 'bottom'].map(v => h('option', { value: v, textContent: t({ top: 'En haut', center: 'Centré', bottom: 'En bas' }[v]), selected: (o.valign || 'top') === v })));
+    nodes.push(h('label', { class: 'f' }, t('Alignement vertical de la dataviz'), helpBtn('Alignement vertical de la dataviz'), vs));
+  }
   return nodes;
 }

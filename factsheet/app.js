@@ -684,6 +684,21 @@
     /* PNG 3D */
     "Exporter en PNG": "Export as PNG",
     "PNG transparent": "Transparent PNG",
+    /* frise : extrémités */
+    "Extr\xE9mit\xE9s de la ligne": "Line ends",
+    "Prolong\xE9es, en pointill\xE9s": "Extended, dashed",
+    "Prolong\xE9es, en trait plein": "Extended, solid",
+    "Aucune : la ligne commence au premier cercle": "None: the line starts at the first circle",
+    "Avant le premier et apr\xE8s le dernier cercle, la ligne se prolonge (un tiers plein puis des tirets) ou non : \xAB Aucune \xBB fait commencer la ligne au premier cercle.": "Before the first and after the last circle the line extends (a third solid, then dashes) or not: \u201CNone\u201D makes the line start at the first circle.",
+    /* alignement et interlignage */
+    "Interlignage des textes": "Text line spacing",
+    "Serr\xE9 (15 px)": "Tight (15 px)",
+    "Normal (18 px)": "Normal (18 px)",
+    "Large (21 px)": "Loose (21 px)",
+    "Alignement vertical de la dataviz": "Dataviz vertical alignment",
+    "En bas": "Bottom",
+    "Quand le conteneur est plus haut que le contenu : le contenu se place en haut, au centre ou en bas.": "When the container is taller than the content: the content sits at the top, centre or bottom.",
+    "Espace entre les lignes des libell\xE9s : serr\xE9, normal (18 px) ou large (21 px).": "Space between label lines: tight, normal (18 px) or loose (21 px).",
     /* types de dataviz */
     "Barres (jumel\xE9es, group\xE9es, empil\xE9es)": "Bars (overlapping, grouped, stacked)",
     "Plusieurs s\xE9ries": "Multiple series",
@@ -1337,7 +1352,7 @@
 
   // src/viz/donut.js
   var BODY = pxOf(TYPE.body.size);
-  var LH = TYPE.body.lh;
+  var LEAD = { tight: 15, normal: 18, loose: 21 };
   var rad = (d) => d * Math.PI / 180;
   function resolveColumn(items, topLim, gap) {
     items.sort((a2, b) => a2.want - b.want);
@@ -1360,6 +1375,8 @@
     label: "Anneau / camembert",
     icon: "chart-donut",
     family: "part",
+    boxed: true,
+    heights: ["auto", "fixed", "fill"],
     defaults: () => ({
       style: "donut",
       totalTpl: "\u20AC{total}\nbillion",
@@ -1380,6 +1397,7 @@
       { k: "style", t: "select", label: "Forme", options: { donut: "Anneau (total au centre)", pie: "Camembert" } },
       { k: "totalTpl", t: "ctext", label: "Texte du centre" },
       { k: "decimals", t: "number", label: "D\xE9cimales du total", min: 0, max: 4 },
+      { k: "leading", t: "select", label: "Interlignage des textes", options: { tight: "Serr\xE9 (15 px)", normal: "Normal (18 px)", loose: "Large (21 px)" } },
       { k: "layout", t: "select", label: "Libell\xE9s", options: { auto: "Auto (selon la largeur)", around: "Autour de l\u2019anneau", legend: "L\xE9gende sous l\u2019anneau" } },
       { k: "orient", t: "select", label: "Orientation de l\u2019anneau", options: { largest: "Plus grand segment \xE0 un angle donn\xE9", first: "1er segment en haut", manual: "Manuelle (glisser l\u2019anneau dans l\u2019\xE9diteur)" } },
       { k: "largestAngle", t: "number", label: "Angle du plus grand segment (\xB0 \u2014 0 = haut, 210 = bas gauche)", min: 0, max: 359 },
@@ -1474,6 +1492,7 @@
       }
     },
     render(o, W, env) {
+      const LH = LEAD[o.leading] || LEAD.normal;
       const segs = (o.segments || []).filter((g) => +g.value > 0);
       const total = segs.reduce((a3, g) => a3 + +g.value, 0);
       const around = o.layout === "around" || o.layout !== "legend" && W >= VIZ.aroundMinW;
@@ -3452,6 +3471,8 @@
     label: "R\xE9sultats d\u2019enqu\xEAte",
     icon: "chart-circles",
     family: "part",
+    boxed: true,
+    heights: ["auto", "fixed", "fill"],
     defaults: () => ({
       perDot: 0,
       perRow: 0,
@@ -3539,12 +3560,14 @@
       orientation: "vertical",
       alternate: false,
       showDates: true,
+      tail: "dashed",
       rows: [["2021", "Launch", "The programme is announced."], ["2022", "First results", "Early adopters report a clear impact on their daily work."], ["2023", "Extension", "Three new member states join."], ["2025", "Review", "An independent evaluation concludes the first phase."]].map(([date, title, text]) => ({ date, title, text, color: "blue" }))
     }),
     fields: [
       { k: "orientation", t: "select", label: "Orientation", options: { vertical: "Verticale", horizontal: "Horizontale" } },
       { k: "alternate", t: "bool", label: "Alterner les \xE9v\xE9nements de part et d\u2019autre de la ligne" },
-      { k: "showDates", t: "bool", label: "Afficher les dates" }
+      { k: "showDates", t: "bool", label: "Afficher les dates" },
+      { k: "tail", t: "select", label: "Extr\xE9mit\xE9s de la ligne", options: { dashed: "Prolong\xE9es, en pointill\xE9s", solid: "Prolong\xE9es, en trait plein", none: "Aucune : la ligne commence au premier cercle" } }
     ],
     data: {
       k: "rows",
@@ -3566,8 +3589,20 @@
       const dot = (cx, cy, color) => s("circle", { cx, cy, r: R, fill: colorRef(color || "blue"), stroke: "currentColor", "stroke-width": SW });
       const block = (it, maxW) => ({ lines: textLines(it.title || "", it.text || "", capPx, maxW), dateH: showDates && it.date ? lh : 0 });
       const stretch = (natural2) => o.hmode === "fixed" || o.hmode === "fill" ? Math.max(0, heightOf(o, W, env, natural2) - natural2) : 0;
+      const tail = o.tail || "dashed", TL = 24;
+      const line = (svg2, x1, y1, x2, y2, dash) => svg2.append(s("line", { x1, y1, x2, y2, stroke: "currentColor", "stroke-width": SW, "stroke-dasharray": dash || null }));
+      const tailSeg = (svg2, xa, ya, xb, yb) => {
+        if (Math.hypot(xb - xa, yb - ya) < 1) return;
+        if (tail === "solid") {
+          line(svg2, xa, ya, xb, yb);
+          return;
+        }
+        const xm = xa + (xb - xa) * 0.35, ym = ya + (yb - ya) * 0.35;
+        line(svg2, xa, ya, xm, ym);
+        line(svg2, xm, ym, xb, yb, "3 3");
+      };
       if (!horizontal) {
-        const alt2 = o.alternate && W >= 240, lineX = alt2 ? W / 2 : R + 1, side = alt2 ? W / 2 - R - 12 : W - (2 * R + 14) - 1;
+        const alt2 = o.alternate && W >= 240, lineX = alt2 ? W / 2 : R + 1, side = alt2 ? W / 2 - R - 12 : W - (2 * R + 14) - 1, top = tail === "none" ? 0 : TL;
         const laid = [];
         const end = { l: 0, r: 0 };
         let prevY = -1e9;
@@ -3578,34 +3613,46 @@
           prevY = y;
           laid.push({ it, b, left: left2, y, h: h2 });
         });
-        const natural2 = Math.max(...laid.map((l) => l.y + l.h)), extra2 = stretch(natural2), H2 = natural2 + extra2, n2 = laid.length;
-        const svg2 = mk(H2);
-        svg2.append(s("line", { x1: lineX, x2: lineX, y1: 0, y2: H2, stroke: "currentColor", "stroke-width": SW }));
+        const n2 = laid.length, natural2 = Math.max(...laid.map((l) => l.y + l.h)) + top, extra2 = stretch(natural2);
+        const yOf = (l, i) => l.y + top + (n2 > 1 ? extra2 * i / (n2 - 1) : 0), d0 = yOf(laid[0], 0) + lh / 2, d1 = yOf(laid[n2 - 1], n2 - 1) + lh / 2;
+        const H2 = Math.max(natural2 + extra2, tail === "none" ? 0 : d1 + TL), svg2 = mk(H2);
+        if (n2 > 1) line(svg2, lineX, d0, lineX, d1);
+        if (tail !== "none") {
+          tailSeg(svg2, lineX, d0 - R, lineX, 0);
+          tailSeg(svg2, lineX, d1 + R, lineX, d1 + TL);
+        }
         laid.forEach((l, i) => {
-          const y = l.y + (n2 > 1 ? extra2 * i / (n2 - 1) : 0), x = l.left ? lineX - R - 10 : lineX + R + 10, anchor = l.left ? "end" : "start";
+          const y = yOf(l, i), x = l.left ? lineX - R - 10 : lineX + R + 10, anchor = l.left ? "end" : "start";
           svg2.append(dot(lineX, y + lh / 2, l.it.color));
           if (l.b.dateH) svg2.append(dateNode(l.it.date, x, y, anchor));
           svg2.append(drawLines(l.b.lines, x, y + l.b.dateH, lh, capPx, anchor));
         });
         return { node: svg2 };
       }
-      const n = items.length, slot = W / n, alt = o.alternate && n > 1, tw = Math.max(36, (alt ? 2 * slot : slot) - 10);
-      const twAt = (i) => Math.max(36, Math.min(tw, 2 * Math.min(slot * (i + 0.5), W - slot * (i + 0.5)) - 4));
+      const n = items.length, none = tail === "none" && n > 1;
+      const xs = items.map((_, i) => none ? R + 1 + i * (W - 2 * R - 2) / (n - 1) : W / n * (i + 0.5));
+      const pitch = none ? (W - 2 * R - 2) / (n - 1) : W / n, alt = o.alternate && n > 1, tw = Math.max(36, (alt ? 2 * pitch : pitch) - 10);
+      const anchorAt = (i) => none && i === 0 ? "start" : none && i === n - 1 ? "end" : "middle", tx = (i, a2) => a2 === "start" ? 0 : a2 === "end" ? W : xs[i];
+      const twAt = (i) => anchorAt(i) !== "middle" ? Math.max(36, Math.min(tw, W)) : Math.max(36, Math.min(tw, 2 * Math.min(xs[i], W - xs[i]) - 4));
       const blocks = items.map((it, i) => block(it, twAt(i))), hOf = (b) => b.dateH + b.lines.length * lh;
       const up = alt ? Math.max(0, ...blocks.filter((_, i) => i % 2 === 1).map(hOf)) : showDates ? lh : 0, down = Math.max(0, ...blocks.filter((_, i) => !alt || i % 2 === 0).map((b) => alt ? hOf(b) : b.lines.length * lh));
       const lineY = up + (up ? 10 : 0) + R + 1, natural = lineY + R + 8 + down, extra = stretch(natural), H = natural + extra;
       const svg = mk(H);
-      svg.append(s("line", { x1: 0, x2: W, y1: lineY, y2: lineY, stroke: "currentColor", "stroke-width": SW }));
+      if (n > 1) line(svg, xs[0], lineY, xs[n - 1], lineY);
+      if (tail !== "none") {
+        tailSeg(svg, xs[0] - R, lineY, 0, lineY);
+        tailSeg(svg, xs[n - 1] + R, lineY, W, lineY);
+      }
       items.forEach((it, i) => {
-        const cx = slot * (i + 0.5), b = blocks[i], above = alt && i % 2 === 1;
-        svg.append(dot(cx, lineY, it.color));
+        const b = blocks[i], above = alt && i % 2 === 1, an = anchorAt(i), x = tx(i, an);
+        svg.append(dot(xs[i], lineY, it.color));
         if (alt) {
           const y0 = above ? lineY - R - 8 - hOf(b) : lineY + R + 8;
-          if (b.dateH) svg.append(dateNode(it.date, cx, y0, "middle"));
-          svg.append(drawLines(b.lines, cx, y0 + b.dateH, lh, capPx, "middle"));
+          if (b.dateH) svg.append(dateNode(it.date, x, y0, an));
+          svg.append(drawLines(b.lines, x, y0 + b.dateH, lh, capPx, an));
         } else {
-          if (b.dateH) svg.append(dateNode(it.date, cx, lineY - R - 8 - lh, "middle"));
-          svg.append(drawLines(b.lines, cx, lineY + R + 8, lh, capPx, "middle"));
+          if (b.dateH) svg.append(dateNode(it.date, x, lineY - R - 8 - lh, an));
+          svg.append(drawLines(b.lines, x, lineY + R + 8, lh, capPx, an));
         }
       });
       return { node: svg };
@@ -3741,6 +3788,7 @@
       label: VARIANTS[variant].label,
       icon: VARIANTS[variant].icon,
       family: "picto",
+      boxed: variant === "rows" || variant === "cols",
       defaults: () => ({
         icon: "picto:person",
         color: "blue",
@@ -3753,7 +3801,7 @@
         ratio: "3:2",
         rows: [["Women", 62, ""], ["Men", 48, ""], ["Young people", 35, ""], ["Seniors", 21, ""]].map(([label, value2, color]) => ({ label, value: value2, color }))
       }),
-      heights: multi ? null : ["ratio", "fixed", "fill"],
+      heights: multi ? ["auto", "fixed", "fill"] : ["ratio", "fixed", "fill"],
       fields: [
         { k: "perIcon", t: "number", label: multi ? "Valeur d\u2019un pictogramme" : "Valeur du pictogramme plein (ex. 100)", min: 1e-4, step: "any" },
         { k: "color", t: "color", label: "Couleur des pictogrammes" },
@@ -3853,6 +3901,14 @@
     if (dk && nk && dk.k === nk.k && dk.cols.map((c2) => c2.k).join() === nk.cols.map((c2) => c2.k).join()) n[nk.k] = o[dk.k];
     return nv;
   }
+  function boxed(t2, o, W, env, node) {
+    if (!t2.boxed || !node || o.hmode !== "fixed" && o.hmode !== "fill") return node;
+    const natural = +node.getAttribute("height") || 0, H = Math.max(natural, heightOf(o, W, env, natural));
+    if (H <= natural + 0.5) return node;
+    const box = el("div", { class: "viz-box", style: { height: H + "px", display: "flex", alignItems: { center: "center", bottom: "flex-end" }[o.valign] || "flex-start" } }, node);
+    box.dataset.vizH = H;
+    return box;
+  }
   function withHead(viz, node) {
     const hd = viz.head || {};
     if (!node || !(hd.title || "").trim() && !(hd.source || "").trim()) return node;
@@ -3866,7 +3922,8 @@
     const t2 = viz && VIZ_TYPES[viz.kind];
     if (!t2) return null;
     try {
-      return withHead(viz, t2.render(viz.opts || t2.defaults(), width, env || {}).node);
+      const o = viz.opts || t2.defaults();
+      return withHead(viz, boxed(t2, o, width, env || {}, t2.render(o, width, env || {}).node));
     } catch (e) {
       console.error("dataviz", viz.kind, e);
       return null;
@@ -3876,8 +3933,8 @@
     const t2 = viz && VIZ_TYPES[viz.kind];
     if (!t2) return null;
     try {
-      const r = t2.render(viz.opts || t2.defaults(), width, env || {});
-      return { ...r, node: withHead(viz, r.node), wrapped: !!(viz.head && (viz.head.title || viz.head.source)) };
+      const o = viz.opts || t2.defaults(), r = t2.render(o, width, env || {});
+      return { ...r, node: withHead(viz, boxed(t2, o, width, env || {}, r.node)), wrapped: !!(viz.head && (viz.head.title || viz.head.source)) };
     } catch (e) {
       console.error("dataviz", viz.kind, e);
       return null;
@@ -4490,7 +4547,9 @@ ${short}`)])
     const mine = fills.filter((f) => f.page === p.key);
     if (!mine.length) return;
     const chartH = (f) => {
-      const n = f.node, sv = n.tagName.toLowerCase() === "svg" ? n : n.querySelector("svg");
+      const n = f.node, bx = n.dataset && n.dataset.vizH ? n : n.querySelector && n.querySelector("[data-viz-h]");
+      if (bx) return +bx.dataset.vizH;
+      const sv = n.tagName.toLowerCase() === "svg" ? n : n.querySelector("svg");
       return +(sv && sv.getAttribute("height")) || n.offsetHeight || 0;
     };
     mine.forEach((f) => {
@@ -5011,6 +5070,9 @@ ${short}`)])
     "Valeur d\u2019un pictogramme": "Valeur repr\xE9sent\xE9e par un pictogramme entier ; le dernier peut \xEAtre partiel.",
     "Valeur du pictogramme plein (ex. 100)": "Valeur correspondant \xE0 un pictogramme enti\xE8rement rempli (ex. 100 pour des pourcentages).",
     "Alterner les \xE9v\xE9nements de part et d\u2019autre de la ligne": "Les \xE9v\xE9nements pairs et impairs passent de chaque c\xF4t\xE9 de la ligne : le texte dispose de deux fois plus de largeur.",
+    "Alignement vertical de la dataviz": "Quand le conteneur est plus haut que le contenu : le contenu se place en haut, au centre ou en bas.",
+    "Interlignage des textes": "Espace entre les lignes des libell\xE9s : serr\xE9, normal (18 px) ou large (21 px).",
+    "Extr\xE9mit\xE9s de la ligne": "Avant le premier et apr\xE8s le dernier cercle, la ligne se prolonge (un tiers plein puis des tirets) ou non : \xAB Aucune \xBB fait commencer la ligne au premier cercle.",
     "Largeur des n\u0153uds (px)": "\xC9paisseur des barres verticales du diagramme de Sankey."
   };
   var tip = null;
@@ -5422,6 +5484,13 @@ ${short}`)])
         if (!isNaN(v)) avail.set(v);
       } })));
       nodes.push(h("p", { class: "hint", textContent: t("Dans le document, la dataviz occupe la place restante de la page (partag\xE9e s\u2019il y en a plusieurs), entre ces deux bornes.") }));
+    }
+    if (ty.boxed && (mode === "fixed" || mode === "fill")) {
+      const vs = h("select", { onchange: (e) => {
+        o.valign = e.target.value;
+        ctx2.restructure();
+      } }, ["top", "center", "bottom"].map((v) => h("option", { value: v, textContent: t({ top: "En haut", center: "Centr\xE9", bottom: "En bas" }[v]), selected: (o.valign || "top") === v })));
+      nodes.push(h("label", { class: "f" }, t("Alignement vertical de la dataviz"), helpBtn("Alignement vertical de la dataviz"), vs));
     }
     return nodes;
   }

@@ -198,7 +198,7 @@ export function renderDocument(doc) {
 function fillPage(p, fills) {
   const mine = fills.filter(f => f.page === p.key);
   if (!mine.length) return;
-  const chartH = f => { const n = f.node, sv = n.tagName.toLowerCase() === 'svg' ? n : n.querySelector('svg'); return +(sv && sv.getAttribute('height')) || n.offsetHeight || 0; };
+  const chartH = f => { const n = f.node, bx = n.dataset && n.dataset.vizH ? n : n.querySelector && n.querySelector('[data-viz-h]'); if (bx) return +bx.dataset.vizH; const sv = n.tagName.toLowerCase() === 'svg' ? n : n.querySelector('svg'); return +(sv && sv.getAttribute('height')) || n.offsetHeight || 0; };
   mine.forEach(f => { f.h = chartH(f); });
   for (let pass = 0; pass < 6; pass++) {
     const free = p.max - p.content.offsetHeight;

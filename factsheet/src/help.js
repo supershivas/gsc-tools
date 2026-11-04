@@ -45,6 +45,9 @@ export const HELP = {
   'Valeur d’un pictogramme': 'Valeur représentée par un pictogramme entier ; le dernier peut être partiel.',
   'Valeur du pictogramme plein (ex. 100)': 'Valeur correspondant à un pictogramme entièrement rempli (ex. 100 pour des pourcentages).',
   'Alterner les événements de part et d’autre de la ligne': 'Les événements pairs et impairs passent de chaque côté de la ligne : le texte dispose de deux fois plus de largeur.',
+  'Alignement vertical de la dataviz': 'Quand le conteneur est plus haut que le contenu : le contenu se place en haut, au centre ou en bas.',
+  'Interlignage des textes': 'Espace entre les lignes des libellés : serré, normal (18 px) ou large (21 px).',
+  'Extrémités de la ligne': 'Avant le premier et après le dernier cercle, la ligne se prolonge (un tiers plein puis des tirets) ou non : « Aucune » fait commencer la ligne au premier cercle.',
   'Largeur des nœuds (px)': 'Épaisseur des barres verticales du diagramme de Sankey.',
 };
 

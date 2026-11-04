@@ -5,7 +5,7 @@ import { VIZ, TYPE, GAP } from '../tokens.js';
 import { s, SW, colorRef, pxOf, fmt, mw, SERIF, SANS, round3, textLines, drawLines } from './util.js';
 import { t } from '../i18n.js';
 
-const BODY = pxOf(TYPE.body.size), LH = TYPE.body.lh;
+const BODY = pxOf(TYPE.body.size), LEAD = { tight: 15, normal: 18, loose: 21 };   // interlignage des textes (px) : « normal » = 18, un peu plus serré que le corps de texte (21)
 const rad = d => d * Math.PI / 180;
 
 function resolveColumn(items, topLim, gap) {          // empile sans chevauchement, du haut vers le bas
@@ -20,7 +20,7 @@ const ORANGE = '#F28C28';
 
 export default {
   label: 'Anneau / camembert',
-  icon: 'chart-donut', family: 'part',
+  icon: 'chart-donut', family: 'part', boxed: true, heights: ['auto', 'fixed', 'fill'],
   defaults: () => ({
     style: 'donut', totalTpl: '€{total}\nbillion', decimals: 1, layout: 'auto', orient: 'largest', largestAngle: 210, startAngle: 0,
     segments: [
@@ -35,6 +35,7 @@ export default {
     { k: 'style', t: 'select', label: 'Forme', options: { donut: 'Anneau (total au centre)', pie: 'Camembert' } },
     { k: 'totalTpl', t: 'ctext', label: 'Texte du centre' },
     { k: 'decimals', t: 'number', label: 'Décimales du total', min: 0, max: 4 },
+    { k: 'leading', t: 'select', label: 'Interlignage des textes', options: { tight: 'Serré (15 px)', normal: 'Normal (18 px)', loose: 'Large (21 px)' } },
     { k: 'layout', t: 'select', label: 'Libellés', options: { auto: 'Auto (selon la largeur)', around: 'Autour de l’anneau', legend: 'Légende sous l’anneau' } },
     { k: 'orient', t: 'select', label: 'Orientation de l’anneau', options: { largest: 'Plus grand segment à un angle donné', first: '1er segment en haut', manual: 'Manuelle (glisser l’anneau dans l’éditeur)' } },
     { k: 'largestAngle', t: 'number', label: 'Angle du plus grand segment (° — 0 = haut, 210 = bas gauche)', min: 0, max: 359 },
@@ -87,6 +88,7 @@ export default {
     },
   },
   render(o, W, env) {
+    const LH = LEAD[o.leading] || LEAD.normal;
     const segs = (o.segments || []).filter(g => +g.value > 0);
     const total = segs.reduce((a, g) => a + +g.value, 0);
     const around = o.layout === 'around' || (o.layout !== 'legend' && W >= VIZ.aroundMinW);
