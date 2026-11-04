@@ -528,8 +528,10 @@ window.addEventListener('keydown', e => {
 
 /* Aperçu 3D : les pages sont dessinées ici, la scène three.js est dans viewer3d.js (chargé à la première ouverture) */
 let viewerLoad = null;
-const loadViewer = () => window.FS3D ? Promise.resolve(window.FS3D) : (viewerLoad = viewerLoad || new Promise((res, rej) => {
-  const s = h('script', { src: 'viewer3d.js', onload: () => res(window.FS3D), onerror: () => { viewerLoad = null; rej(new Error('viewer3d')); } });
+/* le bundle est chargé avec la version en paramètre : après une mise à jour, jamais l'ancienne copie du cache du navigateur (GitHub Pages : 10 min) */
+const loadViewer = () => window.FS3D ? Promise.resolve(window.FS3D) : (viewerLoad = viewerLoad || new Promise(async (res, rej) => {
+  let v = Date.now(); try { v = (await (await fetch('../version.json', { cache: 'no-store' })).json()).version || v; } catch (e) { /* hors ligne : on garde l'horodatage */ }
+  const s = h('script', { src: 'viewer3d.js?v=' + v, onload: () => res(window.FS3D), onerror: () => { viewerLoad = null; rej(new Error('viewer3d')); } });
   document.head.append(s);
 }));
 async function open3d() {

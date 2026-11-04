@@ -7455,8 +7455,13 @@ ${lorem}` },
     }
   });
   var viewerLoad = null;
-  var loadViewer = () => window.FS3D ? Promise.resolve(window.FS3D) : viewerLoad = viewerLoad || new Promise((res, rej) => {
-    const s2 = h("script", { src: "viewer3d.js", onload: () => res(window.FS3D), onerror: () => {
+  var loadViewer = () => window.FS3D ? Promise.resolve(window.FS3D) : viewerLoad = viewerLoad || new Promise(async (res, rej) => {
+    let v = Date.now();
+    try {
+      v = (await (await fetch("../version.json", { cache: "no-store" })).json()).version || v;
+    } catch (e) {
+    }
+    const s2 = h("script", { src: "viewer3d.js?v=" + v, onload: () => res(window.FS3D), onerror: () => {
       viewerLoad = null;
       rej(new Error("viewer3d"));
     } });

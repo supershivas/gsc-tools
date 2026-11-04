@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.31.2 — 2026-11-04
+- Aperçu 3D : le bundle est rechargé à chaque nouvelle version (plus d'ancienne copie en cache qui garde des défauts d'ombre déjà corrigés)
+
 ## 1.31.1 — 2026-11-04
 - Aperçu 3D : plus de zébrures d'ombre sur la feuille ni d'effet bizarre quand elle approche du mur (pas d'auto-ombrage, mur reculé, lumière plus frontale)
 
