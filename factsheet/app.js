@@ -3767,6 +3767,16 @@
   var VIZ_OPTIONS = Object.fromEntries(Object.entries(VIZ_TYPES).map(([k, v]) => [k, v.label]));
   var VIZ_FAMILIES = { compare: "Comparaison", part: "Proportions", trend: "\xC9volution", hier: "Hi\xE9rarchies", flow: "Flux", picto: "Pictogrammes", list: "Listes" };
   var newViz = (kind = "bars") => ({ kind, opts: VIZ_TYPES[kind].defaults(), head: { title: "", source: "" } });
+  function switchKind(viz, k) {
+    const nv = newViz(k), o = viz.opts || {}, n = nv.opts, dk = (VIZ_TYPES[viz.kind] || {}).data, nk = VIZ_TYPES[k].data;
+    nv.head = viz.head || nv.head;
+    if (o.rows && o.series && n.rows && n.series) {
+      n.rows = o.rows;
+      n.series = o.series;
+    }
+    if (dk && nk && dk.k === nk.k && dk.cols.map((c2) => c2.k).join() === nk.cols.map((c2) => c2.k).join()) n[nk.k] = o[dk.k];
+    return nv;
+  }
   function withHead(viz, node) {
     const hd = viz.head || {};
     if (!node || !(hd.title || "").trim() && !(hd.source || "").trim()) return node;
@@ -5639,7 +5649,16 @@ ${lorem}` },
         editor = buildFields(FIGURE_FIELDS, col.figure, ctx2, palOpts, h);
       } else {
         if (!col.viz) col.viz = newViz("bars");
+        const kindSel = h(
+          "select",
+          { onchange: (e) => {
+            col.viz = switchKind(col.viz, e.target.value);
+            ctx2.restructure();
+          } },
+          Object.entries(VIZ_FAMILIES).map(([fk, fl]) => h("optgroup", { label: t(fl) }, Object.entries(VIZ_TYPES).filter(([, v]) => v.family === fk).map(([k, v]) => h("option", { value: k, textContent: t(v.label), selected: col.viz.kind === k }))))
+        );
         editor = [
+          field("Type de dataviz", kindSel),
           h("button", { type: "button", class: "primary", style: { width: "100%" }, onclick: () => ctx2.editViz({ col, sub, ci }) }, ico("pencil"), " Ouvrir l\u2019\xE9diteur de dataviz"),
           h("p", { class: "hint", textContent: "Tous les r\xE9glages de la dataviz (type, donn\xE9es, couleurs, options) se font dans l\u2019\xE9diteur." })
         ];
@@ -6050,34 +6069,44 @@ ${lorem}` },
     };
     const refreshForm = () => buildForm();
     const card = (id, icon, name, nodes) => cardEl(id, icon, name, nodes, { shut: shut2, refresh: refreshForm });
-    function typePicker() {
-      const box = h("div", { class: "ve-types" });
-      for (const [fk, fl] of Object.entries(VIZ_FAMILIES)) {
-        const list = Object.entries(VIZ_TYPES).filter(([, v]) => v.family === fk);
-        if (!list.length) continue;
-        box.append(h("div", { class: "hint", textContent: t(fl) }), h("div", { class: "ve-tgrid" }, list.map(([k, v]) => h("button", {
-          type: "button",
-          class: "ve-type" + (col.viz.kind === k ? " on" : ""),
-          title: t(v.label),
-          "aria-pressed": String(col.viz.kind === k),
-          onclick: () => {
-            if (col.viz.kind === k) return;
-            const nv = newViz(k), o = col.viz.opts, n = nv.opts;
-            nv.head = col.viz.head;
-            if (o.rows && o.series && n.rows && n.series) {
-              n.rows = o.rows;
-              n.series = o.series;
+    let menuOpen = false;
+    const typeMenu = () => {
+      const cur = VIZ_TYPES[col.viz.kind], wrap = h("div", { class: "ve-typesel" });
+      const btn = h(
+        "button",
+        { type: "button", class: "ve-typebtn", "aria-haspopup": "listbox", "aria-expanded": String(menuOpen), onclick: () => {
+          menuOpen = !menuOpen;
+          buildForm();
+        } },
+        ico(cur.icon || "chart-bar"),
+        h("span", { class: "ve-typename", textContent: t(cur.label) }),
+        ico(menuOpen ? "chevron-up" : "chevron-down")
+      );
+      wrap.append(btn);
+      if (menuOpen) {
+        const list = h("div", { class: "ve-typemenu", role: "listbox" });
+        for (const [fk, fl] of Object.entries(VIZ_FAMILIES)) {
+          const items = Object.entries(VIZ_TYPES).filter(([, v]) => v.family === fk);
+          if (!items.length) continue;
+          list.append(h("div", { class: "ve-typefam", textContent: t(fl) }), ...items.map(([k, v]) => h("button", {
+            type: "button",
+            role: "option",
+            class: "ve-typeopt" + (col.viz.kind === k ? " on" : ""),
+            "aria-selected": String(col.viz.kind === k),
+            onclick: () => {
+              menuOpen = false;
+              if (col.viz.kind !== k) {
+                col.viz = switchKind(col.viz, k);
+                ui.sel = -1;
+                fctx.restructure();
+              } else buildForm();
             }
-            const dk = VIZ_TYPES[col.viz.kind].data, nk = v.data;
-            if (dk && nk && dk.k === nk.k && dk.cols.map((c2) => c2.k).join() === nk.cols.map((c2) => c2.k).join()) n[nk.k] = o[dk.k];
-            col.viz = nv;
-            ui.sel = -1;
-            fctx.restructure();
-          }
-        }, ico(v.icon || "chart-bar"), h("span", { textContent: t(v.label) })))));
+          }, ico(v.icon || "chart-bar"), h("span", { textContent: t(v.label) }))));
+        }
+        wrap.append(list);
       }
-      return box;
-    }
+      return wrap;
+    };
     const heightCard = (ty) => card("dv-height", "ruler-2", t("Hauteur"), heightNodes(ty, col.viz.opts, { ctx: fctx, width, avail: { get: () => availH, set: (v) => {
       availH = v;
       draw();
@@ -6085,7 +6114,7 @@ ${lorem}` },
     function buildForm() {
       const top = form.scrollTop;
       form.innerHTML = "";
-      form.append(tabs);
+      form.append(typeMenu(), tabs);
       const ty = VIZ_TYPES[col.viz.kind], fields = ty.fields || [], F = (g) => fields.filter((f) => groupOf(f) === g);
       const head = col.viz.head || (col.viz.head = { title: "", source: "" });
       const dataFields = F("data"), hasData = !!ty.data || dataFields.length > 0;
@@ -6103,7 +6132,6 @@ ${lorem}` },
         form.append(card("dv-data", "table", t("Donn\xE9es"), nodes));
       } else {
         form.append(...[
-          card("dv-type", "chart-dots", t("Type"), [typePicker()]),
           card("dv-head", "typography", t("Titre et source"), buildFields([{ k: "title", t: "text", label: "Titre de la dataviz (facultatif)" }, { k: "source", t: "text", label: "Source (facultatif)" }], head, fctx, {}, h)),
           ty.panel ? card("dv-picto", "mood-smile", t("Pictogramme"), ty.panel(col.viz.opts, fctx)) : null,
           ty.heights ? heightCard(ty) : null,
@@ -6193,7 +6221,12 @@ ${lorem}` },
       ctx2.restructure();
     };
     const onKey = (e) => {
-      if (e.key === "Escape") close(false);
+      if (e.key === "Escape") {
+        if (menuOpen) {
+          menuOpen = false;
+          buildForm();
+        } else close(false);
+      }
     };
     window.addEventListener("keydown", onKey);
     root.append(

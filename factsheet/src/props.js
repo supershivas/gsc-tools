@@ -7,7 +7,7 @@ import { cardEl } from './cards.js';
 import { heightNodes } from './vizheight.js';
 import { newCard, cardPresetFor, CARD_CHECKS } from './cardmodel.js';
 import { COL_TYPES, IMAGE_RATIOS, LOCALES, LOGO_VARIANTS, DEFAULT_LOGOS, DEFAULT_IMAGE_ID, VALIGNS, ALIGNS, newCol, stepSection, newHeaderImage, swapCols, allCols, moveSub, refreshAutoCards } from './state.js';
-import { VIZ_TYPES, VIZ_OPTIONS, newViz } from './viz/index.js';
+import { VIZ_TYPES, VIZ_OPTIONS, VIZ_FAMILIES, newViz, switchKind } from './viz/index.js';
 import { buildFields, readImage, richEditor, paletteOptions, multiline } from './editor.js';
 import { FIGURE_DEFAULTS, FIGURE_FIELDS } from './figure.js';
 import { ICON_OPTIONS } from './viz/icons.js';
@@ -190,7 +190,10 @@ export function buildProps(root, ctx) {
     else if (col.type === 'figure') { if (!col.figure) col.figure = FIGURE_DEFAULTS(); editor = buildFields(FIGURE_FIELDS, col.figure, ctx, palOpts, h); }
     else {
       if (!col.viz) col.viz = newViz('bars');
-      editor = [h('button', { type: 'button', class: 'primary', style: { width: '100%' }, onclick: () => ctx.editViz({ col, sub, ci }) }, ico('pencil'), ' Ouvrir l’éditeur de dataviz'),
+      const kindSel = h('select', { onchange: e => { col.viz = switchKind(col.viz, e.target.value); ctx.restructure(); } },
+        Object.entries(VIZ_FAMILIES).map(([fk, fl]) => h('optgroup', { label: t(fl) }, Object.entries(VIZ_TYPES).filter(([, v]) => v.family === fk).map(([k, v]) => h('option', { value: k, textContent: t(v.label), selected: col.viz.kind === k })))));
+      editor = [field('Type de dataviz', kindSel),
+        h('button', { type: 'button', class: 'primary', style: { width: '100%' }, onclick: () => ctx.editViz({ col, sub, ci }) }, ico('pencil'), ' Ouvrir l’éditeur de dataviz'),
         h('p', { class: 'hint', textContent: 'Tous les réglages de la dataviz (type, données, couleurs, options) se font dans l’éditeur.' })];
     }
     const swap = field('Échanger le contenu avec…', (() => {

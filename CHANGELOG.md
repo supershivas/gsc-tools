@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.29.0 — 2026-11-04
+- Dataviz : le type se choisit aussi depuis les propriétés de la colonne (menu déroulant par famille)
+- Éditeur de dataviz : le choix du type tient dans un seul bouton compact (icône + nom) au-dessus des onglets, avec un menu rangé par famille
+
 ## 1.28.1 — 2026-11-04
 - Header : l'avertissement « titre trop long » ne se déclenche plus pour un sous-titre de 2 lignes ; il compare le texte à la hauteur réelle du header
 

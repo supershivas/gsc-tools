@@ -23,6 +23,15 @@ export const VIZ_FAMILIES = { compare: 'Comparaison', part: 'Proportions', trend
 
 export const newViz = (kind = 'bars') => ({ kind, opts: VIZ_TYPES[kind].defaults(), head: { title: '', source: '' } });
 
+/** Même dataviz dans un autre type : titre/source gardés, les données suivent quand les deux types partagent la même forme (tableau libellé × séries, ou mêmes colonnes) */
+export function switchKind(viz, k) {
+  const nv = newViz(k), o = viz.opts || {}, n = nv.opts, dk = (VIZ_TYPES[viz.kind] || {}).data, nk = VIZ_TYPES[k].data;
+  nv.head = viz.head || nv.head;
+  if (o.rows && o.series && n.rows && n.series) { n.rows = o.rows; n.series = o.series; }
+  if (dk && nk && dk.k === nk.k && dk.cols.map(c => c.k).join() === nk.cols.map(c => c.k).join()) n[nk.k] = o[dk.k];
+  return nv;
+}
+
 /** Titre et source facultatifs, communs à tous les types (`viz.head`) */
 function withHead(viz, node) {
   const hd = viz.head || {};

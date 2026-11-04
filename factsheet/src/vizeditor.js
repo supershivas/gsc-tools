@@ -7,7 +7,7 @@ import { h, ico } from './render.js';
 import { openPalette } from './palette.js';
 import { buildFields, paletteOptions } from './editor.js';
 import { colWidth, cssVars, applyVars, paletteOf } from './tokens.js';
-import { VIZ_TYPES, VIZ_FAMILIES, newViz, renderVizFull } from './viz/index.js';
+import { VIZ_TYPES, VIZ_FAMILIES, switchKind, renderVizFull } from './viz/index.js';
 import { cardEl } from './cards.js';
 import { heightNodes } from './vizheight.js';
 import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
@@ -74,29 +74,30 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     restructure: () => { applyVars(root, cssVars(doc.theme, doc.colors)); buildForm(); draw(); } };
   const refreshForm = () => buildForm();
   const card = (id, icon, name, nodes) => cardEl(id, icon, name, nodes, { shut, refresh: refreshForm });
-  function typePicker() {
-    const box = h('div', { class: 've-types' });
-    for (const [fk, fl] of Object.entries(VIZ_FAMILIES)) {
-      const list = Object.entries(VIZ_TYPES).filter(([, v]) => v.family === fk);
-      if (!list.length) continue;
-      box.append(h('div', { class: 'hint', textContent: t(fl) }), h('div', { class: 've-tgrid' }, list.map(([k, v]) => h('button', { type: 'button', class: 've-type' + (col.viz.kind === k ? ' on' : ''), title: t(v.label), 'aria-pressed': String(col.viz.kind === k),
-        onclick: () => {
-          if (col.viz.kind === k) return;
-          const nv = newViz(k), o = col.viz.opts, n = nv.opts;
-          nv.head = col.viz.head;
-          if (o.rows && o.series && n.rows && n.series) { n.rows = o.rows; n.series = o.series; }   // les données tabulaires suivent d'un type à l'autre
-          const dk = VIZ_TYPES[col.viz.kind].data, nk = v.data;
-          if (dk && nk && dk.k === nk.k && dk.cols.map(c => c.k).join() === nk.cols.map(c => c.k).join()) n[nk.k] = o[dk.k];
-          col.viz = nv; ui.sel = -1; fctx.restructure();
-        } }, ico(v.icon || 'chart-bar'), h('span', { textContent: t(v.label) })))));
+  /* Choix du type : un seul bouton (icône + nom) au-dessus des onglets ; la liste, rangée par famille, s'ouvre en menu */
+  let menuOpen = false;
+  const typeMenu = () => {
+    const cur = VIZ_TYPES[col.viz.kind], wrap = h('div', { class: 've-typesel' });
+    const btn = h('button', { type: 'button', class: 've-typebtn', 'aria-haspopup': 'listbox', 'aria-expanded': String(menuOpen), onclick: () => { menuOpen = !menuOpen; buildForm(); } },
+      ico(cur.icon || 'chart-bar'), h('span', { class: 've-typename', textContent: t(cur.label) }), ico(menuOpen ? 'chevron-up' : 'chevron-down'));
+    wrap.append(btn);
+    if (menuOpen) {
+      const list = h('div', { class: 've-typemenu', role: 'listbox' });
+      for (const [fk, fl] of Object.entries(VIZ_FAMILIES)) {
+        const items = Object.entries(VIZ_TYPES).filter(([, v]) => v.family === fk);
+        if (!items.length) continue;
+        list.append(h('div', { class: 've-typefam', textContent: t(fl) }), ...items.map(([k, v]) => h('button', { type: 'button', role: 'option', class: 've-typeopt' + (col.viz.kind === k ? ' on' : ''), 'aria-selected': String(col.viz.kind === k),
+          onclick: () => { menuOpen = false; if (col.viz.kind !== k) { col.viz = switchKind(col.viz, k); ui.sel = -1; fctx.restructure(); } else buildForm(); } }, ico(v.icon || 'chart-bar'), h('span', { textContent: t(v.label) }))));
+      }
+      wrap.append(list);
     }
-    return box;
-  }
+    return wrap;
+  };
   /* Carte « Hauteur » (nœuds partagés avec le panneau de propriétés : vizheight.js) */
   const heightCard = ty => card('dv-height', 'ruler-2', t('Hauteur'), heightNodes(ty, col.viz.opts, { ctx: fctx, width, avail: { get: () => availH, set: v => { availH = v; draw(); } } }));
   function buildForm() {
     const top = form.scrollTop;
-    form.innerHTML = ''; form.append(tabs);
+    form.innerHTML = ''; form.append(typeMenu(), tabs);
     const ty = VIZ_TYPES[col.viz.kind], fields = ty.fields || [], F = g => fields.filter(f => groupOf(f) === g);
     const head = col.viz.head || (col.viz.head = { title: '', source: '' });
     const dataFields = F('data'), hasData = !!ty.data || dataFields.length > 0;
@@ -114,7 +115,6 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
       form.append(card('dv-data', 'table', t('Données'), nodes));
     } else {
       form.append(...[
-        card('dv-type', 'chart-dots', t('Type'), [typePicker()]),
         card('dv-head', 'typography', t('Titre et source'), buildFields([{ k: 'title', t: 'text', label: 'Titre de la dataviz (facultatif)' }, { k: 'source', t: 'text', label: 'Source (facultatif)' }], head, fctx, {}, h)),
         ty.panel ? card('dv-picto', 'mood-smile', t('Pictogramme'), ty.panel(col.viz.opts, fctx)) : null,
         ty.heights ? heightCard(ty) : null,
@@ -163,7 +163,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     window.removeEventListener('keydown', onKey); root.remove(); current = null; document.body.classList.remove('ve-open');
     ctx.restructure();
   };
-  const onKey = e => { if (e.key === 'Escape') close(false); };
+  const onKey = e => { if (e.key === 'Escape') { if (menuOpen) { menuOpen = false; buildForm(); } else close(false); } };
   window.addEventListener('keydown', onKey);
 
   root.append(
