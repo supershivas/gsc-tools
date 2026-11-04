@@ -124,6 +124,12 @@ const EN = {
   'Interlignage des textes': 'Text line spacing', 'Serré (15 px)': 'Tight (15 px)', 'Normal (18 px)': 'Normal (18 px)', 'Large (21 px)': 'Loose (21 px)', 'Alignement vertical de la dataviz': 'Dataviz vertical alignment', 'En bas': 'Bottom', 'Quand le conteneur est plus haut que le contenu : le contenu se place en haut, au centre ou en bas.': 'When the container is taller than the content: the content sits at the top, centre or bottom.', 'Espace entre les lignes des libellés : serré, normal (18 px) ou large (21 px).': 'Space between label lines: tight, normal (18 px) or loose (21 px).',
   /* filet entre sections */
   'Filet au-dessus de la section': 'Rule above the section', 'Trait de 0,5 pt sur toute la largeur de la page entre cette section et la précédente (sections sur fond blanc, ou deux bandes de couleur côte à côte).': '0.5 pt line across the full page width between this section and the previous one (sections on white, or two colour bands side by side).',
+  /* hauteur : voisine, anneau */
+  'Adapter à la colonne voisine': 'Match the neighbouring column', 'Position verticale de l’anneau': 'Ring vertical position', 'Centré sur le contenu': 'Centred on the content', 'La dataviz prend la hauteur de la colonne voisine la plus haute de sa rangée.': 'The dataviz takes the height of the tallest neighbouring column in its row.', 'Quand les textes autour de l’anneau sont plus hauts que lui : l’anneau se place en haut, centré sur le contenu ou en bas ; les traits de repère suivent.': 'When the texts around the ring are taller than it: the ring sits at the top, centred on the content or at the bottom; the leader lines follow.',
+  /* outil main */
+  'Outil main (Espace ou H)': 'Hand tool (Space or H)',
+  /* poignée de hauteur */
+  'Glisser : hauteur de la dataviz (se cale sur la colonne voisine) · double-clic : adapter à la colonne voisine': 'Drag: dataviz height (snaps to the neighbouring column) · double-click: match the neighbouring column', 'Hauteur de la dataviz': 'Dataviz height',
   /* types de dataviz */
   'Barres (jumelées, groupées, empilées)': 'Bars (overlapping, grouped, stacked)', 'Plusieurs séries': 'Multiple series', 'Jumelées (2 séries qui se chevauchent)': 'Overlapping (2 series overlap)',
   'Côte à côte': 'Side by side', 'Empilées': 'Stacked', 'Format du graphique': 'Chart ratio', '2:1 (large)': '2:1 (wide)', '1:1 (carré)': '1:1 (square)',

@@ -1,7 +1,7 @@
 /* Pictogrammes : quatre variantes (barres, barres verticales, simple vertical, simple horizontal), un pictogramme au choix
    (bibliothèque ou SVG importé, stocké dans le JSON de la dataviz). */
 import { VIZ, TYPE } from '../tokens.js';
-import { s, el, SW, colorRef, pxOf, fmt, SANS, drawLegend, fitText, mw, heightOf, round3 } from './util.js';
+import { reorderHit, s, el, SW, colorRef, pxOf, fmt, SANS, drawLegend, fitText, mw, heightOf, round3 } from './util.js';
 import { ICONS } from './icons.js';
 import { t } from '../i18n.js';
 
@@ -134,6 +134,7 @@ function make(variant) {
           svg.append(label(r.label, 0, y + sz / 2, labW - VIZ.iconGap));
           for (let i = 0; i < Math.ceil(n); i++) svg.append(partial(o, o.icon, labW + (i % perLine) * (sz + G), y + Math.floor(i / perLine) * (sz + G), sz, sz, r.color, Math.min(1, n - i), 'h'));
           if (o.showValues) svg.append(valTxt(labW + Math.min(Math.ceil(n), perLine) * (sz + G) + 3, y + sz / 2 + 0.33 * numPx, r.value));
+          svg.append(reorderHit(env, 'rows', rows.indexOf(r), 'y', 0, y - G, W, h + 2 * G));
           y += h + G * 3;
         }
         return { node: svg };
@@ -147,6 +148,7 @@ function make(variant) {
           for (let k = 0; k < Math.ceil(n); k++) svg.append(partial(o, o.icon, cx - sz / 2, base - (k + 1) * sz - k * G, sz, sz, r.color, Math.min(1, n - k), 'v'));
           if (o.showValues) svg.append(valTxt(cx, base - Math.ceil(n) * (sz + G) + G - 3, r.value, 'middle'));
           svg.append(label(r.label, cx, base + 6 + capPx * 0.6, cw - 4, 'middle'));
+          svg.append(reorderHit(env, 'rows', i, 'x', cw * i, 0, cw, H));
         });
         return { node: svg };
       }
@@ -158,6 +160,7 @@ function make(variant) {
           svg.append(partial(o, o.icon, cx - sz / 2, y, sz, sz, r.color, r.value / per, 'v'));
           if (o.showValues) svg.append(valTxt(cx, numPx, r.value, 'middle'));
           svg.append(label(r.label, cx, top + box + 6 + capPx * 0.6, cw - 4, 'middle'));
+          svg.append(reorderHit(env, 'rows', i, 'x', cw * i, 0, cw, H));
         });
         return { node: svg };
       }
@@ -169,6 +172,7 @@ function make(variant) {
         svg.append(label(r.label, 0, i * (rh + 9) + rh / 2, labW - VIZ.iconGap));
         svg.append(partial(o, o.icon, labW, y, sz, sz, r.color, r.value / per, 'h'));
         if (o.showValues) svg.append(valTxt(labW + sz + 6, i * (rh + 9) + rh / 2 + 0.33 * numPx, r.value));
+        svg.append(reorderHit(env, 'rows', i, 'y', 0, i * (rh + 9) - 4, W, rh + 8));
       });
       return { node: svg };
     },

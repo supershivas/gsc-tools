@@ -10,6 +10,7 @@ import { colWidth, cssVars, applyVars, paletteOf } from './tokens.js';
 import { VIZ_TYPES, VIZ_FAMILIES, switchKind, renderVizFull } from './viz/index.js';
 import { cardEl } from './cards.js';
 import { loadFonts } from './viz/util.js';
+import { startReorder } from './vizreorder.js';
 import { heightNodes } from './vizheight.js';
 import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
 import { t } from './i18n.js';
@@ -57,7 +58,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     holder.innerHTML = '';
     if (r && r.node) { holder.append(r.node); meta = r.meta || null; svgW = width; }
     const t = VIZ_TYPES[col.viz.kind];
-    hint.textContent = t && t.edit
+    hint.textContent = holder.querySelector('[data-reorder]') ? 'Glisser un élément pour changer son ordre : les autres se réajustent en gardant des écarts proportionnels.' : t && t.edit
       ? 'Cliquer un segment ou un libellé pour le sélectionner · glisser l’anneau pour le tourner · glisser un libellé (verticalement, ou de l’autre côté) · glisser le point blanc pour déplacer l’ancrage du trait'
       : 'Les modifications du formulaire s’appliquent en direct.';
     const k = scale();
@@ -138,6 +139,9 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     return { x: (e.clientX - r.left) / k, y: (e.clientY - r.top) / k };
   };
   stage.addEventListener('pointerdown', e => {
+    /* réordonner à la souris (barres, lignes, frise, pictogrammes, liste) : voir vizreorder.js */
+    const rn = e.target.closest && e.target.closest('[data-reorder]');
+    if (rn && e.button === 0 && startReorder(e, rn, { opts: col.viz.opts, root: holder, redraw: draw, done: ch => { if (ch) changed(); else draw(); } })) return;
     const t = VIZ_TYPES[col.viz.kind];
     const n = e.target.closest && e.target.closest('[data-hit]');
     if (!t || !t.edit || !n || e.button !== 0) { if (t && t.edit && ui.sel !== -1 && !n) { ui.sel = -1; draw(); focusItem('none'); } return; }

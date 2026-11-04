@@ -1,7 +1,10 @@
 {
-  "version": "1.37.0",
+  "version": "1.38.0",
   "date": "2026-11-04",
   "changes": [
-    "Filet de 0,5 pt entre les sections, pleine largeur : au milieu de l'écart entre deux sections sur fond blanc, ou à la jonction de deux bandes de couleur ; interrupteur « Filet au-dessus de la section » et couleur dans les propriétés"
+    "Dataviz : réordonner les éléments à la souris (barres, lignes, frise, pictogrammes, liste à icônes) ; les autres se réajustent en direct avec des écarts proportionnels ; l'ordre est celui du JSON",
+    "Dataviz : poignée de hauteur sous chaque dataviz dans l'aperçu (se cale sur la colonne voisine) et nouveau mode « Adapter à la colonne voisine »",
+    "Anneau : position verticale de l'anneau (en haut, centré sur le contenu, en bas) par rapport aux textes plus hauts",
+    "Outil main : maintenir Espace (ou touche H) puis glisser pour déplacer l'aperçu"
   ]
 }

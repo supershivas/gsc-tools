@@ -35,6 +35,7 @@ export default {
     { k: 'style', t: 'select', label: 'Forme', options: { donut: 'Anneau (total au centre)', pie: 'Camembert' } },
     { k: 'totalTpl', t: 'ctext', label: 'Texte du centre' },
     { k: 'decimals', t: 'number', label: 'Décimales du total', min: 0, max: 4 },
+    { k: 'ringAlign', t: 'select', label: 'Position verticale de l’anneau', options: { top: 'En haut', center: 'Centré sur le contenu', bottom: 'En bas' } },
     { k: 'leading', t: 'select', label: 'Interlignage des textes', options: { tight: 'Serré (15 px)', normal: 'Normal (18 px)', loose: 'Large (21 px)' } },
     { k: 'layout', t: 'select', label: 'Libellés', options: { auto: 'Auto (selon la largeur)', around: 'Autour de l’anneau', legend: 'Légende sous l’anneau' } },
     { k: 'orient', t: 'select', label: 'Orientation de l’anneau', options: { largest: 'Plus grand segment à un angle donné', first: '1er segment en haut', manual: 'Manuelle (glisser l’anneau dans l’éditeur)' } },
@@ -191,6 +192,10 @@ export default {
       return Math.max(2 * Ro + 2 * SW, ...items.map(i => i.top + i.h));
     };
     let cy = Ro + SW; let H = place(cy);
+    /* position verticale de l'anneau par rapport au contenu le plus haut (souvent les textes) : en haut, centré ou en bas ; seuls les traits de repère suivent l'anneau */
+    const cy0 = cy, ra = o.ringAlign || 'top';
+    if (ra === 'center') cy = Math.max(cy0, H / 2); else if (ra === 'bottom') cy = Math.max(cy0, H - Ro - SW);
+    if (cy !== cy0) for (const it of items) it.P.y = cy - Ro * Math.cos(rad(it.th));
     H = Math.ceil(Math.max(H, cy + Ro + SW));
     const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });
     if (ui && ui.drag === 'label') for (const sd of [-1, 1]) svg.append(s('rect', { x: sd > 0 ? W - labelW : 0, y: 0, width: labelW, height: H, fill: ORANGE, 'fill-opacity': 0.08, stroke: ORANGE, 'stroke-dasharray': '4 3', 'stroke-width': 1, 'pointer-events': 'none' }));

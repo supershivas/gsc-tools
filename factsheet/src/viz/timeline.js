@@ -1,7 +1,7 @@
 /* Frise chronologique : verticale ou horizontale. Une ligne de 0,5 pt, un repère rond par événement (couleur au choix),
    date en chiffres Source Serif, titre en gras puis texte qui passe à la ligne ; « Alterner » répartit les événements de part et d'autre. */
 import { VIZ, TYPE } from '../tokens.js';
-import { s, SW, colorRef, pxOf, fmt, mw, SANS, SERIF, textLines, drawLines, heightOf } from './util.js';
+import { reorderHit, s, SW, colorRef, pxOf, fmt, mw, SANS, SERIF, textLines, drawLines, heightOf } from './util.js';
 import { t } from '../i18n.js';
 
 const R = 5;   // rayon du repère
@@ -31,7 +31,7 @@ export default {
     const dateNode = (txt, x, y, anchor) => s('text', { x, y: y + lh / 2 + 0.33 * numPx, 'text-anchor': anchor, 'font-size': numPx, 'font-weight': 700, style: { fontFamily: 'var(--t-captionNum-family)' } }, txt);
     const dot = (cx, cy, color) => s('circle', { cx, cy, r: R, fill: colorRef(color || 'blue'), stroke: 'currentColor', 'stroke-width': SW });
     const block = (it, maxW) => ({ lines: textLines(it.title || '', it.text || '', capPx, maxW), dateH: showDates && it.date ? lh : 0 });
-    const stretch = (natural) => (o.hmode === 'fixed' || o.hmode === 'fill') ? Math.max(0, heightOf(o, W, env, natural) - natural) : 0;
+    const stretch = (natural) => (o.hmode === 'fixed' || o.hmode === 'fill' || o.hmode === 'match') ? Math.max(0, heightOf(o, W, env, natural) - natural) : 0;
 
     /* extrémités de la ligne : prolongée en pointillés (un tiers plein puis des tirets, pour dire « ça continue »), prolongée en trait plein, ou aucune
        (la ligne commence au premier cercle et finit au dernier) */
@@ -61,6 +61,7 @@ export default {
         if (l.b.dateH) svg.append(dateNode(l.it.date, x, y, anchor));
         svg.append(drawLines(l.b.lines, x, y + l.b.dateH, lh, capPx, anchor));
       });
+      laid.forEach((l, i) => svg.append(reorderHit(env, 'rows', (o.rows || []).indexOf(l.it), 'y', 0, yOf(l, i) - 4, W, Math.max(l.h, lh) + 8)));
       return { node: svg };
     }
 
@@ -89,6 +90,7 @@ export default {
         svg.append(drawLines(b.lines, x, lineY + R + 8, lh, capPx, an));
       }
     });
+    items.forEach((it, i) => svg.append(reorderHit(env, 'rows', (o.rows || []).indexOf(it), 'x', xs[i] - pitch / 2, 0, pitch, H)));
     return { node: svg };
   },
 };

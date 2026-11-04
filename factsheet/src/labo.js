@@ -14,6 +14,7 @@ import { renderSelect, selectOpts } from './labo-select.js';
 import { VIZ_TYPES, renderVizFull } from './viz/index.js';
 import { buildFields, paletteOptions } from './editor.js';
 import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
+import { startReorder } from './vizreorder.js';
 
 /* ---------- Sujet « Dataviz » : tous les types, fausses données, réglages en direct ---------- */
 const VIZ_DESC = {
@@ -132,9 +133,14 @@ const optCard = (id, icon, name, nodes) => {
 function renderVizTopic(o, W, paint) {
   const ty = VIZ_TYPES[o.kind], opts = o.viz, ui = (o.__ui ||= { sel: -1, drag: null });
   if (ty.heights && o.boxH) Object.assign(opts, { hmode: 'fixed', hfixed: o.boxH, valign: o.valign }); else if (ty.heights) { delete opts.hmode; delete opts.hfixed; }
-  const r = renderVizFull({ kind: o.kind, opts, head: o.head }, W, { locale: 'en-GB', pal: paletteOf(DEFAULT_THEME, {}), ui: ty.edit ? ui : undefined });
+  const r = renderVizFull({ kind: o.kind, opts, head: o.head }, W, { locale: 'en-GB', pal: paletteOf(DEFAULT_THEME, {}), ui });
   const box = h('div', { class: 'labo-vizbox' + (o.boxH ? ' fixed' : ''), style: { width: W + 'px', minHeight: o.boxH ? o.boxH + 'px' : null, display: 'flex', alignItems: VALIGN_FLEX[o.valign] || 'flex-start' } });
   box.append(r ? r.node : h('div', { textContent: 'Rendu impossible' }));
+  /* réordonner à la souris : les autres éléments se réajustent en direct (vizreorder.js) */
+  box.addEventListener('pointerdown', e => {
+    const rn = e.target.closest && e.target.closest('[data-reorder]');
+    if (rn && !e.button) startReorder(e, rn, { opts, root: () => document.querySelector('.labo-vizbox'), redraw: paint, done: () => paint() });
+  });
   if (ty.edit && r) {
     const toPt = e => { const svg = document.querySelector('.labo-vizbox svg'); if (!svg) return { x: 0, y: 0 }; const rc = svg.getBoundingClientRect(), k = rc.width / W || 1; return { x: (e.clientX - rc.left) / k, y: (e.clientY - rc.top) / k }; };
     box.addEventListener('pointerdown', e => {
@@ -161,7 +167,7 @@ function vizExtra(o, v, paint, redraw) {
   if (ty.data) dataNodes.push(gridEditor(recordsAdapter(ty.data, o.viz, pal), ctx, { downloadName: o.kind }));
   return [
     optCard('viz-box', 'box-padding', 'Conteneur', [h('label', { class: 'labo-group' }, h('div', { class: 'labo-lab', textContent: 'Hauteur du conteneur (0 = automatique)' }), range, out), control(null, align, o, paint),
-      h('p', { class: 'hint', textContent: ty.edit ? 'Dans l’aperçu : glisser l’anneau, un libellé ou le point blanc.' : 'Les éléments de ce type ne se déplacent pas encore à la souris.' })]),
+      h('p', { class: 'hint', textContent: (ty.edit ? 'Glisser l’anneau, un libellé ou le point blanc. ' : '') + (['donut', 'survey', 'scatter', 'sunburst', 'bubbles', 'treemap', 'sankey'].includes(o.kind) ? 'Ce type n’a pas de réordonnancement à la souris (ordre dans les données).' : 'Glisser un élément pour changer son ordre : les autres se réajustent, écarts proportionnels.') })]),
     optCard('viz-head', 'typography', 'Titre et source', buildFields([{ k: 'title', t: 'text', label: 'Titre' }, { k: 'source', t: 'text', label: 'Source' }], o.head, ctx, {}, h)),
     optionFields.length ? optCard('viz-opts', 'adjustments', 'Options du type', buildFields(optionFields, o.viz, ctx, pal, h)) : null,
     dataNodes.length ? optCard('viz-data', 'table', 'Données (fausses)', dataNodes) : null,

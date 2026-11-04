@@ -1,6 +1,7 @@
 /* Boutons contextuels au survol de l'aperçu : une barre flottante regroupe les actions de l'élément
    survolé (colonne → sous-section → section, ou header). Elle vit hors des pages : jamais exportée. */
-import { h, ico, columnWidth } from './render.js';
+import { h, ico, columnWidth, vizChartH, matchTarget } from './render.js';
+import { VIZ_TYPES } from './viz/index.js';
 import { PAGE, TYPE, GAP, GRID, THEMES, sectionBgs, paletteKeys, colorLabel, cssVars, applyVars } from './tokens.js';
 import { t } from './i18n.js';
 import { COL_TYPES, newCol, newSub, newSection, stepSection, refreshAutoCards } from './state.js';
@@ -21,10 +22,38 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
     if (at.page) { doc.sections.push(newSection(at.page)); hide(); ctx.restructure(); ctx.select(`sec:${doc.sections.length - 1}`); return; }   // page sans section
     doc.sections.splice(at.si + 1, 0, newSection(doc.sections[at.si].page)); hide(); ctx.restructure(); ctx.select(`sec:${at.si + 1}`);
   });
-  document.body.append(out, bar, addSubBtn, addSecBtn);
+  /* Poignée de hauteur d'une dataviz (sous son bord bas) : glisser change la hauteur ; elle se cale sur la colonne voisine (repère orange),
+     et relâcher ainsi « adapte à la colonne voisine » (mode match) ; double-clic = même chose sans glisser. Hors des pages : jamais exportée. */
+  const grip = h('button', { type: 'button', class: 'hv-grip', style: { display: 'none' }, title: t('Glisser : hauteur de la dataviz (se cale sur la colonne voisine) · double-clic : adapter à la colonne voisine'), 'aria-label': t('Hauteur de la dataviz') }, ico('grip-horizontal'));
+  const guide = h('div', { class: 'hv-guide', style: { display: 'none' } });
+  const vizOf = it => { const col = getDoc().sections[it.si].subs[it.bi].cols[it.ci]; return col.type === 'viz' && col.viz && (VIZ_TYPES[col.viz.kind] || {}).heights ? col : null; };
+  const placeGrip = it => {
+    const el = document.querySelector(`[data-sel="${it.path}"]`), nd = el && el.firstElementChild; if (!nd) { grip.style.display = 'none'; return; }
+    const r = nd.getBoundingClientRect(); Object.assign(grip.style, { display: 'flex', left: r.left + r.width / 2 - 18 + 'px', top: r.bottom - 8 + 'px' }); grip._at = it;
+  };
+  grip.addEventListener('dblclick', () => { const it = grip._at, col = it && vizOf(it); if (!col) return; col.viz.opts.hmode = 'match'; hide(); ctx.restructure(); });
+  grip.addEventListener('pointerdown', e => {
+    const it = grip._at, col = it && vizOf(it); if (!col || e.button) return;
+    e.preventDefault(); e.stopPropagation(); const o = col.viz.opts, doc = getDoc();
+    const colEl = document.querySelector(`[data-sel="${it.path}"]`), node = colEl.firstElementChild, sc = colEl.closest('.page').getBoundingClientRect().width / PAGE.w;
+    const startH = vizChartH(node), neigh = matchTarget(colEl, node), y0 = e.clientY; let snapped = false;
+    grip.setPointerCapture(e.pointerId); bar.style.display = out.style.display = addSubBtn.style.display = addSecBtn.style.display = 'none';
+    const move = ev => {
+      let hh = Math.round(Math.max(90, Math.min(900, startH + (ev.clientY - y0) / sc)) / 3) * 3;
+      snapped = neigh != null && Math.abs(hh - neigh) <= 9; if (snapped) hh = neigh;
+      Object.assign(o, { hmode: 'fixed', hfixed: hh }); ctx.changed();
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        placeGrip(it); const el = document.querySelector(`[data-sel="${it.path}"]`), nd = el && el.firstElementChild;
+        if (nd && neigh != null) { const r = nd.getBoundingClientRect(); Object.assign(guide.style, { display: 'block', left: r.left - 6 + 'px', width: r.width + 12 + 'px', top: r.top + neigh * sc + 'px', borderTopStyle: snapped ? 'solid' : 'dashed' }); }
+      }));
+    };
+    const up = () => { grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); guide.style.display = 'none'; if (snapped) o.hmode = 'match'; hide(); ctx.restructure(); };
+    grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up);
+  });
+  document.body.append(out, bar, addSubBtn, addSecBtn, grip, guide);
   let timer = 0, cur = null;
 
-  const hide = () => { clearTimeout(timer); bar.style.display = out.style.display = addSubBtn.style.display = addSecBtn.style.display = 'none'; cur = null; };
+  const hide = () => { clearTimeout(timer); bar.style.display = out.style.display = addSubBtn.style.display = addSecBtn.style.display = grip.style.display = 'none'; cur = null; };
   const later = () => { clearTimeout(timer); timer = setTimeout(() => { if (!bar.contains(document.activeElement)) hide(); }, 250); };
 
   const act = fn => () => { fn(); hide(); ctx.restructure(); };
@@ -94,6 +123,7 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
     clearTimeout(timer);
     if (key === cur) return;
     cur = key;
+    { const ci = chain.find(c => c.kind === 'col'); if (ci && vizOf(ci)) placeGrip(ci); else grip.style.display = 'none'; }
     const doc = getDoc(); applyVars(bar, cssVars(doc.theme, doc.colors));
     bar.innerHTML = ''; bar.append(...groups(chain, doc));
     bar.style.display = 'flex';
@@ -122,7 +152,7 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
     Object.assign(out.style, { display: 'block', left: r.left - gx + 'px', top: r.top - GAPX + 'px', width: r.width + 2 * gx + 'px', height: r.height + 2 * GAPX + 'px' });
   });
   stage.addEventListener('pointerleave', later);
-  for (const el of [bar, addSubBtn, addSecBtn]) { el.addEventListener('pointerenter', () => clearTimeout(timer)); el.addEventListener('pointerleave', later); }
+  for (const el of [bar, addSubBtn, addSecBtn, grip]) { el.addEventListener('pointerenter', () => clearTimeout(timer)); el.addEventListener('pointerleave', later); }
   stage.addEventListener('scroll', hide, true);
   return { hide };
 }

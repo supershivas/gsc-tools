@@ -162,9 +162,9 @@ export function heightOf(o, W, env, auto, ratioDef = '16:9') {
   let H;
   if (mode === 'auto' && auto != null) H = auto;
   else if (mode === 'fixed') H = +o.hfixed || round3(W * ratio);
-  else if (mode === 'fill' && env && env.fillH) H = clamp(env.fillH);
+  else if ((mode === 'fill' || mode === 'match') && env && env.fillH) H = clamp(env.fillH);
   else H = W * ratio;
-  return Math.max(90, mode === 'fill' ? Math.floor(H / 3) * 3 : round3(H));   // « remplir » arrondit vers le bas : jamais de débordement
+  return Math.max(90, mode === 'fill' || mode === 'match' ? Math.floor(H / 3) * 3 : round3(H));   // « remplir » arrondit vers le bas : jamais de débordement
 }
 
 /* ---------- Légende qui passe à la ligne ---------- */
@@ -191,3 +191,9 @@ const FONT_SPECS = ['200 16px "Source Sans 3"', '400 16px "Source Sans 3"', '600
   '400 16px "Source Serif 4"', '600 16px "Source Serif 4"', '700 16px "Source Serif 4"'];
 let fontsLoaded = null;
 export const loadFonts = () => fontsLoaded || (fontsLoaded = (document.fonts && document.fonts.load ? Promise.all(FONT_SPECS.map(f => document.fonts.load(f, 'AaÉé€0123 ').catch(() => {}))).then(() => document.fonts.ready) : Promise.resolve()));
+
+/** Rectangle invisible posé sur un élément réordonnable (éditeur seulement : `env.ui`) — voir vizreorder.js */
+export function reorderHit(env, key, i, axis, x, y, w, h) {
+  if (!env || !env.ui) return null;
+  return s('rect', { x, y, width: Math.max(1, w), height: Math.max(1, h), fill: 'rgba(0,0,0,0)', 'data-reorder': `${key}:${i}`, 'data-axis': axis, style: { cursor: 'grab' } });
+}

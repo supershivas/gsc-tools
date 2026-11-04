@@ -702,6 +702,17 @@
     /* filet entre sections */
     "Filet au-dessus de la section": "Rule above the section",
     "Trait de 0,5 pt sur toute la largeur de la page entre cette section et la pr\xE9c\xE9dente (sections sur fond blanc, ou deux bandes de couleur c\xF4te \xE0 c\xF4te).": "0.5 pt line across the full page width between this section and the previous one (sections on white, or two colour bands side by side).",
+    /* hauteur : voisine, anneau */
+    "Adapter \xE0 la colonne voisine": "Match the neighbouring column",
+    "Position verticale de l\u2019anneau": "Ring vertical position",
+    "Centr\xE9 sur le contenu": "Centred on the content",
+    "La dataviz prend la hauteur de la colonne voisine la plus haute de sa rang\xE9e.": "The dataviz takes the height of the tallest neighbouring column in its row.",
+    "Quand les textes autour de l\u2019anneau sont plus hauts que lui : l\u2019anneau se place en haut, centr\xE9 sur le contenu ou en bas ; les traits de rep\xE8re suivent.": "When the texts around the ring are taller than it: the ring sits at the top, centred on the content or at the bottom; the leader lines follow.",
+    /* outil main */
+    "Outil main (Espace ou H)": "Hand tool (Space or H)",
+    /* poignée de hauteur */
+    "Glisser : hauteur de la dataviz (se cale sur la colonne voisine) \xB7 double-clic : adapter \xE0 la colonne voisine": "Drag: dataviz height (snaps to the neighbouring column) \xB7 double-click: match the neighbouring column",
+    "Hauteur de la dataviz": "Dataviz height",
     /* types de dataviz */
     "Barres (jumel\xE9es, group\xE9es, empil\xE9es)": "Bars (overlapping, grouped, stacked)",
     "Plusieurs s\xE9ries": "Multiple series",
@@ -1313,9 +1324,9 @@
     let H;
     if (mode === "auto" && auto != null) H = auto;
     else if (mode === "fixed") H = +o.hfixed || round3(W * ratio);
-    else if (mode === "fill" && env && env.fillH) H = clamp2(env.fillH);
+    else if ((mode === "fill" || mode === "match") && env && env.fillH) H = clamp2(env.fillH);
     else H = W * ratio;
-    return Math.max(90, mode === "fill" ? Math.floor(H / 3) * 3 : round3(H));
+    return Math.max(90, mode === "fill" || mode === "match" ? Math.floor(H / 3) * 3 : round3(H));
   }
   function layoutLegend(items, W) {
     const capPx = pxOf(TYPE.caption.size), fixed = VIZ.legendSwatch + VIZ.barGap * 2, gap = VIZ.legendH * 1.2, lines = [[]];
@@ -1352,6 +1363,10 @@
   var fontsLoaded = null;
   var loadFonts = () => fontsLoaded || (fontsLoaded = document.fonts && document.fonts.load ? Promise.all(FONT_SPECS.map((f) => document.fonts.load(f, "Aa\xC9\xE9\u20AC0123 ").catch(() => {
   }))).then(() => document.fonts.ready) : Promise.resolve());
+  function reorderHit(env, key, i, axis, x, y, w, h2) {
+    if (!env || !env.ui) return null;
+    return s("rect", { x, y, width: Math.max(1, w), height: Math.max(1, h2), fill: "rgba(0,0,0,0)", "data-reorder": `${key}:${i}`, "data-axis": axis, style: { cursor: "grab" } });
+  }
 
   // src/viz/donut.js
   var BODY = pxOf(TYPE.body.size);
@@ -1400,6 +1415,7 @@
       { k: "style", t: "select", label: "Forme", options: { donut: "Anneau (total au centre)", pie: "Camembert" } },
       { k: "totalTpl", t: "ctext", label: "Texte du centre" },
       { k: "decimals", t: "number", label: "D\xE9cimales du total", min: 0, max: 4 },
+      { k: "ringAlign", t: "select", label: "Position verticale de l\u2019anneau", options: { top: "En haut", center: "Centr\xE9 sur le contenu", bottom: "En bas" } },
       { k: "leading", t: "select", label: "Interlignage des textes", options: { tight: "Serr\xE9 (15 px)", normal: "Normal (18 px)", loose: "Large (21 px)" } },
       { k: "layout", t: "select", label: "Libell\xE9s", options: { auto: "Auto (selon la largeur)", around: "Autour de l\u2019anneau", legend: "L\xE9gende sous l\u2019anneau" } },
       { k: "orient", t: "select", label: "Orientation de l\u2019anneau", options: { largest: "Plus grand segment \xE0 un angle donn\xE9", first: "1er segment en haut", manual: "Manuelle (glisser l\u2019anneau dans l\u2019\xE9diteur)" } },
@@ -1641,6 +1657,10 @@
       };
       let cy = Ro + SW;
       let H = place3(cy);
+      const cy0 = cy, ra = o.ringAlign || "top";
+      if (ra === "center") cy = Math.max(cy0, H / 2);
+      else if (ra === "bottom") cy = Math.max(cy0, H - Ro - SW);
+      if (cy !== cy0) for (const it of items) it.P.y = cy - Ro * Math.cos(rad(it.th));
       H = Math.ceil(Math.max(H, cy + Ro + SW));
       const svg = s("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: "block", overflow: "visible" } });
       if (ui && ui.drag === "label") for (const sd of [-1, 1]) svg.append(s("rect", { x: sd > 0 ? W - labelW : 0, y: 0, width: labelW, height: H, fill: ORANGE, "fill-opacity": 0.08, stroke: ORANGE, "stroke-dasharray": "4 3", "stroke-width": 1, "pointer-events": "none" }));
@@ -1794,6 +1814,7 @@
         svg.append(s("text", { x: slot * (i + 0.5), y: baseY + VIZ.catH / 2 + 0.33 * f.size + 1, "text-anchor": "middle", "font-size": f.size, "font-weight": TYPE.caption.weight }, f.text));
       });
       if (o.legend) drawLegend(svg, series, H - VIZ.legendH, W);
+      rows.forEach((_, i) => svg.append(reorderHit(env, "rows", i, "x", slot * i, 0, slot, baseY + VIZ.catH)));
       return { node: svg };
     }
   };
@@ -1843,10 +1864,10 @@
         fields: [{ k: "icon", t: "select", label: "Ic\xF4ne", options: ICON_OPTIONS }, { k: "text", t: "text", label: "Texte" }]
       }
     ],
-    render(o) {
+    render(o, W, env) {
       const C = VIZ.iconCircle, G = VIZ.iconGlyph;
       const list = el("div", { class: "viz-icons" });
-      for (const it of o.items || []) {
+      (o.items || []).forEach((it, idx) => {
         const ic = ICONS[it.icon] || ICONS.check;
         const k = G / 24;
         const svg = s(
@@ -1863,8 +1884,8 @@
             transform: `translate(${(C - G) / 2} ${(C - G) / 2}) scale(${k})`
           })
         );
-        list.append(el("div", { class: "vi-row" }, svg, el("div", { class: "vi-text", innerHTML: String(it.text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>") })));
-      }
+        list.append(el("div", { class: "vi-row", ...env && env.ui ? { "data-reorder": `items:${idx}`, "data-axis": "y", style: { cursor: "grab" } } : {} }, svg, el("div", { class: "vi-text", innerHTML: String(it.text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>") })));
+      });
       return { node: list };
     }
   };
@@ -1912,7 +1933,7 @@
       const legBlock = o.legend ? VIZ.legendGap + VIZ.legendH : 0, gaps = Math.max(0, rows.length - 1) * VIZ.hRowGap;
       const natBh = VIZ.hBar, natBody = rows.length * (stacked ? natBh : k * natBh + (k - 1) * VIZ.barGap) + gaps;
       let bh = natBh;
-      if (o.hmode === "fixed" || o.hmode === "fill") {
+      if (o.hmode === "fixed" || o.hmode === "fill" || o.hmode === "match") {
         const target = heightOf(o, W, env, natBody + legBlock), f = Math.max(0.5, Math.min(4, (target - legBlock - gaps) / Math.max(1, natBody - gaps)));
         bh = Math.max(3, natBh * f);
       }
@@ -1947,6 +1968,7 @@
         if (stacked && o.showValues) svg.append(s("text", { x: end + VIZ.barGap * 1.5, y: y + bh / 2 + 0.33 * numPx, "font-size": numPx, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, fmt(total(r), env.locale, o.decimals) + suffix));
       });
       if (o.legend) drawLegend(svg, series, H - VIZ.legendH, W);
+      rows.forEach((_, i) => svg.append(reorderHit(env, "rows", i, "y", 0, i * (rh + VIZ.hRowGap) - VIZ.hRowGap / 2, W, rh + VIZ.hRowGap)));
       return { node: svg };
     }
   };
@@ -2007,6 +2029,7 @@
         svg.append(s("text", { x: xOf(i), y: baseY + VIZ.catH / 2 + 0.33 * f.size + 1, "text-anchor": "middle", "font-size": f.size, "font-weight": TYPE.caption.weight }, f.text));
       });
       if (o.legend) drawLegend(svg, series, H - VIZ.legendH, W);
+      rows.forEach((_, i) => svg.append(reorderHit(env, "rows", i, "x", slot * i, 0, slot, baseY + VIZ.catH)));
       return { node: svg };
     }
   };
@@ -3591,7 +3614,7 @@
       const dateNode = (txt, x, y, anchor) => s("text", { x, y: y + lh / 2 + 0.33 * numPx, "text-anchor": anchor, "font-size": numPx, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, txt);
       const dot = (cx, cy, color) => s("circle", { cx, cy, r: R, fill: colorRef(color || "blue"), stroke: "currentColor", "stroke-width": SW });
       const block = (it, maxW) => ({ lines: textLines(it.title || "", it.text || "", capPx, maxW), dateH: showDates && it.date ? lh : 0 });
-      const stretch = (natural2) => o.hmode === "fixed" || o.hmode === "fill" ? Math.max(0, heightOf(o, W, env, natural2) - natural2) : 0;
+      const stretch = (natural2) => o.hmode === "fixed" || o.hmode === "fill" || o.hmode === "match" ? Math.max(0, heightOf(o, W, env, natural2) - natural2) : 0;
       const tail = o.tail || "dashed", TL = 24;
       const line = (svg2, x1, y1, x2, y2, dash) => svg2.append(s("line", { x1, y1, x2, y2, stroke: "currentColor", "stroke-width": SW, "stroke-dasharray": dash || null }));
       const tailSeg = (svg2, xa, ya, xb, yb) => {
@@ -3630,6 +3653,7 @@
           if (l.b.dateH) svg2.append(dateNode(l.it.date, x, y, anchor));
           svg2.append(drawLines(l.b.lines, x, y + l.b.dateH, lh, capPx, anchor));
         });
+        laid.forEach((l, i) => svg2.append(reorderHit(env, "rows", (o.rows || []).indexOf(l.it), "y", 0, yOf(l, i) - 4, W, Math.max(l.h, lh) + 8)));
         return { node: svg2 };
       }
       const n = items.length, none = tail === "none" && n > 1;
@@ -3658,6 +3682,7 @@
           svg.append(drawLines(b.lines, x, lineY + R + 8, lh, capPx, an));
         }
       });
+      items.forEach((it, i) => svg.append(reorderHit(env, "rows", (o.rows || []).indexOf(it), "x", xs[i] - pitch / 2, 0, pitch, H)));
       return { node: svg };
     }
   };
@@ -3847,6 +3872,7 @@
             svg2.append(label(r.label, 0, y + sz2 / 2, labW2 - VIZ.iconGap));
             for (let i = 0; i < Math.ceil(n); i++) svg2.append(partial(o, o.icon, labW2 + i % perLine * (sz2 + G), y + Math.floor(i / perLine) * (sz2 + G), sz2, sz2, r.color, Math.min(1, n - i), "h"));
             if (o.showValues) svg2.append(valTxt(labW2 + Math.min(Math.ceil(n), perLine) * (sz2 + G) + 3, y + sz2 / 2 + 0.33 * numPx, r.value));
+            svg2.append(reorderHit(env, "rows", rows.indexOf(r), "y", 0, y - G, W, h2 + 2 * G));
             y += h2 + G * 3;
           }
           return { node: svg2 };
@@ -3860,6 +3886,7 @@
             for (let k = 0; k < Math.ceil(n); k++) svg2.append(partial(o, o.icon, cx - sz2 / 2, base - (k + 1) * sz2 - k * G, sz2, sz2, r.color, Math.min(1, n - k), "v"));
             if (o.showValues) svg2.append(valTxt(cx, base - Math.ceil(n) * (sz2 + G) + G - 3, r.value, "middle"));
             svg2.append(label(r.label, cx, base + 6 + capPx * 0.6, cw - 4, "middle"));
+            svg2.append(reorderHit(env, "rows", i, "x", cw * i, 0, cw, H2));
           });
           return { node: svg2 };
         }
@@ -3871,6 +3898,7 @@
             svg2.append(partial(o, o.icon, cx - sz2 / 2, y, sz2, sz2, r.color, r.value / per, "v"));
             if (o.showValues) svg2.append(valTxt(cx, numPx, r.value, "middle"));
             svg2.append(label(r.label, cx, top + box + 6 + capPx * 0.6, cw - 4, "middle"));
+            svg2.append(reorderHit(env, "rows", i, "x", cw * i, 0, cw, H2));
           });
           return { node: svg2 };
         }
@@ -3881,6 +3909,7 @@
           svg.append(label(r.label, 0, i * (rh + 9) + rh / 2, labW - VIZ.iconGap));
           svg.append(partial(o, o.icon, labW, y, sz, sz, r.color, r.value / per, "h"));
           if (o.showValues) svg.append(valTxt(labW + sz + 6, i * (rh + 9) + rh / 2 + 0.33 * numPx, r.value));
+          svg.append(reorderHit(env, "rows", i, "y", 0, i * (rh + 9) - 4, W, rh + 8));
         });
         return { node: svg };
       },
@@ -3905,7 +3934,7 @@
     return nv;
   }
   function boxed(t2, o, W, env, node) {
-    if (!t2.boxed || !node || o.hmode !== "fixed" && o.hmode !== "fill") return node;
+    if (!t2.boxed || !node || o.hmode !== "fixed" && o.hmode !== "fill" && o.hmode !== "match") return node;
     const natural = +node.getAttribute("height") || 0, H = Math.max(natural, heightOf(o, W, env, natural));
     if (H <= natural + 0.5) return node;
     const box = el("div", { class: "viz-box", style: { height: H + "px", display: "flex", alignItems: { center: "center", bottom: "flex-end" }[o.valign] || "flex-start" } }, node);
@@ -4471,7 +4500,7 @@ ${short}`)])
     } else {
       const node = renderViz(col.viz, w, env);
       wrap.append(node || h("div", { class: "viz-ph" }, h("span", { textContent: "dataviz" })));
-      if (node && env.fills && col.viz.opts && col.viz.opts.hmode === "fill") env.fills.push({ page: env.page, col, w, node, wrap, env });
+      if (node && env.fills && col.viz.opts && (col.viz.opts.hmode === "fill" || col.viz.opts.hmode === "match")) env.fills.push({ page: env.page, col, w, node, wrap, env, mode: col.viz.opts.hmode });
     }
     return wrap;
   }
@@ -4547,15 +4576,40 @@ ${short}`)])
     }
     return { pages, warnings: [], fills: env.fills };
   }
+  function vizChartH(n) {
+    const bx = n.dataset && n.dataset.vizH ? n : n.querySelector && n.querySelector("[data-viz-h]");
+    if (bx) return +bx.dataset.vizH;
+    const sv = n.tagName.toLowerCase() === "svg" ? n : n.querySelector("svg");
+    return +(sv && sv.getAttribute("height")) || n.offsetHeight || 0;
+  }
+  function matchTarget(wrap, node) {
+    const row = wrap.parentElement;
+    if (!row || row.children.length < 2) return null;
+    const chart = vizChartH(node), extra = Math.max(0, (node.offsetHeight || chart) - chart), cs = getComputedStyle(wrap);
+    const own = ["paddingTop", "paddingBottom", "borderTopWidth", "borderBottomWidth"].reduce((a2, k) => a2 + (parseFloat(cs[k]) || 0), 0);
+    const prev = node.style.display;
+    node.style.display = "none";
+    const rowH = row.offsetHeight;
+    node.style.display = prev;
+    const target = rowH - own - extra;
+    return target >= 60 ? Math.floor(target / 3) * 3 : null;
+  }
+  function matchRows(fills) {
+    for (const f of fills) {
+      if (f.mode !== "match") continue;
+      const o = f.col.viz.opts, t2 = matchTarget(f.wrap, f.node);
+      if (!t2) continue;
+      const target = Math.max(o.hmin || 90, Math.min(o.hmax || 900, t2)), n = renderViz(f.col.viz, f.w, { ...f.env, fills: null, fillH: target });
+      if (n) {
+        f.node.replaceWith(n);
+        f.node = n;
+      }
+    }
+  }
   function fillPage(p, fills) {
-    const mine = fills.filter((f) => f.page === p.key);
+    const mine = fills.filter((f) => f.page === p.key && f.mode === "fill");
     if (!mine.length) return;
-    const chartH = (f) => {
-      const n = f.node, bx = n.dataset && n.dataset.vizH ? n : n.querySelector && n.querySelector("[data-viz-h]");
-      if (bx) return +bx.dataset.vizH;
-      const sv = n.tagName.toLowerCase() === "svg" ? n : n.querySelector("svg");
-      return +(sv && sv.getAttribute("height")) || n.offsetHeight || 0;
-    };
+    const chartH = (f) => vizChartH(f.node);
     mine.forEach((f) => {
       f.h = chartH(f);
     });
@@ -4578,6 +4632,7 @@ ${short}`)])
   }
   function measure(result) {
     const warnings = [];
+    if (result.fills && result.fills.length) matchRows(result.fills);
     for (const p of result.pages) {
       if (result.fills && result.fills.length) fillPage(p, result.fills);
       p.used = p.content.offsetHeight;
@@ -5075,6 +5130,8 @@ ${short}`)])
     "Valeur d\u2019un pictogramme": "Valeur repr\xE9sent\xE9e par un pictogramme entier ; le dernier peut \xEAtre partiel.",
     "Valeur du pictogramme plein (ex. 100)": "Valeur correspondant \xE0 un pictogramme enti\xE8rement rempli (ex. 100 pour des pourcentages).",
     "Alterner les \xE9v\xE9nements de part et d\u2019autre de la ligne": "Les \xE9v\xE9nements pairs et impairs passent de chaque c\xF4t\xE9 de la ligne : le texte dispose de deux fois plus de largeur.",
+    "Adapter \xE0 la colonne voisine": "La dataviz prend la hauteur de la colonne voisine la plus haute de sa rang\xE9e.",
+    "Position verticale de l\u2019anneau": "Quand les textes autour de l\u2019anneau sont plus hauts que lui : l\u2019anneau se place en haut, centr\xE9 sur le contenu ou en bas ; les traits de rep\xE8re suivent.",
     "Alignement vertical de la dataviz": "Quand le conteneur est plus haut que le contenu : le contenu se place en haut, au centre ou en bas.",
     "Interlignage des textes": "Espace entre les lignes des libell\xE9s : serr\xE9, normal (18 px) ou large (21 px).",
     "Extr\xE9mit\xE9s de la ligne": "Avant le premier et apr\xE8s le dernier cercle, la ligne se prolonge (un tiers plein puis des tirets) ou non : \xAB Aucune \xBB fait commencer la ligne au premier cercle.",
@@ -5465,9 +5522,9 @@ ${short}`)])
   var paletteOptions = (doc2) => Object.fromEntries([...paletteKeys(doc2), ...sectionBgs(doc2)].map((k) => [k, t(colorLabel(doc2, k))]));
 
   // src/vizheight.js
-  var MODE_LABELS = { auto: "Automatique (hauteur naturelle)", ratio: "Proportion de la largeur", fixed: "Fixe", fill: "Remplir la place disponible" };
+  var MODE_LABELS = { auto: "Automatique (hauteur naturelle)", ratio: "Proportion de la largeur", fixed: "Fixe", fill: "Remplir la place disponible", match: "Adapter \xE0 la colonne voisine" };
   function heightNodes(ty, o, { ctx: ctx2, width, avail }) {
-    const modes = ty.heights, mode = modes.includes(o.hmode) ? o.hmode : modes[0], rf = (ty.fields || []).find((f) => f.k === "ratio");
+    const modes = [...ty.heights, "match"], mode = modes.includes(o.hmode) ? o.hmode : modes[0], rf = (ty.fields || []).find((f) => f.k === "ratio");
     const sel = h("select", { onchange: (e) => {
       o.hmode = e.target.value;
       ctx2.restructure();
@@ -5482,7 +5539,7 @@ ${short}`)])
     const nodes = [h("label", { class: "f" }, t("Hauteur"), helpBtn("Hauteur"), sel)];
     if (mode === "ratio" && rf) nodes.push(...buildFields([rf], o, ctx2, {}, h));
     if (mode === "fixed") nodes.push(num2("hfixed", "Hauteur du graphique (px)", Math.round(width * 0.5625 / 3) * 3, 90, 900));
-    if (mode === "fill") {
+    if (mode === "fill" || mode === "match") {
       nodes.push(num2("hmin", "Hauteur minimale (px)", 120, 90, 900), num2("hmax", "Hauteur maximale (px)", 600, 90, 900));
       if (avail) nodes.push(h("label", { class: "f" }, t("Place disponible pour cet aper\xE7u (px)"), helpBtn("Place disponible pour cet aper\xE7u (px)"), h("input", { type: "number", value: avail.get(), min: 90, max: 1200, step: 15, oninput: (e) => {
         const v = parseFloat(e.target.value);
@@ -5490,7 +5547,7 @@ ${short}`)])
       } })));
       nodes.push(h("p", { class: "hint", textContent: t("Dans le document, la dataviz occupe la place restante de la page (partag\xE9e s\u2019il y en a plusieurs), entre ces deux bornes.") }));
     }
-    if (ty.boxed && (mode === "fixed" || mode === "fill")) {
+    if (ty.boxed && (mode === "fixed" || mode === "fill" || mode === "match")) {
       const vs = h("select", { onchange: (e) => {
         o.valign = e.target.value;
         ctx2.restructure();
@@ -5971,6 +6028,71 @@ ${short}`)])
     }
   }
 
+  // src/vizreorder.js
+  var ORANGE2 = "#F28C28";
+  function startReorder(e, target, { opts, root, redraw, done }) {
+    const [key, i0s] = target.getAttribute("data-reorder").split(":"), i0 = +i0s, axis = target.getAttribute("data-axis") || "x";
+    const arr0 = (opts[key] || []).slice(), n = arr0.length;
+    if (n < 2) return false;
+    const rootEl = () => typeof root === "function" ? root() : root;
+    const centers = new Array(n);
+    rootEl().querySelectorAll(`[data-reorder^="${key}:"]`).forEach((nd) => {
+      const j = +nd.getAttribute("data-reorder").split(":")[1], r = nd.getBoundingClientRect();
+      centers[j] = axis === "x" ? (r.left + r.right) / 2 : (r.top + r.bottom) / 2;
+    });
+    const others = centers.map((c2, j) => [c2, j]).filter(([c2, j]) => j !== i0 && c2 != null);
+    let cur = i0;
+    const mark = () => {
+      const nd = rootEl().querySelector(`[data-reorder="${key}:${cur}"]`);
+      if (!nd) return;
+      if (nd instanceof SVGElement) {
+        nd.setAttribute("fill", "rgba(242,140,40,.14)");
+        nd.setAttribute("stroke", ORANGE2);
+        nd.setAttribute("stroke-dasharray", "4 3");
+        nd.setAttribute("stroke-width", "1.5");
+      } else nd.style.outline = `1.5px dashed ${ORANGE2}`;
+    };
+    const move = (ev) => {
+      const p = axis === "x" ? ev.clientX : ev.clientY, fwd = p > centers[i0];
+      let t2 = 0;
+      for (const [c2] of others) if (fwd ? c2 <= p : c2 < p) t2++;
+      if (t2 === cur) return;
+      cur = t2;
+      const a2 = arr0.slice(), [it] = a2.splice(i0, 1);
+      a2.splice(t2, 0, it);
+      opts[key] = a2;
+      redraw();
+      mark();
+    };
+    const stop = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("keydown", esc3, true);
+      document.body.style.cursor = "";
+    };
+    const up = () => {
+      stop();
+      done(cur !== i0);
+    };
+    const esc3 = (ev) => {
+      if (ev.key === "Escape") {
+        ev.stopPropagation();
+        ev.preventDefault();
+        opts[key] = arr0;
+        stop();
+        redraw();
+        done(false);
+      }
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("keydown", esc3, true);
+    document.body.style.cursor = "grabbing";
+    e.preventDefault();
+    mark();
+    return true;
+  }
+
   // src/vizdata.js
   var num = (c2) => {
     const n = parseFloat(String(c2).replace(/\s/g, "").replace(",", "."));
@@ -6318,7 +6440,7 @@ ${short}`)])
         svgW = width;
       }
       const t2 = VIZ_TYPES[col.viz.kind];
-      hint.textContent = t2 && t2.edit ? "Cliquer un segment ou un libell\xE9 pour le s\xE9lectionner \xB7 glisser l\u2019anneau pour le tourner \xB7 glisser un libell\xE9 (verticalement, ou de l\u2019autre c\xF4t\xE9) \xB7 glisser le point blanc pour d\xE9placer l\u2019ancrage du trait" : "Les modifications du formulaire s\u2019appliquent en direct.";
+      hint.textContent = holder.querySelector("[data-reorder]") ? "Glisser un \xE9l\xE9ment pour changer son ordre : les autres se r\xE9ajustent en gardant des \xE9carts proportionnels." : t2 && t2.edit ? "Cliquer un segment ou un libell\xE9 pour le s\xE9lectionner \xB7 glisser l\u2019anneau pour le tourner \xB7 glisser un libell\xE9 (verticalement, ou de l\u2019autre c\xF4t\xE9) \xB7 glisser le point blanc pour d\xE9placer l\u2019ancrage du trait" : "Les modifications du formulaire s\u2019appliquent en direct.";
       const k = scale();
       sheet.style.width = width + 48 + "px";
       holder.style.width = width + "px";
@@ -6439,6 +6561,11 @@ ${short}`)])
       return { x: (e.clientX - r.left) / k, y: (e.clientY - r.top) / k };
     };
     stage2.addEventListener("pointerdown", (e) => {
+      const rn = e.target.closest && e.target.closest("[data-reorder]");
+      if (rn && e.button === 0 && startReorder(e, rn, { opts: col.viz.opts, root: holder, redraw: draw, done: (ch) => {
+        if (ch) changed();
+        else draw();
+      } })) return;
       const t2 = VIZ_TYPES[col.viz.kind];
       const n = e.target.closest && e.target.closest("[data-hit]");
       if (!t2 || !t2.edit || !n || e.button !== 0) {
@@ -6547,11 +6674,71 @@ ${short}`)])
       ctx2.restructure();
       ctx2.select(`sec:${at.si + 1}`);
     });
-    document.body.append(out, bar, addSubBtn, addSecBtn);
+    const grip = h("button", { type: "button", class: "hv-grip", style: { display: "none" }, title: t("Glisser : hauteur de la dataviz (se cale sur la colonne voisine) \xB7 double-clic : adapter \xE0 la colonne voisine"), "aria-label": t("Hauteur de la dataviz") }, ico("grip-horizontal"));
+    const guide = h("div", { class: "hv-guide", style: { display: "none" } });
+    const vizOf = (it) => {
+      const col = getDoc().sections[it.si].subs[it.bi].cols[it.ci];
+      return col.type === "viz" && col.viz && (VIZ_TYPES[col.viz.kind] || {}).heights ? col : null;
+    };
+    const placeGrip = (it) => {
+      const el2 = document.querySelector(`[data-sel="${it.path}"]`), nd = el2 && el2.firstElementChild;
+      if (!nd) {
+        grip.style.display = "none";
+        return;
+      }
+      const r = nd.getBoundingClientRect();
+      Object.assign(grip.style, { display: "flex", left: r.left + r.width / 2 - 18 + "px", top: r.bottom - 8 + "px" });
+      grip._at = it;
+    };
+    grip.addEventListener("dblclick", () => {
+      const it = grip._at, col = it && vizOf(it);
+      if (!col) return;
+      col.viz.opts.hmode = "match";
+      hide2();
+      ctx2.restructure();
+    });
+    grip.addEventListener("pointerdown", (e) => {
+      const it = grip._at, col = it && vizOf(it);
+      if (!col || e.button) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const o = col.viz.opts, doc2 = getDoc();
+      const colEl = document.querySelector(`[data-sel="${it.path}"]`), node = colEl.firstElementChild, sc = colEl.closest(".page").getBoundingClientRect().width / PAGE.w;
+      const startH = vizChartH(node), neigh = matchTarget(colEl, node), y0 = e.clientY;
+      let snapped = false;
+      grip.setPointerCapture(e.pointerId);
+      bar.style.display = out.style.display = addSubBtn.style.display = addSecBtn.style.display = "none";
+      const move = (ev) => {
+        let hh = Math.round(Math.max(90, Math.min(900, startH + (ev.clientY - y0) / sc)) / 3) * 3;
+        snapped = neigh != null && Math.abs(hh - neigh) <= 9;
+        if (snapped) hh = neigh;
+        Object.assign(o, { hmode: "fixed", hfixed: hh });
+        ctx2.changed();
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          placeGrip(it);
+          const el2 = document.querySelector(`[data-sel="${it.path}"]`), nd = el2 && el2.firstElementChild;
+          if (nd && neigh != null) {
+            const r = nd.getBoundingClientRect();
+            Object.assign(guide.style, { display: "block", left: r.left - 6 + "px", width: r.width + 12 + "px", top: r.top + neigh * sc + "px", borderTopStyle: snapped ? "solid" : "dashed" });
+          }
+        }));
+      };
+      const up = () => {
+        grip.removeEventListener("pointermove", move);
+        grip.removeEventListener("pointerup", up);
+        guide.style.display = "none";
+        if (snapped) o.hmode = "match";
+        hide2();
+        ctx2.restructure();
+      };
+      grip.addEventListener("pointermove", move);
+      grip.addEventListener("pointerup", up);
+    });
+    document.body.append(out, bar, addSubBtn, addSecBtn, grip, guide);
     let timer = 0, cur = null;
     const hide2 = () => {
       clearTimeout(timer);
-      bar.style.display = out.style.display = addSubBtn.style.display = addSecBtn.style.display = "none";
+      bar.style.display = out.style.display = addSubBtn.style.display = addSecBtn.style.display = grip.style.display = "none";
       cur = null;
     };
     const later = () => {
@@ -6579,7 +6766,7 @@ ${short}`)])
       } }, ico("trash"));
       if (it.kind === "col") {
         const sub = doc2.sections[it.si].subs[it.bi], col = sub.cols[it.ci];
-        const grip = h("button", { type: "button", class: "mini grip-btn", title: "Glisser le contenu sur une autre colonne pour l\u2019\xE9changer", onpointerdown: (e) => {
+        const grip2 = h("button", { type: "button", class: "mini grip-btn", title: "Glisser le contenu sur une autre colonne pour l\u2019\xE9changer", onpointerdown: (e) => {
           e.preventDefault();
           ctx2.startColDrag(e, { si: it.si, bi: it.bi, ci: it.ci });
         } }, ico("grip-vertical"));
@@ -6588,7 +6775,7 @@ ${short}`)])
           sub.cols.push(newCol("text"));
           refreshAutoCards(sub, (i) => columnWidth(getDoc(), it.si, it.bi, i));
         }) : null;
-        g.push(grp("Colonne", grip, del(it.path), plus, col.type === "viz" ? btn("Dataviz\u2026", "Ouvrir l\u2019\xE9diteur de dataviz", () => ctx2.editViz({ col, sub, ci: it.ci })) : null));
+        g.push(grp("Colonne", grip2, del(it.path), plus, col.type === "viz" ? btn("Dataviz\u2026", "Ouvrir l\u2019\xE9diteur de dataviz", () => ctx2.editViz({ col, sub, ci: it.ci })) : null));
       } else if (it.kind === "sub") {
         const sec = doc2.sections[it.si];
         const mv = (d) => () => {
@@ -6674,6 +6861,11 @@ ${short}`)])
       clearTimeout(timer);
       if (key === cur) return;
       cur = key;
+      {
+        const ci = chain.find((c2) => c2.kind === "col");
+        if (ci && vizOf(ci)) placeGrip(ci);
+        else grip.style.display = "none";
+      }
       const doc2 = getDoc();
       applyVars(bar, cssVars(doc2.theme, doc2.colors));
       bar.innerHTML = "";
@@ -6714,7 +6906,7 @@ ${short}`)])
       Object.assign(out.style, { display: "block", left: r.left - gx + "px", top: r.top - GAPX + "px", width: r.width + 2 * gx + "px", height: r.height + 2 * GAPX + "px" });
     });
     stage2.addEventListener("pointerleave", later);
-    for (const el2 of [bar, addSubBtn, addSecBtn]) {
+    for (const el2 of [bar, addSubBtn, addSecBtn, grip]) {
       el2.addEventListener("pointerenter", () => clearTimeout(timer));
       el2.addEventListener("pointerleave", later);
     }
@@ -7256,11 +7448,79 @@ ${short}`)])
     e.preventDefault();
     ctx.remove(selected);
   });
+  var handTool = false;
+  var handSpace = false;
+  var panning = null;
+  var handOn = () => handTool || handSpace;
+  var syncHand = () => {
+    stage.classList.toggle("hand", handOn());
+    if (handOn()) hover.hide();
+  };
+  var typing = (e) => {
+    const tg = e.target, tag = tg.tagName || "";
+    return /INPUT|TEXTAREA|SELECT/.test(tag) || tg.isContentEditable || document.querySelector("dialog[open], .ve, .v3d, .ce");
+  };
+  window.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || typing(e)) return;
+    if (e.key === " ") {
+      e.preventDefault();
+      if (!handSpace) {
+        handSpace = true;
+        syncHand();
+      }
+    } else if (e.key === "h" || e.key === "H") {
+      handTool = !handTool;
+      syncHand();
+    } else if (e.key === "Escape" && handTool) {
+      handTool = false;
+      syncHand();
+    }
+  });
+  window.addEventListener("keyup", (e) => {
+    if (e.key === " " && handSpace) {
+      handSpace = false;
+      syncHand();
+    }
+  });
+  window.addEventListener("blur", () => {
+    handSpace = false;
+    syncHand();
+  });
+  stage.addEventListener("pointerdown", (e) => {
+    if (!handOn() || e.button > 1) return;
+    e.preventDefault();
+    e.stopPropagation();
+    panning = { x: e.clientX, y: e.clientY, sl: stage.scrollLeft, st: stage.scrollTop, moved: false };
+    stage.setPointerCapture(e.pointerId);
+    stage.classList.add("panning");
+  }, true);
+  stage.addEventListener("pointermove", (e) => {
+    if (!panning) return;
+    panning.moved = true;
+    stage.scrollLeft = panning.sl - (e.clientX - panning.x);
+    stage.scrollTop = panning.st - (e.clientY - panning.y);
+  });
+  var endPan = () => {
+    if (panning) {
+      stage.classList.remove("panning");
+      setTimeout(() => {
+        panning = null;
+      }, 0);
+    }
+  };
+  stage.addEventListener("pointerup", endPan);
+  stage.addEventListener("pointercancel", endPan);
+  stage.addEventListener("click", (e) => {
+    if (handOn() || panning) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }, true);
   hover = initHover({
     stage,
     getDoc: () => doc,
     ctx,
-    canShow: () => !drag && !document.body.classList.contains("ve-open") && !document.body.classList.contains("dragging"),
+    canShow: () => !handOn() && !drag && !document.body.classList.contains("ve-open") && !document.body.classList.contains("dragging"),
     select: (path) => ctx.select(path)
   });
   stage.addEventListener("click", (e) => {
@@ -7700,6 +7960,10 @@ ${short}`)])
           syncSpacingCtl();
         } })),
         "-",
+        { label: "Outil main (Espace ou H)", icon: "hand-stop", checked: () => handTool, run: () => {
+          handTool = !handTool;
+          syncHand();
+        } },
         { label: "Aper\xE7u 3D", icon: "3d-cube-sphere", run: () => open3d() }
       ] }
     ],

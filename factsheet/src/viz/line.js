@@ -1,6 +1,6 @@
 /* Courbes : trait 0,5 pt (design system), points remplis de la couleur de la série et cerclés 0,5 pt. */
 import { VIZ, TYPE } from '../tokens.js';
-import { heightOf, s, SW, colorRef, pxOf, fmt, round3, drawLegend, numVal, fitText, SANS, SERIF } from './util.js';
+import { reorderHit, heightOf, s, SW, colorRef, pxOf, fmt, round3, drawLegend, numVal, fitText, SANS, SERIF } from './util.js';
 import { t } from '../i18n.js';
 
 export default {
@@ -42,6 +42,7 @@ export default {
     }));
     rows.forEach((r, i) => { const f = fitText(r.label || '', TYPE.caption.weight, SANS, capPx, slot - 3, 0.6); svg.append(s('text', { x: xOf(i), y: baseY + VIZ.catH / 2 + 0.33 * f.size + 1, 'text-anchor': 'middle', 'font-size': f.size, 'font-weight': TYPE.caption.weight }, f.text)); });
     if (o.legend) drawLegend(svg, series, H - VIZ.legendH, W);
+    rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'x', slot * i, 0, slot, baseY + VIZ.catH)));
     return { node: svg };
   },
 };

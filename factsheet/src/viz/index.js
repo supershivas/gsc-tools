@@ -35,7 +35,7 @@ export function switchKind(viz, k) {
 /** Types qui gardent leur hauteur naturelle (`boxed`) : en mode fixe ou « remplir », le contenu est posé dans un conteneur de la hauteur voulue,
     en haut, au centre ou en bas (`opts.valign`) — jamais rogné si le conteneur est plus bas que le contenu */
 function boxed(t, o, W, env, node) {
-  if (!t.boxed || !node || (o.hmode !== 'fixed' && o.hmode !== 'fill')) return node;
+  if (!t.boxed || !node || (o.hmode !== 'fixed' && o.hmode !== 'fill' && o.hmode !== 'match')) return node;
   const natural = +node.getAttribute('height') || 0, H = Math.max(natural, heightOf(o, W, env, natural));
   if (H <= natural + 0.5) return node;
   const box = el('div', { class: 'viz-box', style: { height: H + 'px', display: 'flex', alignItems: { center: 'center', bottom: 'flex-end' }[o.valign] || 'flex-start' } }, node);

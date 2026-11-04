@@ -1,6 +1,6 @@
 /* Barres verticales : une série, groupées, jumelées (barre arrière décalée, comme sur les captures) ou empilées. */
 import { VIZ, TYPE } from '../tokens.js';
-import { heightOf, s, SW, colorRef, pxOf, fmt, SANS, SERIF, round3, textLines, drawLines, drawLegend, numVal, fitText } from './util.js';
+import { reorderHit, heightOf, s, SW, colorRef, pxOf, fmt, SANS, SERIF, round3, textLines, drawLines, drawLegend, numVal, fitText } from './util.js';
 
 const barPath = (x, y, w, h, r) => {
   r = Math.max(0, Math.min(r, w / 2, h));
@@ -91,6 +91,7 @@ export default {
     });
     rows.forEach((r, i) => { const f = fitText(r.label || '', TYPE.caption.weight, SANS, capPx, slot - 3, 0.6); svg.append(s('text', { x: slot * (i + 0.5), y: baseY + VIZ.catH / 2 + 0.33 * f.size + 1, 'text-anchor': 'middle', 'font-size': f.size, 'font-weight': TYPE.caption.weight }, f.text)); });
     if (o.legend) drawLegend(svg, series, H - VIZ.legendH, W);
+    rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'x', slot * i, 0, slot, baseY + VIZ.catH)));
     return { node: svg };
   },
 };

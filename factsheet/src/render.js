@@ -111,7 +111,7 @@ function renderCol(col, w, path, env) {
   } else {
     const node = renderViz(col.viz, w, env);
     wrap.append(node || h('div', { class: 'viz-ph' }, h('span', { textContent: 'dataviz' })));
-    if (node && env.fills && col.viz.opts && col.viz.opts.hmode === 'fill') env.fills.push({ page: env.page, col, w, node, wrap, env });
+    if (node && env.fills && col.viz.opts && (col.viz.opts.hmode === 'fill' || col.viz.opts.hmode === 'match')) env.fills.push({ page: env.page, col, w, node, wrap, env, mode: col.viz.opts.hmode });
   }
   return wrap;
 }
@@ -196,12 +196,38 @@ export function renderDocument(doc) {
   return { pages, warnings: [], fills: env.fills };
 }
 
+/** hauteur du graphique lui-même (sans titre ni source) : celle du conteneur `data-viz-h`, sinon l'attribut `height` du SVG, sinon celle de l'élément */
+export function vizChartH(n) {
+  const bx = n.dataset && n.dataset.vizH ? n : n.querySelector && n.querySelector('[data-viz-h]'); if (bx) return +bx.dataset.vizH;
+  const sv = n.tagName.toLowerCase() === 'svg' ? n : n.querySelector('svg'); return +(sv && sv.getAttribute('height')) || n.offsetHeight || 0;
+}
+/** Hauteur que doit avoir le graphique pour égaler la colonne voisine la plus haute de sa rangée (null s'il n'y a pas de voisine) :
+    on masque la dataviz, la rangée prend alors la hauteur des autres colonnes, moins les marges de la colonne et le titre/source de la dataviz */
+export function matchTarget(wrap, node) {
+  const row = wrap.parentElement; if (!row || row.children.length < 2) return null;
+  const chart = vizChartH(node), extra = Math.max(0, (node.offsetHeight || chart) - chart), cs = getComputedStyle(wrap);
+  const own = ['paddingTop', 'paddingBottom', 'borderTopWidth', 'borderBottomWidth'].reduce((a, k) => a + (parseFloat(cs[k]) || 0), 0);
+  const prev = node.style.display; node.style.display = 'none';
+  const rowH = row.offsetHeight; node.style.display = prev;
+  const target = rowH - own - extra;
+  return target >= 60 ? Math.floor(target / 3) * 3 : null;
+}
+/** Dataviz en mode « Adapter à la colonne voisine » : redessinées à la hauteur de la voisine la plus haute */
+function matchRows(fills) {
+  for (const f of fills) {
+    if (f.mode !== 'match') continue;
+    const o = f.col.viz.opts, t = matchTarget(f.wrap, f.node); if (!t) continue;
+    const target = Math.max(o.hmin || 90, Math.min(o.hmax || 900, t)), n = renderViz(f.col.viz, f.w, { ...f.env, fills: null, fillH: target });
+    if (n) { f.node.replaceWith(n); f.node = n; }
+  }
+}
+
 /** À appeler une fois les pages dans le DOM (mesures réelles). */
 /** Dataviz en mode « Remplir la place disponible » : elles se partagent l'espace libre de leur page (quelques passes, bornées par hmin/hmax) */
 function fillPage(p, fills) {
-  const mine = fills.filter(f => f.page === p.key);
+  const mine = fills.filter(f => f.page === p.key && f.mode === 'fill');
   if (!mine.length) return;
-  const chartH = f => { const n = f.node, bx = n.dataset && n.dataset.vizH ? n : n.querySelector && n.querySelector('[data-viz-h]'); if (bx) return +bx.dataset.vizH; const sv = n.tagName.toLowerCase() === 'svg' ? n : n.querySelector('svg'); return +(sv && sv.getAttribute('height')) || n.offsetHeight || 0; };
+  const chartH = f => vizChartH(f.node);
   mine.forEach(f => { f.h = chartH(f); });
   for (let pass = 0; pass < 6; pass++) {
     const free = p.max - p.content.offsetHeight;
@@ -220,6 +246,7 @@ function fillPage(p, fills) {
 
 export function measure(result) {
   const warnings = [];
+  if (result.fills && result.fills.length) matchRows(result.fills);
   for (const p of result.pages) {
     if (result.fills && result.fills.length) fillPage(p, result.fills);
     p.used = p.content.offsetHeight;

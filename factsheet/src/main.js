@@ -240,7 +240,30 @@ window.addEventListener('keydown', e => {
   e.preventDefault(); ctx.remove(selected);
 });
 
-hover = initHover({ stage, getDoc: () => doc, ctx, canShow: () => !drag && !document.body.classList.contains('ve-open') && !document.body.classList.contains('dragging'),
+/* Outil main : maintenir Espace (ou touche H, Échap pour en sortir) puis glisser dans l'aperçu pour le déplacer, comme dans un outil de design */
+let handTool = false, handSpace = false, panning = null;
+const handOn = () => handTool || handSpace;
+const syncHand = () => { stage.classList.toggle('hand', handOn()); if (handOn()) hover.hide(); };
+const typing = e => { const tg = e.target, tag = tg.tagName || ''; return /INPUT|TEXTAREA|SELECT/.test(tag) || tg.isContentEditable || document.querySelector('dialog[open], .ve, .v3d, .ce'); };
+window.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || typing(e)) return;
+  if (e.key === ' ') { e.preventDefault(); if (!handSpace) { handSpace = true; syncHand(); } }
+  else if (e.key === 'h' || e.key === 'H') { handTool = !handTool; syncHand(); }
+  else if (e.key === 'Escape' && handTool) { handTool = false; syncHand(); }
+});
+window.addEventListener('keyup', e => { if (e.key === ' ' && handSpace) { handSpace = false; syncHand(); } });
+window.addEventListener('blur', () => { handSpace = false; syncHand(); });
+stage.addEventListener('pointerdown', e => {
+  if (!handOn() || e.button > 1) return;
+  e.preventDefault(); e.stopPropagation(); panning = { x: e.clientX, y: e.clientY, sl: stage.scrollLeft, st: stage.scrollTop, moved: false };
+  stage.setPointerCapture(e.pointerId); stage.classList.add('panning');
+}, true);
+stage.addEventListener('pointermove', e => { if (!panning) return; panning.moved = true; stage.scrollLeft = panning.sl - (e.clientX - panning.x); stage.scrollTop = panning.st - (e.clientY - panning.y); });
+const endPan = () => { if (panning) { stage.classList.remove('panning'); setTimeout(() => { panning = null; }, 0); } };
+stage.addEventListener('pointerup', endPan); stage.addEventListener('pointercancel', endPan);
+stage.addEventListener('click', e => { if (handOn() || panning) { e.stopPropagation(); e.preventDefault(); } }, true);
+
+hover = initHover({ stage, getDoc: () => doc, ctx, canShow: () => !handOn() && !drag && !document.body.classList.contains('ve-open') && !document.body.classList.contains('dragging'),
   select: path => ctx.select(path) });
 
 /* Clic dans l'aperçu → sélection (structure à gauche, propriétés à droite) */
@@ -511,6 +534,7 @@ window.FS_UI = {
       { label: 'Marges et espaces', icon: 'ruler-measure', checked: () => showSpacing, run: () => { showSpacing = !showSpacing; schedule(); syncSpacingCtl(); } },
       ...Object.entries(DENSITIES).map(([k, d]) => ({ label: `${d.label} — ${Math.round(d.f * 100)} %`, checked: () => (doc.density || 'normal') === k, run: () => { doc.density = k; ctx.restructure(); syncSpacingCtl(); } })),
       '-',
+      { label: 'Outil main (Espace ou H)', icon: 'hand-stop', checked: () => handTool, run: () => { handTool = !handTool; syncHand(); } },
       { label: 'Aperçu 3D', icon: '3d-cube-sphere', run: () => open3d() }] },
   ],
   center: centerEl,

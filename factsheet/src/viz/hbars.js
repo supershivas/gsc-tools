@@ -1,6 +1,6 @@
 /* Barres horizontales : libellés à gauche, valeur au bout de la barre. Groupées ou empilées. */
 import { VIZ, TYPE } from '../tokens.js';
-import { heightOf, s, SW, colorRef, pxOf, fmt, mw, SANS, SERIF, drawLegend, numVal, fitText } from './util.js';
+import { reorderHit, heightOf, s, SW, colorRef, pxOf, fmt, mw, SANS, SERIF, drawLegend, numVal, fitText } from './util.js';
 import { t } from '../i18n.js';
 
 const hPath = (x, y, w, h, r) => { r = Math.max(0, Math.min(r, h / 2, w)); return `M${x},${y}H${x + w - r}A${r},${r} 0 0 1 ${x + w},${y + r}V${y + h - r}A${r},${r} 0 0 1 ${x + w - r},${y + h}H${x}Z`; };
@@ -35,7 +35,7 @@ export default {
     const natBh = VIZ.hBar, natBody = rows.length * (stacked ? natBh : k * natBh + (k - 1) * VIZ.barGap) + gaps;
     /* hauteur fixe ou « remplir » : les barres s'épaississent (ou s'amincissent) pour occuper la hauteur demandée ; automatique = hauteur naturelle */
     let bh = natBh;
-    if (o.hmode === 'fixed' || o.hmode === 'fill') {
+    if (o.hmode === 'fixed' || o.hmode === 'fill' || o.hmode === 'match') {
       const target = heightOf(o, W, env, natBody + legBlock), f = Math.max(0.5, Math.min(4, (target - legBlock - gaps) / Math.max(1, natBody - gaps)));
       bh = Math.max(3, natBh * f);
     }
@@ -63,6 +63,7 @@ export default {
       if (stacked && o.showValues) svg.append(s('text', { x: end + VIZ.barGap * 1.5, y: y + bh / 2 + 0.33 * numPx, 'font-size': numPx, 'font-weight': 700, style: { fontFamily: 'var(--t-captionNum-family)' } }, fmt(total(r), env.locale, o.decimals) + suffix));
     });
     if (o.legend) drawLegend(svg, series, H - VIZ.legendH, W);
+    rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'y', 0, i * (rh + VIZ.hRowGap) - VIZ.hRowGap / 2, W, rh + VIZ.hRowGap)));
     return { node: svg };
   },
 };
