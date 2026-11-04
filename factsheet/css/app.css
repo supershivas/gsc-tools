@@ -16,7 +16,7 @@ body{display:flex;flex-direction:column}
 .warnings{padding:0 22px}
 .warnings .note{display:block;margin-top:8px;padding:6px 10px;border-radius:6px;background:#eef1fb;color:var(--ui-blue);font-size:12px;text-decoration:none}
 .warnings div{margin-top:8px;padding:6px 10px;border-radius:6px;background:#fff4e5;color:#92400e;font-size:12px}
-.stage{flex:1;overflow:auto;padding:22px;display:flex;gap:24px;flex-wrap:wrap;align-content:flex-start;justify-content:center}
+.stage{flex:1;overflow:auto;padding:22px;display:flex;gap:24px;flex-wrap:wrap;align-content:flex-start;justify-content:center;justify-content:safe center}   /* safe : une page plus large que l'écran reste atteignable à gauche */
 .pwrap{position:relative;flex:none;box-shadow:0 1px 3px #0002,0 8px 24px #0001;background:#fff;cursor:default}
 .pscale{position:absolute;left:0;top:0;transform-origin:0 0}
 .pwrap .tag{position:absolute;top:-18px;left:0;font-size:11px;color:var(--ui-mute);text-transform:uppercase;letter-spacing:.08em}
@@ -409,3 +409,5 @@ textarea.dg-ml{display:block;width:100%;min-width:90px;border:0;border-radius:0;
 .cs-opt.on{background:#eef2ff;color:var(--ui-blue)}
 @media (hover:hover){.cs-opt:hover{background:var(--ui-bg)}.cs:hover{border-color:var(--ui-blue)}}
 @media print{.cs-pop{display:none!important}}
+
+.stage.free{padding:min(45vh,420px) min(38vw,520px)}
