@@ -29,6 +29,7 @@ export default {
     { k: 'perRow', t: 'number', label: 'Groupes par ligne (0 = automatique)', min: 0, max: 6 },
     { k: 'groupLabels', t: 'bool', label: 'Afficher le nom des groupes' },
     { k: 'legend', t: 'bool', label: 'Afficher la légende' },
+    { k: 'legendPos', t: 'select', label: 'Position de la légende', options: { bottom: 'En bas', top: 'En haut' } },
     { k: 'showPercent', t: 'bool', label: 'Pourcentages dans la légende' },
     { k: 'decimals', t: 'number', label: 'Décimales des pourcentages', min: 0, max: 4 },
   ],

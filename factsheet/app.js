@@ -392,6 +392,8 @@
     "Annuler": "Cancel",
     "Exporter": "Export",
     "Terminer": "Done",
+    "Position de la l\xE9gende": "Legend position",
+    "Dans les barres": "Inside the bars",
     "\xC9paisseur des barres": "Bar thickness",
     "Fine": "Thin",
     "Normale": "Normal",
@@ -1400,13 +1402,15 @@
     let capPx = base;
     if (need(base) > W) capPx = Math.max(base * 0.7, base * (W - names.length * fixed - gap * (names.length - 1)) / (need(base) - names.length * fixed - gap * (names.length - 1)));
     const room = names.length ? Math.max(20, (W - gap * (names.length - 1)) / names.length - fixed) : 0;
+    const g = s("g", { class: "lg", "data-y": y, "data-reserve": VIZ.legendH + VIZ.legendGap });
     let x = 0;
     series.forEach((sr, i) => {
-      svg.append(s("rect", { x: x + SW / 2, y: y + (VIZ.legendH - VIZ.legendSwatch) / 2 + SW / 2, width: VIZ.legendSwatch - SW, height: VIZ.legendSwatch - SW, rx: VIZ.barRadius, fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW }));
+      g.append(s("rect", { x: x + SW / 2, y: y + (VIZ.legendH - VIZ.legendSwatch) / 2 + SW / 2, width: VIZ.legendSwatch - SW, height: VIZ.legendSwatch - SW, rx: VIZ.barRadius, fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW }));
       const lx = x + fixed, t2 = need(base) > W ? ellipsize(names[i], TYPE.caption.weight, SANS, capPx, room) : names[i];
-      svg.append(s("text", { x: lx, y: y + VIZ.legendH / 2 + 0.33 * capPx, "font-size": capPx, "font-weight": TYPE.caption.weight }, t2));
+      g.append(s("text", { x: lx, y: y + VIZ.legendH / 2 + 0.33 * capPx, "font-size": capPx, "font-weight": TYPE.caption.weight }, t2));
       x = lx + mw(t2, TYPE.caption.weight, SANS, capPx) + gap;
     });
+    svg.append(g);
   }
   var numVal = (r, j) => Math.max(0, +(r.v || [])[j] || 0);
   var CYCLE = ["blue", "sky", "yellow", "slate", "grey"];
@@ -1451,11 +1455,13 @@
     return { lines, h: lines.length * VIZ.legendH + (lines.length - 1) * 3, capPx, fixed };
   }
   function drawLegendWrap(svg, L, y) {
+    const g = s("g", { class: "lg", "data-y": y, "data-reserve": L.lines.length * (VIZ.legendH + 3) + VIZ.legendGap });
     L.lines.forEach((line, i) => line.forEach((e) => {
       const yy = y + i * (VIZ.legendH + 3);
-      svg.append(s("rect", { x: e.x + SW / 2, y: yy + (VIZ.legendH - VIZ.legendSwatch) / 2 + SW / 2, width: VIZ.legendSwatch - SW, height: VIZ.legendSwatch - SW, rx: VIZ.barRadius, fill: colorRef(e.color), stroke: "currentColor", "stroke-width": SW }));
-      svg.append(s("text", { x: e.x + L.fixed, y: yy + VIZ.legendH / 2 + 0.33 * L.capPx, "font-size": L.capPx, "font-weight": TYPE.caption.weight }, e.name));
+      g.append(s("rect", { x: e.x + SW / 2, y: yy + (VIZ.legendH - VIZ.legendSwatch) / 2 + SW / 2, width: VIZ.legendSwatch - SW, height: VIZ.legendSwatch - SW, rx: VIZ.barRadius, fill: colorRef(e.color), stroke: "currentColor", "stroke-width": SW }));
+      g.append(s("text", { x: e.x + L.fixed, y: yy + VIZ.legendH / 2 + 0.33 * L.capPx, "font-size": L.capPx, "font-weight": TYPE.caption.weight }, e.name));
     }));
+    svg.append(g);
   }
   var FONT_SPECS = [
     '200 16px "Source Sans 3"',
@@ -2219,13 +2225,13 @@
       { k: "style", t: "select", label: "Plusieurs s\xE9ries", options: { overlap: "Jumel\xE9es (2 s\xE9ries qui se chevauchent)", grouped: "C\xF4te \xE0 c\xF4te", stacked: "Empil\xE9es" } },
       { k: "ratio", t: "select", label: "Format du graphique", options: { "2:1": "2:1 (large)", "16:9": "16:9", "3:2": "3:2", "1:1": "1:1 (carr\xE9)" } },
       { k: "legend", t: "bool", label: "Afficher la l\xE9gende" },
+      { k: "legendPos", t: "select", label: "Position de la l\xE9gende", options: { bottom: "En bas", top: "En haut", inside: "Dans les barres" } },
       { k: "showValues", t: "bool", label: "Afficher les valeurs (empil\xE9es : total)" },
       { k: "barSize", t: "select", label: "\xC9paisseur des barres", options: { thin: "Fine", normal: "Normale", thick: "\xC9paisse" } },
       { k: "groupSpace", t: "select", label: "Espace entre les groupes de barres", options: { tight: "R\xE9duit", normal: "Normal", loose: "Large" } },
       { k: "serSpace", t: "select", label: "Espace entre les barres d\u2019un m\xEAme groupe", options: { none: "Aucun", tight: "R\xE9duit", normal: "Normal", loose: "Large" } },
       { k: "valuesIn", t: "bool", label: "Valeurs dans les barres (si elles rentrent)" },
       { k: "labelIn", t: "bool", label: "Libell\xE9s dans les barres (au pied de la barre)" },
-      { k: "legendIn", t: "bool", label: "Noms des s\xE9ries dans les barres (\xE9crits \xE0 la verticale)" },
       { k: "decimals", t: "number", label: "D\xE9cimales des valeurs", min: 0, max: 4 },
       { k: "suffix", t: "text", label: "Unit\xE9 apr\xE8s la valeur (%, M\u20AC\u2026)" },
       { k: "callout.on", t: "bool", label: "Afficher l\u2019accolade \xAB \xE9volution \xBB" },
@@ -2240,13 +2246,14 @@
       } }
     ],
     render(o, W, env) {
+      const legIn = o.legend && o.legendPos === "inside" || o.legendIn;
       const series = o.series || [], rows = o.rows || [], k = Math.max(1, series.length), n = Math.max(1, rows.length);
       const stacked = o.style === "stacked", overlap = o.style === "overlap" && k === 2;
       const H = Math.max(120, heightOf(o, W, env, null));
       const co = o.callout && o.callout.on && rows.length > 1 ? o.callout : null;
       const x1 = W - (co ? VIZ.calloutW : 0);
       const hasIcons = rows.some((r) => r.icon && r.icon !== "none"), iconSz = 33, catH = (o.labelIn ? 6 : VIZ.catH) + (hasIcons ? iconSz + 6 : 0);
-      const baseY = H - (o.legend ? VIZ.legendGap + VIZ.legendH : 0) - catH, plotTop = VIZ.plotTop, plotH = baseY - plotTop;
+      const baseY = H - (o.legend && !legIn ? VIZ.legendGap + VIZ.legendH : 0) - catH, plotTop = VIZ.plotTop, plotH = baseY - plotTop;
       const total = (r) => series.reduce((a2, _, j) => a2 + numVal(r, j), 0);
       const metric = (r) => stacked ? total(r) : numVal(r, 0);
       let max2 = 0;
@@ -2333,7 +2340,7 @@
             bot -= f.size + 3;
           }
         }
-        if (o.legendIn && !stacked && sr && sr.name) {
+        if (legIn && !stacked && sr && sr.name) {
           const tw = mw(sr.name, TYPE.caption.weight, SANS, capPx);
           if (bot - top >= tw + 6) {
             const cy = (top + bot) / 2;
@@ -2362,7 +2369,7 @@
       if (hasIcons) rows.forEach((r, i) => {
         if (r.icon && r.icon !== "none") svg.append(iconNode(o, r.icon, slot * (i + 0.5) - iconSz / 2, baseY + 6, iconSz, iconSz, "blue"));
       });
-      if (o.legend) drawLegend(svg, series, H - VIZ.legendH, W);
+      if (o.legend && !legIn) drawLegend(svg, series, H - VIZ.legendH, W);
       rows.forEach((_, i) => svg.append(reorderHit(env, "rows", i, "x", slot * i, 0, slot, baseY + catH)));
       return { node: svg };
     }
@@ -2453,16 +2460,17 @@
       { k: "rowSpace", t: "select", label: "Espace entre les lignes", options: { none: "Aucun", tight: "R\xE9duit", normal: "Normal", loose: "Large" } },
       { k: "serSpace", t: "select", label: "Espace entre les barres d\u2019une m\xEAme ligne", options: { none: "Aucun", tight: "R\xE9duit", normal: "Normal", loose: "Large" } },
       { k: "labelIn", t: "bool", label: "Libell\xE9s dans les barres" },
-      { k: "legendIn", t: "bool", label: "Noms des s\xE9ries (l\xE9gende) dans les barres" },
       { k: "valuesIn", t: "bool", label: "Valeurs dans les barres (si affich\xE9es ; sinon apr\xE8s la barre quand \xE7a ne rentre pas)" },
       { k: "segments", t: "number", label: "Graduations : nombre de segments dans la barre la plus longue (0 = aucune)", min: 0, max: 20 },
       { k: "legend", t: "bool", label: "Afficher la l\xE9gende" },
+      { k: "legendPos", t: "select", label: "Position de la l\xE9gende", options: { bottom: "En bas", top: "En haut", inside: "Dans les barres" } },
       { k: "showValues", t: "bool", label: "Afficher les valeurs" },
       { k: "decimals", t: "number", label: "D\xE9cimales des valeurs", min: 0, max: 4 },
       { k: "suffix", t: "text", label: "Unit\xE9 apr\xE8s la valeur (%, M\u20AC\u2026)" },
       { t: "table", k: "rows", series: "series", maxSeries: 4, label: "Donn\xE9es" }
     ],
     render(o, W, env) {
+      const legIn = o.legend && o.legendPos === "inside" || o.legendIn;
       const series = o.series || [], rows = o.rows || [], k = Math.max(1, series.length);
       const stacked = o.style === "stacked";
       const capPx = pxOf(TYPE.caption.size), numPx = pxOf(TYPE.captionNum.size), suffix = o.suffix || "";
@@ -2476,7 +2484,7 @@
       });
       if (!max2) max2 = 1;
       const GF = { none: 0, tight: 0.5, normal: 1, loose: 2 }, rGap = VIZ.hRowGap * (GF[o.rowSpace] ?? 1), sGap = VIZ.barGap * (GF[o.serSpace] ?? 1);
-      const legBlock = o.legend ? VIZ.legendGap + VIZ.legendH : 0, gaps = Math.max(0, rows.length - 1) * rGap;
+      const legBlock = o.legend && !legIn ? VIZ.legendGap + VIZ.legendH : 0, gaps = Math.max(0, rows.length - 1) * rGap;
       const natBh = VIZ.hBar * ({ thin: 0.6, thick: 1.5, xthick: 2 }[o.barSize] ?? 1), natBody = rows.length * (stacked ? natBh : k * natBh + (k - 1) * sGap) + gaps;
       let bh = natBh;
       if (o.hmode === "fixed" || o.hmode === "fill" || o.hmode === "match") {
@@ -2520,19 +2528,19 @@
             acc += v;
             end = xa + w;
             svg.append(s("path", { d: acc >= total(r) ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`, fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" }));
-            if (o.legendIn && sr.name && w > mw(sr.name, TYPE.caption.weight, SANS, capPx) + VIZ.iconGap * 2) svg.append(s("text", { x: xa + w / 2, y: y + bh / 2 + 0.33 * capPx, "text-anchor": "middle", "font-size": capPx, "font-weight": TYPE.caption.weight }, sr.name));
+            if (legIn && sr.name && w > mw(sr.name, TYPE.caption.weight, SANS, capPx) + VIZ.iconGap * 2) svg.append(s("text", { x: xa + w / 2, y: y + bh / 2 + 0.33 * capPx, "text-anchor": "middle", "font-size": capPx, "font-weight": TYPE.caption.weight }, sr.name));
           });
           inside = decor(y, end - x0, o.labelIn ? r.label : "", o.showValues ? fmt(total(r), env.locale, o.decimals) + suffix : "");
         } else series.forEach((sr, j) => {
           const w = numVal(r, j) / max2 * span, yy = y + j * (bh + sGap);
           end = Math.max(end, x0 + w);
           svg.append(s("path", { d: hPath(x0, yy, Math.max(w, 1e-4), bh, VIZ.barRadius), fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" }));
-          const ins = decor(yy, w, [j === 0 && o.labelIn ? r.label : "", o.legendIn ? sr.name : ""].filter(Boolean).join(" \xB7 "), o.showValues ? fmt(numVal(r, j), env.locale, o.decimals) + suffix : "");
+          const ins = decor(yy, w, [j === 0 && o.labelIn ? r.label : "", legIn ? sr.name : ""].filter(Boolean).join(" \xB7 "), o.showValues ? fmt(numVal(r, j), env.locale, o.decimals) + suffix : "");
           if (o.showValues && !ins) svg.append(s("text", { x: x0 + w + VIZ.barGap * 1.5, y: yy + bh / 2 + 0.33 * numPx, "font-size": numPx, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, fmt(numVal(r, j), env.locale, o.decimals) + suffix));
         });
         if (stacked && o.showValues && !inside) svg.append(s("text", { x: end + VIZ.barGap * 1.5, y: y + bh / 2 + 0.33 * numPx, "font-size": numPx, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, fmt(total(r), env.locale, o.decimals) + suffix));
       });
-      if (o.legend) drawLegend(svg, series, H - VIZ.legendH, W);
+      if (o.legend && !legIn) drawLegend(svg, series, H - VIZ.legendH, W);
       rows.forEach((_, i) => svg.append(reorderHit(env, "rows", i, "y", 0, i * (rh + rGap) - rGap / 2, W, rh + rGap)));
       return { node: svg };
     }
@@ -2558,6 +2566,7 @@
       { k: "ratio", t: "select", label: "Format du graphique", options: { "2:1": "2:1 (large)", "16:9": "16:9", "3:2": "3:2", "1:1": "1:1 (carr\xE9)" } },
       { k: "zero", t: "bool", label: "Axe vertical d\xE9marrant \xE0 z\xE9ro" },
       { k: "legend", t: "bool", label: "Afficher la l\xE9gende" },
+      { k: "legendPos", t: "select", label: "Position de la l\xE9gende", options: { bottom: "En bas", top: "En haut" } },
       { k: "showValues", t: "bool", label: "Afficher les valeurs" },
       { k: "decimals", t: "number", label: "D\xE9cimales des valeurs", min: 0, max: 4 },
       { k: "suffix", t: "text", label: "Unit\xE9 apr\xE8s la valeur (%, M\u20AC\u2026)" },
@@ -3299,6 +3308,7 @@
       { k: "showLabels", t: "bool", label: "Afficher les noms sur les arcs" },
       { k: "showTotal", t: "bool", label: "Afficher le total au centre" },
       { k: "legend", t: "bool", label: "Afficher la l\xE9gende (niveau 1)" },
+      { k: "legendPos", t: "select", label: "Position de la l\xE9gende", options: { bottom: "En bas", top: "En haut" } },
       { k: "decimals", t: "number", label: "D\xE9cimales des valeurs", min: 0, max: 4 },
       { k: "suffix", t: "text", label: "Unit\xE9 apr\xE8s la valeur (%, M\u20AC\u2026)" }
     ],
@@ -3354,6 +3364,7 @@
       { k: "showLabels", t: "bool", label: "Afficher les noms" },
       { k: "showValues", t: "bool", label: "Afficher les valeurs" },
       { k: "legend", t: "bool", label: "Afficher la l\xE9gende (niveau 1)" },
+      { k: "legendPos", t: "select", label: "Position de la l\xE9gende", options: { bottom: "En bas", top: "En haut" } },
       { k: "decimals", t: "number", label: "D\xE9cimales des valeurs", min: 0, max: 4 },
       { k: "suffix", t: "text", label: "Unit\xE9 apr\xE8s la valeur (%, M\u20AC\u2026)" }
     ],
@@ -3403,6 +3414,7 @@
       { k: "showLabels", t: "bool", label: "Afficher les noms" },
       { k: "showValues", t: "bool", label: "Afficher les valeurs" },
       { k: "legend", t: "bool", label: "Afficher la l\xE9gende (niveau 1)" },
+      { k: "legendPos", t: "select", label: "Position de la l\xE9gende", options: { bottom: "En bas", top: "En haut" } },
       { k: "decimals", t: "number", label: "D\xE9cimales des valeurs", min: 0, max: 4 },
       { k: "suffix", t: "text", label: "Unit\xE9 apr\xE8s la valeur (%, M\u20AC\u2026)" }
     ],
@@ -3979,6 +3991,7 @@
       { k: "maxR", t: "number", label: "Rayon maximal des bulles (px)", min: 3, max: 40 },
       { k: "showLabels", t: "bool", label: "Afficher le nom des points" },
       { k: "legend", t: "bool", label: "Afficher la l\xE9gende (groupes)" },
+      { k: "legendPos", t: "select", label: "Position de la l\xE9gende", options: { bottom: "En bas", top: "En haut" } },
       { k: "decimals", t: "number", label: "D\xE9cimales des axes", min: 0, max: 4 },
       { k: "suffix", t: "text", label: "Unit\xE9 apr\xE8s la valeur (%, M\u20AC\u2026)" }
     ],
@@ -4089,6 +4102,7 @@
       { k: "perRow", t: "number", label: "Groupes par ligne (0 = automatique)", min: 0, max: 6 },
       { k: "groupLabels", t: "bool", label: "Afficher le nom des groupes" },
       { k: "legend", t: "bool", label: "Afficher la l\xE9gende" },
+      { k: "legendPos", t: "select", label: "Position de la l\xE9gende", options: { bottom: "En bas", top: "En haut" } },
       { k: "showPercent", t: "bool", label: "Pourcentages dans la l\xE9gende" },
       { k: "decimals", t: "number", label: "D\xE9cimales des pourcentages", min: 0, max: 4 }
     ],
@@ -4162,7 +4176,8 @@
       { k: "total", t: "number", label: "Valeur de la grille enti\xE8re (0 = somme des valeurs)", min: 0, step: "any" },
       { k: "shape", t: "select", label: "Forme des cases", options: { square: "Carr\xE9e", rounded: "Arrondie", circle: "Ronde" } },
       { k: "gap", t: "number", label: "Espace entre les cases (px)", min: 0, max: 12 },
-      { k: "legend", t: "bool", label: "Afficher la l\xE9gende" }
+      { k: "legend", t: "bool", label: "Afficher la l\xE9gende" },
+      { k: "legendPos", t: "select", label: "Position de la l\xE9gende", options: { bottom: "En bas", top: "En haut" } }
     ],
     /* chaque catégorie a sa couleur et son repère (croix, point, coche ou une icône), choisis dans le tableau */
     data: {
@@ -4488,6 +4503,18 @@
     return { ...r, node: box };
   }
   var composed = (viz, W, env, core) => composeSide(viz.side, W, env, viz.side && viz.side.pos !== "none" ? sideTokens(viz.opts || {}, env) : null, core);
+  function legendTop(node, o) {
+    if (!node || !o || o.legendPos !== "top" || !node.querySelector) return node;
+    const lg = [...node.children].find((c2) => c2.classList && c2.classList.contains("lg"));
+    if (!lg) return node;
+    const y = +lg.dataset.y, reserve = +lg.dataset.reserve || 0, body = s("g", { transform: `translate(0 ${reserve})` });
+    [...node.childNodes].forEach((c2) => {
+      if (c2 !== lg) body.append(c2);
+    });
+    lg.setAttribute("transform", `translate(0 ${-y})`);
+    node.append(body, lg);
+    return node;
+  }
   function renderViz(viz, width, env) {
     const t2 = viz && VIZ_TYPES[viz.kind];
     if (!t2) return null;
@@ -4495,6 +4522,7 @@
       const o = viz.opts || t2.defaults(), e = env || {};
       return withHead(viz, composed(viz, width, e, (w) => {
         const r = t2.render(o, w, e);
+        r.node = legendTop(r.node, o);
         return { ...r, node: boxed(t2, o, w, e, r.node) };
       }).node);
     } catch (e) {
@@ -4508,6 +4536,7 @@
     try {
       const o = viz.opts || t2.defaults(), e = env || {}, r = composed(viz, width, e, (w) => {
         const q = t2.render(o, w, e);
+        q.node = legendTop(q.node, o);
         return { ...q, node: boxed(t2, o, w, e, q.node) };
       });
       return { ...r, node: withHead(viz, r.node), wrapped: !!(viz.head && (viz.head.title || viz.head.source)) };

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.55.0 — 2026-11-04
+- Légendes : choix de la position (en bas, en haut) pour toutes les dataviz à légende, et « Dans les barres » pour les barres horizontales et verticales (le nom de chaque série s'écrit dans sa barre)
+
 ## 1.54.0 — 2026-11-04
 - Barres horizontales et verticales : valeurs, libellés et noms des séries peuvent s'écrire dans les barres (si ça rentre)
 - Barres : épaisseur des barres et espaces (entre les lignes ou les groupes, entre les barres d'un même groupe) réglables

@@ -21,6 +21,7 @@ export default {
     { k: 'shape', t: 'select', label: 'Forme des cases', options: { square: 'Carrée', rounded: 'Arrondie', circle: 'Ronde' } },
     { k: 'gap', t: 'number', label: 'Espace entre les cases (px)', min: 0, max: 12 },
     { k: 'legend', t: 'bool', label: 'Afficher la légende' },
+    { k: 'legendPos', t: 'select', label: 'Position de la légende', options: { bottom: 'En bas', top: 'En haut' } },
   ],
   /* chaque catégorie a sa couleur et son repère (croix, point, coche ou une icône), choisis dans le tableau */
   data: { k: 'rows', min: 1, cols: [{ k: 'label', label: 'Libellé', t: 'text' }, { k: 'value', label: 'Valeur', t: 'number', def: 10 }, { k: 'color', label: 'Couleur', t: 'color', def: 'blue' },

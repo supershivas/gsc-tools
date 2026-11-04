@@ -29,6 +29,7 @@ export default {
     { k: 'maxR', t: 'number', label: 'Rayon maximal des bulles (px)', min: 3, max: 40 },
     { k: 'showLabels', t: 'bool', label: 'Afficher le nom des points' },
     { k: 'legend', t: 'bool', label: 'Afficher la légende (groupes)' },
+    { k: 'legendPos', t: 'select', label: 'Position de la légende', options: { bottom: 'En bas', top: 'En haut' } },
     { k: 'decimals', t: 'number', label: 'Décimales des axes', min: 0, max: 4 },
     { k: 'suffix', t: 'text', label: 'Unité après la valeur (%, M€…)' },
   ],

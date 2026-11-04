@@ -20,16 +20,17 @@ export default {
     { k: 'rowSpace', t: 'select', label: 'Espace entre les lignes', options: { none: 'Aucun', tight: 'Réduit', normal: 'Normal', loose: 'Large' } },
     { k: 'serSpace', t: 'select', label: 'Espace entre les barres d’une même ligne', options: { none: 'Aucun', tight: 'Réduit', normal: 'Normal', loose: 'Large' } },
     { k: 'labelIn', t: 'bool', label: 'Libellés dans les barres' },
-    { k: 'legendIn', t: 'bool', label: 'Noms des séries (légende) dans les barres' },
     { k: 'valuesIn', t: 'bool', label: 'Valeurs dans les barres (si affichées ; sinon après la barre quand ça ne rentre pas)' },
     { k: 'segments', t: 'number', label: 'Graduations : nombre de segments dans la barre la plus longue (0 = aucune)', min: 0, max: 20 },
     { k: 'legend', t: 'bool', label: 'Afficher la légende' },
+    { k: 'legendPos', t: 'select', label: 'Position de la légende', options: { bottom: 'En bas', top: 'En haut', inside: 'Dans les barres' } },
     { k: 'showValues', t: 'bool', label: 'Afficher les valeurs' },
     { k: 'decimals', t: 'number', label: 'Décimales des valeurs', min: 0, max: 4 },
     { k: 'suffix', t: 'text', label: 'Unité après la valeur (%, M€…)' },
     { t: 'table', k: 'rows', series: 'series', maxSeries: 4, label: 'Données' },
   ],
   render(o, W, env) {
+    const legIn = (o.legend && o.legendPos === 'inside') || o.legendIn;   // noms des séries écrits dans les barres (legendIn : ancien réglage)
     const series = o.series || [], rows = o.rows || [], k = Math.max(1, series.length);
     const stacked = o.style === 'stacked';
     const capPx = pxOf(TYPE.caption.size), numPx = pxOf(TYPE.captionNum.size), suffix = o.suffix || '';
@@ -39,7 +40,7 @@ export default {
     const x0 = labW, span = Math.max(30, W - labW - valW);
     let max = 0; rows.forEach(r => { max = Math.max(max, stacked ? total(r) : Math.max(0, ...series.map((_, j) => numVal(r, j)))); }); if (!max) max = 1;
     const GF = { none: 0, tight: 0.5, normal: 1, loose: 2 }, rGap = VIZ.hRowGap * (GF[o.rowSpace] ?? 1), sGap = VIZ.barGap * (GF[o.serSpace] ?? 1);
-    const legBlock = o.legend ? VIZ.legendGap + VIZ.legendH : 0, gaps = Math.max(0, rows.length - 1) * rGap;
+    const legBlock = o.legend && !legIn ? VIZ.legendGap + VIZ.legendH : 0, gaps = Math.max(0, rows.length - 1) * rGap;
     const natBh = VIZ.hBar * ({ thin: 0.6, thick: 1.5, xthick: 2 }[o.barSize] ?? 1), natBody = rows.length * (stacked ? natBh : k * natBh + (k - 1) * sGap) + gaps;
     /* hauteur fixe ou « remplir » : les barres s'épaississent (ou s'amincissent) pour occuper la hauteur demandée ; automatique = hauteur naturelle */
     let bh = natBh;
@@ -73,18 +74,18 @@ export default {
           const v = numVal(r, j); if (!v) return;
           const xa = x0 + acc / max * span, w = v / max * span; acc += v; end = xa + w;
           svg.append(s('path', { d: acc >= total(r) ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`, fill: colorRef(sr.color), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round' }));
-          if (o.legendIn && sr.name && w > mw(sr.name, TYPE.caption.weight, SANS, capPx) + VIZ.iconGap * 2) svg.append(s('text', { x: xa + w / 2, y: y + bh / 2 + 0.33 * capPx, 'text-anchor': 'middle', 'font-size': capPx, 'font-weight': TYPE.caption.weight }, sr.name));
+          if (legIn && sr.name && w > mw(sr.name, TYPE.caption.weight, SANS, capPx) + VIZ.iconGap * 2) svg.append(s('text', { x: xa + w / 2, y: y + bh / 2 + 0.33 * capPx, 'text-anchor': 'middle', 'font-size': capPx, 'font-weight': TYPE.caption.weight }, sr.name));
         });
         inside = decor(y, end - x0, o.labelIn ? r.label : '', o.showValues ? fmt(total(r), env.locale, o.decimals) + suffix : '');
       } else series.forEach((sr, j) => {
         const w = numVal(r, j) / max * span, yy = y + j * (bh + sGap); end = Math.max(end, x0 + w);
         svg.append(s('path', { d: hPath(x0, yy, Math.max(w, 0.0001), bh, VIZ.barRadius), fill: colorRef(sr.color), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round' }));
-        const ins = decor(yy, w, [j === 0 && o.labelIn ? r.label : '', o.legendIn ? sr.name : ''].filter(Boolean).join(' · '), o.showValues ? fmt(numVal(r, j), env.locale, o.decimals) + suffix : '');
+        const ins = decor(yy, w, [j === 0 && o.labelIn ? r.label : '', legIn ? sr.name : ''].filter(Boolean).join(' · '), o.showValues ? fmt(numVal(r, j), env.locale, o.decimals) + suffix : '');
         if (o.showValues && !ins) svg.append(s('text', { x: x0 + w + VIZ.barGap * 1.5, y: yy + bh / 2 + 0.33 * numPx, 'font-size': numPx, 'font-weight': 700, style: { fontFamily: 'var(--t-captionNum-family)' } }, fmt(numVal(r, j), env.locale, o.decimals) + suffix));
       });
       if (stacked && o.showValues && !inside) svg.append(s('text', { x: end + VIZ.barGap * 1.5, y: y + bh / 2 + 0.33 * numPx, 'font-size': numPx, 'font-weight': 700, style: { fontFamily: 'var(--t-captionNum-family)' } }, fmt(total(r), env.locale, o.decimals) + suffix));
     });
-    if (o.legend) drawLegend(svg, series, H - VIZ.legendH, W);
+    if (o.legend && !legIn) drawLegend(svg, series, H - VIZ.legendH, W);
     rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'y', 0, i * (rh + rGap) - rGap / 2, W, rh + rGap)));
     return { node: svg };
   },

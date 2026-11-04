@@ -133,13 +133,15 @@ export function drawLegend(svg, series, y, W = Infinity) {
   const need = size => names.reduce((a, t) => a + fixed + mw(t, TYPE.caption.weight, SANS, size), 0) + gap * Math.max(0, names.length - 1);
   let capPx = base; if (need(base) > W) capPx = Math.max(base * 0.7, base * (W - names.length * fixed - gap * (names.length - 1)) / (need(base) - names.length * fixed - gap * (names.length - 1)));
   const room = names.length ? Math.max(20, (W - gap * (names.length - 1)) / names.length - fixed) : 0;
+  const g = s('g', { class: 'lg', 'data-y': y, 'data-reserve': VIZ.legendH + VIZ.legendGap });   // groupe repéré : « légende en haut » le déplace (viz/index.js)
   let x = 0;
   series.forEach((sr, i) => {
-    svg.append(s('rect', { x: x + SW / 2, y: y + (VIZ.legendH - VIZ.legendSwatch) / 2 + SW / 2, width: VIZ.legendSwatch - SW, height: VIZ.legendSwatch - SW, rx: VIZ.barRadius, fill: colorRef(sr.color), stroke: 'currentColor', 'stroke-width': SW }));
+    g.append(s('rect', { x: x + SW / 2, y: y + (VIZ.legendH - VIZ.legendSwatch) / 2 + SW / 2, width: VIZ.legendSwatch - SW, height: VIZ.legendSwatch - SW, rx: VIZ.barRadius, fill: colorRef(sr.color), stroke: 'currentColor', 'stroke-width': SW }));
     const lx = x + fixed, t = need(base) > W ? ellipsize(names[i], TYPE.caption.weight, SANS, capPx, room) : names[i];
-    svg.append(s('text', { x: lx, y: y + VIZ.legendH / 2 + 0.33 * capPx, 'font-size': capPx, 'font-weight': TYPE.caption.weight }, t));
+    g.append(s('text', { x: lx, y: y + VIZ.legendH / 2 + 0.33 * capPx, 'font-size': capPx, 'font-weight': TYPE.caption.weight }, t));
     x = lx + mw(t, TYPE.caption.weight, SANS, capPx) + gap;
   });
+  svg.append(g);
 }
 export const numVal = (r, j) => Math.max(0, +(r.v || [])[j] || 0);
 
@@ -178,11 +180,13 @@ export function layoutLegend(items, W) {
   return { lines, h: lines.length * VIZ.legendH + (lines.length - 1) * 3, capPx, fixed };
 }
 export function drawLegendWrap(svg, L, y) {
+  const g = s('g', { class: 'lg', 'data-y': y, 'data-reserve': L.lines.length * (VIZ.legendH + 3) + VIZ.legendGap });
   L.lines.forEach((line, i) => line.forEach(e => {
     const yy = y + i * (VIZ.legendH + 3);
-    svg.append(s('rect', { x: e.x + SW / 2, y: yy + (VIZ.legendH - VIZ.legendSwatch) / 2 + SW / 2, width: VIZ.legendSwatch - SW, height: VIZ.legendSwatch - SW, rx: VIZ.barRadius, fill: colorRef(e.color), stroke: 'currentColor', 'stroke-width': SW }));
-    svg.append(s('text', { x: e.x + L.fixed, y: yy + VIZ.legendH / 2 + 0.33 * L.capPx, 'font-size': L.capPx, 'font-weight': TYPE.caption.weight }, e.name));
+    g.append(s('rect', { x: e.x + SW / 2, y: yy + (VIZ.legendH - VIZ.legendSwatch) / 2 + SW / 2, width: VIZ.legendSwatch - SW, height: VIZ.legendSwatch - SW, rx: VIZ.barRadius, fill: colorRef(e.color), stroke: 'currentColor', 'stroke-width': SW }));
+    g.append(s('text', { x: e.x + L.fixed, y: yy + VIZ.legendH / 2 + 0.33 * L.capPx, 'font-size': L.capPx, 'font-weight': TYPE.caption.weight }, e.name));
   }));
+  svg.append(g);
 }
 
 /* Les mesures de texte (canvas) ne déclenchent pas le chargement des polices : sans cela, un premier rendu mesure avec une police de secours plus étroite

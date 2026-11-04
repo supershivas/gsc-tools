@@ -25,13 +25,13 @@ export default {
     { k: 'style', t: 'select', label: 'Plusieurs séries', options: { overlap: 'Jumelées (2 séries qui se chevauchent)', grouped: 'Côte à côte', stacked: 'Empilées' } },
     { k: 'ratio', t: 'select', label: 'Format du graphique', options: { '2:1': '2:1 (large)', '16:9': '16:9', '3:2': '3:2', '1:1': '1:1 (carré)' } },
     { k: 'legend', t: 'bool', label: 'Afficher la légende' },
+    { k: 'legendPos', t: 'select', label: 'Position de la légende', options: { bottom: 'En bas', top: 'En haut', inside: 'Dans les barres' } },
     { k: 'showValues', t: 'bool', label: 'Afficher les valeurs (empilées : total)' },
     { k: 'barSize', t: 'select', label: 'Épaisseur des barres', options: { thin: 'Fine', normal: 'Normale', thick: 'Épaisse' } },
     { k: 'groupSpace', t: 'select', label: 'Espace entre les groupes de barres', options: { tight: 'Réduit', normal: 'Normal', loose: 'Large' } },
     { k: 'serSpace', t: 'select', label: 'Espace entre les barres d’un même groupe', options: { none: 'Aucun', tight: 'Réduit', normal: 'Normal', loose: 'Large' } },
     { k: 'valuesIn', t: 'bool', label: 'Valeurs dans les barres (si elles rentrent)' },
     { k: 'labelIn', t: 'bool', label: 'Libellés dans les barres (au pied de la barre)' },
-    { k: 'legendIn', t: 'bool', label: 'Noms des séries dans les barres (écrits à la verticale)' },
     { k: 'decimals', t: 'number', label: 'Décimales des valeurs', min: 0, max: 4 },
     { k: 'suffix', t: 'text', label: 'Unité après la valeur (%, M€…)' },
     { k: 'callout.on', t: 'bool', label: 'Afficher l’accolade « évolution »' },
@@ -41,13 +41,14 @@ export default {
     { t: 'node', g: 'data', build: (root, ctx) => { const n = document.createElement('div'); n.className = 'f'; n.append(...iconImportPanel(root, ctx)); return n; } },
   ],
   render(o, W, env) {
+    const legIn = (o.legend && o.legendPos === 'inside') || o.legendIn;   // noms des séries écrits dans les barres (legendIn : ancien réglage)
     const series = o.series || [], rows = o.rows || [], k = Math.max(1, series.length), n = Math.max(1, rows.length);
     const stacked = o.style === 'stacked', overlap = o.style === 'overlap' && k === 2;
     const H = Math.max(120, heightOf(o, W, env, null));
     const co = o.callout && o.callout.on && rows.length > 1 ? o.callout : null;
     const x1 = W - (co ? VIZ.calloutW : 0);
     const hasIcons = rows.some(r => r.icon && r.icon !== 'none'), iconSz = 33, catH = (o.labelIn ? 6 : VIZ.catH) + (hasIcons ? iconSz + 6 : 0);
-    const baseY = H - (o.legend ? VIZ.legendGap + VIZ.legendH : 0) - catH, plotTop = VIZ.plotTop, plotH = baseY - plotTop;
+    const baseY = H - (o.legend && !legIn ? VIZ.legendGap + VIZ.legendH : 0) - catH, plotTop = VIZ.plotTop, plotH = baseY - plotTop;
     const total = r => series.reduce((a, _, j) => a + numVal(r, j), 0);
     const metric = r => stacked ? total(r) : numVal(r, 0);       // valeur suivie par l'accolade
     let max = 0; rows.forEach(r => { if (stacked) max = Math.max(max, total(r)); else series.forEach((_, j) => { max = Math.max(max, numVal(r, j)); }); }); if (!max) max = 1;
@@ -100,7 +101,7 @@ export default {
       const x = barX[i][j], yT = yOf(v), hh = baseY - yT, cx = x + bw / 2; let top = yT + 3, bot = baseY - 3;
       if (o.valuesIn && o.showValues) { const f = fitIn(fmt(v, env.locale, o.decimals) + suffix, 700, SERIF, numPx); if (hh >= f.size + 8) { svg.append(s('text', { x: cx, y: top + 0.82 * f.size, 'text-anchor': 'middle', 'font-size': f.size, 'font-weight': 700, style: { fontFamily: 'var(--t-captionNum-family)' } }, f.text)); top += f.size + 3; inValue.add(i + ':' + j); } }
       if (o.labelIn && j === 0 && rows[i].label) { const f = fitIn(rows[i].label, TYPE.caption.weight, SANS, capPx); if (bot - top >= f.size + 2) { svg.append(s('text', { x: cx, y: bot - 0.2 * f.size, 'text-anchor': 'middle', 'font-size': f.size, 'font-weight': TYPE.caption.weight }, f.text)); bot -= f.size + 3; } }
-      if (o.legendIn && !stacked && sr && sr.name) { const tw = mw(sr.name, TYPE.caption.weight, SANS, capPx); if (bot - top >= tw + 6) { const cy = (top + bot) / 2; svg.append(s('text', { x: cx, y: cy + 0.33 * capPx, 'text-anchor': 'middle', 'font-size': capPx, 'font-weight': TYPE.caption.weight, transform: `rotate(-90 ${cx} ${cy})` }, sr.name)); } }
+      if (legIn && !stacked && sr && sr.name) { const tw = mw(sr.name, TYPE.caption.weight, SANS, capPx); if (bot - top >= tw + 6) { const cy = (top + bot) / 2; svg.append(s('text', { x: cx, y: cy + 0.33 * capPx, 'text-anchor': 'middle', 'font-size': capPx, 'font-weight': TYPE.caption.weight, transform: `rotate(-90 ${cx} ${cy})` }, sr.name)); } }
     };
     rows.forEach((r, i) => { if (stacked) inside(i, 0, total(r), null); else series.forEach((sr, j) => inside(i, j, numVal(r, j), sr)); });
     const vMax = slot / (stacked ? 1 : k) - 2;
@@ -111,7 +112,7 @@ export default {
     });
     if (!o.labelIn) rows.forEach((r, i) => { const f = fitText(r.label || '', TYPE.caption.weight, SANS, capPx, slot - 3, 0.6); svg.append(s('text', { x: slot * (i + 0.5), y: baseY + (catH - VIZ.catH) + VIZ.catH / 2 + 0.33 * f.size + 1, 'text-anchor': 'middle', 'font-size': f.size, 'font-weight': TYPE.caption.weight }, f.text)); });
     if (hasIcons) rows.forEach((r, i) => { if (r.icon && r.icon !== 'none') svg.append(iconNode(o, r.icon, slot * (i + 0.5) - iconSz / 2, baseY + 6, iconSz, iconSz, 'blue')); });
-    if (o.legend) drawLegend(svg, series, H - VIZ.legendH, W);
+    if (o.legend && !legIn) drawLegend(svg, series, H - VIZ.legendH, W);
     rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'x', slot * i, 0, slot, baseY + catH)));
     return { node: svg };
   },

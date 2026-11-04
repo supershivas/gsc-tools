@@ -17,6 +17,7 @@ export default {
     { k: 'showLabels', t: 'bool', label: 'Afficher les noms' },
     { k: 'showValues', t: 'bool', label: 'Afficher les valeurs' },
     { k: 'legend', t: 'bool', label: 'Afficher la légende (niveau 1)' },
+    { k: 'legendPos', t: 'select', label: 'Position de la légende', options: { bottom: 'En bas', top: 'En haut' } },
     { k: 'decimals', t: 'number', label: 'Décimales des valeurs', min: 0, max: 4 },
     { k: 'suffix', t: 'text', label: 'Unité après la valeur (%, M€…)' },
   ],

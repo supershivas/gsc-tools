@@ -16,6 +16,7 @@ export default {
     { k: 'ratio', t: 'select', label: 'Format du graphique', options: { '2:1': '2:1 (large)', '16:9': '16:9', '3:2': '3:2', '1:1': '1:1 (carré)' } },
     { k: 'zero', t: 'bool', label: 'Axe vertical démarrant à zéro' },
     { k: 'legend', t: 'bool', label: 'Afficher la légende' },
+    { k: 'legendPos', t: 'select', label: 'Position de la légende', options: { bottom: 'En bas', top: 'En haut' } },
     { k: 'showValues', t: 'bool', label: 'Afficher les valeurs' },
     { k: 'decimals', t: 'number', label: 'Décimales des valeurs', min: 0, max: 4 },
     { k: 'suffix', t: 'text', label: 'Unité après la valeur (%, M€…)' },

@@ -15,7 +15,7 @@ import survey from './survey.js';
 import waffle from './waffle.js';
 import timeline from './timeline.js';
 import { pictoTypes } from './picto.js';
-import { el, heightOf, fmt, inlineMk } from './util.js';
+import { el, s, heightOf, fmt, inlineMk } from './util.js';
 import { renderFigure } from '../figure.js';
 
 export const VIZ_TYPES = { donut, bars, hbars, line, timeline, scatter, survey, waffle, sunburst, bubbles, treemap, sankey, ...pictoTypes, icons: iconlist };
@@ -96,13 +96,23 @@ export function composeSide(sd, W, env, tk, core) {
 }
 const composed = (viz, W, env, core) => composeSide(viz.side, W, env, viz.side && viz.side.pos !== 'none' ? sideTokens(viz.opts || {}, env) : null, core);
 
+/** « Légende en haut » : la légende (groupe g.lg posé en bas par le type) passe en haut, le reste descend de sa hauteur ; la hauteur totale ne change pas */
+function legendTop(node, o) {
+  if (!node || !o || o.legendPos !== 'top' || !node.querySelector) return node;
+  const lg = [...node.children].find(c => c.classList && c.classList.contains('lg')); if (!lg) return node;
+  const y = +lg.dataset.y, reserve = +lg.dataset.reserve || 0, body = s('g', { transform: `translate(0 ${reserve})` });
+  [...node.childNodes].forEach(c => { if (c !== lg) body.append(c); });
+  lg.setAttribute('transform', `translate(0 ${-y})`); node.append(body, lg);
+  return node;
+}
+
 /** Rendu d'une dataviz dans une colonne de largeur `width` (px) */
 export function renderViz(viz, width, env) {
   const t = viz && VIZ_TYPES[viz.kind];
   if (!t) return null;
   try {
     const o = viz.opts || t.defaults(), e = env || {};
-    return withHead(viz, composed(viz, width, e, w => { const r = t.render(o, w, e); return { ...r, node: boxed(t, o, w, e, r.node) }; }).node);
+    return withHead(viz, composed(viz, width, e, w => { const r = t.render(o, w, e); r.node = legendTop(r.node, o); return { ...r, node: boxed(t, o, w, e, r.node) }; }).node);
   } catch (e) { console.error('dataviz', viz.kind, e); return null; }
 }
 
@@ -111,7 +121,7 @@ export function renderVizFull(viz, width, env) {
   const t = viz && VIZ_TYPES[viz.kind];
   if (!t) return null;
   try {
-    const o = viz.opts || t.defaults(), e = env || {}, r = composed(viz, width, e, w => { const q = t.render(o, w, e); return { ...q, node: boxed(t, o, w, e, q.node) }; });
+    const o = viz.opts || t.defaults(), e = env || {}, r = composed(viz, width, e, w => { const q = t.render(o, w, e); q.node = legendTop(q.node, o); return { ...q, node: boxed(t, o, w, e, q.node) }; });
     return { ...r, node: withHead(viz, r.node), wrapped: !!(viz.head && (viz.head.title || viz.head.source)) };
   } catch (e) { console.error('dataviz', viz.kind, e); return null; }
 }
