@@ -70,6 +70,16 @@ export const GRID = {
     '1-1-1': { label: '3 colonnes',             cols: 3, spans: [1, 1, 1] },
     '2-1':   { label: '2 colonnes (2/3 + 1/3)', cols: 3, spans: [2, 1] },
     '1-2':   { label: '2 colonnes (1/3 + 2/3)', cols: 3, spans: [1, 2] },
+    '1-1-1-1':     { label: '4 colonnes',                   cols: 4, spans: [1, 1, 1, 1] },
+    '1-1-1-1-1':   { label: '5 colonnes',                   cols: 5, spans: [1, 1, 1, 1, 1] },
+    '1-1-1-1-1-1': { label: '6 colonnes',                   cols: 6, spans: [1, 1, 1, 1, 1, 1] },
+    '3-1':   { label: '2 colonnes (3/4 + 1/4)', cols: 4, spans: [3, 1] },
+    '1-3':   { label: '2 colonnes (1/4 + 3/4)', cols: 4, spans: [1, 3] },
+    '3-2':   { label: '2 colonnes (3/5 + 2/5)', cols: 5, spans: [3, 2] },
+    '2-3':   { label: '2 colonnes (2/5 + 3/5)', cols: 5, spans: [2, 3] },
+    '2-1-1': { label: '3 colonnes (1/2 + 1/4 + 1/4)', cols: 4, spans: [2, 1, 1] },
+    '1-2-1': { label: '3 colonnes (1/4 + 1/2 + 1/4)', cols: 4, spans: [1, 2, 1] },
+    '1-1-2': { label: '3 colonnes (1/4 + 1/4 + 1/2)', cols: 4, spans: [1, 1, 2] },
   },
 };
 

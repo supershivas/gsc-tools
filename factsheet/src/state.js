@@ -272,6 +272,6 @@ export function removeCol(doc, si, bi, ci) {
   const sec = doc.sections[si], sub = sec.subs[bi];
   if (sub.cols.length <= 1) { sec.subs.splice(bi, 1); return `sec:${si}`; }
   sub.cols.splice(ci, 1);
-  sub.layout = sub.cols.length === 2 ? '1-1' : '1';
+  sub.layout = { 1: '1', 2: '1-1', 3: '1-1-1', 4: '1-1-1-1', 5: '1-1-1-1-1', 6: '1-1-1-1-1-1' }[sub.cols.length] || '1';
   return `col:${si}:${bi}:${Math.min(ci, sub.cols.length - 1)}`;
 }

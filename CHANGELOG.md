@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.41.0 — 2026-11-04
+- Waffle : chiffre à côté de la grille (à droite ou à gauche), avec {pct}, texte, largeur de la grille et position verticale réglables
+- Mises en page de sous-section jusqu'à 6 colonnes : 4, 5 et 6 colonnes égales, 3/4 + 1/4, 1/4 + 3/4, 3/5 + 2/5, 2/5 + 3/5, et trois combinaisons à 3 colonnes (1/2 + 1/4 + 1/4, 1/4 + 1/2 + 1/4, 1/4 + 1/4 + 1/2)
+
 ## 1.40.0 — 2026-11-04
 - Dataviz : grille de pourcentage (« waffle ») — grille de cases (10 × 10 par défaut) remplies à hauteur de la valeur, repère croix, point ou coche sur les cases pleines, plusieurs catégories possibles ; à associer à un chiffre clé dans une sous-section à contour
 

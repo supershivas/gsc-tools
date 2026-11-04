@@ -84,7 +84,17 @@
       "1-1": { label: "2 colonnes", cols: 2, spans: [1, 1] },
       "1-1-1": { label: "3 colonnes", cols: 3, spans: [1, 1, 1] },
       "2-1": { label: "2 colonnes (2/3 + 1/3)", cols: 3, spans: [2, 1] },
-      "1-2": { label: "2 colonnes (1/3 + 2/3)", cols: 3, spans: [1, 2] }
+      "1-2": { label: "2 colonnes (1/3 + 2/3)", cols: 3, spans: [1, 2] },
+      "1-1-1-1": { label: "4 colonnes", cols: 4, spans: [1, 1, 1, 1] },
+      "1-1-1-1-1": { label: "5 colonnes", cols: 5, spans: [1, 1, 1, 1, 1] },
+      "1-1-1-1-1-1": { label: "6 colonnes", cols: 6, spans: [1, 1, 1, 1, 1, 1] },
+      "3-1": { label: "2 colonnes (3/4 + 1/4)", cols: 4, spans: [3, 1] },
+      "1-3": { label: "2 colonnes (1/4 + 3/4)", cols: 4, spans: [1, 3] },
+      "3-2": { label: "2 colonnes (3/5 + 2/5)", cols: 5, spans: [3, 2] },
+      "2-3": { label: "2 colonnes (2/5 + 3/5)", cols: 5, spans: [2, 3] },
+      "2-1-1": { label: "3 colonnes (1/2 + 1/4 + 1/4)", cols: 4, spans: [2, 1, 1] },
+      "1-2-1": { label: "3 colonnes (1/4 + 1/2 + 1/4)", cols: 4, spans: [1, 2, 1] },
+      "1-1-2": { label: "3 colonnes (1/4 + 1/4 + 1/2)", cols: 4, spans: [1, 1, 2] }
     }
   };
   function colWidth(layoutKey, i, W = GRID.contentW) {
@@ -729,6 +739,22 @@
     "Coche": "Tick",
     "Couleur du rep\xE8re": "Mark colour",
     "Une ligne par cat\xE9gorie : les cases se remplissent dans cet ordre, ligne par ligne.": "One row per category: cells fill in this order, row by row.",
+    /* colonnes et chiffre du waffle */
+    "4 colonnes": "4 columns",
+    "5 colonnes": "5 columns",
+    "6 colonnes": "6 columns",
+    "2 colonnes (3/4 + 1/4)": "2 columns (3/4 + 1/4)",
+    "2 colonnes (1/4 + 3/4)": "2 columns (1/4 + 3/4)",
+    "2 colonnes (3/5 + 2/5)": "2 columns (3/5 + 2/5)",
+    "2 colonnes (2/5 + 3/5)": "2 columns (2/5 + 3/5)",
+    "3 colonnes (1/2 + 1/4 + 1/4)": "3 columns (1/2 + 1/4 + 1/4)",
+    "3 colonnes (1/4 + 1/2 + 1/4)": "3 columns (1/4 + 1/2 + 1/4)",
+    "3 colonnes (1/4 + 1/4 + 1/2)": "3 columns (1/4 + 1/4 + 1/2)",
+    "Chiffre \xE0 c\xF4t\xE9 de la grille": "Figure beside the grid",
+    "Chiffre ({pct} = part de la 1re cat\xE9gorie)": "Figure ({pct} = share of the 1st category)",
+    "Texte sous le chiffre (vide = libell\xE9 de la 1re cat\xE9gorie)": "Text under the figure (empty = label of the 1st category)",
+    "Largeur de la grille (% de la dataviz)": "Grid width (% of the dataviz)",
+    "Position verticale du chiffre": "Figure vertical position",
     /* types de dataviz */
     "Barres (jumel\xE9es, group\xE9es, empil\xE9es)": "Bars (overlapping, grouped, stacked)",
     "Plusieurs s\xE9ries": "Multiple series",
@@ -3605,6 +3631,11 @@
       markColor: "yellow",
       gap: 3,
       legend: false,
+      figure: "none",
+      figureShare: 45,
+      figureAlign: "top",
+      figureValue: "{pct}",
+      figureText: "",
       rows: [{ label: t("Logements endommag\xE9s ou d\xE9truits"), value: 14, color: "blue" }]
     }),
     fields: [
@@ -3615,7 +3646,12 @@
       { k: "mark", t: "select", label: "Rep\xE8re sur les cases pleines", options: { none: "Aucun", cross: "Croix", dot: "Point", check: "Coche" } },
       { k: "markColor", t: "color", label: "Couleur du rep\xE8re" },
       { k: "gap", t: "number", label: "Espace entre les cases (px)", min: 0, max: 12 },
-      { k: "legend", t: "bool", label: "Afficher la l\xE9gende" }
+      { k: "legend", t: "bool", label: "Afficher la l\xE9gende" },
+      { k: "figure", t: "select", label: "Chiffre \xE0 c\xF4t\xE9 de la grille", options: { none: "Aucun", right: "\xC0 droite", left: "\xC0 gauche" } },
+      { k: "figureValue", t: "text", label: "Chiffre ({pct} = part de la 1re cat\xE9gorie)" },
+      { k: "figureText", t: "text", label: "Texte sous le chiffre (vide = libell\xE9 de la 1re cat\xE9gorie)" },
+      { k: "figureShare", t: "number", label: "Largeur de la grille (% de la dataviz)", min: 25, max: 75 },
+      { k: "figureAlign", t: "select", label: "Position verticale du chiffre", options: { top: "En haut", center: "Centr\xE9", bottom: "En bas" } }
     ],
     data: {
       k: "rows",
@@ -3636,8 +3672,18 @@
           left2--;
         }
       });
-      const size = Math.max(4, (W - gap * (cols - 1)) / cols), gridH = rowsN * size + (rowsN - 1) * gap;
-      const LG = o.legend && cats.length > 1 ? layoutLegend(cats.map((c2) => ({ name: c2.label, color: c2.color })), W) : null, legH = LG ? VIZ.legendGap + LG.h : 0, H = Math.ceil(gridH + legH);
+      const beside = o.figure === "right" || o.figure === "left", GAPF = 18, gridW = beside ? Math.round(W * Math.max(25, Math.min(75, +o.figureShare || 45)) / 100) : W, gx = beside && o.figure === "left" ? W - gridW : 0;
+      const figW = Math.max(40, W - gridW - GAPF), fx = o.figure === "left" ? 0 : gridW + GAPF;
+      const size = Math.max(4, (gridW - gap * (cols - 1)) / cols), gridH = rowsN * size + (rowsN - 1) * gap;
+      let fig = null;
+      if (beside) {
+        const pct = cats[0] ? Math.round(cats[0].value / total * 100) : 0, val = String(o.figureValue ?? "{pct}").replace(/\{pct\}/g, `${fmt(pct, env.locale, 0)}%`).replace(/\{value\}/g, fmt(cats[0] ? cats[0].value : 0, env.locale, 0));
+        const base = pxOf(TYPE.figure.size) * 1.7, fs = fitSize(val, 700, SERIF, base, figW, 0.4), BODY2 = pxOf(TYPE.body.size), LH = TYPE.body.lh - 3;
+        const lines = textLines("", (o.figureText || "").trim() || (cats[0] ? cats[0].label : ""), BODY2, figW), h0 = fs * 1.12;
+        fig = { val, fs, lines, BODY: BODY2, LH, h0, h: h0 + 4 + lines.length * LH };
+      }
+      const bodyH = Math.max(gridH, fig ? fig.h : 0), figY = fig ? { top: 0, center: (bodyH - fig.h) / 2, bottom: bodyH - fig.h }[o.figureAlign] || 0 : 0;
+      const LG = o.legend && cats.length > 1 ? layoutLegend(cats.map((c2) => ({ name: c2.label, color: c2.color })), W) : null, legH = LG ? VIZ.legendGap + LG.h : 0, H = Math.ceil(bodyH + legH);
       const svg = s("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: "block", overflow: "visible" } });
       const owner = [];
       cnt.forEach((c2, i) => {
@@ -3645,7 +3691,7 @@
       });
       const sw = SW * 1.5, rx = { square: 0.5, rounded: Math.min(VIZ.barRadius, size / 3), circle: size / 2 }[o.shape] ?? VIZ.barRadius, mc = colorRef(o.markColor || "yellow"), inset = size * 0.28;
       for (let i = 0; i < n; i++) {
-        const x = i % cols * (size + gap), y = Math.floor(i / cols) * (size + gap), on = i < owner.length, c2 = on ? cats[owner[i]] : null;
+        const x = gx + i % cols * (size + gap), y = Math.floor(i / cols) * (size + gap), on = i < owner.length, c2 = on ? cats[owner[i]] : null;
         svg.append(s("rect", { x: x + sw / 2, y: y + sw / 2, width: size - sw, height: size - sw, rx, fill: on ? colorRef(c2.color) : "none", stroke: on ? "currentColor" : colorRef(cats[0] ? cats[0].color : "blue"), "stroke-width": sw }));
         if (on && o.mark && o.mark !== "none") {
           if (o.mark === "cross") svg.append(s("path", { d: `M${x + inset},${y + inset}L${x + size - inset},${y + size - inset}M${x + size - inset},${y + inset}L${x + inset},${y + size - inset}`, fill: "none", stroke: mc, "stroke-width": Math.max(1, size * 0.1), "stroke-linecap": "round" }));
@@ -3653,7 +3699,11 @@
           else svg.append(s("path", { d: `M${x + size * 0.27},${y + size * 0.52}L${x + size * 0.44},${y + size * 0.68}L${x + size * 0.74},${y + size * 0.33}`, fill: "none", stroke: mc, "stroke-width": Math.max(1, size * 0.1), "stroke-linecap": "round", "stroke-linejoin": "round" }));
         }
       }
-      if (LG) drawLegendWrap(svg, LG, gridH + VIZ.legendGap);
+      if (fig) {
+        svg.append(s("text", { x: fx, y: figY + fig.fs * 0.92, "font-size": fig.fs, "font-weight": 700, style: { fontFamily: "var(--t-figure-family)" } }, fig.val));
+        svg.append(drawLines(fig.lines, fx, figY + fig.h0 + 4, fig.LH, fig.BODY));
+      }
+      if (LG) drawLegendWrap(svg, LG, bodyH + VIZ.legendGap);
       return { node: svg };
     }
   };
@@ -4435,7 +4485,7 @@ ${short}`)])
       return `sec:${si}`;
     }
     sub.cols.splice(ci, 1);
-    sub.layout = sub.cols.length === 2 ? "1-1" : "1";
+    sub.layout = { 1: "1", 2: "1-1", 3: "1-1-1", 4: "1-1-1-1", 5: "1-1-1-1-1", 6: "1-1-1-1-1-1" }[sub.cols.length] || "1";
     return `col:${si}:${bi}:${Math.min(ci, sub.cols.length - 1)}`;
   }
 
