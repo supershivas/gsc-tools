@@ -209,6 +209,11 @@ export function buildProps(root, ctx) {
     })());
     const vt = col.type === 'viz' && col.viz && VIZ_TYPES[col.viz.kind];
     root.append(card('col-content', ICONS[col.type] || 'text-size', t('Contenu'), [typeSel, ...editor]),
+      card('col-free', 'text-size', t('Texte libre'), [col.free ? h('div', { class: 'f' }, h('div', { class: 'hint', textContent: t('Position') }), (() => { const sl = h('select', { onchange: e => { col.free.pos = e.target.value; ctx.restructure(); } }, [['top', 'Au-dessus'], ['bottom', 'En dessous'], ['left', 'À gauche'], ['right', 'À droite']].map(([v, l]) => h('option', { value: v, textContent: t(l) }))); sl.value = col.free.pos || 'bottom'; return sl; })()) : null,
+        col.free && (col.free.pos === 'left' || col.free.pos === 'right') ? field('Largeur du texte (% de la colonne)', h('input', { type: 'number', min: 15, max: 70, value: col.free.share || 35, oninput: e => { col.free.share = +e.target.value || 35; ctx.changed(); } })) : null,
+        col.free ? h('div', { class: 'f' }, h('div', { class: 'hint', textContent: t('Texte') }), richEditor(col.free.text || '', v => { col.free.text = v; ctx.changed(); })) : null,
+        h('p', { class: 'hint', textContent: t('Un texte lié à cette colonne, quel que soit son contenu : titres, paragraphes, puces, légende.') })].filter(Boolean),
+        { on: !!(col.free && col.free.on), set: () => { col.free = col.free || { pos: 'bottom', text: 'Texte libre', share: 35 }; col.free.on = !col.free.on; } }),
       col.type === 'text' || col.type === 'card' ? card('col-side', 'number', t('Chiffre à côté'), buildFields(SIDE_FIELDS, col.side || (col.side = newColSide()), ctx, {}, h)) : null,
       vt && vt.heights ? card('col-height', 'ruler-2', t('Hauteur'), heightNodes(vt, col.viz.opts, { ctx, width: columnWidth(doc, si, bi, ci) }))
         : col.type !== 'viz' ? card('col-height', 'ruler-2', t('Hauteur'), [field('Hauteur minimale (px, 0 = automatique)', h('input', { type: 'number', min: 0, max: 1000, step: 3, value: col.minH || 0, oninput: e => { col.minH = Math.max(0, +e.target.value || 0); ctx.changed(); } })),

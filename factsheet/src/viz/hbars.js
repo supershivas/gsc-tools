@@ -23,14 +23,14 @@ export default {
     { k: 'valuesIn', t: 'bool', label: 'Valeurs dans les barres (si affichées ; sinon après la barre quand ça ne rentre pas)' },
     { k: 'segments', t: 'number', label: 'Graduations : nombre de segments dans la barre la plus longue (0 = aucune)', min: 0, max: 20 },
     { k: 'legend', t: 'bool', label: 'Afficher la légende' },
-    { k: 'legendPos', t: 'select', label: 'Position de la légende', options: { bottom: 'En bas', top: 'En haut', inside: 'Dans les barres' } },
+    { k: 'legendPos', t: 'select', label: 'Position de la légende (« Dans les barres » : noms des séries écrits dans chaque barre, sans légende séparée)', options: { bottom: 'En bas', top: 'En haut', inside: 'Dans les barres' } },
     { k: 'showValues', t: 'bool', label: 'Afficher les valeurs' },
     { k: 'decimals', t: 'number', label: 'Décimales des valeurs', min: 0, max: 4 },
     { k: 'suffix', t: 'text', label: 'Unité après la valeur (%, M€…)' },
     { t: 'table', k: 'rows', series: 'series', maxSeries: 4, label: 'Données' },
   ],
   render(o, W, env) {
-    const legIn = (o.legend && o.legendPos === 'inside') || o.legendIn;   // noms des séries écrits dans les barres (legendIn : ancien réglage)
+    const legIn = o.legendPos === 'inside' || o.legendIn;   // noms des séries écrits dans les barres (legendIn : ancien réglage)
     const series = o.series || [], rows = o.rows || [], k = Math.max(1, series.length);
     const stacked = o.style === 'stacked';
     const capPx = pxOf(TYPE.caption.size), numPx = pxOf(TYPE.captionNum.size), suffix = o.suffix || '';
@@ -74,13 +74,13 @@ export default {
           const v = numVal(r, j); if (!v) return;
           const xa = x0 + acc / max * span, w = v / max * span; acc += v; end = xa + w;
           svg.append(s('path', { d: acc >= total(r) ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`, fill: colorRef(sr.color), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round' }));
-          if (legIn && sr.name && w > mw(sr.name, TYPE.caption.weight, SANS, capPx) + VIZ.iconGap * 2) svg.append(s('text', { x: xa + w / 2, y: y + bh / 2 + 0.33 * capPx, 'text-anchor': 'middle', 'font-size': capPx, 'font-weight': TYPE.caption.weight }, sr.name));
+          if ((legIn || (o.labelIn && !r.label)) && sr.name && w > mw(sr.name, TYPE.caption.weight, SANS, capPx) + VIZ.iconGap * 2) svg.append(s('text', { x: xa + w / 2, y: y + bh / 2 + 0.33 * capPx, 'text-anchor': 'middle', 'font-size': capPx, 'font-weight': TYPE.caption.weight }, sr.name));
         });
         inside = decor(y, end - x0, o.labelIn ? r.label : '', o.showValues ? fmt(total(r), env.locale, o.decimals) + suffix : '');
       } else series.forEach((sr, j) => {
         const w = numVal(r, j) / max * span, yy = y + j * (bh + sGap); end = Math.max(end, x0 + w);
         svg.append(s('path', { d: hPath(x0, yy, Math.max(w, 0.0001), bh, VIZ.barRadius), fill: colorRef(sr.color), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round' }));
-        const ins = decor(yy, w, [j === 0 && o.labelIn ? r.label : '', legIn ? sr.name : ''].filter(Boolean).join(' · '), o.showValues ? fmt(numVal(r, j), env.locale, o.decimals) + suffix : '');
+        const ins = decor(yy, w, [j === 0 && o.labelIn ? r.label : '', (legIn || (o.labelIn && !r.label)) ? sr.name : ''].filter(Boolean).join(' · '), o.showValues ? fmt(numVal(r, j), env.locale, o.decimals) + suffix : '');
         if (o.showValues && !ins) svg.append(s('text', { x: x0 + w + VIZ.barGap * 1.5, y: yy + bh / 2 + 0.33 * numPx, 'font-size': numPx, 'font-weight': 700, style: { fontFamily: 'var(--t-captionNum-family)' } }, fmt(numVal(r, j), env.locale, o.decimals) + suffix));
       });
       if (stacked && o.showValues && !inside) svg.append(s('text', { x: end + VIZ.barGap * 1.5, y: y + bh / 2 + 0.33 * numPx, 'font-size': numPx, 'font-weight': 700, style: { fontFamily: 'var(--t-captionNum-family)' } }, fmt(total(r), env.locale, o.decimals) + suffix));

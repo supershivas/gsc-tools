@@ -64,6 +64,8 @@ const mkToHtml = t => {
   const lines = String(t || '').replace(/\r\n?/g, '\n').split('\n').filter(l => l.trim());
   let html = '', ul = false;
   for (const l of lines) {
+    const hd = l.trim().match(/^(#{1,3})\s+(.*)$/);
+    if (hd) { if (ul) { html += '</ul>'; ul = false; } html += `<h${hd[1].length}>${inline(hd[2])}</h${hd[1].length}>`; continue; }
     const m = l.trim().match(/^[-•]\s+(.*)$/);
     if (m && !ul) { html += '<ul>'; ul = true; } else if (!m && ul) { html += '</ul>'; ul = false; }
     html += m ? `<li>${inline(m[1])}</li>` : `<div>${inline(l.trim())}</div>`;
@@ -76,7 +78,7 @@ function htmlToMk(root) {
     const runs = []; for (const r of cur) { const l = runs[runs.length - 1]; if (l && l.b === r.b && l.i === r.i && l.u === r.u && l.sup === r.sup && l.sub === r.sub) l.t += r.t; else runs.push({ ...r }); }
     return runs.filter(r => r.t !== '').map(r => { let t = r.t; if (!t.trim()) return t; if (r.sub) t = `,,${t},,`; if (r.sup) t = `^^${t}^^`; if (r.i) t = `~~${t}~~`; if (r.b) t = `**${t}**`; if (r.u) t = `__${t}__`; return t; }).join('');
   };
-  const flush = bullet => { const t = emit().trim(); cur = []; if (t) lines.push((bullet ? '- ' : '') + t); };
+  const flush = (bullet, pre = '') => { const t = emit().trim(); cur = []; if (t) lines.push((bullet ? '- ' : pre) + t); };
   const walk = (n, st, bullet) => {
     if (n.nodeType === 3) { cur.push({ t: n.nodeValue.replace(/[ \n]/g, ' '), ...st }); return; }
     if (n.nodeType !== 1) return;
@@ -88,6 +90,7 @@ function htmlToMk(root) {
     if (tag === 'SUB') s.sub = true;
     if (tag === 'U' || /underline/.test(n.style.textDecoration)) s.u = true;
     if (tag === 'UL' || tag === 'OL') { for (const c of n.childNodes) walk(c, s, true); return; }
+    if (/^H[1-3]$/.test(tag)) { if (cur.length) flush(bullet); for (const c of n.childNodes) walk(c, s, bullet); flush(bullet, '#'.repeat(+tag[1]) + ' '); return; }
     const block = tag === 'LI' || tag === 'DIV' || tag === 'P';
     if (block && cur.length) flush(bullet);
     const b2 = bullet || tag === 'LI';
@@ -103,10 +106,17 @@ export function richEditor(value, onChange, opts = {}) {
   const cmd = c => () => { ed.focus(); document.execCommand(c); onChange(htmlToMk(ed)); sync(); };
   const mk = (label, title, c, style) => { const b = h('button', { type: 'button', class: 'mini', textContent: label, title, style, dataset: { cmd: c }, onmousedown: e => e.preventDefault(), onclick: cmd(c) }); return b; };
   const bar = h('div', { class: 'row fmt' }, mk('B', 'Gras', 'bold', { fontWeight: 800 }), mk('I', 'Italique', 'italic', { fontStyle: 'italic' }), mk('U', 'Souligné', 'underline', { textDecoration: 'underline' }), mk('x²', 'Exposant', 'superscript'), mk('x₂', 'Indice', 'subscript'), opts.bullets === false ? null : (() => { const b = mk('', 'Liste à puces', 'insertUnorderedList'); b.append(ico('list')); return b; })());
-  const sync = () => bar.querySelectorAll('[data-cmd]').forEach(b => { let on = false; try { on = document.queryCommandState(b.dataset.cmd); } catch (e) {} b.classList.toggle('on', on); });
+  const styleSel = opts.bullets === false ? null : h('select', { class: 're-style', title: t('Style de paragraphe'), 'aria-label': t('Style de paragraphe'),
+    onmousedown: () => { const sl = window.getSelection(); if (sl.rangeCount && ed.contains(sl.anchorNode)) saved = sl.getRangeAt(0).cloneRange(); },
+    onchange: e => { const v = e.target.value; ed.focus(); if (saved) { const sl = window.getSelection(); sl.removeAllRanges(); sl.addRange(saved); } document.execCommand('formatBlock', false, v); onChange(htmlToMk(ed)); sync(); } },
+    [['DIV', 'Texte'], ['H1', 'Titre 1'], ['H2', 'Titre 2'], ['H3', 'Légende']].map(([v, l]) => h('option', { value: v, textContent: t(l) })));
+  let saved = null;
+  const sync = () => { bar.querySelectorAll('[data-cmd]').forEach(b => { let on = false; try { on = document.queryCommandState(b.dataset.cmd); } catch (e) {} b.classList.toggle('on', on); });
+    if (styleSel) { let v = ''; try { v = String(document.queryCommandValue('formatBlock') || '').toUpperCase().replace(/[<>]/g, ''); } catch (e) {} styleSel.value = /^H[1-3]$/.test(v) ? v : 'DIV'; } };
   ed.addEventListener('input', () => onChange(htmlToMk(ed)));
   ed.addEventListener('keyup', sync); ed.addEventListener('mouseup', sync); ed.addEventListener('focus', sync);
   ed.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain')); });
+  if (styleSel) bar.prepend(styleSel);
   if (opts.bullets === false) ed.classList.add('re-line');
   return h('div', { class: 're-wrap' }, bar, ed, opts.bullets === false ? null : h('div', { class: 'hint', textContent: t('Entrée = nouveau paragraphe · Maj + Entrée = retour à la ligne') }));
 }

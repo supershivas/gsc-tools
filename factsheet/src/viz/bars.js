@@ -25,7 +25,7 @@ export default {
     { k: 'style', t: 'select', label: 'Plusieurs séries', options: { overlap: 'Jumelées (2 séries qui se chevauchent)', grouped: 'Côte à côte', stacked: 'Empilées' } },
     { k: 'ratio', t: 'select', label: 'Format du graphique', options: { '2:1': '2:1 (large)', '16:9': '16:9', '3:2': '3:2', '1:1': '1:1 (carré)' } },
     { k: 'legend', t: 'bool', label: 'Afficher la légende' },
-    { k: 'legendPos', t: 'select', label: 'Position de la légende', options: { bottom: 'En bas', top: 'En haut', inside: 'Dans les barres' } },
+    { k: 'legendPos', t: 'select', label: 'Position de la légende (« Dans les barres » : noms des séries écrits dans chaque barre, sans légende séparée)', options: { bottom: 'En bas', top: 'En haut', inside: 'Dans les barres' } },
     { k: 'showValues', t: 'bool', label: 'Afficher les valeurs (empilées : total)' },
     { k: 'barSize', t: 'select', label: 'Épaisseur des barres', options: { thin: 'Fine', normal: 'Normale', thick: 'Épaisse' } },
     { k: 'groupSpace', t: 'select', label: 'Espace entre les groupes de barres', options: { tight: 'Réduit', normal: 'Normal', loose: 'Large' } },
@@ -41,7 +41,7 @@ export default {
     { t: 'node', g: 'data', build: (root, ctx) => { const n = document.createElement('div'); n.className = 'f'; n.append(...iconImportPanel(root, ctx)); return n; } },
   ],
   render(o, W, env) {
-    const legIn = (o.legend && o.legendPos === 'inside') || o.legendIn;   // noms des séries écrits dans les barres (legendIn : ancien réglage)
+    const legIn = o.legendPos === 'inside' || o.legendIn;   // noms des séries écrits dans les barres (legendIn : ancien réglage)
     const series = o.series || [], rows = o.rows || [], k = Math.max(1, series.length), n = Math.max(1, rows.length);
     const stacked = o.style === 'stacked', overlap = o.style === 'overlap' && k === 2;
     const H = Math.max(120, heightOf(o, W, env, null));

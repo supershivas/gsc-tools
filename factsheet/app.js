@@ -392,6 +392,16 @@
     "Annuler": "Cancel",
     "Exporter": "Export",
     "Terminer": "Done",
+    "Position de la l\xE9gende (\xAB Dans les barres \xBB : noms des s\xE9ries \xE9crits dans chaque barre, sans l\xE9gende s\xE9par\xE9e)": "Legend position (\u201CInside the bars\u201D: series names written in each bar, no separate legend)",
+    "Style de paragraphe": "Paragraph style",
+    "Titre 1": "Heading 1",
+    "Titre 2": "Heading 2",
+    "L\xE9gende": "Caption",
+    "Texte libre": "Free text",
+    "Position": "Position",
+    "En dessous": "Below",
+    "Largeur du texte (% de la colonne)": "Text width (% of the column)",
+    "Un texte li\xE9 \xE0 cette colonne, quel que soit son contenu : titres, paragraphes, puces, l\xE9gende.": "A text attached to this column, whatever its content: headings, paragraphs, bullets, caption.",
     "Position de la l\xE9gende": "Legend position",
     "Dans les barres": "Inside the bars",
     "\xC9paisseur des barres": "Bar thickness",
@@ -2225,7 +2235,7 @@
       { k: "style", t: "select", label: "Plusieurs s\xE9ries", options: { overlap: "Jumel\xE9es (2 s\xE9ries qui se chevauchent)", grouped: "C\xF4te \xE0 c\xF4te", stacked: "Empil\xE9es" } },
       { k: "ratio", t: "select", label: "Format du graphique", options: { "2:1": "2:1 (large)", "16:9": "16:9", "3:2": "3:2", "1:1": "1:1 (carr\xE9)" } },
       { k: "legend", t: "bool", label: "Afficher la l\xE9gende" },
-      { k: "legendPos", t: "select", label: "Position de la l\xE9gende", options: { bottom: "En bas", top: "En haut", inside: "Dans les barres" } },
+      { k: "legendPos", t: "select", label: "Position de la l\xE9gende (\xAB Dans les barres \xBB : noms des s\xE9ries \xE9crits dans chaque barre, sans l\xE9gende s\xE9par\xE9e)", options: { bottom: "En bas", top: "En haut", inside: "Dans les barres" } },
       { k: "showValues", t: "bool", label: "Afficher les valeurs (empil\xE9es : total)" },
       { k: "barSize", t: "select", label: "\xC9paisseur des barres", options: { thin: "Fine", normal: "Normale", thick: "\xC9paisse" } },
       { k: "groupSpace", t: "select", label: "Espace entre les groupes de barres", options: { tight: "R\xE9duit", normal: "Normal", loose: "Large" } },
@@ -2246,7 +2256,7 @@
       } }
     ],
     render(o, W, env) {
-      const legIn = o.legend && o.legendPos === "inside" || o.legendIn;
+      const legIn = o.legendPos === "inside" || o.legendIn;
       const series = o.series || [], rows = o.rows || [], k = Math.max(1, series.length), n = Math.max(1, rows.length);
       const stacked = o.style === "stacked", overlap = o.style === "overlap" && k === 2;
       const H = Math.max(120, heightOf(o, W, env, null));
@@ -2463,14 +2473,14 @@
       { k: "valuesIn", t: "bool", label: "Valeurs dans les barres (si affich\xE9es ; sinon apr\xE8s la barre quand \xE7a ne rentre pas)" },
       { k: "segments", t: "number", label: "Graduations : nombre de segments dans la barre la plus longue (0 = aucune)", min: 0, max: 20 },
       { k: "legend", t: "bool", label: "Afficher la l\xE9gende" },
-      { k: "legendPos", t: "select", label: "Position de la l\xE9gende", options: { bottom: "En bas", top: "En haut", inside: "Dans les barres" } },
+      { k: "legendPos", t: "select", label: "Position de la l\xE9gende (\xAB Dans les barres \xBB : noms des s\xE9ries \xE9crits dans chaque barre, sans l\xE9gende s\xE9par\xE9e)", options: { bottom: "En bas", top: "En haut", inside: "Dans les barres" } },
       { k: "showValues", t: "bool", label: "Afficher les valeurs" },
       { k: "decimals", t: "number", label: "D\xE9cimales des valeurs", min: 0, max: 4 },
       { k: "suffix", t: "text", label: "Unit\xE9 apr\xE8s la valeur (%, M\u20AC\u2026)" },
       { t: "table", k: "rows", series: "series", maxSeries: 4, label: "Donn\xE9es" }
     ],
     render(o, W, env) {
-      const legIn = o.legend && o.legendPos === "inside" || o.legendIn;
+      const legIn = o.legendPos === "inside" || o.legendIn;
       const series = o.series || [], rows = o.rows || [], k = Math.max(1, series.length);
       const stacked = o.style === "stacked";
       const capPx = pxOf(TYPE.caption.size), numPx = pxOf(TYPE.captionNum.size), suffix = o.suffix || "";
@@ -2528,14 +2538,14 @@
             acc += v;
             end = xa + w;
             svg.append(s("path", { d: acc >= total(r) ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`, fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" }));
-            if (legIn && sr.name && w > mw(sr.name, TYPE.caption.weight, SANS, capPx) + VIZ.iconGap * 2) svg.append(s("text", { x: xa + w / 2, y: y + bh / 2 + 0.33 * capPx, "text-anchor": "middle", "font-size": capPx, "font-weight": TYPE.caption.weight }, sr.name));
+            if ((legIn || o.labelIn && !r.label) && sr.name && w > mw(sr.name, TYPE.caption.weight, SANS, capPx) + VIZ.iconGap * 2) svg.append(s("text", { x: xa + w / 2, y: y + bh / 2 + 0.33 * capPx, "text-anchor": "middle", "font-size": capPx, "font-weight": TYPE.caption.weight }, sr.name));
           });
           inside = decor(y, end - x0, o.labelIn ? r.label : "", o.showValues ? fmt(total(r), env.locale, o.decimals) + suffix : "");
         } else series.forEach((sr, j) => {
           const w = numVal(r, j) / max2 * span, yy = y + j * (bh + sGap);
           end = Math.max(end, x0 + w);
           svg.append(s("path", { d: hPath(x0, yy, Math.max(w, 1e-4), bh, VIZ.barRadius), fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" }));
-          const ins = decor(yy, w, [j === 0 && o.labelIn ? r.label : "", legIn ? sr.name : ""].filter(Boolean).join(" \xB7 "), o.showValues ? fmt(numVal(r, j), env.locale, o.decimals) + suffix : "");
+          const ins = decor(yy, w, [j === 0 && o.labelIn ? r.label : "", legIn || o.labelIn && !r.label ? sr.name : ""].filter(Boolean).join(" \xB7 "), o.showValues ? fmt(numVal(r, j), env.locale, o.decimals) + suffix : "");
           if (o.showValues && !ins) svg.append(s("text", { x: x0 + w + VIZ.barGap * 1.5, y: yy + bh / 2 + 0.33 * numPx, "font-size": numPx, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, fmt(numVal(r, j), env.locale, o.decimals) + suffix));
         });
         if (stacked && o.showValues && !inside) svg.append(s("text", { x: end + VIZ.barGap * 1.5, y: y + bh / 2 + 0.33 * numPx, "font-size": numPx, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, fmt(total(r), env.locale, o.decimals) + suffix));
@@ -4939,6 +4949,12 @@ ${short}`)])
         ul = null;
         continue;
       }
+      const hm = line.match(/^(#{1,3})\s+(.*)$/);
+      if (hm) {
+        ul = null;
+        root.append(h("p", { class: "p-" + ["h1", "h2", "cap"][hm[1].length - 1], innerHTML: inline(hm[2]) }));
+        continue;
+      }
       const m2 = line.match(/^[-•]\s+(.*)$/);
       if (m2) {
         if (!ul) {
@@ -5026,7 +5042,10 @@ ${short}`)])
       wrap.style.justifyContent = { start: "flex-start", center: "center", end: "flex-end" }[al];
       w = insetW(w);
     } else wrap.style.alignSelf = al;
-    const strip2 = (x) => String(x || "").replace(/\*\*|__|~~|\^\^|,,/g, "").replace(/^[-•]\s+/gm, "").split("\n").find((l) => l.trim()) || "";
+    const fr = col.free && col.free.on && String(col.free.text || "").trim() ? col.free : null, frSide = fr && (fr.pos === "left" || fr.pos === "right"), FRGAP = 18;
+    const frW = frSide ? Math.round(w * Math.max(15, Math.min(70, +fr.share || 35)) / 100) : 0;
+    if (frSide) w = Math.max(60, w - frW - FRGAP);
+    const strip2 = (x) => String(x || "").replace(/\*\*|__|~~|\^\^|,,/g, "").replace(/^(#{1,3}|[-•])\s+/gm, "").split("\n").find((l) => l.trim()) || "";
     const side = (label, core) => composeSide(col.side, w, env, { pct: "", value: "", total: "", label }, core).node;
     if (col.type === "text") wrap.append(side(strip2(col.text), (ww) => ({ node: col.side && col.side.pos !== "none" ? h("div", { style: { width: ww + "px" } }, richText(col.text, col.align)) : richText(col.text, col.align) })));
     else if (col.type === "image") {
@@ -5040,6 +5059,13 @@ ${short}`)])
       const node = renderViz(col.viz, w, env);
       wrap.append(node || h("div", { class: "viz-ph" }, h("span", { textContent: "dataviz" })));
       if (node && env.fills && col.viz.opts && (col.viz.opts.hmode === "fill" || col.viz.opts.hmode === "match")) env.fills.push({ page: env.page, col, w, node, wrap, env, mode: col.viz.opts.hmode });
+    }
+    if (fr) {
+      const main = h("div", { class: "col-main", style: frSide ? { width: w + "px", flex: "none" } : {} });
+      [...wrap.childNodes].forEach((c2) => main.append(c2));
+      const free = h("div", { class: "col-free", style: frSide ? { width: frW + "px", flex: "none" } : {} }, richText(fr.text, "left"));
+      const first = fr.pos === "top" || fr.pos === "left";
+      wrap.append(h("div", { class: "col-free-box", style: { display: "flex", flexDirection: frSide ? "row" : "column", gap: (frSide ? FRGAP : 9) + "px", ...frSide ? { alignItems: "flex-start" } : {} } }, ...first ? [free, main] : [main, free]));
     }
     if (col.type !== "viz" && +col.minH > 0) {
       Object.assign(wrap.style, { minHeight: col.minH + "px", display: "flex", flexDirection: "column", alignSelf: isBox(col) ? "stretch" : "start", justifyContent: { start: "flex-start", center: "center", end: "flex-end" }[al] });
@@ -5572,7 +5598,7 @@ ${short}`)])
   }
 
   // src/tree.js
-  var strip = (t2) => String(t2 || "").replace(/\*\*|__|~~|\^\^|,,/g, "").replace(/^[-•]\s+/gm, "").replace(/\s+/g, " ").trim();
+  var strip = (t2) => String(t2 || "").replace(/\*\*|__|~~|\^\^|,,/g, "").replace(/^(#{1,3}|[-•])\s+/gm, "").replace(/\s+/g, " ").trim();
   var ICON = { text: "text-size", image: "photo", figure: "number", card: "layout-cards", viz: "chart-bar" };
   function colLabel(col) {
     if (col.type === "text") return strip(col.text).slice(0, 34) || "Texte vide";
@@ -5883,6 +5909,15 @@ ${short}`)])
     const lines = String(t2 || "").replace(/\r\n?/g, "\n").split("\n").filter((l) => l.trim());
     let html = "", ul = false;
     for (const l of lines) {
+      const hd = l.trim().match(/^(#{1,3})\s+(.*)$/);
+      if (hd) {
+        if (ul) {
+          html += "</ul>";
+          ul = false;
+        }
+        html += `<h${hd[1].length}>${inline(hd[2])}</h${hd[1].length}>`;
+        continue;
+      }
       const m2 = l.trim().match(/^[-•]\s+(.*)$/);
       if (m2 && !ul) {
         html += "<ul>";
@@ -5916,10 +5951,10 @@ ${short}`)])
         return t2;
       }).join("");
     };
-    const flush2 = (bullet) => {
+    const flush2 = (bullet, pre = "") => {
       const t2 = emit().trim();
       cur = [];
-      if (t2) lines.push((bullet ? "- " : "") + t2);
+      if (t2) lines.push((bullet ? "- " : pre) + t2);
     };
     const walk2 = (n, st, bullet) => {
       if (n.nodeType === 3) {
@@ -5939,6 +5974,12 @@ ${short}`)])
       if (tag === "U" || /underline/.test(n.style.textDecoration)) s2.u = true;
       if (tag === "UL" || tag === "OL") {
         for (const c2 of n.childNodes) walk2(c2, s2, true);
+        return;
+      }
+      if (/^H[1-3]$/.test(tag)) {
+        if (cur.length) flush2(bullet);
+        for (const c2 of n.childNodes) walk2(c2, s2, bullet);
+        flush2(bullet, "#".repeat(+tag[1]) + " ");
         return;
       }
       const block = tag === "LI" || tag === "DIV" || tag === "P";
@@ -5968,14 +6009,50 @@ ${short}`)])
       b.append(ico("list"));
       return b;
     })());
-    const sync = () => bar.querySelectorAll("[data-cmd]").forEach((b) => {
-      let on = false;
-      try {
-        on = document.queryCommandState(b.dataset.cmd);
-      } catch (e) {
+    const styleSel = opts.bullets === false ? null : h(
+      "select",
+      {
+        class: "re-style",
+        title: t("Style de paragraphe"),
+        "aria-label": t("Style de paragraphe"),
+        onmousedown: () => {
+          const sl = window.getSelection();
+          if (sl.rangeCount && ed.contains(sl.anchorNode)) saved = sl.getRangeAt(0).cloneRange();
+        },
+        onchange: (e) => {
+          const v = e.target.value;
+          ed.focus();
+          if (saved) {
+            const sl = window.getSelection();
+            sl.removeAllRanges();
+            sl.addRange(saved);
+          }
+          document.execCommand("formatBlock", false, v);
+          onChange(htmlToMk(ed));
+          sync();
+        }
+      },
+      [["DIV", "Texte"], ["H1", "Titre 1"], ["H2", "Titre 2"], ["H3", "L\xE9gende"]].map(([v, l]) => h("option", { value: v, textContent: t(l) }))
+    );
+    let saved = null;
+    const sync = () => {
+      bar.querySelectorAll("[data-cmd]").forEach((b) => {
+        let on = false;
+        try {
+          on = document.queryCommandState(b.dataset.cmd);
+        } catch (e) {
+        }
+        b.classList.toggle("on", on);
+      });
+      if (styleSel) {
+        let v = "";
+        try {
+          v = String(document.queryCommandValue("formatBlock") || "").toUpperCase().replace(/[<>]/g, "");
+        } catch (e) {
+        }
+        styleSel.value = /^H[1-3]$/.test(v) ? v : "DIV";
       }
-      b.classList.toggle("on", on);
-    });
+    };
     ed.addEventListener("input", () => onChange(htmlToMk(ed)));
     ed.addEventListener("keyup", sync);
     ed.addEventListener("mouseup", sync);
@@ -5984,6 +6061,7 @@ ${short}`)])
       e.preventDefault();
       document.execCommand("insertText", false, (e.clipboardData || window.clipboardData).getData("text/plain"));
     });
+    if (styleSel) bar.prepend(styleSel);
     if (opts.bullets === false) ed.classList.add("re-line");
     return h("div", { class: "re-wrap" }, bar, ed, opts.bullets === false ? null : h("div", { class: "hint", textContent: t("Entr\xE9e = nouveau paragraphe \xB7 Maj + Entr\xE9e = retour \xE0 la ligne") }));
   }
@@ -6657,6 +6735,34 @@ ${short}`)])
       const vt = col.type === "viz" && col.viz && VIZ_TYPES[col.viz.kind];
       root.append(
         card("col-content", ICONS2[col.type] || "text-size", t("Contenu"), [typeSel, ...editor]),
+        card(
+          "col-free",
+          "text-size",
+          t("Texte libre"),
+          [
+            col.free ? h("div", { class: "f" }, h("div", { class: "hint", textContent: t("Position") }), (() => {
+              const sl = h("select", { onchange: (e) => {
+                col.free.pos = e.target.value;
+                ctx2.restructure();
+              } }, [["top", "Au-dessus"], ["bottom", "En dessous"], ["left", "\xC0 gauche"], ["right", "\xC0 droite"]].map(([v, l]) => h("option", { value: v, textContent: t(l) })));
+              sl.value = col.free.pos || "bottom";
+              return sl;
+            })()) : null,
+            col.free && (col.free.pos === "left" || col.free.pos === "right") ? field("Largeur du texte (% de la colonne)", h("input", { type: "number", min: 15, max: 70, value: col.free.share || 35, oninput: (e) => {
+              col.free.share = +e.target.value || 35;
+              ctx2.changed();
+            } })) : null,
+            col.free ? h("div", { class: "f" }, h("div", { class: "hint", textContent: t("Texte") }), richEditor(col.free.text || "", (v) => {
+              col.free.text = v;
+              ctx2.changed();
+            })) : null,
+            h("p", { class: "hint", textContent: t("Un texte li\xE9 \xE0 cette colonne, quel que soit son contenu : titres, paragraphes, puces, l\xE9gende.") })
+          ].filter(Boolean),
+          { on: !!(col.free && col.free.on), set: () => {
+            col.free = col.free || { pos: "bottom", text: "Texte libre", share: 35 };
+            col.free.on = !col.free.on;
+          } }
+        ),
         col.type === "text" || col.type === "card" ? card("col-side", "number", t("Chiffre \xE0 c\xF4t\xE9"), buildFields(SIDE_FIELDS, col.side || (col.side = newColSide()), ctx2, {}, h)) : null,
         vt && vt.heights ? card("col-height", "ruler-2", t("Hauteur"), heightNodes(vt, col.viz.opts, { ctx: ctx2, width: columnWidth(doc2, si, bi, ci) })) : col.type !== "viz" ? card("col-height", "ruler-2", t("Hauteur"), [
           field("Hauteur minimale (px, 0 = automatique)", h("input", { type: "number", min: 0, max: 1e3, step: 3, value: col.minH || 0, oninput: (e) => {

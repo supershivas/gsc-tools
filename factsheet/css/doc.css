@@ -112,3 +112,9 @@
 .hd-over,.hd-title,.hd-sub,.sec-title,.sub-title,.cap,.card-tag,.card-title,.card-link,.card-list li,.vi-text,.vf-value,.vf-text,.viz-title,.viz-source{white-space:pre-line}
 
 sup,sub{font-size:.7em;line-height:0}
+
+.rich .p-h1{font-size:var(--t-section-size);line-height:var(--t-section-lh);font-weight:var(--t-section-weight)}
+.rich .p-h2{font-size:var(--t-subsection-size);line-height:var(--t-subsection-lh);font-weight:var(--t-subsection-weight)}
+.rich .p-cap{font-size:var(--t-caption-size);line-height:var(--t-caption-lh);font-weight:var(--t-caption-weight)}
+.col-main{min-width:0}
+.col-free{min-width:0}

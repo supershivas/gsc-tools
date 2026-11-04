@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.56.0 — 2026-11-04
+- Barres : « Position de la légende › Dans les barres » écrit les noms des séries (EU, Ukraine…) dans chaque barre sans avoir à cocher la légende ; avec « Libellés dans les barres » et un libellé vide, le nom de la série sert de libellé
+- Texte libre lié à n'importe quelle colonne (au-dessus, en dessous, à gauche ou à droite), en texte riche
+- Styles de paragraphe dans le texte riche des colonnes, cartes et textes libres : Texte, Titre 1, Titre 2, Légende
+
 ## 1.55.0 — 2026-11-04
 - Légendes : choix de la position (en bas, en haut) pour toutes les dataviz à légende, et « Dans les barres » pour les barres horizontales et verticales (le nom de chaque série s'écrit dans sa barre)
 

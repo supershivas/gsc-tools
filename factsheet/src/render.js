@@ -34,6 +34,8 @@ export function richText(text, align) {
   for (const raw of String(text || '').replace(/\r\n?/g, '\n').split('\n')) {
     const line = raw.trim();
     if (!line) { ul = null; continue; }
+    const hm = line.match(/^(#{1,3})\s+(.*)$/);   // style de paragraphe : # Titre 1, ## Titre 2, ### Légende
+    if (hm) { ul = null; root.append(h('p', { class: 'p-' + ['h1', 'h2', 'cap'][hm[1].length - 1], innerHTML: inline(hm[2]) })); continue; }
     const m = line.match(/^[-•]\s+(.*)$/);
     if (m) {
       if (!ul) { ul = h('ul'); root.append(ul); }
@@ -109,7 +111,11 @@ function renderCol(col, w, path, env) {
   const al = { top: 'start', center: 'center', bottom: 'end' }[col.valign] || 'start';
   if (isBox(col) && col.type !== 'card') { strokeStyle(wrap)(col); wrap.style.justifyContent = { start: 'flex-start', center: 'center', end: 'flex-end' }[al]; w = insetW(w); }
   else wrap.style.alignSelf = al;
-  const strip = x => String(x || '').replace(/\*\*|__|~~|\^\^|,,/g, '').replace(/^[-•]\s+/gm, '').split('\n').find(l => l.trim()) || '';
+  /* texte libre lié à la colonne (col.free) : au-dessus, en dessous, à gauche ou à droite du contenu */
+  const fr = col.free && col.free.on && String(col.free.text || '').trim() ? col.free : null, frSide = fr && (fr.pos === 'left' || fr.pos === 'right'), FRGAP = 18;
+  const frW = frSide ? Math.round(w * Math.max(15, Math.min(70, +fr.share || 35)) / 100) : 0;
+  if (frSide) w = Math.max(60, w - frW - FRGAP);
+  const strip = x => String(x || '').replace(/\*\*|__|~~|\^\^|,,/g, '').replace(/^(#{1,3}|[-•])\s+/gm, '').split('\n').find(l => l.trim()) || '';
   const side = (label, core) => composeSide(col.side, w, env, { pct: '', value: '', total: '', label }, core).node;
   if (col.type === 'text') wrap.append(side(strip(col.text), ww => ({ node: col.side && col.side.pos !== 'none' ? h('div', { style: { width: ww + 'px' } }, richText(col.text, col.align)) : richText(col.text, col.align) })));
   else if (col.type === 'image') {
@@ -123,6 +129,12 @@ function renderCol(col, w, path, env) {
     const node = renderViz(col.viz, w, env);
     wrap.append(node || h('div', { class: 'viz-ph' }, h('span', { textContent: 'dataviz' })));
     if (node && env.fills && col.viz.opts && (col.viz.opts.hmode === 'fill' || col.viz.opts.hmode === 'match')) env.fills.push({ page: env.page, col, w, node, wrap, env, mode: col.viz.opts.hmode });
+  }
+  if (fr) {
+    const main = h('div', { class: 'col-main', style: frSide ? { width: w + 'px', flex: 'none' } : {} }); [...wrap.childNodes].forEach(c => main.append(c));
+    const free = h('div', { class: 'col-free', style: frSide ? { width: frW + 'px', flex: 'none' } : {} }, richText(fr.text, 'left'));
+    const first = fr.pos === 'top' || fr.pos === 'left';
+    wrap.append(h('div', { class: 'col-free-box', style: { display: 'flex', flexDirection: frSide ? 'row' : 'column', gap: (frSide ? FRGAP : 9) + 'px', ...(frSide ? { alignItems: 'flex-start' } : {}) } }, ...(first ? [free, main] : [main, free])));
   }
   if (col.type !== 'viz' && +col.minH > 0) {   // hauteur minimale réglée à la poignée : le contenu se place dans la colonne selon valign
     Object.assign(wrap.style, { minHeight: col.minH + 'px', display: 'flex', flexDirection: 'column', alignSelf: isBox(col) ? 'stretch' : 'start', justifyContent: { start: 'flex-start', center: 'center', end: 'flex-end' }[al] });
