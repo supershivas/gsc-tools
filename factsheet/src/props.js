@@ -8,7 +8,7 @@ import { heightNodes } from './vizheight.js';
 import { newCard, cardPresetFor, CARD_CHECKS } from './cardmodel.js';
 import { COL_TYPES, IMAGE_RATIOS, LOCALES, LOGO_VARIANTS, DEFAULT_LOGOS, DEFAULT_IMAGE_ID, VALIGNS, ALIGNS, newCol, stepSection, newHeaderImage, swapCols, allCols, moveSub, refreshAutoCards } from './state.js';
 import { VIZ_TYPES, VIZ_OPTIONS, newViz } from './viz/index.js';
-import { buildFields, readImage, richEditor, paletteOptions } from './editor.js';
+import { buildFields, readImage, richEditor, paletteOptions, multiline } from './editor.js';
 import { FIGURE_DEFAULTS, FIGURE_FIELDS } from './figure.js';
 import { ICON_OPTIONS } from './viz/icons.js';
 
@@ -23,7 +23,7 @@ export function buildProps(root, ctx) {
   const live = fn => e => { fn(e.target.value, e); ctx.changed(); };
   const struct = fn => () => { fn(); ctx.restructure(); };
   const field = (label, input) => h('label', { class: 'f' }, label, input);
-  const text = (obj, k, label, ph) => field(label, h('input', { type: 'text', value: obj[k] || '', placeholder: ph || '', oninput: live(v => { obj[k] = v; }) }));
+  const text = (obj, k, label, ph) => field(label, multiline(h, obj[k] || '', live(v => { obj[k] = v; }), ph || ''));
   const select = (obj, k, label, opts, onSet) => {
     const s = h('select', { onchange: e => { obj[k] = e.target.value; onSet ? onSet() : ctx.changed(); } }, Object.entries(opts).map(([v, l]) => h('option', { value: v, textContent: l })));
     s.value = obj[k]; return field(label, s);

@@ -29,6 +29,14 @@ export function readImage(file, max = 1600) {
 }
 
 
+/** Champ texte qui accepte les retours à la ligne (Entrée) et grandit avec son contenu : titres, légendes, textes de cartes… */
+export function multiline(h2, value, onInput, placeholder = '') {
+  const ta = h2('textarea', { class: 'ml', rows: 1, value: value ?? '', placeholder, spellcheck: true, oninput: e => { fit(); onInput(e); } });
+  const fit = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 2 + 'px'; };
+  requestAnimationFrame(fit); new ResizeObserver(fit).observe(ta);
+  return ta;
+}
+
 /* ---------- Formulaires générés depuis la définition d'une dataviz ---------- */
 const getP = (o, p) => p.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
 const setP = (o, p, v) => { const ks = p.split('.'), last = ks.pop(); const t = ks.reduce((a, k) => (a[k] == null ? (a[k] = {}) : a[k]), o); t[last] = v; };
@@ -101,7 +109,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2) {
   const out = [];
   const live = fn => e => { fn(e.target); ctx.changed(); };
   for (const f of spec) {
-    if (f.t === 'text') out.push(h2('label', { class: 'f' }, f.label, h2('input', { type: 'text', value: getP(obj, f.k) ?? '', oninput: live(t => setP(obj, f.k, t.value)) })));
+    if (f.t === 'text') out.push(h2('label', { class: 'f' }, f.label, f.k === 'suffix' || f.single ? h2('input', { type: 'text', value: getP(obj, f.k) ?? '', oninput: live(t => setP(obj, f.k, t.value)) }) : multiline(h2, getP(obj, f.k), e => { setP(obj, f.k, e.target.value); ctx.changed(); })));
     else if (f.t === 'area') out.push(h2('div', { class: 'f' }, h2('div', { class: 'hint', textContent: f.label }), richEditor(getP(obj, f.k) ?? '', v => { setP(obj, f.k, v); ctx.changed(); })));
     else if (f.t === 'lines') out.push(h2('label', { class: 'f' }, f.label, h2('textarea', { value: getP(obj, f.k) ?? '', style: { minHeight: '64px' }, oninput: live(t => setP(obj, f.k, t.value)) })));
     else if (f.t === 'number') out.push(h2('label', { class: 'f' }, f.label, h2('input', { type: 'number', value: getP(obj, f.k) ?? 0, min: f.min, max: f.max, step: f.step || 1, oninput: live(t => { const v = parseFloat(t.value); if (!isNaN(v)) setP(obj, f.k, v); }) })));

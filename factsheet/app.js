@@ -4900,6 +4900,19 @@ ${lorem}` },
       fr.readAsDataURL(file2);
     });
   }
+  function multiline(h2, value2, onInput, placeholder = "") {
+    const ta = h2("textarea", { class: "ml", rows: 1, value: value2 ?? "", placeholder, spellcheck: true, oninput: (e) => {
+      fit();
+      onInput(e);
+    } });
+    const fit = () => {
+      ta.style.height = "auto";
+      ta.style.height = ta.scrollHeight + 2 + "px";
+    };
+    requestAnimationFrame(fit);
+    new ResizeObserver(fit).observe(ta);
+    return ta;
+  }
   var getP = (o, p) => p.split(".").reduce((a2, k) => a2 == null ? a2 : a2[k], o);
   var setP = (o, p, v) => {
     const ks = p.split("."), last = ks.pop();
@@ -5031,7 +5044,10 @@ ${lorem}` },
       ctx2.changed();
     };
     for (const f of spec) {
-      if (f.t === "text") out.push(h2("label", { class: "f" }, f.label, h2("input", { type: "text", value: getP(obj, f.k) ?? "", oninput: live((t2) => setP(obj, f.k, t2.value)) })));
+      if (f.t === "text") out.push(h2("label", { class: "f" }, f.label, f.k === "suffix" || f.single ? h2("input", { type: "text", value: getP(obj, f.k) ?? "", oninput: live((t2) => setP(obj, f.k, t2.value)) }) : multiline(h2, getP(obj, f.k), (e) => {
+        setP(obj, f.k, e.target.value);
+        ctx2.changed();
+      })));
       else if (f.t === "area") out.push(h2("div", { class: "f" }, h2("div", { class: "hint", textContent: f.label }), richEditor(getP(obj, f.k) ?? "", (v) => {
         setP(obj, f.k, v);
         ctx2.changed();
@@ -5225,9 +5241,9 @@ ${lorem}` },
       ctx2.restructure();
     };
     const field = (label, input) => h("label", { class: "f" }, label, input);
-    const text = (obj, k, label, ph) => field(label, h("input", { type: "text", value: obj[k] || "", placeholder: ph || "", oninput: live((v) => {
+    const text = (obj, k, label, ph) => field(label, multiline(h, obj[k] || "", live((v) => {
       obj[k] = v;
-    }) }));
+    }), ph || ""));
     const select = (obj, k, label, opts, onSet) => {
       const s2 = h("select", { onchange: (e) => {
         obj[k] = e.target.value;

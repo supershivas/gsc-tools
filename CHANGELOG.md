@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.28.0 — 2026-11-04
+- Tous les champs texte acceptent les retours à la ligne (Entrée) : titre, sous-titre et surtitre du header, titres de sections et de sous-sections, légendes, textes de cartes, titres de dataviz
+
 ## 1.27.0 — 2026-11-04
 - Dataviz : frise chronologique (verticale ou horizontale, alternance de part et d'autre de la ligne)
 - Aperçu 3D plus papier : feuille fine et légèrement courbe, lumière diffuse, ombre portée douce, grain de papier léger

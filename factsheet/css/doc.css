@@ -101,3 +101,6 @@
 .card.bleed.card-left>.card-img{margin:calc(-1 * var(--gap-boxPad)) 0 calc(-1 * var(--gap-boxPad)) calc(-1 * var(--gap-boxPad));border-radius:var(--radius) 0 0 var(--radius)}
 .card.bleed.card-right>.card-img{margin:calc(-1 * var(--gap-boxPad)) calc(-1 * var(--gap-boxPad)) calc(-1 * var(--gap-boxPad)) 0;border-radius:0 var(--radius) var(--radius) 0}
 .card.card-left,.card.card-right{column-gap:var(--gap-columns)}
+
+/* retours à la ligne saisis dans les champs texte (titres, légendes, cartes…) */
+.hd-over,.hd-title,.hd-sub,.sec-title,.sub-title,.cap,.card-tag,.card-title,.card-link,.card-list li,.vf-value,.vf-text,.viz-title,.viz-source{white-space:pre-line}

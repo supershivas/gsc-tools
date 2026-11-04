@@ -362,3 +362,7 @@ body.v3d-open{overflow:hidden}
 .tn-sec:has(>.sec-row.drag-live),.tn-subcard:has(>.sub-row.drag-live){opacity:.5;border-style:dashed}
 
 .stage .page .sec:not(.sec-band){cursor:default}
+
+/* champs texte multiligne (Entrée = retour à la ligne) */
+textarea.ml{display:block;width:100%;min-height:34px;resize:none;overflow:hidden;line-height:1.35;font:inherit;padding:6px 8px;box-sizing:border-box}
+.pp-body textarea.ml{min-height:36px;font-size:14px}
