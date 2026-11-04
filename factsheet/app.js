@@ -392,6 +392,12 @@
     "Annuler": "Cancel",
     "Exporter": "Export",
     "Terminer": "Done",
+    "Entr\xE9e = nouveau paragraphe \xB7 Maj + Entr\xE9e = retour \xE0 la ligne": "Enter = new paragraph \xB7 Shift + Enter = line break",
+    "Cercle autour de l\u2019ic\xF4ne": "Circle around the icon",
+    "Espace entre les \xE9l\xE9ments": "Space between items",
+    "R\xE9duit": "Reduced",
+    "Accolade : espace avant la liste": "Bracket: space before the list",
+    "Accolade : trait de liaison vers l\u2019ext\xE9rieur, longueur au-del\xE0 de la colonne (px, 0 = aucun)": "Bracket: link line outwards, length beyond the column (px, 0 = none)",
     "Aucun (anneau seul)": "None (ring only)",
     "Trait de liaison : longueur au-del\xE0 de la colonne (px)": "Link line: length beyond the column (px)",
     "Trait de liaison : couleur": "Link line: colour",
@@ -1453,8 +1459,8 @@
     if (!env || !env.ui) return null;
     return s("rect", { x, y, width: Math.max(1, w), height: Math.max(1, h2), fill: "rgba(0,0,0,0)", "data-reorder": `${key}:${i}`, "data-axis": axis, style: { cursor: "grab" } });
   }
-  var inlineMk = (t2) => String(t2 ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/__(.+?)__/g, "<u>$1</u>").replace(/~~(.+?)~~/g, "<i>$1</i>");
-  var stripMk = (t2) => String(t2 ?? "").replace(/\*\*|__|~~/g, "");
+  var inlineMk = (t2) => String(t2 ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/__(.+?)__/g, "<u>$1</u>").replace(/~~(.+?)~~/g, "<i>$1</i>").replace(/\u2028/g, "<br>");
+  var stripMk = (t2) => String(t2 ?? "").replace(/\u2028/g, " ").replace(/\*\*|__|~~/g, "");
 
   // src/viz/donut.js
   var BODY = pxOf(TYPE.body.size);
@@ -2308,13 +2314,17 @@
     label: "Liste \xE0 ic\xF4nes",
     icon: "list-check",
     family: "list",
-    defaults: () => ({ scale: "1", items: [
+    defaults: () => ({ scale: "1", circle: true, items: [
       { icon: "sliders", text: t("Premier \xE9l\xE9ment de liste") },
       { icon: "send", text: t("Deuxi\xE8me \xE9l\xE9ment de liste") },
       { icon: "pencil", text: t("Troisi\xE8me \xE9l\xE9ment de liste") }
     ] }),
     fields: [
+      { k: "circle", t: "bool", label: "Cercle autour de l\u2019ic\xF4ne" },
+      { k: "rowGap", t: "select", label: "Espace entre les \xE9l\xE9ments", options: { normal: "Normal", tight: "R\xE9duit", none: "Aucun" } },
       { k: "bracket", t: "bool", label: "Accolade \xE0 gauche" },
+      { k: "bracketGap", t: "select", label: "Accolade : espace avant la liste", options: { normal: "Normal", tight: "R\xE9duit", none: "Aucun" } },
+      { k: "bracketLink", t: "number", label: "Accolade : trait de liaison vers l\u2019ext\xE9rieur, longueur au-del\xE0 de la colonne (px, 0 = aucun)", min: 0, max: 120 },
       { k: "scale", t: "select", label: "Taille des ic\xF4nes et du texte", options: { 1: "Normal", 1.5: "Grand", 2: "Tr\xE8s grand" } },
       {
         k: "items",
@@ -2333,25 +2343,26 @@
       } }
     ],
     render(o, W, env) {
-      const sc = +o.scale || 1, C = VIZ.iconCircle * sc, G = VIZ.iconGlyph * sc, bodyPx = pxOf(TYPE.body.size) * sc;
-      const list = el("div", { class: "viz-icons" });
+      const sc = +o.scale || 1, ring = o.circle !== false, C = VIZ.iconCircle * sc, G = (ring ? VIZ.iconGlyph : VIZ.iconCircle * 0.9) * sc, bodyPx = pxOf(TYPE.body.size) * sc;
+      const list = el("div", { class: "viz-icons", style: o.rowGap === "tight" ? { gap: "3px" } : o.rowGap === "none" ? { gap: "0" } : {} });
       (o.items || []).forEach((it, idx) => {
         const k = G / 24, isCustom = String(it.icon || "").startsWith("custom:");
         const ic = ICONS[it.icon] || ICONS.check;
         const svg = s(
           "svg",
           { width: C, height: C, viewBox: `0 0 ${C} ${C}`, class: "vi-ic" },
-          s("circle", { cx: C / 2, cy: C / 2, r: C / 2 - SW / 2, fill: "none", stroke: "currentColor", "stroke-width": SW }),
+          ring ? s("circle", { cx: C / 2, cy: C / 2, r: C / 2 - SW / 2, fill: "none", stroke: "currentColor", "stroke-width": SW }) : null,
           isCustom ? iconNode(o, it.icon, (C - G) / 2, (C - G) / 2, G, G, "text") : s("path", { d: ic.d, fill: "none", stroke: "currentColor", "stroke-width": SW / k, "stroke-linecap": "round", "stroke-linejoin": "round", transform: `translate(${(C - G) / 2} ${(C - G) / 2}) scale(${k})` })
         );
         list.append(el("div", { class: "vi-row", style: { ...sc !== 1 ? { minHeight: C + "px" } : {}, ...env && env.ui ? { cursor: "grab" } : {} }, ...env && env.ui ? { "data-reorder": `items:${idx}`, "data-axis": "y" } : {} }, svg, el("div", { class: "vi-text", style: sc !== 1 ? { fontSize: bodyPx + "px", lineHeight: TYPE.body.lh * sc + "px" } : null, innerHTML: inlineMk(it.text) })));
       });
       if (o.bracket) {
         const line = `${SW}px solid var(--c-blue)`;
-        Object.assign(list.style, { position: "relative", paddingLeft: "33px" });
+        const bg = { tight: 6, none: 0 }[o.bracketGap] ?? 15, lk = Math.max(0, +o.bracketLink || 0);
+        Object.assign(list.style, { position: "relative", paddingLeft: 18 + bg + "px" });
         list.append(
           el("div", { class: "vi-brace", style: { position: "absolute", left: "9px", top: "0", bottom: "0", width: "9px", boxSizing: "border-box", borderLeft: line, borderTop: line, borderBottom: line, borderRadius: "6px 0 0 6px" } }),
-          el("div", { class: "vi-brace-tick", style: { position: "absolute", left: "0", top: "50%", width: "9px", borderTop: line } })
+          el("div", { class: "vi-brace-tick", style: { position: "absolute", left: -lk + "px", top: "50%", width: 9 + lk + "px", borderTop: line } })
         );
       }
       return { node: list };
@@ -5812,7 +5823,7 @@ ${short}`)])
       if (n.nodeType !== 1) return;
       const tag = n.tagName, fw = n.style.fontWeight, s2 = { ...st };
       if (tag === "BR") {
-        flush2(bullet);
+        cur.push({ t: "\u2028", ...st });
         return;
       }
       if (tag === "B" || tag === "STRONG" || fw === "bold" || +fw >= 600) s2.b = true;
@@ -5866,7 +5877,7 @@ ${short}`)])
       document.execCommand("insertText", false, (e.clipboardData || window.clipboardData).getData("text/plain"));
     });
     if (opts.bullets === false) ed.classList.add("re-line");
-    return h("div", { class: "re-wrap" }, bar, ed);
+    return h("div", { class: "re-wrap" }, bar, ed, opts.bullets === false ? null : h("div", { class: "hint", textContent: t("Entr\xE9e = nouveau paragraphe \xB7 Maj + Entr\xE9e = retour \xE0 la ligne") }));
   }
   function buildFields(spec, obj, ctx2, palOpts, h2, root = obj) {
     const out = [];

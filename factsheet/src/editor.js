@@ -81,7 +81,7 @@ function htmlToMk(root) {
     if (n.nodeType === 3) { cur.push({ t: n.nodeValue.replace(/[ \n]/g, ' '), ...st }); return; }
     if (n.nodeType !== 1) return;
     const tag = n.tagName, fw = n.style.fontWeight, s = { ...st };
-    if (tag === 'BR') { flush(bullet); return; }
+    if (tag === 'BR') { cur.push({ t: '\u2028', ...st }); return; }   // retour à la ligne (Maj + Entrée) : reste dans le paragraphe
     if (tag === 'B' || tag === 'STRONG' || fw === 'bold' || +fw >= 600) s.b = true;
     if (tag === 'I' || tag === 'EM' || n.style.fontStyle === 'italic') s.i = true;
     if (tag === 'U' || /underline/.test(n.style.textDecoration)) s.u = true;
@@ -106,7 +106,7 @@ export function richEditor(value, onChange, opts = {}) {
   ed.addEventListener('keyup', sync); ed.addEventListener('mouseup', sync); ed.addEventListener('focus', sync);
   ed.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain')); });
   if (opts.bullets === false) ed.classList.add('re-line');
-  return h('div', { class: 're-wrap' }, bar, ed);
+  return h('div', { class: 're-wrap' }, bar, ed, opts.bullets === false ? null : h('div', { class: 'hint', textContent: t('Entrée = nouveau paragraphe · Maj + Entrée = retour à la ligne') }));
 }
 
 export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {

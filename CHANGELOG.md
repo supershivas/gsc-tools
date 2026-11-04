@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.51.0 — 2026-11-04
+- Liste à icônes : icône sans cercle, espace réglable entre les éléments, espace réglable entre l'accolade et la liste, trait de liaison de l'accolade vers l'extérieur
+- Texte : Entrée = nouveau paragraphe, Maj + Entrée = retour à la ligne dans le paragraphe
+
 ## 1.50.0 — 2026-11-04
 - Anneau : un segment sans titre ni texte n'a plus de libellé ni de trait de repère, et l'option « Aucun (anneau seul) » supprime tous les libellés
 - Anneau : « trait de liaison » par segment, horizontal, du bord du segment jusqu'au bord de la colonne et au-delà (longueur et couleur réglables), pour le relier à l'accolade d'une colonne voisine

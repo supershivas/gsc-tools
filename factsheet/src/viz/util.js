@@ -199,6 +199,6 @@ export function reorderHit(env, key, i, axis, x, y, w, h) {
 }
 
 /** Balisage léger → HTML sûr : **gras**, ~~italique~~, __souligné__ (les retours à la ligne sont gardés par `white-space: pre-line`) */
-export const inlineMk = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/__(.+?)__/g, '<u>$1</u>').replace(/~~(.+?)~~/g, '<i>$1</i>');
+export const inlineMk = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/__(.+?)__/g, '<u>$1</u>').replace(/~~(.+?)~~/g, '<i>$1</i>').replace(/\u2028/g, '<br>');
 /** Le même texte sans balisage (mesures, libellés de la structure) */
-export const stripMk = t => String(t ?? '').replace(/\*\*|__|~~/g, '');
+export const stripMk = t => String(t ?? '').replace(/\u2028/g, ' ').replace(/\*\*|__|~~/g, '');
