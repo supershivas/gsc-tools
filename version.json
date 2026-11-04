@@ -1,7 +1,7 @@
 {
-  "version": "1.24.0",
+  "version": "1.24.1",
   "date": "2026-11-04",
   "changes": [
-    "Nouvel outil sur l'accueil : Donut export (graphique en anneau exportable en PNG ou JPG)"
+    "Donut export : le fichier exporté commence par UA_ suivi de la date (UA_AAMMJJ_nom)"
   ]
 }

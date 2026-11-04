@@ -1059,7 +1059,8 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
   let buf = new Uint8Array(await blob.arrayBuffer());
   buf = jpg ? jpgDpi(buf, dpi) : pngDpi(buf, dpi);
   const url = URL.createObjectURL(new Blob([buf], {type: mime}));
-  const base = (S.filename || 'donut').replace(/[\\/:*?"<>|]+/g, '_') + (V === 'B' ? '-B' : V === 'C' ? '-anneau' : '');
+  const d = new Date(), p2 = n => String(n).padStart(2, '0');
+  const base = 'UA_' + p2(d.getFullYear() % 100) + p2(d.getMonth() + 1) + p2(d.getDate()) + '_' + (S.filename || 'donut').replace(/[\\/:*?"<>|]+/g, '_') + (V === 'B' ? '-B' : V === 'C' ? '-anneau' : '');
   const a = h('a', {href: url, download: base + (jpg ? '.jpg' : '.png')});
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);

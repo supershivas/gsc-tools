@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.24.1 — 2026-11-04
+- Donut export : le fichier exporté commence par UA_ suivi de la date (UA_AAMMJJ_nom)
+
 ## 1.24.0 — 2026-11-04
 - Nouvel outil sur l'accueil : Donut export (graphique en anneau exportable en PNG ou JPG)
 
