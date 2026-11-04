@@ -158,7 +158,7 @@ function renderSection(sec, si, env, pos) {
     style.paddingTop = (pos.first ? firstGap : GAP.bandPad) + 'px';
     style.paddingBottom = (pos.last ? PAGE.marginBottom : GAP.bandPad) + 'px';
   }
-  const cls = ['sec', band && 'sec-band', pos.first && 'sec-first', pos.last && 'sec-last'].filter(Boolean).join(' ');
+  const cls = ['sec', band && 'sec-band', pos.first && 'sec-first', pos.last && 'sec-last', sec.subRules === false && 'sec-norules', (!band || sec.bg === 'white') && 'sec-rule-blue'].filter(Boolean).join(' ');
   const el = h('section', { class: cls, style, dataset: { sel: `sec:${si}` } });
   let host = el, W = GRID.contentW;
   if (isBox(sec)) { host = h('div', { class: 'sec-box' }); strokeStyle(host)(sec); el.append(host); W = insetW(W); }

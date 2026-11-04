@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.26.0 — 2026-11-04
+- Filet de 0,5 pt entre les sous-sections, sur toute la largeur de la page : blanc sur un fond de section, bleu UE sur fond blanc
+- Interrupteur « Filet entre les sous-sections » dans les propriétés de la section
+
 ## 1.25.0 — 2026-11-04
 - Les options de hauteur des dataviz sont aussi dans les propriétés de la colonne, sans ouvrir l'éditeur
 - Éditeur de dataviz : onglets Données et Visualisation en haut de la colonne de gauche (Données en premier) ; texte « null » supprimé

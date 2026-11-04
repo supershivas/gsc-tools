@@ -147,6 +147,7 @@ export function buildProps(root, ctx) {
   } else if (kind === 'sec' && sec) {
     title(sec.title || 'Section');
     root.append(card('sec-main', 'layout-rows', t('Section'), [text(sec, 'title', 'Titre de section'), switchRow(t('Afficher le titre'), sec.showTitle !== false, () => { sec.showTitle = sec.showTitle === false; }),
+        switchRow(t('Filet entre les sous-sections'), sec.subRules !== false, () => { sec.subRules = sec.subRules === false; }),
         select(sec, 'page', 'Page', { recto: 'Recto', verso: 'Verso' }, () => ctx.restructure())]),
       card('sec-bg', 'color-swatch', t('Fond de la section'), [swatches('Fond', sec, 'bg', toneKeys(doc), true)]),
       card('sec-frame', 'border-all', t('Cadre'), boxControls(sec, 'Fond du cadre')),

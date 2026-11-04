@@ -608,6 +608,7 @@
     "Hauteur maximale (px)": "Maximum height (px)",
     "Place disponible pour cet aper\xE7u (px)": "Available space for this preview (px)",
     "Dans le document, la dataviz occupe la place restante de la page (partag\xE9e s\u2019il y en a plusieurs), entre ces deux bornes.": "In the document, the dataviz takes the remaining space on the page (shared if there are several), between these two limits.",
+    "Filet entre les sous-sections": "Rule between subsections",
     /* types de dataviz */
     "Barres (jumel\xE9es, group\xE9es, empil\xE9es)": "Bars (overlapping, grouped, stacked)",
     "Plusieurs s\xE9ries": "Multiple series",
@@ -4228,7 +4229,7 @@ ${lorem}` },
       style.paddingTop = (pos.first ? firstGap : GAP.bandPad) + "px";
       style.paddingBottom = (pos.last ? PAGE.marginBottom : GAP.bandPad) + "px";
     }
-    const cls = ["sec", band && "sec-band", pos.first && "sec-first", pos.last && "sec-last"].filter(Boolean).join(" ");
+    const cls = ["sec", band && "sec-band", pos.first && "sec-first", pos.last && "sec-last", sec.subRules === false && "sec-norules", (!band || sec.bg === "white") && "sec-rule-blue"].filter(Boolean).join(" ");
     const el2 = h("section", { class: cls, style, dataset: { sel: `sec:${si}` } });
     let host = el2, W = GRID.contentW;
     if (isBox(sec)) {
@@ -5351,6 +5352,9 @@ ${lorem}` },
           text(sec, "title", "Titre de section"),
           switchRow(t("Afficher le titre"), sec.showTitle !== false, () => {
             sec.showTitle = sec.showTitle === false;
+          }),
+          switchRow(t("Filet entre les sous-sections"), sec.subRules !== false, () => {
+            sec.subRules = sec.subRules === false;
           }),
           select(sec, "page", "Page", { recto: "Recto", verso: "Verso" }, () => ctx2.restructure())
         ]),
