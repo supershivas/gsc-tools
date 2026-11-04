@@ -9,6 +9,7 @@ import { buildFields, paletteOptions } from './editor.js';
 import { colWidth, cssVars, applyVars, paletteOf } from './tokens.js';
 import { VIZ_TYPES, VIZ_FAMILIES, newViz, renderVizFull } from './viz/index.js';
 import { cardEl } from './cards.js';
+import { heightNodes } from './vizheight.js';
 import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
 import { t } from './i18n.js';
 
@@ -19,7 +20,6 @@ let tab = 'viz';          // onglet : 'data' (Données) ou 'viz' (Visualisation)
 /* Rangement des champs d'un type dans les cartes de l'onglet Visualisation (un champ peut forcer `g: 'format' | 'labels' | 'style' | 'data'`) */
 const LABEL_KEYS = new Set(['legend', 'showValues', 'decimals', 'suffix', 'totalTpl', 'layout']);
 const SERIES_COLORS = ['sky', 'yellow', 'blue', 'slate', 'grey'];
-const MODE_LABELS = { auto: 'Automatique (hauteur naturelle)', ratio: 'Proportion de la largeur', fixed: 'Fixe', fill: 'Remplir la place disponible' };
 let availH = 360;   // place disponible simulée dans l'aperçu (mode « Remplir »)
 const groupOf = f => f.g || (f.t === 'table' || f.t === 'list' ? 'data' : f.k === 'ratio' ? 'ratio' : LABEL_KEYS.has(f.k) ? 'labels' : 'style');
 
@@ -92,20 +92,8 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     }
     return box;
   }
-  /* Carte « Hauteur » : comment la dataviz occupe la hauteur (voir heightOf dans viz/util.js, fillPage dans render.js) */
-  function heightCard(ty) {
-    const o = col.viz.opts, modes = ty.heights, mode = modes.includes(o.hmode) ? o.hmode : modes[0], rf = (ty.fields || []).find(f => f.k === 'ratio');
-    const set = (k, v) => { o[k] = v; ui.sel = -1; };
-    const sel = h('select', { onchange: e => { set('hmode', e.target.value); fctx.restructure(); } }, modes.map(m => h('option', { value: m, textContent: t(MODE_LABELS[m]), selected: m === mode })));
-    const num = (k, label, def, min, max, step = 3) => h('label', { class: 'f' }, label, h('input', { type: 'number', value: o[k] ?? def, min, max, step, oninput: e => { const v = parseFloat(e.target.value); if (!isNaN(v)) { o[k] = v; changed(); } } }));
-    const nodes = [h('label', { class: 'f' }, t('Hauteur'), sel)];
-    if (mode === 'ratio' && rf) nodes.push(...buildFields([rf], o, fctx, {}, h));
-    if (mode === 'fixed') nodes.push(num('hfixed', t('Hauteur du graphique (px)'), Math.round(width * 0.5625 / 3) * 3, 90, 900));
-    if (mode === 'fill') nodes.push(num('hmin', t('Hauteur minimale (px)'), 120, 90, 900), num('hmax', t('Hauteur maximale (px)'), 600, 90, 900),
-      h('label', { class: 'f' }, t('Place disponible pour cet aperçu (px)'), h('input', { type: 'number', value: availH, min: 90, max: 1200, step: 15, oninput: e => { const v = parseFloat(e.target.value); if (!isNaN(v)) { availH = v; draw(); } } })),
-      h('p', { class: 'hint', textContent: t('Dans le document, la dataviz occupe la place restante de la page (partagée s’il y en a plusieurs), entre ces deux bornes.') }));
-    return card('dv-height', 'ruler-2', t('Hauteur'), nodes);
-  }
+  /* Carte « Hauteur » (nœuds partagés avec le panneau de propriétés : vizheight.js) */
+  const heightCard = ty => card('dv-height', 'ruler-2', t('Hauteur'), heightNodes(ty, col.viz.opts, { ctx: fctx, width, avail: { get: () => availH, set: v => { availH = v; draw(); } } }));
   function buildForm() {
     const top = form.scrollTop;
     form.innerHTML = '';
@@ -125,7 +113,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
       if (ty.data) nodes.push(gridEditor(recordsAdapter(ty.data, col.viz.opts, paletteOptions(doc)), fctx, { downloadName: col.viz.kind }), ty.dataHint ? h('p', { class: 'hint', textContent: t(ty.dataHint) }) : null);
       form.append(card('dv-data', 'table', t('Données'), nodes));
     } else {
-      form.append(
+      form.append(...[
         card('dv-type', 'chart-dots', t('Type'), [typePicker()]),
         card('dv-head', 'typography', t('Titre et source'), buildFields([{ k: 'title', t: 'text', label: 'Titre de la dataviz (facultatif)' }, { k: 'source', t: 'text', label: 'Source (facultatif)' }], head, fctx, {}, h)),
         ty.panel ? card('dv-picto', 'mood-smile', t('Pictogramme'), ty.panel(col.viz.opts, fctx)) : null,
@@ -135,7 +123,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
         F('labels').length ? card('dv-labels', 'letter-case', t('Étiquettes'), gen(F('labels'))) : null,
         F('style').length || ty.actions ? card('dv-style', 'adjustments', t('Options'), [
           ty.actions ? h('div', { class: 'pp-actions' }, ty.actions.map(a => h('button', { type: 'button', class: 'pp-btn', textContent: a.label, title: a.title || '', onclick: () => { a.run(col.viz.opts); ui.sel = -1; fctx.restructure(); } }))) : null,
-          ...gen(F('style'))]) : null);
+          ...gen(F('style'))]) : null].filter(Boolean));
     }
     form.scrollTop = top;
   }

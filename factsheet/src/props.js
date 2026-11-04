@@ -4,6 +4,7 @@ import { t } from './i18n.js';
 import { GRID, THEMES, paletteKeys, toneKeys, colorLabel, cssVars, applyVars } from './tokens.js';
 import { openPalette } from './palette.js';
 import { cardEl } from './cards.js';
+import { heightNodes } from './vizheight.js';
 import { newCard, cardPresetFor, CARD_CHECKS } from './cardmodel.js';
 import { COL_TYPES, IMAGE_RATIOS, LOCALES, LOGO_VARIANTS, DEFAULT_LOGOS, DEFAULT_IMAGE_ID, VALIGNS, ALIGNS, newCol, stepSection, newHeaderImage, swapCols, allCols, moveSub, refreshAutoCards } from './state.js';
 import { VIZ_TYPES, VIZ_OPTIONS, newViz } from './viz/index.js';
@@ -196,7 +197,9 @@ export function buildProps(root, ctx) {
         h('option', { value: '', textContent: '—' }), allCols(doc).filter(c => !(c.si === si && c.bi === bi && c.ci === ci)).map(c => h('option', { value: `${c.si}:${c.bi}:${c.ci}`, textContent: c.label + (doc.sections[c.si].page !== sec.page ? ` (${c.page === 'recto' ? t('Recto') : t('Verso')})` : '') })));
       s.value = ''; return s;
     })());
+    const vt = col.type === 'viz' && col.viz && VIZ_TYPES[col.viz.kind];
     root.append(card('col-content', ICONS[col.type] || 'text-size', t('Contenu'), [typeSel, ...editor]),
+      vt && vt.heights ? card('col-height', 'ruler-2', t('Hauteur'), heightNodes(vt, col.viz.opts, { ctx, width: columnWidth(doc, si, bi, ci) })) : null,
       card('col-layout', 'layout-align-middle', t('Disposition'), [segmented('Alignement vertical dans la colonne', col, 'valign', VALIGNS, { top: t('Haut'), center: t('Centre'), bottom: t('Bas') }),
         col.type === 'text' ? segmented('Alignement du texte', col, 'align', ALIGNS, { left: t('Gauche'), center: t('Centré'), right: t('Droite'), justify: t('Justifié') }) : null, swap]),
       col.type !== 'card' ? card('col-box', 'border-all', t('Fond et contour'), boxControls(col)) : null,

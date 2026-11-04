@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.24.0 — 2026-11-04
+- Les options de hauteur des dataviz sont aussi dans les propriétés de la colonne, sans ouvrir l'éditeur
+- Éditeur de dataviz : le texte « null » au-dessus de certaines cartes est supprimé
+
 ## 1.24.2 — 2026-11-04
 - Donut export : en-tête commun GSC tools, réglages et mise à jour automatique
 

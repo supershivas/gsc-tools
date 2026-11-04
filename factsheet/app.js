@@ -5028,6 +5028,35 @@ ${lorem}` },
   }
   var paletteOptions = (doc2) => Object.fromEntries([...paletteKeys(doc2), ...sectionBgs(doc2)].map((k) => [k, t(colorLabel(doc2, k))]));
 
+  // src/vizheight.js
+  var MODE_LABELS = { auto: "Automatique (hauteur naturelle)", ratio: "Proportion de la largeur", fixed: "Fixe", fill: "Remplir la place disponible" };
+  function heightNodes(ty, o, { ctx: ctx2, width, avail }) {
+    const modes = ty.heights, mode = modes.includes(o.hmode) ? o.hmode : modes[0], rf = (ty.fields || []).find((f) => f.k === "ratio");
+    const sel = h("select", { onchange: (e) => {
+      o.hmode = e.target.value;
+      ctx2.restructure();
+    } }, modes.map((m2) => h("option", { value: m2, textContent: t(MODE_LABELS[m2]), selected: m2 === mode })));
+    const num2 = (k, label, def, min2, max2, step = 3) => h("label", { class: "f" }, label, h("input", { type: "number", value: o[k] ?? def, min: min2, max: max2, step, oninput: (e) => {
+      const v = parseFloat(e.target.value);
+      if (!isNaN(v)) {
+        o[k] = v;
+        ctx2.changed();
+      }
+    } }));
+    const nodes = [h("label", { class: "f" }, t("Hauteur"), sel)];
+    if (mode === "ratio" && rf) nodes.push(...buildFields([rf], o, ctx2, {}, h));
+    if (mode === "fixed") nodes.push(num2("hfixed", t("Hauteur du graphique (px)"), Math.round(width * 0.5625 / 3) * 3, 90, 900));
+    if (mode === "fill") {
+      nodes.push(num2("hmin", t("Hauteur minimale (px)"), 120, 90, 900), num2("hmax", t("Hauteur maximale (px)"), 600, 90, 900));
+      if (avail) nodes.push(h("label", { class: "f" }, t("Place disponible pour cet aper\xE7u (px)"), h("input", { type: "number", value: avail.get(), min: 90, max: 1200, step: 15, oninput: (e) => {
+        const v = parseFloat(e.target.value);
+        if (!isNaN(v)) avail.set(v);
+      } })));
+      nodes.push(h("p", { class: "hint", textContent: t("Dans le document, la dataviz occupe la place restante de la page (partag\xE9e s\u2019il y en a plusieurs), entre ces deux bornes.") }));
+    }
+    return nodes;
+  }
+
   // src/props.js
   var shut = /* @__PURE__ */ new Set();
   function buildProps(root, ctx2) {
@@ -5462,8 +5491,10 @@ ${lorem}` },
         s2.value = "";
         return s2;
       })());
+      const vt = col.type === "viz" && col.viz && VIZ_TYPES[col.viz.kind];
       root.append(
         card("col-content", ICONS2[col.type] || "text-size", t("Contenu"), [typeSel, ...editor]),
+        vt && vt.heights ? card("col-height", "ruler-2", t("Hauteur"), heightNodes(vt, col.viz.opts, { ctx: ctx2, width: columnWidth(doc2, si, bi, ci) })) : null,
         card("col-layout", "layout-align-middle", t("Disposition"), [
           segmented("Alignement vertical dans la colonne", col, "valign", VALIGNS, { top: t("Haut"), center: t("Centre"), bottom: t("Bas") }),
           col.type === "text" ? segmented("Alignement du texte", col, "align", ALIGNS, { left: t("Gauche"), center: t("Centr\xE9"), right: t("Droite"), justify: t("Justifi\xE9") }) : null,
@@ -5770,7 +5801,6 @@ ${lorem}` },
   var tab = "viz";
   var LABEL_KEYS = /* @__PURE__ */ new Set(["legend", "showValues", "decimals", "suffix", "totalTpl", "layout"]);
   var SERIES_COLORS2 = ["sky", "yellow", "blue", "slate", "grey"];
-  var MODE_LABELS = { auto: "Automatique (hauteur naturelle)", ratio: "Proportion de la largeur", fixed: "Fixe", fill: "Remplir la place disponible" };
   var availH = 360;
   var groupOf = (f) => f.g || (f.t === "table" || f.t === "list" ? "data" : f.k === "ratio" ? "ratio" : LABEL_KEYS.has(f.k) ? "labels" : "style");
   function openVizEditor({ col, sub, ci, bg, width: colW, ctx: ctx2 }) {
@@ -5878,40 +5908,10 @@ ${lorem}` },
       }
       return box;
     }
-    function heightCard(ty) {
-      const o = col.viz.opts, modes = ty.heights, mode = modes.includes(o.hmode) ? o.hmode : modes[0], rf = (ty.fields || []).find((f) => f.k === "ratio");
-      const set = (k, v) => {
-        o[k] = v;
-        ui.sel = -1;
-      };
-      const sel = h("select", { onchange: (e) => {
-        set("hmode", e.target.value);
-        fctx.restructure();
-      } }, modes.map((m2) => h("option", { value: m2, textContent: t(MODE_LABELS[m2]), selected: m2 === mode })));
-      const num2 = (k, label, def, min2, max2, step = 3) => h("label", { class: "f" }, label, h("input", { type: "number", value: o[k] ?? def, min: min2, max: max2, step, oninput: (e) => {
-        const v = parseFloat(e.target.value);
-        if (!isNaN(v)) {
-          o[k] = v;
-          changed();
-        }
-      } }));
-      const nodes = [h("label", { class: "f" }, t("Hauteur"), sel)];
-      if (mode === "ratio" && rf) nodes.push(...buildFields([rf], o, fctx, {}, h));
-      if (mode === "fixed") nodes.push(num2("hfixed", t("Hauteur du graphique (px)"), Math.round(width * 0.5625 / 3) * 3, 90, 900));
-      if (mode === "fill") nodes.push(
-        num2("hmin", t("Hauteur minimale (px)"), 120, 90, 900),
-        num2("hmax", t("Hauteur maximale (px)"), 600, 90, 900),
-        h("label", { class: "f" }, t("Place disponible pour cet aper\xE7u (px)"), h("input", { type: "number", value: availH, min: 90, max: 1200, step: 15, oninput: (e) => {
-          const v = parseFloat(e.target.value);
-          if (!isNaN(v)) {
-            availH = v;
-            draw();
-          }
-        } })),
-        h("p", { class: "hint", textContent: t("Dans le document, la dataviz occupe la place restante de la page (partag\xE9e s\u2019il y en a plusieurs), entre ces deux bornes.") })
-      );
-      return card("dv-height", "ruler-2", t("Hauteur"), nodes);
-    }
+    const heightCard = (ty) => card("dv-height", "ruler-2", t("Hauteur"), heightNodes(ty, col.viz.opts, { ctx: fctx, width, avail: { get: () => availH, set: (v) => {
+      availH = v;
+      draw();
+    } } }));
     function buildForm() {
       const top = form.scrollTop;
       form.innerHTML = "";
@@ -5931,7 +5931,7 @@ ${lorem}` },
         if (ty.data) nodes.push(gridEditor(recordsAdapter(ty.data, col.viz.opts, paletteOptions(doc2)), fctx, { downloadName: col.viz.kind }), ty.dataHint ? h("p", { class: "hint", textContent: t(ty.dataHint) }) : null);
         form.append(card("dv-data", "table", t("Donn\xE9es"), nodes));
       } else {
-        form.append(
+        form.append(...[
           card("dv-type", "chart-dots", t("Type"), [typePicker()]),
           card("dv-head", "typography", t("Titre et source"), buildFields([{ k: "title", t: "text", label: "Titre de la dataviz (facultatif)" }, { k: "source", t: "text", label: "Source (facultatif)" }], head, fctx, {}, h)),
           ty.panel ? card("dv-picto", "mood-smile", t("Pictogramme"), ty.panel(col.viz.opts, fctx)) : null,
@@ -5947,7 +5947,7 @@ ${lorem}` },
             } }))) : null,
             ...gen(F("style"))
           ]) : null
-        );
+        ].filter(Boolean));
       }
       form.scrollTop = top;
     }
