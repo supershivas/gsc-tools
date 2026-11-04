@@ -46,31 +46,37 @@ export function blankDoc() {
   return d;
 }
 
+/** Factsheet d'exemple : recto et verso remplis, texte et dataviz en alternance, tous les gabarits de colonnes et la plupart des types de dataviz */
 export function defaultDoc() {
-  const lorem = 'Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim.';
-  const viz = (kind, extra) => ({ ...newCol('viz'), viz: { ...newViz(kind), ...(extra || {}) } });
-  const fig = () => ({ ...newCol('figure'), stroke: true, fillColor: 'white' });
-  const s1 = newSection('recto');
-  s1.title = 'Section title';
-  s1.subs = [
-    { id: uid('sub'), title: 'Subsection title', layout: '1-1', cols: [viz('icons'), fig()] },
-    { id: uid('sub'), title: 'Subsection title', layout: '1-1', cols: [
-      { ...newCol('text'), text: Array.from({ length: 5 }, () => 'Source regular 3 12pt.').join('\n') + '\n' + lorem },
-      viz('bars'),
-    ] },
-  ];
-  const s2 = newSection('verso');
-  s2.title = 'Second section'; s2.bg = 'tint-sky';
-  s2.subs = [{ id: uid('sub'), title: 'EU support', layout: '1', cols: [viz('donut')] }];
-  const s3 = newSection('verso');
-  s3.title = 'Back-page section'; s3.bg = 'tint-yellow';
-  s3.subs = [
-    { id: uid('sub'), title: 'Text and image', layout: '2-1', cols: [
-      { ...newCol('text'), text: `**First point.** ${lorem}\n- First list item\n- Second list item\n${lorem}` },
-      { ...newCol('image'), ratio: '4:3', caption: 'Image caption' },
-    ] },
-    { id: uid('sub'), title: 'Three columns', layout: '1-1-1', cols: [fig(), viz('icons'), viz('bars', { opts: { ...newViz('bars').opts, callout: { on: false, value: '', text: '' }, style: 'grouped' } })] },
-  ];
+  const lorem = 'Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam.';
+  const short = 'Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna.';
+  const list = '- Lorem ipsum dolor sit amet\n- Consectetuer adipiscing elit\n- Sed diam nonummy nibh euismod';
+  const viz = (kind, opts, extra) => { const v = newViz(kind); return { ...newCol('viz'), viz: { ...v, opts: { ...v.opts, ...(opts || {}) } }, ...(extra || {}) }; };
+  const fig = (value, icon, text, iconStyle = 'circle') => ({ ...newCol('figure'), stroke: true, fillColor: 'white', figure: { ...FIGURE_DEFAULTS(), value, icon, iconStyle, text: text || short } });
+  const txt = text => ({ ...newCol('text'), text });
+  const card = (title, text, o = {}) => { const c = newCard(); return { ...newCol('card'), card: { ...c, auto: false, ...o, content: { ...c.content, title, text, tag: 'NEW', link: 'Read more' } } }; };
+  const img = ratio => ({ ...newCol('image'), ratio, src: 'assets/Asset 1.svg', caption: 'Lorem ipsum dolor sit amet' });
+  const sub = (title, layout, cols) => ({ id: uid('sub'), title, showTitle: true, layout, cols });
+  const sec = (page, title, bg, subs) => ({ ...newSection(page), title, bg, subs });
+
+  const tiny = 'Lorem ipsum dolor sit amet, consectetuer adipiscing elit.';
+  const s1 = sec('recto', 'Key figures at a glance', 'none', [
+    sub('Headline numbers', '1-1-1', [fig('€7.5 bn', 'euro', tiny), fig('27', 'people', tiny), fig('64 %', 'chart', tiny)]),
+    sub('Context', '2-1', [txt(`**Lorem ipsum.** ${short}\n${list}`), card('Digital Europe', tiny, { layout: 'vertical', icon: true, image: false, tag: false, link: false })]),
+  ]);
+  const s2 = sec('recto', 'Progress over time', 'tint-sky', [
+    sub('Annual results', '1-2', [txt(`${lorem}\n${short}`), viz('line', { ratio: '2:1' })]),
+  ]);
+
+  const s3 = sec('verso', 'How the funds are shared', 'none', [
+    sub('Allocation', '1', [viz('donut')]),
+  ]);
+  const s4 = sec('verso', 'Milestones', 'tint-yellow', [
+    sub('Roadmap', '1', [viz('timeline', { orientation: 'horizontal', alternate: true })]),
+  ]);
+  const s5 = sec('verso', 'Deep dive', 'tint-grey', [
+    sub('Where the money goes', '2-1', [viz('treemap', { ratio: '16:9' }), viz('pictoV', { hmode: 'fill', perIcon: 100 })]),
+  ]);
   return {
     schema: SCHEMA, name: 'factsheet', locale: 'en-GB', density: 'normal',
     theme: DEFAULT_THEME, colors: {}, colorNames: {},
@@ -81,7 +87,7 @@ export function defaultDoc() {
       logos: DEFAULT_LOGOS(), logoVariant: 'default',
       showImage: true, showLogo: true,
     },
-    sections: [s1, s2, s3],
+    sections: [s1, s2, s3, s4, s5],
   };
 }
 

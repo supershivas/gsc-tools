@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.32.0 — 2026-11-04
+- Factsheet par défaut refaite : recto et verso remplis (chiffres clés, texte, cartes, courbes, anneau, frise, treemap, pictogrammes) avec les gabarits 1, 2, 3 colonnes, 2/3 + 1/3 et 1/3 + 2/3
+- Petits « ? » d'aide à côté des champs, interrupteurs et cartes (infobulle au survol ou au focus)
+
 ## 1.31.2 — 2026-11-04
 - Aperçu 3D : le bundle est rechargé à chaque nouvelle version (plus d'ancienne copie en cache qui garde des défauts d'ombre déjà corrigés)
 

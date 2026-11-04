@@ -378,3 +378,10 @@ textarea.ml{display:block;width:100%;min-height:34px;resize:none;overflow:hidden
 @media (hover:hover){.ve-typeopt:hover{background:var(--ui-bg)}}
 textarea.dg-ml{display:block;width:100%;min-width:90px;border:0;border-radius:0;padding:7px 8px;font:inherit;font-size:13px;line-height:1.35;resize:none;overflow:hidden;background:transparent}
 .dg td textarea.dg-ml:focus{outline:2px solid var(--ui-blue);outline-offset:-2px;background:#fff}
+
+/* petits « ? » d'aide */
+.hlp{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin:-2px 0 -2px 4px;width:18px;height:18px;min-height:0;padding:0;border:0;border-radius:50%;background:transparent;color:var(--ui-mute);cursor:help;font-size:15px}
+.hlp:focus-visible{outline:2px solid var(--ui-blue)}
+@media (hover:hover){.hlp:hover{color:var(--ui-blue)}}
+.hlp-tip{position:fixed;z-index:3000;display:none;max-width:270px;padding:8px 10px;background:#1C1C1E;color:#fff;border-radius:8px;font-size:12px;line-height:1.4;font-weight:400;text-transform:none;letter-spacing:0;pointer-events:none;box-shadow:0 4px 16px #0004}
+@media print{.hlp,.hlp-tip{display:none!important}}

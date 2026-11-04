@@ -4,6 +4,7 @@ import { t } from './i18n.js';
 import { GRID, THEMES, paletteKeys, toneKeys, colorLabel, cssVars, applyVars } from './tokens.js';
 import { openPalette } from './palette.js';
 import { cardEl } from './cards.js';
+import { helpBtn } from './help.js';
 import { heightNodes } from './vizheight.js';
 import { newCard, cardPresetFor, CARD_CHECKS } from './cardmodel.js';
 import { COL_TYPES, IMAGE_RATIOS, LOCALES, LOGO_VARIANTS, DEFAULT_LOGOS, DEFAULT_IMAGE_ID, VALIGNS, ALIGNS, newCol, stepSection, newHeaderImage, swapCols, allCols, moveSub, refreshAutoCards } from './state.js';
@@ -22,7 +23,7 @@ export function buildProps(root, ctx) {
   const th = THEMES[doc.theme] || THEMES.eu, palOpts = paletteOptions(doc);
   const live = fn => e => { fn(e.target.value, e); ctx.changed(); };
   const struct = fn => () => { fn(); ctx.restructure(); };
-  const field = (label, input) => h('label', { class: 'f' }, label, input);
+  const field = (label, input) => h('label', { class: 'f' }, label, helpBtn(label), input);
   const text = (obj, k, label, ph) => field(label, multiline(h, obj[k] || '', live(v => { obj[k] = v; }), ph || ''));
   const select = (obj, k, label, opts, onSet) => {
     const s = h('select', { onchange: e => { obj[k] = e.target.value; onSet ? onSet() : ctx.changed(); } }, Object.entries(opts).map(([v, l]) => h('option', { value: v, textContent: l })));
@@ -36,7 +37,7 @@ export function buildProps(root, ctx) {
     const none = h('button', { type: 'button', class: 'hv-sw none' + (!obj[k] || obj[k] === 'none' ? ' on' : ''), title: t('Aucun'), 'aria-label': t('Aucun'), onclick: struct(() => { obj[k] = 'none'; }) });
     const pal = h('button', { type: 'button', class: 'hv-sw pal-btn', title: t('Modifier, renommer ou ajouter des couleurs'), 'aria-label': t('Modifier, renommer ou ajouter des couleurs'), onclick: e => openPalette(e.currentTarget, ctx) }, ico('plus'));
     const lightRow = solid.map(c => { const tc = 'tint-' + c; return light.includes(tc) ? dot(tc) : gap(); });
-    return h('div', { class: 'f' }, h('div', { class: 'hint', textContent: label }),
+    return h('div', { class: 'f' }, h('div', { class: 'hint' }, label, helpBtn(label)),
       h('div', { class: 'swrow' }, withNone ? none : null, ...solid.map(dot), pal),
       light.length ? h('div', { class: 'swrow' }, withNone ? gap() : null, ...lightRow) : null);
   };
@@ -117,7 +118,7 @@ export function buildProps(root, ctx) {
 
   /* ---------- Variante B : cartes repliables (état replié gardé le temps de la session) ---------- */
   const switchBtn = (on, label, fn) => h('button', { type: 'button', role: 'switch', 'aria-checked': String(!!on), 'aria-label': label, class: 'pp-switch' + (on ? ' on' : ''), onclick: fn });
-  const switchRow = (label, on, fn) => h('div', { class: 'pp-switchrow' }, h('span', { textContent: label }), switchBtn(on, label, struct(fn)));
+  const switchRow = (label, on, fn) => h('div', { class: 'pp-switchrow' }, h('span', {}, label, helpBtn(label)), switchBtn(on, label, struct(fn)));
   /** toggle : { on, set } — l'interrupteur de l'en-tête affiche ou masque l'élément (la carte se replie quand il est éteint) */
   const card = (id, icon, name, nodes, toggle) => cardEl(id, icon, name, nodes, { shut, refresh: ctx.refreshProps, live: !toggle || toggle.on, toggle: toggle ? switchBtn(toggle.on, name, struct(toggle.set)) : null });
   const btn = (icon, label, fn, cls = '') => h('button', { type: 'button', class: 'pp-btn ' + cls, onclick: fn }, ico(icon), h('span', { textContent: label }));

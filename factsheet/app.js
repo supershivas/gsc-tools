@@ -626,6 +626,46 @@
     "Afficher les dates": "Show dates",
     "Date": "Date",
     "Une ligne par \xE9v\xE9nement, dans l\u2019ordre d\u2019affichage. Entr\xE9e = retour \xE0 la ligne dans le titre et le texte.": "One row per event, in display order. Enter = line break in the title and the text.",
+    /* aide « ? » */
+    "Petite ligne en capitales au-dessus du titre, suivie d\u2019un filet. Entr\xE9e = retour \xE0 la ligne.": "Small line in capitals above the title, followed by a rule. Enter = line break.",
+    "Le titre du header a une taille fixe (30 px). Un avertissement appara\xEEt si le texte d\xE9borde du bandeau.": "The header title has a fixed size (30 px). A warning appears if the text overflows the banner.",
+    "Deux lignes tiennent dans le header ; au-del\xE0, un avertissement s\u2019affiche. Vide = masqu\xE9.": "Two lines fit in the header; beyond that a warning is shown. Empty = hidden.",
+    "Image de 132 px de haut \xE0 gauche du header, choisie dans la biblioth\xE8que.": "132 px high image on the left of the header, picked from the library.",
+    "Logo \xE0 droite du header ; quatre versions de m\xEAme taille sont disponibles.": "Logo on the right of the header; four versions of the same size are available.",
+    "Titre de la section. Entr\xE9e = retour \xE0 la ligne ; vide ou interrupteur \xE9teint = titre masqu\xE9 (la section se d\xE9place alors par son fond).": "Section title. Enter = line break; empty or switched off = title hidden (the section is then dragged by its background).",
+    "Titre de la sous-section, sous le titre de section. Vide = masqu\xE9.": "Subsection title, below the section title. Empty = hidden.",
+    "Masque le titre sans le perdre : il reste saisi, mais n\u2019appara\xEEt ni \xE0 l\u2019\xE9cran ni \xE0 l\u2019export.": "Hides the title without losing it: it stays typed in but appears neither on screen nor in the export.",
+    "Trait de 0,5 pt sur toute la largeur de la page entre deux sous-sections de cette section.": "0.5 pt line across the full page width between two subsections of this section.",
+    "Par d\xE9faut : blanc sur un fond de section, bleu l\xE9ger (teinte 20 %) sur fond blanc.": "Default: white on a section background, light blue (20 % tint) on white.",
+    "Bande de couleur sur toute la largeur de la page, derri\xE8re la section.": "Colour band across the full page width, behind the section.",
+    "Contour de 0,5 pt et fond facultatif autour de la section, align\xE9 sur les marges.": "0.5 pt outline and optional background around the section, aligned with the margins.",
+    "Trait de 0,5 pt aux coins arrondis ; le contenu est alors en retrait de 12 px.": "0.5 pt line with rounded corners; the content is then inset by 12 px.",
+    "Place le contenu en haut, au centre ou en bas quand la colonne est moins haute que sa voisine.": "Places the content at the top, centre or bottom when the column is shorter than its neighbour.",
+    "\xC9change de place le contenu de cette colonne avec celui d\u2019une autre (alignements inclus). Annulable.": "Swaps this column\u2019s content with another\u2019s (alignments included). Can be undone.",
+    "Alignement vertical du contenu et du texte dans la colonne.": "Vertical alignment of the content and text inside the column.",
+    "Fond (couleur ou teinte) et contour de la colonne, ind\xE9pendants l\u2019un de l\u2019autre.": "Background (colour or tint) and outline of the column, independent of each other.",
+    "Change le type du graphique en gardant le titre et, quand la forme est la m\xEAme, les donn\xE9es.": "Changes the chart type, keeping the title and, when the shape is the same, the data.",
+    "Automatique : hauteur naturelle. Proportion : fraction de la largeur. Fixe : en pixels. Remplir : occupe la place restante de la page.": "Automatic: natural height. Proportion: fraction of the width. Fixed: in pixels. Fill: takes the remaining space on the page.",
+    "En mode \xAB Remplir \xBB, la dataviz ne sera jamais plus basse.": "In \u201CFill\u201D mode the dataviz will never be shorter.",
+    "En mode \xAB Remplir \xBB, la dataviz ne sera jamais plus haute.": "In \u201CFill\u201D mode the dataviz will never be taller.",
+    "Simule l\u2019espace libre de la page pour voir l\u2019effet du mode \xAB Remplir \xBB (non enregistr\xE9).": "Simulates the free space on the page to preview \u201CFill\u201D mode (not saved).",
+    "Texte facultatif au-dessus (titre) et sous (source) de la dataviz.": "Optional text above (title) and below (source) the dataviz.",
+    "Collez un tableau depuis Excel ou Sheets, importez un fichier CSV, TSV ou JSON, ou saisissez directement dans les cellules. Entr\xE9e passe \xE0 la ligne suivante.": "Paste a table from Excel or Sheets, import a CSV, TSV or JSON file, or type straight into the cells. Enter moves to the next row.",
+    "Proportions du graphique.": "Chart proportions.",
+    "L\xE9gende, valeurs affich\xE9es, d\xE9cimales et unit\xE9.": "Legend, displayed values, decimals and unit.",
+    "Couleurs du document ; les s\xE9ries utilisent les cl\xE9s de la palette, donc suivent le th\xE8me.": "Document colours; series use palette keys, so they follow the theme.",
+    "Proportion hauteur / largeur du graphique (en mode \xAB Proportion \xBB).": "Height / width ratio of the chart (in \u201CProportion\u201D mode).",
+    "Pastilles de couleur avec le nom des s\xE9ries ou des groupes sous le graphique.": "Colour swatches with the series or group names below the chart.",
+    "Nombre de d\xE9cimales affich\xE9es pour les valeurs.": "Number of decimals shown for values.",
+    "Texte ajout\xE9 apr\xE8s chaque valeur, par exemple \xAB % \xBB ou \xAB M\u20AC \xBB.": "Text added after each value, e.g. \u201C%\u201D or \u201CM\u20AC\u201D.",
+    "Une ligne par paragraphe. \xAB ## \xBB devant une ligne = titre 2, \xAB ### \xBB = texte courant, rien = titre 1. {total} = somme des valeurs.": "One line per paragraph. \u201C##\u201D before a line = heading 2, \u201C###\u201D = body text, nothing = heading 1. {total} = sum of the values.",
+    "Un point repr\xE9sente N r\xE9pondants. 0 choisit une valeur pour afficher environ 400 points.": "One dot stands for N respondents. 0 picks a value that shows about 400 dots.",
+    "Nombre de nuages c\xF4te \xE0 c\xF4te quand l\u2019enqu\xEAte a plusieurs groupes.": "Number of clouds side by side when the survey has several groups.",
+    "Valeur repr\xE9sent\xE9e par un pictogramme entier ; le dernier peut \xEAtre partiel.": "Value represented by one whole pictogram; the last one can be partial.",
+    "Valeur correspondant \xE0 un pictogramme enti\xE8rement rempli (ex. 100 pour des pourcentages).": "Value matching a fully filled pictogram (e.g. 100 for percentages).",
+    "Les \xE9v\xE9nements pairs et impairs passent de chaque c\xF4t\xE9 de la ligne : le texte dispose de deux fois plus de largeur.": "Even and odd events go on either side of the line: the text gets twice the width.",
+    "\xC9paisseur des barres verticales du diagramme de Sankey.": "Thickness of the Sankey diagram\u2019s vertical bars.",
+    "Aide": "Help",
     /* types de dataviz */
     "Barres (jumel\xE9es, group\xE9es, empil\xE9es)": "Bars (overlapping, grouped, stacked)",
     "Plusieurs s\xE9ries": "Multiple series",
@@ -1535,7 +1575,7 @@
         const r0 = it.lines[0];
         it.first = r0 ? r0.runs.reduce((q, r) => q + mw(r.t, r.b ? 700 : 400, '"Source Sans 3", sans-serif', BODY), 0) : 0;
       });
-      const place2 = (cy2) => {
+      const place3 = (cy2) => {
         for (const it of items) {
           const th = it.th, P = { x: cx + Ro * Math.sin(rad(th)), y: cy2 - Ro * Math.cos(rad(th)) };
           it.P = P;
@@ -1545,7 +1585,7 @@
         return Math.max(2 * Ro + 2 * SW, ...items.map((i) => i.top + i.h));
       };
       let cy = Ro + SW;
-      let H = place2(cy);
+      let H = place3(cy);
       H = Math.ceil(Math.max(H, cy + Ro + SW));
       const svg = s("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: "block", overflow: "visible" } });
       if (ui && ui.drag === "label") for (const sd of [-1, 1]) svg.append(s("rect", { x: sd > 0 ? W - labelW : 0, y: 0, width: labelW, height: H, fill: ORANGE, "fill-opacity": 0.08, stroke: ORANGE, "stroke-dasharray": "4 3", "stroke-width": 1, "pointer-events": "none" }));
@@ -3912,35 +3952,41 @@
     return d;
   }
   function defaultDoc() {
-    const lorem = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim.";
-    const viz = (kind, extra) => ({ ...newCol("viz"), viz: { ...newViz(kind), ...extra || {} } });
-    const fig = () => ({ ...newCol("figure"), stroke: true, fillColor: "white" });
-    const s1 = newSection("recto");
-    s1.title = "Section title";
-    s1.subs = [
-      { id: uid("sub"), title: "Subsection title", layout: "1-1", cols: [viz("icons"), fig()] },
-      { id: uid("sub"), title: "Subsection title", layout: "1-1", cols: [
-        { ...newCol("text"), text: Array.from({ length: 5 }, () => "Source regular 3 12pt.").join("\n") + "\n" + lorem },
-        viz("bars")
-      ] }
-    ];
-    const s2 = newSection("verso");
-    s2.title = "Second section";
-    s2.bg = "tint-sky";
-    s2.subs = [{ id: uid("sub"), title: "EU support", layout: "1", cols: [viz("donut")] }];
-    const s3 = newSection("verso");
-    s3.title = "Back-page section";
-    s3.bg = "tint-yellow";
-    s3.subs = [
-      { id: uid("sub"), title: "Text and image", layout: "2-1", cols: [
-        { ...newCol("text"), text: `**First point.** ${lorem}
-- First list item
-- Second list item
-${lorem}` },
-        { ...newCol("image"), ratio: "4:3", caption: "Image caption" }
-      ] },
-      { id: uid("sub"), title: "Three columns", layout: "1-1-1", cols: [fig(), viz("icons"), viz("bars", { opts: { ...newViz("bars").opts, callout: { on: false, value: "", text: "" }, style: "grouped" } })] }
-    ];
+    const lorem = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam.";
+    const short = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna.";
+    const list = "- Lorem ipsum dolor sit amet\n- Consectetuer adipiscing elit\n- Sed diam nonummy nibh euismod";
+    const viz = (kind, opts, extra) => {
+      const v = newViz(kind);
+      return { ...newCol("viz"), viz: { ...v, opts: { ...v.opts, ...opts || {} } }, ...extra || {} };
+    };
+    const fig = (value2, icon, text, iconStyle = "circle") => ({ ...newCol("figure"), stroke: true, fillColor: "white", figure: { ...FIGURE_DEFAULTS(), value: value2, icon, iconStyle, text: text || short } });
+    const txt = (text) => ({ ...newCol("text"), text });
+    const card = (title, text, o = {}) => {
+      const c2 = newCard();
+      return { ...newCol("card"), card: { ...c2, auto: false, ...o, content: { ...c2.content, title, text, tag: "NEW", link: "Read more" } } };
+    };
+    const img = (ratio) => ({ ...newCol("image"), ratio, src: "assets/Asset 1.svg", caption: "Lorem ipsum dolor sit amet" });
+    const sub = (title, layout, cols) => ({ id: uid("sub"), title, showTitle: true, layout, cols });
+    const sec = (page, title, bg, subs) => ({ ...newSection(page), title, bg, subs });
+    const tiny = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.";
+    const s1 = sec("recto", "Key figures at a glance", "none", [
+      sub("Headline numbers", "1-1-1", [fig("\u20AC7.5 bn", "euro", tiny), fig("27", "people", tiny), fig("64 %", "chart", tiny)]),
+      sub("Context", "2-1", [txt(`**Lorem ipsum.** ${short}
+${list}`), card("Digital Europe", tiny, { layout: "vertical", icon: true, image: false, tag: false, link: false })])
+    ]);
+    const s2 = sec("recto", "Progress over time", "tint-sky", [
+      sub("Annual results", "1-2", [txt(`${lorem}
+${short}`), viz("line", { ratio: "2:1" })])
+    ]);
+    const s3 = sec("verso", "How the funds are shared", "none", [
+      sub("Allocation", "1", [viz("donut")])
+    ]);
+    const s4 = sec("verso", "Milestones", "tint-yellow", [
+      sub("Roadmap", "1", [viz("timeline", { orientation: "horizontal", alternate: true })])
+    ]);
+    const s5 = sec("verso", "Deep dive", "tint-grey", [
+      sub("Where the money goes", "2-1", [viz("treemap", { ratio: "16:9" }), viz("pictoV", { hmode: "fill", perIcon: 100 })])
+    ]);
     return {
       schema: SCHEMA,
       name: "factsheet",
@@ -3963,7 +4009,7 @@ ${lorem}` },
         showImage: true,
         showLogo: true
       },
-      sections: [s1, s2, s3]
+      sections: [s1, s2, s3, s4, s5]
     };
   }
   var DEFAULT_LOGOS = () => ({ default: "assets/d9742f1219.png", mono: "assets/c069bffefa.png", white: "assets/4a5a41080e.png", negative: "assets/5ec5fb8b6a.png" });
@@ -4646,7 +4692,7 @@ ${lorem}` },
       h("div", { class: "row ce-act" }, h("button", { type: "button", textContent: "Annuler", onclick: () => close(false) }), h("button", { type: "button", class: "primary", textContent: "OK", onclick: () => close(true) }))
     );
     document.body.append(pop2);
-    const place2 = () => {
+    const place3 = () => {
       const a2 = anchor ? anchor.getBoundingClientRect() : { left: window.innerWidth - 20, top: 80, bottom: 80 }, w = pop2.offsetWidth, hh = pop2.offsetHeight;
       let left2 = a2.left - w - 14;
       if (left2 < 8) left2 = Math.min(window.innerWidth - w - 8, a2.left);
@@ -4654,7 +4700,7 @@ ${lorem}` },
       pop2.style.top = clamp(a2.top - 20, 8, window.innerHeight - hh - 8) + "px";
     };
     update();
-    place2();
+    place3();
     function close(commit) {
       if (done) return;
       done = true;
@@ -4865,9 +4911,89 @@ ${lorem}` },
     }
   }
 
+  // src/help.js
+  var HELP = {
+    /* header */
+    "Surtitre": "Petite ligne en capitales au-dessus du titre, suivie d\u2019un filet. Entr\xE9e = retour \xE0 la ligne.",
+    "Titre (taille fixe)": "Le titre du header a une taille fixe (30 px). Un avertissement appara\xEEt si le texte d\xE9borde du bandeau.",
+    "Sous-titre (optionnel \u2014 vide = masqu\xE9)": "Deux lignes tiennent dans le header ; au-del\xE0, un avertissement s\u2019affiche. Vide = masqu\xE9.",
+    "Afficher l\u2019image": "Image de 132 px de haut \xE0 gauche du header, choisie dans la biblioth\xE8que.",
+    "Afficher le logo": "Logo \xE0 droite du header ; quatre versions de m\xEAme taille sont disponibles.",
+    /* section et sous-section */
+    "Titre de section (vide = masqu\xE9)": "Titre de la section. Entr\xE9e = retour \xE0 la ligne ; vide ou interrupteur \xE9teint = titre masqu\xE9 (la section se d\xE9place alors par son fond).",
+    "Titre de sous-section (vide = masqu\xE9)": "Titre de la sous-section, sous le titre de section. Vide = masqu\xE9.",
+    "Afficher le titre": "Masque le titre sans le perdre : il reste saisi, mais n\u2019appara\xEEt ni \xE0 l\u2019\xE9cran ni \xE0 l\u2019export.",
+    "Filet entre les sous-sections": "Trait de 0,5 pt sur toute la largeur de la page entre deux sous-sections de cette section.",
+    "Couleur du filet": "Par d\xE9faut : blanc sur un fond de section, bleu l\xE9ger (teinte 20 %) sur fond blanc.",
+    "Fond de la section": "Bande de couleur sur toute la largeur de la page, derri\xE8re la section.",
+    "Cadre": "Contour de 0,5 pt et fond facultatif autour de la section, align\xE9 sur les marges.",
+    "Contour": "Trait de 0,5 pt aux coins arrondis ; le contenu est alors en retrait de 12 px.",
+    "Alignement vertical dans la colonne": "Place le contenu en haut, au centre ou en bas quand la colonne est moins haute que sa voisine.",
+    "\xC9changer le contenu avec\u2026": "\xC9change de place le contenu de cette colonne avec celui d\u2019une autre (alignements inclus). Annulable.",
+    "Disposition": "Alignement vertical du contenu et du texte dans la colonne.",
+    "Fond et contour": "Fond (couleur ou teinte) et contour de la colonne, ind\xE9pendants l\u2019un de l\u2019autre.",
+    /* dataviz */
+    "Type de dataviz": "Change le type du graphique en gardant le titre et, quand la forme est la m\xEAme, les donn\xE9es.",
+    "Hauteur": "Automatique : hauteur naturelle. Proportion : fraction de la largeur. Fixe : en pixels. Remplir : occupe la place restante de la page.",
+    "Hauteur minimale (px)": "En mode \xAB Remplir \xBB, la dataviz ne sera jamais plus basse.",
+    "Hauteur maximale (px)": "En mode \xAB Remplir \xBB, la dataviz ne sera jamais plus haute.",
+    "Place disponible pour cet aper\xE7u (px)": "Simule l\u2019espace libre de la page pour voir l\u2019effet du mode \xAB Remplir \xBB (non enregistr\xE9).",
+    "Titre et source": "Texte facultatif au-dessus (titre) et sous (source) de la dataviz.",
+    "Donn\xE9es": "Collez un tableau depuis Excel ou Sheets, importez un fichier CSV, TSV ou JSON, ou saisissez directement dans les cellules. Entr\xE9e passe \xE0 la ligne suivante.",
+    "Dimensions": "Proportions du graphique.",
+    "\xC9tiquettes": "L\xE9gende, valeurs affich\xE9es, d\xE9cimales et unit\xE9.",
+    "Couleurs": "Couleurs du document ; les s\xE9ries utilisent les cl\xE9s de la palette, donc suivent le th\xE8me.",
+    "Format du graphique": "Proportion hauteur / largeur du graphique (en mode \xAB Proportion \xBB).",
+    "Afficher la l\xE9gende": "Pastilles de couleur avec le nom des s\xE9ries ou des groupes sous le graphique.",
+    "D\xE9cimales des valeurs": "Nombre de d\xE9cimales affich\xE9es pour les valeurs.",
+    "Unit\xE9 apr\xE8s la valeur (%, M\u20AC\u2026)": "Texte ajout\xE9 apr\xE8s chaque valeur, par exemple \xAB % \xBB ou \xAB M\u20AC \xBB.",
+    "Texte du centre": "Une ligne par paragraphe. \xAB ## \xBB devant une ligne = titre 2, \xAB ### \xBB = texte courant, rien = titre 1. {total} = somme des valeurs.",
+    "R\xE9pondants par point (0 = automatique)": "Un point repr\xE9sente N r\xE9pondants. 0 choisit une valeur pour afficher environ 400 points.",
+    "Groupes par ligne (0 = automatique)": "Nombre de nuages c\xF4te \xE0 c\xF4te quand l\u2019enqu\xEAte a plusieurs groupes.",
+    "Valeur d\u2019un pictogramme": "Valeur repr\xE9sent\xE9e par un pictogramme entier ; le dernier peut \xEAtre partiel.",
+    "Valeur du pictogramme plein (ex. 100)": "Valeur correspondant \xE0 un pictogramme enti\xE8rement rempli (ex. 100 pour des pourcentages).",
+    "Alterner les \xE9v\xE9nements de part et d\u2019autre de la ligne": "Les \xE9v\xE9nements pairs et impairs passent de chaque c\xF4t\xE9 de la ligne : le texte dispose de deux fois plus de largeur.",
+    "Largeur des n\u0153uds (px)": "\xC9paisseur des barres verticales du diagramme de Sankey."
+  };
+  var tip = null;
+  var place2 = (btn) => {
+    const r = btn.getBoundingClientRect(), w = tip.offsetWidth, hgt = tip.offsetHeight;
+    let x = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, window.innerWidth - w - 8)), y = r.bottom + 8;
+    if (y + hgt > window.innerHeight - 8) y = r.top - hgt - 8;
+    Object.assign(tip.style, { left: x + "px", top: y + "px" });
+  };
+  var show = (btn, msg) => {
+    if (!tip) {
+      tip = h("div", { class: "hlp-tip", role: "tooltip" });
+      document.body.append(tip);
+    }
+    tip.textContent = t(msg);
+    tip.style.display = "block";
+    place2(btn);
+  };
+  var hide = () => {
+    if (tip) tip.style.display = "none";
+  };
+  window.addEventListener("scroll", hide, true);
+  function helpBtn(label, text) {
+    const msg = text || HELP[label];
+    if (!msg) return null;
+    const b = h("button", { type: "button", class: "hlp", "aria-label": t("Aide"), tabindex: 0 }, ico("help-circle"));
+    b.addEventListener("pointerenter", () => show(b, msg));
+    b.addEventListener("pointerleave", hide);
+    b.addEventListener("focus", () => show(b, msg));
+    b.addEventListener("blur", hide);
+    b.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      tip && tip.style.display === "block" ? hide() : show(b, msg);
+    });
+    return b;
+  }
+
   // src/cards.js
   function cardEl(id, icon, name, nodes, { shut: shut3, refresh, toggle = null, live = true }) {
-    const open = !shut3.has(id), show = open && live;
+    const open = !shut3.has(id), show2 = open && live;
     return h(
       "section",
       { class: "pp-card" },
@@ -4876,6 +5002,7 @@ ${lorem}` },
         { class: "pp-card-h" },
         ico(icon),
         h("b", { textContent: name }),
+        helpBtn(name),
         h("span", { class: "pp-sp" }),
         toggle,
         h("button", {
@@ -4889,7 +5016,7 @@ ${lorem}` },
           }
         }, ico(open ? "chevron-up" : "chevron-down"))
       ),
-      show ? h("div", { class: "pp-body" }, nodes.flat().filter(Boolean)) : null
+      show2 ? h("div", { class: "pp-body" }, nodes.flat().filter(Boolean)) : null
     );
   }
 
@@ -5059,7 +5186,7 @@ ${lorem}` },
       ctx2.changed();
     };
     for (const f of spec) {
-      if (f.t === "text") out.push(h2("label", { class: "f" }, f.label, f.k === "suffix" || f.single ? h2("input", { type: "text", value: getP(obj, f.k) ?? "", oninput: live((t2) => setP(obj, f.k, t2.value)) }) : multiline(h2, getP(obj, f.k), (e) => {
+      if (f.t === "text") out.push(h2("label", { class: "f" }, f.label, helpBtn(f.label), f.k === "suffix" || f.single ? h2("input", { type: "text", value: getP(obj, f.k) ?? "", oninput: live((t2) => setP(obj, f.k, t2.value)) }) : multiline(h2, getP(obj, f.k), (e) => {
         setP(obj, f.k, e.target.value);
         ctx2.changed();
       })));
@@ -5068,7 +5195,7 @@ ${lorem}` },
         ctx2.changed();
       })));
       else if (f.t === "lines") out.push(h2("label", { class: "f" }, f.label, h2("textarea", { value: getP(obj, f.k) ?? "", style: { minHeight: "64px" }, oninput: live((t2) => setP(obj, f.k, t2.value)) })));
-      else if (f.t === "number") out.push(h2("label", { class: "f" }, f.label, h2("input", { type: "number", value: getP(obj, f.k) ?? 0, min: f.min, max: f.max, step: f.step || 1, oninput: live((t2) => {
+      else if (f.t === "number") out.push(h2("label", { class: "f" }, f.label, helpBtn(f.label), h2("input", { type: "number", value: getP(obj, f.k) ?? 0, min: f.min, max: f.max, step: f.step || 1, oninput: live((t2) => {
         const v = parseFloat(t2.value);
         if (!isNaN(v)) setP(obj, f.k, v);
       }) })));
@@ -5089,17 +5216,17 @@ ${lorem}` },
         out.push(h2(
           "div",
           { class: "f" },
-          h2("div", { class: "hint", textContent: f.label }),
+          h2("div", { class: "hint" }, f.label, helpBtn(f.label)),
           h2("div", { class: "row fmt" }, tb("H1", t("Titre 1 (grand)"), 1), tb("H2", t("Titre 2 (moyen)"), 2), tb("Aa", t("Texte courant"), 3)),
           ta,
           h2("div", { class: "hint", textContent: t("Une ligne par paragraphe. {total} = somme des valeurs. Le texte passe \xE0 la ligne et ne d\xE9passe jamais l\u2019anneau.") })
         ));
-      } else if (f.t === "bool") out.push(h2("label", { class: "row", style: { marginBottom: "8px" } }, h2("input", { type: "checkbox", checked: !!getP(obj, f.k), onchange: live((t2) => setP(obj, f.k, t2.checked)) }), f.label));
+      } else if (f.t === "bool") out.push(h2("label", { class: "row", style: { marginBottom: "8px" } }, h2("input", { type: "checkbox", checked: !!getP(obj, f.k), onchange: live((t2) => setP(obj, f.k, t2.checked)) }), f.label, helpBtn(f.label)));
       else if (f.t === "select" || f.t === "color") {
         const opts = f.t === "color" ? palOpts : f.options;
         const sel = h2("select", { onchange: live((t2) => setP(obj, f.k, t2.value)) }, Object.entries(opts).map(([v, l]) => h2("option", { value: v, textContent: l })));
         sel.value = getP(obj, f.k) ?? Object.keys(opts)[0];
-        out.push(h2("label", { class: "f" }, f.label, sel));
+        out.push(h2("label", { class: "f" }, f.label, helpBtn(f.label), sel));
       } else if (f.t === "list") {
         const arr = obj[f.k] || (obj[f.k] = []);
         const box = h2("div", {}, h2("div", { class: "hint", textContent: f.label }));
@@ -5217,19 +5344,19 @@ ${lorem}` },
       o.hmode = e.target.value;
       ctx2.restructure();
     } }, modes.map((m2) => h("option", { value: m2, textContent: t(MODE_LABELS[m2]), selected: m2 === mode })));
-    const num2 = (k, label, def, min2, max2, step = 3) => h("label", { class: "f" }, label, h("input", { type: "number", value: o[k] ?? def, min: min2, max: max2, step, oninput: (e) => {
+    const num2 = (k, label, def, min2, max2, step = 3) => h("label", { class: "f" }, t(label), helpBtn(label), h("input", { type: "number", value: o[k] ?? def, min: min2, max: max2, step, oninput: (e) => {
       const v = parseFloat(e.target.value);
       if (!isNaN(v)) {
         o[k] = v;
         ctx2.changed();
       }
     } }));
-    const nodes = [h("label", { class: "f" }, t("Hauteur"), sel)];
+    const nodes = [h("label", { class: "f" }, t("Hauteur"), helpBtn("Hauteur"), sel)];
     if (mode === "ratio" && rf) nodes.push(...buildFields([rf], o, ctx2, {}, h));
-    if (mode === "fixed") nodes.push(num2("hfixed", t("Hauteur du graphique (px)"), Math.round(width * 0.5625 / 3) * 3, 90, 900));
+    if (mode === "fixed") nodes.push(num2("hfixed", "Hauteur du graphique (px)", Math.round(width * 0.5625 / 3) * 3, 90, 900));
     if (mode === "fill") {
-      nodes.push(num2("hmin", t("Hauteur minimale (px)"), 120, 90, 900), num2("hmax", t("Hauteur maximale (px)"), 600, 90, 900));
-      if (avail) nodes.push(h("label", { class: "f" }, t("Place disponible pour cet aper\xE7u (px)"), h("input", { type: "number", value: avail.get(), min: 90, max: 1200, step: 15, oninput: (e) => {
+      nodes.push(num2("hmin", "Hauteur minimale (px)", 120, 90, 900), num2("hmax", "Hauteur maximale (px)", 600, 90, 900));
+      if (avail) nodes.push(h("label", { class: "f" }, t("Place disponible pour cet aper\xE7u (px)"), helpBtn("Place disponible pour cet aper\xE7u (px)"), h("input", { type: "number", value: avail.get(), min: 90, max: 1200, step: 15, oninput: (e) => {
         const v = parseFloat(e.target.value);
         if (!isNaN(v)) avail.set(v);
       } })));
@@ -5255,7 +5382,7 @@ ${lorem}` },
       fn();
       ctx2.restructure();
     };
-    const field = (label, input) => h("label", { class: "f" }, label, input);
+    const field = (label, input) => h("label", { class: "f" }, label, helpBtn(label), input);
     const text = (obj, k, label, ph) => field(label, multiline(h, obj[k] || "", live((v) => {
       obj[k] = v;
     }), ph || ""));
@@ -5284,7 +5411,7 @@ ${lorem}` },
       return h(
         "div",
         { class: "f" },
-        h("div", { class: "hint", textContent: label }),
+        h("div", { class: "hint" }, label, helpBtn(label)),
         h("div", { class: "swrow" }, withNone ? none : null, ...solid.map(dot), pal),
         light.length ? h("div", { class: "swrow" }, withNone ? gap() : null, ...lightRow) : null
       );
@@ -5484,7 +5611,7 @@ ${lorem}` },
       );
     };
     const switchBtn = (on, label, fn) => h("button", { type: "button", role: "switch", "aria-checked": String(!!on), "aria-label": label, class: "pp-switch" + (on ? " on" : ""), onclick: fn });
-    const switchRow = (label, on, fn) => h("div", { class: "pp-switchrow" }, h("span", { textContent: label }), switchBtn(on, label, struct(fn)));
+    const switchRow = (label, on, fn) => h("div", { class: "pp-switchrow" }, h("span", {}, label, helpBtn(label)), switchBtn(on, label, struct(fn)));
     const card = (id, icon, name, nodes, toggle) => cardEl(id, icon, name, nodes, { shut, refresh: ctx2.refreshProps, live: !toggle || toggle.on, toggle: toggle ? switchBtn(toggle.on, name, struct(toggle.set)) : null });
     const btn = (icon, label, fn, cls = "") => h("button", { type: "button", class: "pp-btn " + cls, onclick: fn }, ico(icon), h("span", { textContent: label }));
     const boxControls = (obj, fillLabel = "Fond") => [
@@ -6264,7 +6391,7 @@ ${lorem}` },
     addSubBtn.addEventListener("click", () => {
       const { si, bi } = addSubBtn._at, doc2 = getDoc();
       doc2.sections[si].subs.splice(bi + 1, 0, newSub("1"));
-      hide();
+      hide2();
       ctx2.restructure();
       ctx2.select(`sub:${si}:${bi + 1}`);
     });
@@ -6272,19 +6399,19 @@ ${lorem}` },
       const at = addSecBtn._at, doc2 = getDoc();
       if (at.page) {
         doc2.sections.push(newSection(at.page));
-        hide();
+        hide2();
         ctx2.restructure();
         ctx2.select(`sec:${doc2.sections.length - 1}`);
         return;
       }
       doc2.sections.splice(at.si + 1, 0, newSection(doc2.sections[at.si].page));
-      hide();
+      hide2();
       ctx2.restructure();
       ctx2.select(`sec:${at.si + 1}`);
     });
     document.body.append(out, bar, addSubBtn, addSecBtn);
     let timer = 0, cur = null;
-    const hide = () => {
+    const hide2 = () => {
       clearTimeout(timer);
       bar.style.display = out.style.display = addSubBtn.style.display = addSecBtn.style.display = "none";
       cur = null;
@@ -6292,12 +6419,12 @@ ${lorem}` },
     const later = () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
-        if (!bar.contains(document.activeElement)) hide();
+        if (!bar.contains(document.activeElement)) hide2();
       }, 250);
     };
     const act = (fn) => () => {
       fn();
-      hide();
+      hide2();
       ctx2.restructure();
     };
     const sw = (key, on, title, fn) => h("button", { type: "button", class: "hv-sw" + (on ? " on" : "") + (key === "none" ? " none" : ""), title, style: key === "none" ? {} : { background: `var(--c-${key})` }, onclick: act(fn) });
@@ -6309,7 +6436,7 @@ ${lorem}` },
     function groups(chain, doc2) {
       const it = chain[0], g = [];
       const del = (path) => h("button", { type: "button", class: "mini danger", title: t("Supprimer (Suppr)"), "aria-label": t("Supprimer (Suppr)"), onclick: () => {
-        hide();
+        hide2();
         ctx2.remove(path);
       } }, ico("trash"));
       if (it.kind === "col") {
@@ -6380,7 +6507,7 @@ ${lorem}` },
     }
     stage2.addEventListener("pointermove", (e) => {
       if (!canShow() || e.buttons) {
-        if (e.buttons) hide();
+        if (e.buttons) hide2();
         return;
       }
       const t2 = e.target.closest ? e.target : null;
@@ -6427,7 +6554,7 @@ ${lorem}` },
       if (secIt) {
         const sec = doc2.sections[secIt.si], pageEl2 = secIt.el.closest(".page"), pr = pageEl2.getBoundingClientRect(), sc = pr.width / PAGE.w, limit = pr.bottom - PAGE.marginBottom * sc;
         const subH = TYPE.subsection.lh + GAP.subsectionTitle + TYPE.body.lh, secH = TYPE.section.lh + GAP.sectionTitle + subH;
-        const place2 = (b, it, inset, top2, want) => {
+        const place3 = (b, it, inset, top2, want) => {
           const hh = Math.min(want * sc, limit - top2);
           if (hh < 20) return 0;
           const q = it.el.getBoundingClientRect();
@@ -6440,9 +6567,9 @@ ${lorem}` },
         if (lastSec) {
           if (subIt && subIt.bi === sec.subs.length - 1) {
             const sb = subIt.el.getBoundingClientRect();
-            y = place2(addSubBtn, subIt, 0, sb.bottom + GAP.subsectionBefore * sc, subH) || y;
+            y = place3(addSubBtn, subIt, 0, sb.bottom + GAP.subsectionBefore * sc, subH) || y;
           }
-          place2(addSecBtn, secIt, PAGE.margin * sc, y + GAP.sectionBefore * sc, secH);
+          place3(addSecBtn, secIt, PAGE.margin * sc, y + GAP.sectionBefore * sc, secH);
         }
       }
       const GAPX = 3, gx = chain[0].kind === "sec" ? 0 : GAPX;
@@ -6453,8 +6580,8 @@ ${lorem}` },
       el2.addEventListener("pointerenter", () => clearTimeout(timer));
       el2.addEventListener("pointerleave", later);
     }
-    stage2.addEventListener("scroll", hide, true);
-    return { hide };
+    stage2.addEventListener("scroll", hide2, true);
+    return { hide: hide2 };
   }
 
   // src/export.js
