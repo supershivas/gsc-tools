@@ -68,10 +68,25 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     stage.style.setProperty('--ve-h', '0px');
     requestAnimationFrame(() => { scaler.style.marginBottom = (sheet.offsetHeight * (k - 1)) + 'px'; scaler.style.marginRight = ((width + 48) * (k - 1)) + 'px'; });
   }
-  const changed = () => { draw(); ctx.changed(); };
+  /* Historique propre à l'éditeur : chaque changement de type (ou autre restructuration) est un pas à part, la frappe est regroupée sur 1 s */
+  const hist = { s: [snapshot], i: 0, at: 0, burst: false };
+  const rec = burst => {
+    const sn = JSON.stringify(col.viz); if (sn === hist.s[hist.i]) return;
+    const now = Date.now();
+    if (burst && hist.burst && hist.i === hist.s.length - 1 && hist.i > 0 && now - hist.at < 1000) hist.s[hist.i] = sn;
+    else { hist.s.length = hist.i + 1; hist.s.push(sn); hist.i = hist.s.length - 1; if (hist.s.length > 100) { hist.s.shift(); hist.i--; } }
+    hist.at = now; hist.burst = burst;
+  };
+  const syncHist = () => { undoBtn.disabled = hist.i <= 0; redoBtn.disabled = hist.i >= hist.s.length - 1; };
+  const goHist = i => {
+    if (i < 0 || i >= hist.s.length) return;
+    hist.i = i; hist.burst = false; col.viz = JSON.parse(hist.s[i]); ui.sel = -1;
+    buildForm(); draw(); ctx.changed(); syncHist();
+  };
+  const changed = () => { draw(); rec(true); ctx.changed(); syncHist(); };
 
   /* ----- formulaire ----- */
-  const fctx = { changed, restructure: () => { buildForm(); changed(); } };
+  const fctx = { changed, restructure: () => { buildForm(); draw(); rec(false); ctx.changed(); syncHist(); } };
   /* La fenêtre des couleurs agit sur le document : l'éditeur se redessine avec les nouvelles couleurs */
   const palCtx = { getDoc: ctx.getDoc,
     changed: () => { applyVars(root, cssVars(doc.theme, doc.colors)); draw(); ctx.changed(); },
@@ -165,11 +180,20 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     window.removeEventListener('keydown', onKey); root.remove(); current = null; document.body.classList.remove('ve-open');
     ctx.restructure();
   };
-  const onKey = e => { if (e.key === 'Escape') close(false); };
+  const onKey = e => {
+    if (e.key === 'Escape') { close(false); return; }
+    const tg = e.target;
+    if (!(e.metaKey || e.ctrlKey) || e.altKey || /INPUT|TEXTAREA|SELECT/.test(tg.tagName || '') || tg.isContentEditable) return;
+    const k = e.key.toLowerCase();
+    if (k === 'z') { e.preventDefault(); goHist(hist.i + (e.shiftKey ? 1 : -1)); } else if (k === 'y') { e.preventDefault(); goHist(hist.i + 1); }
+  };
   window.addEventListener('keydown', onKey);
 
+  const undoBtn = h('button', { type: 'button', class: 've-hist', title: t('Annuler (Cmd/Ctrl + Z)'), 'aria-label': t('Annuler la dernière modification'), onclick: () => goHist(hist.i - 1) }, ico('arrow-back-up'));
+  const redoBtn = h('button', { type: 'button', class: 've-hist', title: t('Rétablir (Cmd/Ctrl + Maj + Z)'), 'aria-label': t('Rétablir la modification annulée'), onclick: () => goHist(hist.i + 1) }, ico('arrow-forward-up'));
+  syncHist();
   root.append(
-    h('div', { class: 've-bar' }, h('strong', { textContent: 'Éditeur de dataviz' }),
+    h('div', { class: 've-bar' }, h('strong', { textContent: 'Éditeur de dataviz' }), undoBtn, redoBtn,
       h('label', { class: 'zoom' }, 'Aperçu à la largeur ', wSel), h('label', { class: 'zoom' }, 'Zoom ', zSel),
       h('span', { style: { flex: 1 } }),
       h('button', { type: 'button', textContent: 'Annuler', onclick: () => close(false) }),

@@ -415,3 +415,7 @@ textarea.dg-ml{display:block;width:100%;min-width:90px;border:0;border-radius:0;
 /* gabarit de colonnes : schéma + libellé */
 .ls-schema{flex:none;color:var(--ui-blue)}.ls-btn .ls-schema{margin-right:2px}.ls-pop{grid-template-columns:1fr}
 .cs-opt .ls-schema{color:var(--ui-mute)}.cs-opt.on .ls-schema{color:var(--ui-blue)}
+
+.re.re-line{min-height:36px;max-height:160px}
+.cs-glyph{flex:none;width:20px;height:20px;color:var(--ui-blue)}.cs-opt .cs-glyph{color:var(--ui-mute)}.cs-opt.on .cs-glyph{color:var(--ui-blue)}
+.ve-hist{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center}.ve-hist:disabled{opacity:.35;cursor:default}

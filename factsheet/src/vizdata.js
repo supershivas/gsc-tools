@@ -4,6 +4,7 @@
 import { h, ico } from './render.js';
 import { t } from './i18n.js';
 import { colorSelect } from './colorselect.js';
+import { iconSelect } from './iconselect.js';
 
 const num = c => { const n = parseFloat(String(c).replace(/\s/g, '').replace(',', '.')); return isNaN(n) ? null : n; };
 
@@ -64,7 +65,7 @@ export function recordsAdapter(spec, obj, palOpts) {
   const conv = (c, v) => c.t === 'number' ? (num(v) ?? 0) : c.t === 'color' ? (palOpts[v] ? v : c.auto ? '' : c.def || 'blue') : v;
   const blank = () => Object.fromEntries(cols.map(c => [c.k, c.def ?? (c.t === 'number' ? 0 : '')]));
   return {
-    cols: cols.map(c => ({ name: c.label, type: c.t === 'number' ? 'number' : 'text', ml: !!c.ml, select: c.t === 'color' ? (c.auto ? { '': t('Auto'), ...palOpts } : palOpts) : c.options || null, isColor: c.t === 'color' })),
+    cols: cols.map(c => ({ name: c.label, type: c.t === 'number' ? 'number' : 'text', ml: !!c.ml, select: c.t === 'color' ? (c.auto ? { '': t('Auto'), ...palOpts } : palOpts) : c.options || null, isColor: c.t === 'color', isIcon: !!c.icons })),
     rows: () => rows.length,
     get: (i, j) => String(rows[i][cols[j].k] ?? ''),
     set: (i, j, v) => { rows[i][cols[j].k] = conv(cols[j], v); },
@@ -116,6 +117,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data' } = {}) {
   const cell = (i, j) => {
     const c = ad.cols[j], v = ad.get(i, j);
     const common = { 'data-r': i, 'data-c': j };
+    if (c.isIcon) return h('td', {}, iconSelect({ value: v || 'none', options: c.select, text: true, root: ad.root, onChange: nv => { ad.set(i, j, nv); ctx.changed(); } }));
     if (c.isColor) return h('td', {}, colorSelect({ value: v, options: c.select, text: true, onChange: nv => { ad.set(i, j, nv); ctx.changed(); } }));
     if (c.select) {
       const s = h('select', { ...common, onchange: e => { ad.set(i, j, e.target.value); ctx.changed(); } }, Object.entries(c.select).map(([k, l]) => h('option', { value: k, textContent: l })));

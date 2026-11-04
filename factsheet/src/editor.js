@@ -3,6 +3,7 @@ import { h, inline, ico } from './render.js';
 import { t } from './i18n.js';
 import { helpBtn } from './help.js';
 import { colorSelect } from './colorselect.js';
+import { iconSelect } from './iconselect.js';
 import { GRID, THEMES, paletteKeys, sectionBgs, colorLabel } from './tokens.js';
 import { COL_TYPES, IMAGE_RATIOS, LOCALES, newCol, newSub, newSection, uid, moveSection, stepSection } from './state.js';
 import { VIZ_TYPES, VIZ_OPTIONS, newViz } from './viz/index.js';
@@ -95,15 +96,16 @@ function htmlToMk(root) {
   flush(false);
   return lines.join('\n');
 }
-export function richEditor(value, onChange) {
+export function richEditor(value, onChange, opts = {}) {
   const ed = h('div', { class: 're', contentEditable: 'true', spellcheck: 'true', innerHTML: mkToHtml(value) });
   const cmd = c => () => { ed.focus(); document.execCommand(c); onChange(htmlToMk(ed)); sync(); };
   const mk = (label, title, c, style) => { const b = h('button', { type: 'button', class: 'mini', textContent: label, title, style, dataset: { cmd: c }, onmousedown: e => e.preventDefault(), onclick: cmd(c) }); return b; };
-  const bar = h('div', { class: 'row fmt' }, mk('B', 'Gras', 'bold', { fontWeight: 800 }), mk('I', 'Italique', 'italic', { fontStyle: 'italic' }), mk('U', 'Souligné', 'underline', { textDecoration: 'underline' }), (() => { const b = mk('', 'Liste à puces', 'insertUnorderedList'); b.append(ico('list')); return b; })());
+  const bar = h('div', { class: 'row fmt' }, mk('B', 'Gras', 'bold', { fontWeight: 800 }), mk('I', 'Italique', 'italic', { fontStyle: 'italic' }), mk('U', 'Souligné', 'underline', { textDecoration: 'underline' }), opts.bullets === false ? null : (() => { const b = mk('', 'Liste à puces', 'insertUnorderedList'); b.append(ico('list')); return b; })());
   const sync = () => bar.querySelectorAll('[data-cmd]').forEach(b => { let on = false; try { on = document.queryCommandState(b.dataset.cmd); } catch (e) {} b.classList.toggle('on', on); });
   ed.addEventListener('input', () => onChange(htmlToMk(ed)));
   ed.addEventListener('keyup', sync); ed.addEventListener('mouseup', sync); ed.addEventListener('focus', sync);
   ed.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain')); });
+  if (opts.bullets === false) ed.classList.add('re-line');
   return h('div', { class: 're-wrap' }, bar, ed);
 }
 
@@ -111,7 +113,8 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
   const out = [];
   const live = fn => e => { fn(e.target); ctx.changed(); };
   for (const f of spec) {
-    if (f.t === 'text') out.push(h2('label', { class: 'f' }, f.label, helpBtn(f.label), f.k === 'suffix' || f.single ? h2('input', { type: 'text', value: getP(obj, f.k) ?? '', oninput: live(t => setP(obj, f.k, t.value)) }) : multiline(h2, getP(obj, f.k), e => { setP(obj, f.k, e.target.value); ctx.changed(); })));
+    if ((f.t === 'text' || f.t === 'lines') && f.rich) out.push(h2('div', { class: 'f' }, h2('div', { class: 'hint' }, f.label, helpBtn(f.label)), richEditor(getP(obj, f.k) ?? '', v => { setP(obj, f.k, v); ctx.changed(); }, { bullets: false })));
+    else if (f.t === 'text') out.push(h2('label', { class: 'f' }, f.label, helpBtn(f.label), f.k === 'suffix' || f.single ? h2('input', { type: 'text', value: getP(obj, f.k) ?? '', oninput: live(t => setP(obj, f.k, t.value)) }) : multiline(h2, getP(obj, f.k), e => { setP(obj, f.k, e.target.value); ctx.changed(); })));
     else if (f.t === 'area') out.push(h2('div', { class: 'f' }, h2('div', { class: 'hint', textContent: f.label }), richEditor(getP(obj, f.k) ?? '', v => { setP(obj, f.k, v); ctx.changed(); })));
     else if (f.t === 'lines') out.push(h2('label', { class: 'f' }, f.label, h2('textarea', { value: getP(obj, f.k) ?? '', style: { minHeight: '64px' }, oninput: live(t => setP(obj, f.k, t.value)) })));
     else if (f.t === 'number') out.push(h2('label', { class: 'f' }, f.label, helpBtn(f.label), h2('input', { type: 'number', value: getP(obj, f.k) ?? 0, min: f.min, max: f.max, step: f.step || 1, oninput: live(t => { const v = parseFloat(t.value); if (!isNaN(v)) setP(obj, f.k, v); }) })));
@@ -130,6 +133,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
     }
     else if (f.t === 'bool') out.push(h2('label', { class: 'row', style: { marginBottom: '8px' } }, h2('input', { type: 'checkbox', checked: !!getP(obj, f.k), onchange: live(t => setP(obj, f.k, t.checked)) }), f.label, helpBtn(f.label)));
     else if (f.t === 'color') out.push(h2('div', { class: 'f' }, h2('div', { class: 'hint' }, f.label, helpBtn(f.label)), colorSelect({ value: getP(obj, f.k) ?? 'blue', options: palOpts, text: true, onChange: v => { setP(obj, f.k, v); ctx.changed(); } })));
+    else if (f.t === 'select' && f.icons) { const opts = typeof f.options === 'function' ? f.options(root) : f.options; out.push(h2('div', { class: 'f' }, h2('div', { class: 'hint' }, f.label, helpBtn(f.label)), iconSelect({ value: getP(obj, f.k) ?? Object.keys(opts)[0], options: opts, text: true, root, onChange: v => { setP(obj, f.k, v); ctx.changed(); } }))); }
     else if (f.t === 'select') {
       const opts = typeof f.options === 'function' ? f.options(root) : f.options;
       const sel = h2('select', { onchange: live(t => setP(obj, f.k, t.value)) }, Object.entries(opts).map(([v, l]) => h2('option', { value: v, textContent: l })));

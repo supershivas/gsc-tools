@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.45.0 — 2026-11-04
+- Éditeur de dataviz : annuler / rétablir (boutons et Cmd/Ctrl + Z), y compris le changement de type, pour revenir exactement où l'on en était
+- Liste à icônes, chiffre clé : texte avec gras, italique, souligné et retours à la ligne, aussi dans les titres, cartes et légendes
+- Choix d'icône avec aperçu (icône + nom) dans la liste à icônes, la waffle, les pictogrammes, le chiffre clé et les cartes
+
 ## 1.44.0 — 2026-11-04
 - Chiffre à côté aussi pour les contenus texte et les cartes (carte « Chiffre à côté » dans les propriétés de la colonne)
 - Liste à icônes : import d'icônes SVG (nettoyées, stockées dans le JSON) proposées dans le choix d'icône de chaque élément, et taille réglable (normal, grand, très grand) pour les icônes et le texte

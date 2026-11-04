@@ -1,7 +1,7 @@
 /* Carte (card) : prototype pour le Labo — pas encore branchée dans l'éditeur.
    Toutes les options sont des interrupteurs : image (haut / gauche / droite, avec ou sans marge), icône (au-dessus ou à côté du titre,
    pictogramme ou pastille), étiquette, titre, chiffre, texte, puces, lien, contour, fond blanc, alignement. */
-import { h, richText } from './render.js';
+import { h, richText, inline } from './render.js';
 import { figureIcon } from './figure.js';
 import { insetW, GAP } from './tokens.js';
 import { SAMPLE } from './cardmodel.js';
@@ -19,13 +19,13 @@ export function renderCard(o, W) {
   const iconAbove = o.icon && !o.iconInline ? h('div', { class: 'card-ico' }, figureIcon(o.iconName, GAP.boxPad * 4, o.iconCircle)) : null;
   const iconInline = o.icon && o.iconInline ? figureIcon(o.iconName, GAP.boxPad * 2, o.iconCircle) : null;
   const body = h('div', { class: 'card-body' },
-    o.tag ? h('div', { class: 'card-tag', textContent: C.tag }) : null,
+    o.tag ? h('div', { class: 'card-tag', innerHTML: inline(C.tag) }) : null,
     iconAbove,
-    o.title || iconInline ? h('div', { class: 'card-head' }, iconInline, o.title ? h('h3', { class: 'card-title', textContent: C.title }) : null) : null,
-    o.figure ? h('div', { class: 'vf-value', textContent: C.figure }) : null,
+    o.title || iconInline ? h('div', { class: 'card-head' }, iconInline, o.title ? h('h3', { class: 'card-title', innerHTML: inline(C.title) }) : null) : null,
+    o.figure ? h('div', { class: 'vf-value', innerHTML: inline(C.figure) }) : null,
     o.text ? richText(C.text, o.align === 'center' ? 'center' : 'left') : null,
-    o.bullets ? h('ul', { class: 'card-list' }, bullets.map(b => h('li', { textContent: b }))) : null,
-    o.link ? h('div', { class: 'card-link' }, C.link, h('i', { class: 'ti ti-arrow-right' })) : null);
+    o.bullets ? h('ul', { class: 'card-list' }, bullets.map(b => h('li', { innerHTML: inline(b) }))) : null,
+    o.link ? h('div', { class: 'card-link' }, h('span', { innerHTML: inline(C.link) }), h('i', { class: 'ti ti-arrow-right' })) : null);
   if (o.layout === 'vertical' || !pic) card.append(...[pic, body].filter(Boolean));
   else card.append(...(o.layout === 'left' ? [pic, body] : [body, pic]));
   card.style.width = W + 'px';

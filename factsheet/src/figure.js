@@ -1,6 +1,6 @@
 /* Chiffre clé : type de contenu à part (pas une dataviz). Grand chiffre en Source Serif 4, éventuellement précédé d'une icône,
    texte en dessous. Le contour éventuel est celui de la colonne (voir render.js). */
-import { el, s, SW, SERIF, pxOf, fitSize } from './viz/util.js';
+import { el, s, SW, SERIF, pxOf, fitSize, inlineMk, stripMk } from './viz/util.js';
 import { ICONS, ICON_OPTIONS } from './viz/icons.js';
 import { TYPE, VIZ } from './tokens.js';
 
@@ -9,8 +9,8 @@ export const FIGURE_DEFAULTS = () => ({
   text: 'Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim',
 });
 export const FIGURE_FIELDS = [
-  { k: 'value', t: 'text', label: 'Chiffre (texte libre : « 5 000 », « 64 % »…)' },
-  { k: 'icon', t: 'select', label: 'Icône devant le chiffre', options: { none: 'Aucune', ...ICON_OPTIONS } },
+  { k: 'value', t: 'text', rich: true, label: 'Chiffre (texte libre : « 5 000 », « 64 % »…)' },
+  { k: 'icon', t: 'select', label: 'Icône devant le chiffre', options: { none: 'Aucune', ...ICON_OPTIONS }, icons: true },
   { k: 'iconStyle', t: 'select', label: 'Style de l’icône', options: { plain: 'Pictogramme seul', circle: 'Dans une pastille' } },
   { k: 'text', t: 'area', label: 'Texte' },
 ];
@@ -30,10 +30,10 @@ export function figureIcon(key, size, circle) {
 export function renderFigure(o, W, align) {
   const base0 = pxOf(TYPE.figure.size), base = base0 * (+o.scale || 1), lh = TYPE.figure.lh, icon = o.icon && o.icon !== 'none' ? figureIcon(o.icon, lh, o.iconStyle === 'circle') : null;
   const avail = (W || 9999) - (icon ? lh + VIZ.iconGap : 0) - 1;
-  const fs = fitSize(o.value || '', TYPE.figure.weight, SERIF, base, avail, 0.4);
+  const fs = fitSize(stripMk(o.value), TYPE.figure.weight, SERIF, base, avail, 0.4);
   const jc = { center: 'center', right: 'flex-end' }[align] || 'flex-start';
   const head = el('div', { class: 'fg-head', style: { justifyContent: jc } }, icon,
-    el('div', { class: 'vf-value', textContent: o.value || '', style: fs !== base0 ? { fontSize: fs + 'px', lineHeight: 1.1, whiteSpace: 'nowrap' } : {} }));
+    el('div', { class: 'vf-value', innerHTML: inlineMk(o.value), style: fs !== base0 ? { fontSize: fs + 'px', lineHeight: 1.1, whiteSpace: 'nowrap' } : {} }));
   return el('div', { class: 'fg', style: align && align !== 'left' ? { textAlign: align } : {} }, head,
-    o.text && o.text.trim() ? el('div', { class: 'vf-text', innerHTML: esc(o.text) }) : null);
+    o.text && o.text.trim() ? el('div', { class: 'vf-text', innerHTML: inlineMk(o.text) }) : null);
 }

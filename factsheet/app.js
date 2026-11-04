@@ -392,6 +392,10 @@
     "Annuler": "Cancel",
     "Exporter": "Export",
     "Terminer": "Done",
+    "Annuler (Cmd/Ctrl + Z)": "Undo (Cmd/Ctrl + Z)",
+    "Annuler la derni\xE8re modification": "Undo the last change",
+    "R\xE9tablir (Cmd/Ctrl + Maj + Z)": "Redo (Cmd/Ctrl + Shift + Z)",
+    "R\xE9tablir la modification annul\xE9e": "Redo the undone change",
     "Le navigateur ouvre sa fen\xEAtre d\u2019impression : choisissez": "The browser opens its print window: choose",
     "Enregistrer au format PDF": "Save as PDF",
     "comme destination,": "as destination,",
@@ -1429,6 +1433,8 @@
     if (!env || !env.ui) return null;
     return s("rect", { x, y, width: Math.max(1, w), height: Math.max(1, h2), fill: "rgba(0,0,0,0)", "data-reorder": `${key}:${i}`, "data-axis": axis, style: { cursor: "grab" } });
   }
+  var inlineMk = (t2) => String(t2 ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/__(.+?)__/g, "<u>$1</u>").replace(/~~(.+?)~~/g, "<i>$1</i>");
+  var stripMk = (t2) => String(t2 ?? "").replace(/\*\*|__|~~/g, "");
 
   // src/viz/donut.js
   var BODY = pxOf(TYPE.body.size);
@@ -1905,6 +1911,89 @@
   };
   var ICON_OPTIONS = Object.fromEntries(Object.entries(ICONS).map(([k, v]) => [k, v.label]));
 
+  // src/colorselect.js
+  var FALLBACK = cssVars(DEFAULT_THEME, {});
+  var dot = (k) => h("i", { class: "cs-dot" + (k === "" ? " auto" : ""), style: k === "" ? {} : { background: `var(--c-${k}, ${FALLBACK["--c-" + k] || "transparent"})` } });
+  var open = null;
+  var close = () => {
+    if (!open) return;
+    const o = open;
+    open = null;
+    document.removeEventListener("pointerdown", o.away, true);
+    document.removeEventListener("keydown", o.key, true);
+    o.pop.remove();
+    o.btn.setAttribute("aria-expanded", "false");
+  };
+  function richSelect({ value: value2, options, onChange, text = false, lead }) {
+    let cur = value2;
+    const label = (k) => k === "" ? t("Auto") : t(options[k] ?? k);
+    const btn = h("button", { type: "button", class: "cs" + (text ? " cs-text" : ""), "aria-haspopup": "listbox", "aria-expanded": "false", title: label(cur) });
+    const paint = () => {
+      btn.replaceChildren(...[lead(cur), text ? h("span", { class: "cs-lab", textContent: label(cur) }) : null, ico("chevron-down")].filter(Boolean));
+      btn.title = label(cur);
+    };
+    paint();
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (open && open.btn === btn) {
+        close();
+        return;
+      }
+      close();
+      const pop2 = h("div", { class: "cs-pop", role: "listbox" }, Object.keys(options).map((k) => h("button", {
+        type: "button",
+        role: "option",
+        class: "cs-opt" + (k === cur ? " on" : ""),
+        "aria-selected": String(k === cur),
+        onclick: () => {
+          cur = k;
+          paint();
+          close();
+          onChange(k);
+        }
+      }, lead(k), h("span", { textContent: label(k) }))));
+      (btn.closest(".ve, .props, .panel, .labo-opts") || document.body).append(pop2);
+      const r = btn.getBoundingClientRect(), w = Math.min(320, Math.max(300, r.width)), hh = pop2.offsetHeight;
+      Object.assign(pop2.style, { width: w + "px", left: Math.max(8, Math.min(window.innerWidth - w - 8, r.left)) + "px", top: (r.bottom + hh + 12 > window.innerHeight ? Math.max(8, r.top - hh - 4) : r.bottom + 4) + "px" });
+      btn.setAttribute("aria-expanded", "true");
+      const away = (ev) => {
+        if (!pop2.contains(ev.target) && !btn.contains(ev.target)) close();
+      }, key = (ev) => {
+        if (ev.key === "Escape") {
+          ev.stopPropagation();
+          close();
+        }
+      };
+      document.addEventListener("pointerdown", away, true);
+      document.addEventListener("keydown", key, true);
+      open = { pop: pop2, btn, away, key };
+    });
+    return btn;
+  }
+  var colorSelect = (o) => richSelect({ ...o, lead: dot });
+
+  // src/iconselect.js
+  function iconGlyph(key, root, size = 20) {
+    const svg = s("svg", { width: size, height: size, viewBox: "0 0 24 24", class: "cs-glyph", "aria-hidden": "true" });
+    const stroke = (d) => s("path", { d, fill: "none", stroke: "currentColor", "stroke-width": 1.7, "stroke-linecap": "round", "stroke-linejoin": "round" });
+    const k = String(key ?? "");
+    if (k === "none" || k === "") {
+      svg.append(s("circle", { cx: 12, cy: 12, r: 8, fill: "none", stroke: "currentColor", "stroke-width": 1.5, opacity: 0.45 }), s("path", { d: "M6.5 17.5l11-11", stroke: "currentColor", "stroke-width": 1.5, opacity: 0.45 }));
+    } else if (k === "cross") svg.append(stroke("M6 6l12 12M18 6L6 18"));
+    else if (k === "dot") svg.append(s("circle", { cx: 12, cy: 12, r: 4.5, fill: "currentColor" }));
+    else if (k === "check") svg.append(stroke("M5 12.5l4.5 4.5L19 7.5"));
+    else if (k.startsWith("picto:")) {
+      const p = PICTOS[k.slice(6)];
+      if (p) svg.append(s("path", { d: p.d, fill: "currentColor" }));
+    } else if (k.startsWith("custom:")) svg.append(iconNode(root || {}, k, 0, 0, 24, 24, "text"));
+    else {
+      const ic = ICONS[k.startsWith("icon:") ? k.slice(5) : k];
+      if (ic) svg.append(stroke(ic.d));
+    }
+    return svg;
+  }
+  var iconSelect = ({ root, ...o }) => richSelect({ ...o, lead: (k) => iconGlyph(k, root) });
+
   // src/viz/picto.js
   var PICTOS = {
     person: { label: "Personne", vb: [0, 0, 24, 24], d: "M12 2.5a4 4 0 1 0 0 8a4 4 0 1 0 0-8zM4.5 22v-5a7.5 7.5 0 0 1 15 0v5z" },
@@ -1984,10 +2073,10 @@
   }
   function pictoPanel(o, ctx2) {
     const choices = pictoChoices(o), ico2 = (n) => el("i", { class: "ti ti-" + n });
-    const sel = el("select", { onchange: (e) => {
-      o.icon = e.target.value;
+    const sel = iconSelect({ value: o.icon || "picto:person", options: choices, text: true, root: o, onChange: (v) => {
+      o.icon = v;
       ctx2.changed();
-    } }, Object.entries(choices).map(([v, l]) => el("option", { value: v, textContent: l, selected: o.icon === v })));
+    } });
     const inp = el("input", { type: "file", accept: ".svg,image/svg+xml", hidden: true, onchange: async () => {
       const f = inp.files[0];
       inp.value = "";
@@ -2012,7 +2101,7 @@
       } }, ico2("x"))
     ));
     return [
-      el("label", { class: "f" }, t("Pictogramme"), sel),
+      el("div", { class: "f" }, el("div", { class: "hint", textContent: t("Pictogramme") }), sel),
       el("button", { type: "button", class: "pp-btn", onclick: () => inp.click() }, ico2("upload"), el("span", { textContent: t("Importer un SVG\u2026") })),
       inp,
       el("label", { class: "row" }, el("input", { type: "checkbox", checked: o.recolor !== false, onchange: (e) => {
@@ -2191,7 +2280,7 @@
         min: 1,
         max: 8,
         item: () => ({ icon: "check", text: t("Nouvel \xE9l\xE9ment") }),
-        fields: [{ k: "icon", t: "select", label: "Ic\xF4ne", options: (root) => ({ ...ICON_OPTIONS, ...Object.fromEntries((root && root.customIcons || []).map((c2) => ["custom:" + c2.id, `${t("Import\xE9")} \xB7 ${c2.name}`])) }) }, { k: "text", t: "text", label: "Texte" }]
+        fields: [{ k: "icon", t: "select", icons: true, label: "Ic\xF4ne", options: (root) => ({ ...ICON_OPTIONS, ...Object.fromEntries((root && root.customIcons || []).map((c2) => ["custom:" + c2.id, `${t("Import\xE9")} \xB7 ${c2.name}`])) }) }, { k: "text", t: "text", rich: true, label: "Texte" }]
       }
     ],
     panel: iconImportPanel,
@@ -2208,7 +2297,7 @@
           s("circle", { cx: C / 2, cy: C / 2, r: C / 2 - SW / 2, fill: "none", stroke: "currentColor", "stroke-width": SW }),
           isCustom ? iconNode(o, it.icon, (C - G) / 2, (C - G) / 2, G, G, "text") : s("path", { d: ic.d, fill: "none", stroke: "currentColor", "stroke-width": SW / k, "stroke-linecap": "round", "stroke-linejoin": "round", transform: `translate(${(C - G) / 2} ${(C - G) / 2}) scale(${k})` })
         );
-        list.append(el("div", { class: "vi-row", style: { ...sc !== 1 ? { minHeight: C + "px" } : {}, ...env && env.ui ? { cursor: "grab" } : {} }, ...env && env.ui ? { "data-reorder": `items:${idx}`, "data-axis": "y" } : {} }, svg, el("div", { class: "vi-text", style: sc !== 1 ? { fontSize: bodyPx + "px", lineHeight: TYPE.body.lh * sc + "px" } : null, innerHTML: String(it.text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>") })));
+        list.append(el("div", { class: "vi-row", style: { ...sc !== 1 ? { minHeight: C + "px" } : {}, ...env && env.ui ? { cursor: "grab" } : {} }, ...env && env.ui ? { "data-reorder": `items:${idx}`, "data-axis": "y" } : {} }, svg, el("div", { class: "vi-text", style: sc !== 1 ? { fontSize: bodyPx + "px", lineHeight: TYPE.body.lh * sc + "px" } : null, innerHTML: inlineMk(it.text) })));
       });
       return { node: list };
     }
@@ -3931,7 +4020,7 @@
         { k: "label", label: "Libell\xE9", t: "text" },
         { k: "value", label: "Valeur", t: "number", def: 10 },
         { k: "color", label: "Couleur", t: "color", def: "blue" },
-        { k: "mark", label: "Rep\xE8re", t: "select", def: "none", options: MARKS },
+        { k: "mark", label: "Rep\xE8re", t: "select", def: "none", options: MARKS, icons: true },
         { k: "markColor", label: "Couleur du rep\xE8re", t: "color", def: "yellow" }
       ],
       item: () => ({ label: "", value: 10, color: "blue", mark: "none", markColor: "yellow" })
@@ -4099,12 +4188,11 @@
     text: "Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim"
   });
   var FIGURE_FIELDS = [
-    { k: "value", t: "text", label: "Chiffre (texte libre : \xAB 5 000 \xBB, \xAB 64 % \xBB\u2026)" },
-    { k: "icon", t: "select", label: "Ic\xF4ne devant le chiffre", options: { none: "Aucune", ...ICON_OPTIONS } },
+    { k: "value", t: "text", rich: true, label: "Chiffre (texte libre : \xAB 5 000 \xBB, \xAB 64 % \xBB\u2026)" },
+    { k: "icon", t: "select", label: "Ic\xF4ne devant le chiffre", options: { none: "Aucune", ...ICON_OPTIONS }, icons: true },
     { k: "iconStyle", t: "select", label: "Style de l\u2019ic\xF4ne", options: { plain: "Pictogramme seul", circle: "Dans une pastille" } },
     { k: "text", t: "area", label: "Texte" }
   ];
-  var esc = (t2) => String(t2 || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
   function figureIcon(key, size, circle) {
     const ic = ICONS[key];
     if (!ic) return null;
@@ -4119,19 +4207,19 @@
   function renderFigure(o, W, align) {
     const base0 = pxOf(TYPE.figure.size), base = base0 * (+o.scale || 1), lh = TYPE.figure.lh, icon = o.icon && o.icon !== "none" ? figureIcon(o.icon, lh, o.iconStyle === "circle") : null;
     const avail = (W || 9999) - (icon ? lh + VIZ.iconGap : 0) - 1;
-    const fs = fitSize(o.value || "", TYPE.figure.weight, SERIF, base, avail, 0.4);
+    const fs = fitSize(stripMk(o.value), TYPE.figure.weight, SERIF, base, avail, 0.4);
     const jc = { center: "center", right: "flex-end" }[align] || "flex-start";
     const head = el(
       "div",
       { class: "fg-head", style: { justifyContent: jc } },
       icon,
-      el("div", { class: "vf-value", textContent: o.value || "", style: fs !== base0 ? { fontSize: fs + "px", lineHeight: 1.1, whiteSpace: "nowrap" } : {} })
+      el("div", { class: "vf-value", innerHTML: inlineMk(o.value), style: fs !== base0 ? { fontSize: fs + "px", lineHeight: 1.1, whiteSpace: "nowrap" } : {} })
     );
     return el(
       "div",
       { class: "fg", style: align && align !== "left" ? { textAlign: align } : {} },
       head,
-      o.text && o.text.trim() ? el("div", { class: "vf-text", innerHTML: esc(o.text) }) : null
+      o.text && o.text.trim() ? el("div", { class: "vf-text", innerHTML: inlineMk(o.text) }) : null
     );
   }
 
@@ -4580,13 +4668,13 @@ ${short}`)])
     const body = h(
       "div",
       { class: "card-body" },
-      o.tag ? h("div", { class: "card-tag", textContent: C.tag }) : null,
+      o.tag ? h("div", { class: "card-tag", innerHTML: inline(C.tag) }) : null,
       iconAbove,
-      o.title || iconInline ? h("div", { class: "card-head" }, iconInline, o.title ? h("h3", { class: "card-title", textContent: C.title }) : null) : null,
-      o.figure ? h("div", { class: "vf-value", textContent: C.figure }) : null,
+      o.title || iconInline ? h("div", { class: "card-head" }, iconInline, o.title ? h("h3", { class: "card-title", innerHTML: inline(C.title) }) : null) : null,
+      o.figure ? h("div", { class: "vf-value", innerHTML: inline(C.figure) }) : null,
       o.text ? richText(C.text, o.align === "center" ? "center" : "left") : null,
-      o.bullets ? h("ul", { class: "card-list" }, bullets.map((b) => h("li", { textContent: b }))) : null,
-      o.link ? h("div", { class: "card-link" }, C.link, h("i", { class: "ti ti-arrow-right" })) : null
+      o.bullets ? h("ul", { class: "card-list" }, bullets.map((b) => h("li", { innerHTML: inline(b) }))) : null,
+      o.link ? h("div", { class: "card-link" }, h("span", { innerHTML: inline(C.link) }), h("i", { class: "ti ti-arrow-right" })) : null
     );
     if (o.layout === "vertical" || !pic) card.append(...[pic, body].filter(Boolean));
     else card.append(...o.layout === "left" ? [pic, body] : [body, pic]);
@@ -4610,8 +4698,7 @@ ${short}`)])
     for (const k of kids.flat()) if (k != null && k !== false) e.append(k);
     return e;
   }
-  var esc2 = (t2) => t2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  var inline = (t2) => esc2(t2).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/__(.+?)__/g, "<u>$1</u>").replace(/~~(.+?)~~/g, "<i>$1</i>");
+  var inline = inlineMk;
   function richText(text, align) {
     const root = h("div", { class: "rich", style: align && align !== "left" ? { textAlign: align } : {} });
     let ul = null;
@@ -4645,14 +4732,14 @@ ${short}`)])
     const top = h(
       "div",
       { class: "hd-top" },
-      h("div", { class: "hd-over", textContent: H.overline }),
+      h("div", { class: "hd-over", innerHTML: inline(H.overline) }),
       h("div", { class: "hd-rule" })
     );
     const bottom = h(
       "div",
       { class: "hd-bottom" },
-      h("div", { class: "hd-title", textContent: H.title }),
-      H.subtitle && H.subtitle.trim() ? h("div", { class: "hd-sub", textContent: H.subtitle }) : null
+      h("div", { class: "hd-title", innerHTML: inline(H.title) }),
+      H.subtitle && H.subtitle.trim() ? h("div", { class: "hd-sub", innerHTML: inline(H.subtitle) }) : null
     );
     inner.append(h("div", { class: "hd-text" }, top, bottom));
     if (H.showLogo) inner.append(logo ? h("img", { class: "hd-logo", src: logo, alt: "" }) : h("div", { class: "hd-logo ph", textContent: "logo" }));
@@ -4706,7 +4793,7 @@ ${short}`)])
     if (col.type === "text") wrap.append(side(strip2(col.text), (ww) => ({ node: col.side && col.side.pos !== "none" ? h("div", { style: { width: ww + "px" } }, richText(col.text, col.align)) : richText(col.text, col.align) })));
     else if (col.type === "image") {
       wrap.append(renderImage(col, w));
-      if (col.caption && col.caption.trim()) wrap.append(h("div", { class: "cap", textContent: col.caption }));
+      if (col.caption && col.caption.trim()) wrap.append(h("div", { class: "cap", innerHTML: inline(col.caption) }));
     } else if (col.type === "card" && col.card) {
       wrap.append(side(strip2(col.card.content && col.card.content.title), (ww) => ({ node: renderCard(col.card, ww) })));
     } else if (col.type === "figure") {
@@ -4724,7 +4811,7 @@ ${short}`)])
     if (bi > 0) el2.append(h("div", { class: "sub-rule" }));
     strokeStyle(el2)(sub);
     if (isBox(sub)) W = insetW(W);
-    if (sub.title && sub.title.trim() && sub.showTitle !== false) el2.append(h("h3", { class: "sub-title", textContent: sub.title }));
+    if (sub.title && sub.title.trim() && sub.showTitle !== false) el2.append(h("h3", { class: "sub-title", innerHTML: inline(sub.title) }));
     const cols = h("div", { class: "cols", style: { gridTemplateColumns: `repeat(${L.cols}, minmax(0, 1fr))` } });
     sub.cols.forEach((c2, i) => {
       const node = renderCol(c2, colWidth(sub.layout, i, W), `col:${si}:${bi}:${i}`, env);
@@ -4766,7 +4853,7 @@ ${short}`)])
       el2.append(host);
       W = insetW(W);
     }
-    if (sec.title && sec.title.trim() && sec.showTitle !== false) host.append(h("h2", { class: "sec-title", textContent: sec.title }));
+    if (sec.title && sec.title.trim() && sec.showTitle !== false) host.append(h("h2", { class: "sec-title", innerHTML: inline(sec.title) }));
     sec.subs.forEach((sub, bi) => host.append(renderSub(sub, si, bi, env, W)));
     return el2;
   }
@@ -5430,57 +5517,6 @@ ${short}`)])
     }
     return svg;
   }
-  var open = null;
-  var close = () => {
-    if (!open) return;
-    const o = open;
-    open = null;
-    document.removeEventListener("pointerdown", o.away, true);
-    document.removeEventListener("keydown", o.key, true);
-    o.pop.remove();
-    o.btn.setAttribute("aria-expanded", "false");
-  };
-  function layoutSelect({ value: value2, layouts, onChange }) {
-    const keys = Object.keys(layouts).filter((k) => !layouts[k].hidden || k === value2), L = (k) => layouts[k] || layouts["1"];
-    const btn = h("button", { type: "button", class: "cs cs-text ls-btn", "aria-haspopup": "listbox", "aria-expanded": "false" }, layoutSchema(L(value2)), h("span", { class: "cs-lab", textContent: t(L(value2).label) }), ico("chevron-down"));
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (open && open.btn === btn) {
-        close();
-        return;
-      }
-      close();
-      const pop2 = h("div", { class: "cs-pop ls-pop", role: "listbox" }, keys.map((k) => h(
-        "button",
-        { type: "button", role: "option", class: "cs-opt" + (k === value2 ? " on" : ""), "aria-selected": String(k === value2), onclick: () => {
-          close();
-          if (k !== value2) onChange(k);
-        } },
-        layoutSchema(L(k)),
-        h("span", { textContent: t(L(k).label) })
-      )));
-      (btn.closest(".panel, .props") || document.body).append(pop2);
-      const r = btn.getBoundingClientRect(), w = Math.max(280, r.width), hh = pop2.offsetHeight;
-      Object.assign(pop2.style, { width: w + "px", left: Math.max(8, Math.min(window.innerWidth - w - 8, r.left)) + "px", top: (r.bottom + hh + 12 > window.innerHeight ? Math.max(8, r.top - hh - 4) : r.bottom + 4) + "px" });
-      btn.setAttribute("aria-expanded", "true");
-      const away = (ev) => {
-        if (!pop2.contains(ev.target) && !btn.contains(ev.target)) close();
-      }, key = (ev) => {
-        if (ev.key === "Escape") {
-          ev.stopPropagation();
-          close();
-        }
-      };
-      document.addEventListener("pointerdown", away, true);
-      document.addEventListener("keydown", key, true);
-      open = { pop: pop2, btn, away, key };
-    });
-    return btn;
-  }
-
-  // src/colorselect.js
-  var FALLBACK = cssVars(DEFAULT_THEME, {});
-  var dot = (k) => h("i", { class: "cs-dot" + (k === "" ? " auto" : ""), style: k === "" ? {} : { background: `var(--c-${k}, ${FALLBACK["--c-" + k] || "transparent"})` } });
   var open2 = null;
   var close2 = () => {
     if (!open2) return;
@@ -5491,15 +5527,9 @@ ${short}`)])
     o.pop.remove();
     o.btn.setAttribute("aria-expanded", "false");
   };
-  function colorSelect({ value: value2, options, onChange, text = false }) {
-    let cur = value2;
-    const label = (k) => k === "" ? t("Auto") : t(options[k] ?? k);
-    const btn = h("button", { type: "button", class: "cs" + (text ? " cs-text" : ""), "aria-haspopup": "listbox", "aria-expanded": "false", title: label(cur) });
-    const paint = () => {
-      btn.replaceChildren(...[dot(cur), text ? h("span", { class: "cs-lab", textContent: label(cur) }) : null, ico("chevron-down")].filter(Boolean));
-      btn.title = label(cur);
-    };
-    paint();
+  function layoutSelect({ value: value2, layouts, onChange }) {
+    const keys = Object.keys(layouts).filter((k) => !layouts[k].hidden || k === value2), L = (k) => layouts[k] || layouts["1"];
+    const btn = h("button", { type: "button", class: "cs cs-text ls-btn", "aria-haspopup": "listbox", "aria-expanded": "false" }, layoutSchema(L(value2)), h("span", { class: "cs-lab", textContent: t(L(value2).label) }), ico("chevron-down"));
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       if (open2 && open2.btn === btn) {
@@ -5507,20 +5537,17 @@ ${short}`)])
         return;
       }
       close2();
-      const pop2 = h("div", { class: "cs-pop", role: "listbox" }, Object.keys(options).map((k) => h("button", {
-        type: "button",
-        role: "option",
-        class: "cs-opt" + (k === cur ? " on" : ""),
-        "aria-selected": String(k === cur),
-        onclick: () => {
-          cur = k;
-          paint();
+      const pop2 = h("div", { class: "cs-pop ls-pop", role: "listbox" }, keys.map((k) => h(
+        "button",
+        { type: "button", role: "option", class: "cs-opt" + (k === value2 ? " on" : ""), "aria-selected": String(k === value2), onclick: () => {
           close2();
-          onChange(k);
-        }
-      }, dot(k), h("span", { textContent: label(k) }))));
-      (btn.closest(".ve, .props, .panel, .labo-opts") || document.body).append(pop2);
-      const r = btn.getBoundingClientRect(), w = Math.min(320, Math.max(300, r.width)), hh = pop2.offsetHeight;
+          if (k !== value2) onChange(k);
+        } },
+        layoutSchema(L(k)),
+        h("span", { textContent: t(L(k).label) })
+      )));
+      (btn.closest(".panel, .props") || document.body).append(pop2);
+      const r = btn.getBoundingClientRect(), w = Math.max(280, r.width), hh = pop2.offsetHeight;
       Object.assign(pop2.style, { width: w + "px", left: Math.max(8, Math.min(window.innerWidth - w - 8, r.left)) + "px", top: (r.bottom + hh + 12 > window.innerHeight ? Math.max(8, r.top - hh - 4) : r.bottom + 4) + "px" });
       btn.setAttribute("aria-expanded", "true");
       const away = (ev) => {
@@ -5662,7 +5689,7 @@ ${short}`)])
     flush2(false);
     return lines.join("\n");
   }
-  function richEditor(value2, onChange) {
+  function richEditor(value2, onChange, opts = {}) {
     const ed = h("div", { class: "re", contentEditable: "true", spellcheck: "true", innerHTML: mkToHtml(value2) });
     const cmd = (c2) => () => {
       ed.focus();
@@ -5674,7 +5701,7 @@ ${short}`)])
       const b = h("button", { type: "button", class: "mini", textContent: label, title, style, dataset: { cmd: c2 }, onmousedown: (e) => e.preventDefault(), onclick: cmd(c2) });
       return b;
     };
-    const bar = h("div", { class: "row fmt" }, mk("B", "Gras", "bold", { fontWeight: 800 }), mk("I", "Italique", "italic", { fontStyle: "italic" }), mk("U", "Soulign\xE9", "underline", { textDecoration: "underline" }), (() => {
+    const bar = h("div", { class: "row fmt" }, mk("B", "Gras", "bold", { fontWeight: 800 }), mk("I", "Italique", "italic", { fontStyle: "italic" }), mk("U", "Soulign\xE9", "underline", { textDecoration: "underline" }), opts.bullets === false ? null : (() => {
       const b = mk("", "Liste \xE0 puces", "insertUnorderedList");
       b.append(ico("list"));
       return b;
@@ -5695,6 +5722,7 @@ ${short}`)])
       e.preventDefault();
       document.execCommand("insertText", false, (e.clipboardData || window.clipboardData).getData("text/plain"));
     });
+    if (opts.bullets === false) ed.classList.add("re-line");
     return h("div", { class: "re-wrap" }, bar, ed);
   }
   function buildFields(spec, obj, ctx2, palOpts, h2, root = obj) {
@@ -5704,7 +5732,11 @@ ${short}`)])
       ctx2.changed();
     };
     for (const f of spec) {
-      if (f.t === "text") out.push(h2("label", { class: "f" }, f.label, helpBtn(f.label), f.k === "suffix" || f.single ? h2("input", { type: "text", value: getP(obj, f.k) ?? "", oninput: live((t2) => setP(obj, f.k, t2.value)) }) : multiline(h2, getP(obj, f.k), (e) => {
+      if ((f.t === "text" || f.t === "lines") && f.rich) out.push(h2("div", { class: "f" }, h2("div", { class: "hint" }, f.label, helpBtn(f.label)), richEditor(getP(obj, f.k) ?? "", (v) => {
+        setP(obj, f.k, v);
+        ctx2.changed();
+      }, { bullets: false })));
+      else if (f.t === "text") out.push(h2("label", { class: "f" }, f.label, helpBtn(f.label), f.k === "suffix" || f.single ? h2("input", { type: "text", value: getP(obj, f.k) ?? "", oninput: live((t2) => setP(obj, f.k, t2.value)) }) : multiline(h2, getP(obj, f.k), (e) => {
         setP(obj, f.k, e.target.value);
         ctx2.changed();
       })));
@@ -5744,7 +5776,13 @@ ${short}`)])
         setP(obj, f.k, v);
         ctx2.changed();
       } })));
-      else if (f.t === "select") {
+      else if (f.t === "select" && f.icons) {
+        const opts = typeof f.options === "function" ? f.options(root) : f.options;
+        out.push(h2("div", { class: "f" }, h2("div", { class: "hint" }, f.label, helpBtn(f.label)), iconSelect({ value: getP(obj, f.k) ?? Object.keys(opts)[0], options: opts, text: true, root, onChange: (v) => {
+          setP(obj, f.k, v);
+          ctx2.changed();
+        } })));
+      } else if (f.t === "select") {
         const opts = typeof f.options === "function" ? f.options(root) : f.options;
         const sel = h2("select", { onchange: live((t2) => setP(obj, f.k, t2.value)) }, Object.entries(opts).map(([v, l]) => h2("option", { value: v, textContent: l })));
         sel.value = getP(obj, f.k) ?? Object.keys(opts)[0];
@@ -6134,7 +6172,9 @@ ${short}`)])
           } }), "Type de carte selon la largeur de la colonne"),
           sel("layout", "Position de l\u2019image", { vertical: t("En haut"), left: t("\xC0 gauche"), right: t("\xC0 droite") }),
           sel("align", "Alignement", { left: t("Gauche"), center: t("Centr\xE9") }),
-          C.icon ? sel("iconName", "Ic\xF4ne choisie", ICON_OPTIONS) : null,
+          C.icon ? h("div", { class: "f" }, h("div", { class: "hint", textContent: t("Ic\xF4ne choisie") }), iconSelect({ value: C.iconName || Object.keys(ICON_OPTIONS)[0], options: ICON_OPTIONS, text: true, onChange: (v) => chosen(() => {
+            C.iconName = v;
+          }) })) : null,
           CARD_CHECKS.map(check)
         )
       );
@@ -6406,14 +6446,14 @@ ${short}`)])
     const stop = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
-      window.removeEventListener("keydown", esc3, true);
+      window.removeEventListener("keydown", esc, true);
       document.body.style.cursor = "";
     };
     const up = () => {
       stop();
       done(cur !== i0);
     };
-    const esc3 = (ev) => {
+    const esc = (ev) => {
       if (ev.key === "Escape") {
         ev.stopPropagation();
         ev.preventDefault();
@@ -6425,7 +6465,7 @@ ${short}`)])
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
-    window.addEventListener("keydown", esc3, true);
+    window.addEventListener("keydown", esc, true);
     document.body.style.cursor = "grabbing";
     e.preventDefault();
     mark();
@@ -6524,7 +6564,7 @@ ${short}`)])
     const conv = (c2, v) => c2.t === "number" ? num(v) ?? 0 : c2.t === "color" ? palOpts[v] ? v : c2.auto ? "" : c2.def || "blue" : v;
     const blank = () => Object.fromEntries(cols.map((c2) => [c2.k, c2.def ?? (c2.t === "number" ? 0 : "")]));
     return {
-      cols: cols.map((c2) => ({ name: c2.label, type: c2.t === "number" ? "number" : "text", ml: !!c2.ml, select: c2.t === "color" ? c2.auto ? { "": t("Auto"), ...palOpts } : palOpts : c2.options || null, isColor: c2.t === "color" })),
+      cols: cols.map((c2) => ({ name: c2.label, type: c2.t === "number" ? "number" : "text", ml: !!c2.ml, select: c2.t === "color" ? c2.auto ? { "": t("Auto"), ...palOpts } : palOpts : c2.options || null, isColor: c2.t === "color", isIcon: !!c2.icons })),
       rows: () => rows.length,
       get: (i, j) => String(rows[i][cols[j].k] ?? ""),
       set: (i, j, v) => {
@@ -6625,6 +6665,10 @@ ${short}`)])
     const cell = (i, j) => {
       const c2 = ad.cols[j], v = ad.get(i, j);
       const common = { "data-r": i, "data-c": j };
+      if (c2.isIcon) return h("td", {}, iconSelect({ value: v || "none", options: c2.select, text: true, root: ad.root, onChange: (nv) => {
+        ad.set(i, j, nv);
+        ctx2.changed();
+      } }));
       if (c2.isColor) return h("td", {}, colorSelect({ value: v, options: c2.select, text: true, onChange: (nv) => {
         ad.set(i, j, nv);
         ctx2.changed();
@@ -6790,13 +6834,51 @@ ${short}`)])
         scaler.style.marginRight = (width + 48) * (k - 1) + "px";
       });
     }
-    const changed = () => {
+    const hist = { s: [snapshot2], i: 0, at: 0, burst: false };
+    const rec = (burst) => {
+      const sn = JSON.stringify(col.viz);
+      if (sn === hist.s[hist.i]) return;
+      const now = Date.now();
+      if (burst && hist.burst && hist.i === hist.s.length - 1 && hist.i > 0 && now - hist.at < 1e3) hist.s[hist.i] = sn;
+      else {
+        hist.s.length = hist.i + 1;
+        hist.s.push(sn);
+        hist.i = hist.s.length - 1;
+        if (hist.s.length > 100) {
+          hist.s.shift();
+          hist.i--;
+        }
+      }
+      hist.at = now;
+      hist.burst = burst;
+    };
+    const syncHist = () => {
+      undoBtn2.disabled = hist.i <= 0;
+      redoBtn2.disabled = hist.i >= hist.s.length - 1;
+    };
+    const goHist = (i) => {
+      if (i < 0 || i >= hist.s.length) return;
+      hist.i = i;
+      hist.burst = false;
+      col.viz = JSON.parse(hist.s[i]);
+      ui.sel = -1;
+      buildForm();
       draw();
       ctx2.changed();
+      syncHist();
+    };
+    const changed = () => {
+      draw();
+      rec(true);
+      ctx2.changed();
+      syncHist();
     };
     const fctx = { changed, restructure: () => {
       buildForm();
-      changed();
+      draw();
+      rec(false);
+      ctx2.changed();
+      syncHist();
     } };
     const palCtx = {
       getDoc: ctx2.getDoc,
@@ -6957,14 +7039,32 @@ ${short}`)])
       ctx2.restructure();
     };
     const onKey = (e) => {
-      if (e.key === "Escape") close3(false);
+      if (e.key === "Escape") {
+        close3(false);
+        return;
+      }
+      const tg = e.target;
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || /INPUT|TEXTAREA|SELECT/.test(tg.tagName || "") || tg.isContentEditable) return;
+      const k = e.key.toLowerCase();
+      if (k === "z") {
+        e.preventDefault();
+        goHist(hist.i + (e.shiftKey ? 1 : -1));
+      } else if (k === "y") {
+        e.preventDefault();
+        goHist(hist.i + 1);
+      }
     };
     window.addEventListener("keydown", onKey);
+    const undoBtn2 = h("button", { type: "button", class: "ve-hist", title: t("Annuler (Cmd/Ctrl + Z)"), "aria-label": t("Annuler la derni\xE8re modification"), onclick: () => goHist(hist.i - 1) }, ico("arrow-back-up"));
+    const redoBtn2 = h("button", { type: "button", class: "ve-hist", title: t("R\xE9tablir (Cmd/Ctrl + Maj + Z)"), "aria-label": t("R\xE9tablir la modification annul\xE9e"), onclick: () => goHist(hist.i + 1) }, ico("arrow-forward-up"));
+    syncHist();
     root.append(
       h(
         "div",
         { class: "ve-bar" },
         h("strong", { textContent: "\xC9diteur de dataviz" }),
+        undoBtn2,
+        redoBtn2,
         h("label", { class: "zoom" }, "Aper\xE7u \xE0 la largeur ", wSel),
         h("label", { class: "zoom" }, "Zoom ", zSel),
         h("span", { style: { flex: 1 } }),

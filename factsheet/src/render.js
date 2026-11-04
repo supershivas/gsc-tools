@@ -3,6 +3,7 @@
 import { PAGE, GRID, HEADER, GAP, cssVars, applyVars, colWidth, insetW, setDensity, paletteOf } from './tokens.js';
 import { IMAGE_RATIOS } from './state.js';
 import { renderViz, composeSide } from './viz/index.js';
+import { inlineMk } from './viz/util.js';
 import { renderFigure } from './figure.js';
 import { renderCard } from './card.js';
 
@@ -23,7 +24,7 @@ export function h(tag, props = {}, ...kids) {
 }
 
 const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-export const inline = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/__(.+?)__/g, '<u>$1</u>').replace(/~~(.+?)~~/g, '<i>$1</i>');
+export const inline = inlineMk;
 
 /** Texte à balisage léger → éléments <p> / <ul> */
 export function richText(text, align) {
@@ -51,10 +52,10 @@ function renderHeader(doc) {
   const img = headerImage(H), logo = (H.logos || {})[H.logoVariant];
   if (H.showImage) inner.append(img && img.src ? h('img', { class: 'hd-img', src: img.src, alt: '' }) : h('div', { class: 'hd-img ph', textContent: 'image' }));
   const top = h('div', { class: 'hd-top' },
-    h('div', { class: 'hd-over', textContent: H.overline }), h('div', { class: 'hd-rule' }));
+    h('div', { class: 'hd-over', innerHTML: inline(H.overline) }), h('div', { class: 'hd-rule' }));
   const bottom = h('div', { class: 'hd-bottom' },
-    h('div', { class: 'hd-title', textContent: H.title }),
-    H.subtitle && H.subtitle.trim() ? h('div', { class: 'hd-sub', textContent: H.subtitle }) : null);
+    h('div', { class: 'hd-title', innerHTML: inline(H.title) }),
+    H.subtitle && H.subtitle.trim() ? h('div', { class: 'hd-sub', innerHTML: inline(H.subtitle) }) : null);
   inner.append(h('div', { class: 'hd-text' }, top, bottom));
   if (H.showLogo) inner.append(logo ? h('img', { class: 'hd-logo', src: logo, alt: '' }) : h('div', { class: 'hd-logo ph', textContent: 'logo' }));
   el.append(inner);
@@ -105,7 +106,7 @@ function renderCol(col, w, path, env) {
   if (col.type === 'text') wrap.append(side(strip(col.text), ww => ({ node: col.side && col.side.pos !== 'none' ? h('div', { style: { width: ww + 'px' } }, richText(col.text, col.align)) : richText(col.text, col.align) })));
   else if (col.type === 'image') {
     wrap.append(renderImage(col, w));
-    if (col.caption && col.caption.trim()) wrap.append(h('div', { class: 'cap', textContent: col.caption }));
+    if (col.caption && col.caption.trim()) wrap.append(h('div', { class: 'cap', innerHTML: inline(col.caption) }));
   } else if (col.type === 'card' && col.card) {
     wrap.append(side(strip(col.card.content && col.card.content.title), ww => ({ node: renderCard(col.card, ww) })));
   } else if (col.type === 'figure') {
@@ -124,7 +125,7 @@ function renderSub(sub, si, bi, env, W) {
   const el = h('div', { class: 'sub', dataset: { sel: `sub:${si}:${bi}` } });
   if (bi > 0) el.append(h('div', { class: 'sub-rule' }));   // filet entre sous-sections (vrai élément : l'export PDF le lit)
   strokeStyle(el)(sub); if (isBox(sub)) W = insetW(W);
-  if (sub.title && sub.title.trim() && sub.showTitle !== false) el.append(h('h3', { class: 'sub-title', textContent: sub.title }));
+  if (sub.title && sub.title.trim() && sub.showTitle !== false) el.append(h('h3', { class: 'sub-title', innerHTML: inline(sub.title) }));
   const cols = h('div', { class: 'cols', style: { gridTemplateColumns: `repeat(${L.cols}, minmax(0, 1fr))` } });
   sub.cols.forEach((c, i) => {
     const node = renderCol(c, colWidth(sub.layout, i, W), `col:${si}:${bi}:${i}`, env);
@@ -171,7 +172,7 @@ function renderSection(sec, si, env, pos) {
   if (!pos.first && sec.secRule !== false && band === pos.prevBand) el.prepend(h('div', { class: 'sec-rule', style: { top: band ? '0px' : `calc(${-GAP.sectionBefore / 2}px - var(--stroke) / 2)` } }));
   let host = el, W = GRID.contentW;
   if (isBox(sec)) { host = h('div', { class: 'sec-box' }); strokeStyle(host)(sec); el.append(host); W = insetW(W); }
-  if (sec.title && sec.title.trim() && sec.showTitle !== false) host.append(h('h2', { class: 'sec-title', textContent: sec.title }));
+  if (sec.title && sec.title.trim() && sec.showTitle !== false) host.append(h('h2', { class: 'sec-title', innerHTML: inline(sec.title) }));
   sec.subs.forEach((sub, bi) => host.append(renderSub(sub, si, bi, env, W)));
   return el;
 }

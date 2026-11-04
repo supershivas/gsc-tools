@@ -3,6 +3,7 @@
 import { VIZ, TYPE } from '../tokens.js';
 import { reorderHit, s, el, SW, colorRef, pxOf, fmt, SANS, drawLegend, fitText, mw, heightOf, round3 } from './util.js';
 import { ICONS } from './icons.js';
+import { iconSelect } from '../iconselect.js';
 import { t } from '../i18n.js';
 
 /* ---------- pictogrammes pleins ---------- */
@@ -73,7 +74,7 @@ function partial(o, key, x, y, w, h, color, frac, dir) {
 /** Carte « Pictogramme » de l'éditeur : choix du pictogramme, import d'un SVG (nettoyé, stocké dans le JSON), retrait des SVG importés */
 export function pictoPanel(o, ctx) {
   const choices = pictoChoices(o), ico = n => el('i', { class: 'ti ti-' + n });
-  const sel = el('select', { onchange: e => { o.icon = e.target.value; ctx.changed(); } }, Object.entries(choices).map(([v, l]) => el('option', { value: v, textContent: l, selected: o.icon === v })));
+  const sel = iconSelect({ value: o.icon || 'picto:person', options: choices, text: true, root: o, onChange: v => { o.icon = v; ctx.changed(); } });
   const inp = el('input', { type: 'file', accept: '.svg,image/svg+xml', hidden: true, onchange: async () => {
     const f = inp.files[0]; inp.value = ''; if (!f) return;
     try { const c = sanitizeSvg(await f.text(), f.name); (o.customIcons || (o.customIcons = [])).push(c); o.icon = 'custom:' + c.id; ctx.restructure(); }
@@ -81,7 +82,7 @@ export function pictoPanel(o, ctx) {
   } });
   const list = (o.customIcons || []).map(c => el('div', { class: 'row', style: { justifyContent: 'space-between' } }, el('span', { textContent: c.name }),
     el('button', { type: 'button', class: 'mini danger', title: t('Retirer'), onclick: () => { o.customIcons = o.customIcons.filter(k => k.id !== c.id); if (o.icon === 'custom:' + c.id) o.icon = 'picto:person'; ctx.restructure(); } }, ico('x'))));
-  return [el('label', { class: 'f' }, t('Pictogramme'), sel),
+  return [el('div', { class: 'f' }, el('div', { class: 'hint', textContent: t('Pictogramme') }), sel),
     el('button', { type: 'button', class: 'pp-btn', onclick: () => inp.click() }, ico('upload'), el('span', { textContent: t('Importer un SVG…') })), inp,
     el('label', { class: 'row' }, el('input', { type: 'checkbox', checked: o.recolor !== false, onchange: e => { o.recolor = e.target.checked; ctx.changed(); } }), t('Recolorer le SVG importé avec la couleur choisie')),
     ...list];

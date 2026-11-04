@@ -23,7 +23,7 @@ export default {
   ],
   /* chaque catégorie a sa couleur et son repère (croix, point, coche ou une icône), choisis dans le tableau */
   data: { k: 'rows', min: 1, cols: [{ k: 'label', label: 'Libellé', t: 'text' }, { k: 'value', label: 'Valeur', t: 'number', def: 10 }, { k: 'color', label: 'Couleur', t: 'color', def: 'blue' },
-    { k: 'mark', label: 'Repère', t: 'select', def: 'none', options: MARKS }, { k: 'markColor', label: 'Couleur du repère', t: 'color', def: 'yellow' }],
+    { k: 'mark', label: 'Repère', t: 'select', def: 'none', options: MARKS, icons: true }, { k: 'markColor', label: 'Couleur du repère', t: 'color', def: 'yellow' }],
     item: () => ({ label: '', value: 10, color: 'blue', mark: 'none', markColor: 'yellow' }) },
   dataHint: 'Une ligne par catégorie : les cases se remplissent dans cet ordre, ligne par ligne ; une catégorie blanche reste une case vide. Le repère se choisit par catégorie.',
   render(o, W, env) {
