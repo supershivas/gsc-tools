@@ -392,6 +392,13 @@
     "Annuler": "Cancel",
     "Exporter": "Export",
     "Terminer": "Done",
+    "Textes libres": "Free texts",
+    "Ajouter un texte": "Add a text",
+    "Glisser un texte dans l\u2019aper\xE7u pour le placer o\xF9 l\u2019on veut dans la colonne.": "Drag a text in the preview to place it anywhere in the column.",
+    "X (% de la colonne)": "X (% of the column)",
+    "Largeur (%)": "Width (%)",
+    "Y (px)": "Y (px)",
+    "Chiffre cl\xE9 (petit)": "Key figure (small)",
     "Position de la l\xE9gende (\xAB Dans les barres \xBB : noms des s\xE9ries \xE9crits dans chaque barre, sans l\xE9gende s\xE9par\xE9e)": "Legend position (\u201CInside the bars\u201D: series names written in each bar, no separate legend)",
     "Style de paragraphe": "Paragraph style",
     "Titre 1": "Heading 1",
@@ -4699,6 +4706,13 @@ ${short}`)])
   function migrate(j) {
     const d = Object.assign(defaultDoc(), j);
     d.customIcons = Array.isArray(j.customIcons) ? j.customIcons : [];
+    for (const sec of d.sections || []) for (const sb of sec.subs || []) for (const cl of sb.cols || []) if (cl.free) {
+      if (cl.free.on && String(cl.free.text || "").trim()) {
+        const f = cl.free, w = f.pos === "left" || f.pos === "right" ? +f.share || 35 : 100;
+        (cl.texts = cl.texts || []).push({ x: f.pos === "right" ? 100 - w : 0, y: f.pos === "bottom" ? null : 0, w, text: f.text });
+      }
+      delete cl.free;
+    }
     for (const sec of d.sections || []) for (const sb of sec.subs || []) for (const cl of sb.cols || []) for (const ic of cl.viz && cl.viz.opts && cl.viz.opts.customIcons || []) if (!d.customIcons.some((x) => x.id === ic.id)) d.customIcons.push(ic);
     d.header = Object.assign(defaultDoc().header, j.header || {});
     migrateHeader(d.header, j.header || {});
@@ -4949,10 +4963,10 @@ ${short}`)])
         ul = null;
         continue;
       }
-      const hm = line.match(/^(#{1,3})\s+(.*)$/);
+      const hm = line.match(/^(#{1,5})\s+(.*)$/);
       if (hm) {
         ul = null;
-        root.append(h("p", { class: "p-" + ["h1", "h2", "cap"][hm[1].length - 1], innerHTML: inline(hm[2]) }));
+        root.append(h("p", { class: "p-" + ["h1", "h2", "cap", "fig", "figsm"][hm[1].length - 1], innerHTML: inline(hm[2]) }));
         continue;
       }
       const m2 = line.match(/^[-•]\s+(.*)$/);
@@ -5042,10 +5056,7 @@ ${short}`)])
       wrap.style.justifyContent = { start: "flex-start", center: "center", end: "flex-end" }[al];
       w = insetW(w);
     } else wrap.style.alignSelf = al;
-    const fr = col.free && col.free.on && String(col.free.text || "").trim() ? col.free : null, frSide = fr && (fr.pos === "left" || fr.pos === "right"), FRGAP = 18;
-    const frW = frSide ? Math.round(w * Math.max(15, Math.min(70, +fr.share || 35)) / 100) : 0;
-    if (frSide) w = Math.max(60, w - frW - FRGAP);
-    const strip2 = (x) => String(x || "").replace(/\*\*|__|~~|\^\^|,,/g, "").replace(/^(#{1,3}|[-•])\s+/gm, "").split("\n").find((l) => l.trim()) || "";
+    const strip2 = (x) => String(x || "").replace(/\*\*|__|~~|\^\^|,,/g, "").replace(/^(#{1,5}|[-•])\s+/gm, "").split("\n").find((l) => l.trim()) || "";
     const side = (label, core) => composeSide(col.side, w, env, { pct: "", value: "", total: "", label }, core).node;
     if (col.type === "text") wrap.append(side(strip2(col.text), (ww) => ({ node: col.side && col.side.pos !== "none" ? h("div", { style: { width: ww + "px" } }, richText(col.text, col.align)) : richText(col.text, col.align) })));
     else if (col.type === "image") {
@@ -5060,12 +5071,15 @@ ${short}`)])
       wrap.append(node || h("div", { class: "viz-ph" }, h("span", { textContent: "dataviz" })));
       if (node && env.fills && col.viz.opts && (col.viz.opts.hmode === "fill" || col.viz.opts.hmode === "match")) env.fills.push({ page: env.page, col, w, node, wrap, env, mode: col.viz.opts.hmode });
     }
-    if (fr) {
-      const main = h("div", { class: "col-main", style: frSide ? { width: w + "px", flex: "none" } : {} });
-      [...wrap.childNodes].forEach((c2) => main.append(c2));
-      const free = h("div", { class: "col-free", style: frSide ? { width: frW + "px", flex: "none" } : {} }, richText(fr.text, "left"));
-      const first = fr.pos === "top" || fr.pos === "left";
-      wrap.append(h("div", { class: "col-free-box", style: { display: "flex", flexDirection: frSide ? "row" : "column", gap: (frSide ? FRGAP : 9) + "px", ...frSide ? { alignItems: "flex-start" } : {} } }, ...first ? [free, main] : [main, free]));
+    if (Array.isArray(col.texts) && col.texts.length) {
+      wrap.style.position = "relative";
+      col.texts.forEach((tx, i) => {
+        if (!String(tx.text || "").trim()) return;
+        const st = { position: "absolute", left: (+tx.x || 0) + "%", width: (+tx.w || 50) + "%", zIndex: 2 };
+        if (tx.y == null) st.bottom = "0";
+        else st.top = (+tx.y || 0) + "px";
+        wrap.append(h("div", { class: "col-text-free", style: st, dataset: { free: `${path}:${i}` } }, richText(tx.text, tx.align || "left")));
+      });
     }
     if (col.type !== "viz" && +col.minH > 0) {
       Object.assign(wrap.style, { minHeight: col.minH + "px", display: "flex", flexDirection: "column", alignSelf: isBox(col) ? "stretch" : "start", justifyContent: { start: "flex-start", center: "center", end: "flex-end" }[al] });
@@ -5598,7 +5612,7 @@ ${short}`)])
   }
 
   // src/tree.js
-  var strip = (t2) => String(t2 || "").replace(/\*\*|__|~~|\^\^|,,/g, "").replace(/^(#{1,3}|[-•])\s+/gm, "").replace(/\s+/g, " ").trim();
+  var strip = (t2) => String(t2 || "").replace(/\*\*|__|~~|\^\^|,,/g, "").replace(/^(#{1,5}|[-•])\s+/gm, "").replace(/\s+/g, " ").trim();
   var ICON = { text: "text-size", image: "photo", figure: "number", card: "layout-cards", viz: "chart-bar" };
   function colLabel(col) {
     if (col.type === "text") return strip(col.text).slice(0, 34) || "Texte vide";
@@ -5909,7 +5923,7 @@ ${short}`)])
     const lines = String(t2 || "").replace(/\r\n?/g, "\n").split("\n").filter((l) => l.trim());
     let html = "", ul = false;
     for (const l of lines) {
-      const hd = l.trim().match(/^(#{1,3})\s+(.*)$/);
+      const hd = l.trim().match(/^(#{1,5})\s+(.*)$/);
       if (hd) {
         if (ul) {
           html += "</ul>";
@@ -5976,7 +5990,7 @@ ${short}`)])
         for (const c2 of n.childNodes) walk2(c2, s2, true);
         return;
       }
-      if (/^H[1-3]$/.test(tag)) {
+      if (/^H[1-5]$/.test(tag)) {
         if (cur.length) flush2(bullet);
         for (const c2 of n.childNodes) walk2(c2, s2, bullet);
         flush2(bullet, "#".repeat(+tag[1]) + " ");
@@ -6032,7 +6046,7 @@ ${short}`)])
           sync();
         }
       },
-      [["DIV", "Texte"], ["H1", "Titre 1"], ["H2", "Titre 2"], ["H3", "L\xE9gende"]].map(([v, l]) => h("option", { value: v, textContent: t(l) }))
+      [["DIV", "Texte"], ["H1", "Titre 1"], ["H2", "Titre 2"], ["H3", "L\xE9gende"], ["H4", "Chiffre cl\xE9"], ["H5", "Chiffre cl\xE9 (petit)"]].map(([v, l]) => h("option", { value: v, textContent: t(l) }))
     );
     let saved = null;
     const sync = () => {
@@ -6050,7 +6064,7 @@ ${short}`)])
           v = String(document.queryCommandValue("formatBlock") || "").toUpperCase().replace(/[<>]/g, "");
         } catch (e) {
         }
-        styleSel.value = /^H[1-3]$/.test(v) ? v : "DIV";
+        styleSel.value = /^H[1-5]$/.test(v) ? v : "DIV";
       }
     };
     ed.addEventListener("input", () => onChange(htmlToMk(ed)));
@@ -6539,6 +6553,34 @@ ${short}`)])
       h("div", { class: "crumbs" }, crumbs.flatMap(([l, p]) => [h("a", { textContent: l, onclick: () => ctx2.select(p) }), " \u203A "])),
       h("h2", { textContent: name })
     ));
+    const freeTexts = (col2) => {
+      const arr = col2.texts || (col2.texts = []);
+      const num2 = (label, tx, k, min2, max2) => field(label, h("input", { type: "number", min: min2, max: max2, step: 1, value: tx[k] ?? 0, oninput: (e) => {
+        tx[k] = +e.target.value || 0;
+        ctx2.changed();
+      } }));
+      const items = arr.map((tx, i) => h(
+        "div",
+        { class: "col-card" },
+        h("div", { class: "chd" }, h("span", { textContent: `#${i + 1}` }), h("button", { type: "button", class: "mini danger", title: t("Supprimer"), onclick: () => {
+          arr.splice(i, 1);
+          ctx2.restructure();
+        } }, ico("x"))),
+        richEditor(tx.text || "", (v) => {
+          tx.text = v;
+          ctx2.changed();
+        }),
+        h("div", { class: "row" }, num2("X (% de la colonne)", tx, "x", 0, 100), num2("Largeur (%)", tx, "w", 10, 100), tx.y == null ? null : num2("Y (px)", tx, "y", 0, 2e3))
+      ));
+      return [
+        ...items,
+        h("button", { type: "button", class: "pp-btn", onclick: () => {
+          arr.push({ x: 0, y: arr.length * 30, w: 50, text: "Texte libre" });
+          ctx2.restructure();
+        } }, ico("plus"), h("span", { textContent: t("Ajouter un texte") })),
+        h("p", { class: "hint", textContent: t("Glisser un texte dans l\u2019aper\xE7u pour le placer o\xF9 l\u2019on veut dans la colonne.") })
+      ];
+    };
     const actions = (...b) => h("div", { class: "pp-actions" }, ...b);
     const P = (path || "").split(":"), kind = P[0] || "doc", si = +P[1], bi = +P[2], ci = +P[3];
     const sec = doc2.sections[si], sub = sec && sec.subs[bi], col = sub && sub.cols[ci];
@@ -6735,34 +6777,7 @@ ${short}`)])
       const vt = col.type === "viz" && col.viz && VIZ_TYPES[col.viz.kind];
       root.append(
         card("col-content", ICONS2[col.type] || "text-size", t("Contenu"), [typeSel, ...editor]),
-        card(
-          "col-free",
-          "text-size",
-          t("Texte libre"),
-          [
-            col.free ? h("div", { class: "f" }, h("div", { class: "hint", textContent: t("Position") }), (() => {
-              const sl = h("select", { onchange: (e) => {
-                col.free.pos = e.target.value;
-                ctx2.restructure();
-              } }, [["top", "Au-dessus"], ["bottom", "En dessous"], ["left", "\xC0 gauche"], ["right", "\xC0 droite"]].map(([v, l]) => h("option", { value: v, textContent: t(l) })));
-              sl.value = col.free.pos || "bottom";
-              return sl;
-            })()) : null,
-            col.free && (col.free.pos === "left" || col.free.pos === "right") ? field("Largeur du texte (% de la colonne)", h("input", { type: "number", min: 15, max: 70, value: col.free.share || 35, oninput: (e) => {
-              col.free.share = +e.target.value || 35;
-              ctx2.changed();
-            } })) : null,
-            col.free ? h("div", { class: "f" }, h("div", { class: "hint", textContent: t("Texte") }), richEditor(col.free.text || "", (v) => {
-              col.free.text = v;
-              ctx2.changed();
-            })) : null,
-            h("p", { class: "hint", textContent: t("Un texte li\xE9 \xE0 cette colonne, quel que soit son contenu : titres, paragraphes, puces, l\xE9gende.") })
-          ].filter(Boolean),
-          { on: !!(col.free && col.free.on), set: () => {
-            col.free = col.free || { pos: "bottom", text: "Texte libre", share: 35 };
-            col.free.on = !col.free.on;
-          } }
-        ),
+        card("col-free", "text-size", t("Textes libres"), freeTexts(col)),
         col.type === "text" || col.type === "card" ? card("col-side", "number", t("Chiffre \xE0 c\xF4t\xE9"), buildFields(SIDE_FIELDS, col.side || (col.side = newColSide()), ctx2, {}, h)) : null,
         vt && vt.heights ? card("col-height", "ruler-2", t("Hauteur"), heightNodes(vt, col.viz.opts, { ctx: ctx2, width: columnWidth(doc2, si, bi, ci) })) : col.type !== "viz" ? card("col-height", "ruler-2", t("Hauteur"), [
           field("Hauteur minimale (px, 0 = automatique)", h("input", { type: "number", min: 0, max: 1e3, step: 3, value: col.minH || 0, oninput: (e) => {
@@ -8399,6 +8414,38 @@ ${short}`)])
     const n = e.target.closest("[data-sel]");
     ctx.select(n ? n.dataset.sel : null);
   });
+  stage.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || handOn()) return;
+    const n = e.target.closest("[data-free]");
+    if (!n) return;
+    const q = n.dataset.free.split(":"), idx = +q.pop(), col = doc.sections[+q[1]]?.subs[+q[2]]?.cols[+q[3]], tx = col && col.texts && col.texts[idx], colEl = n.closest(".col");
+    if (!tx || !colEl) return;
+    const sc = colEl.closest(".page").getBoundingClientRect().width / PAGE.w, cr = colEl.getBoundingClientRect(), nr = n.getBoundingClientRect();
+    const colW = cr.width / sc, x0 = +tx.x || 0, y0 = (nr.top - cr.top) / sc, w = +tx.w || 50, px = e.clientX, py = e.clientY;
+    let moved = false;
+    e.stopPropagation();
+    hover.hide();
+    const move = (ev) => {
+      if (!moved && Math.hypot(ev.clientX - px, ev.clientY - py) < 3) return;
+      moved = true;
+      tx.x = Math.round(Math.max(0, Math.min(100 - Math.min(w, 100), x0 + (ev.clientX - px) / sc / colW * 100)) * 10) / 10;
+      tx.y = Math.round(Math.max(0, y0 + (ev.clientY - py) / sc));
+      ctx.changed();
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      if (moved) {
+        suppressClick = true;
+        setTimeout(() => {
+          suppressClick = false;
+        }, 0);
+        ctx.restructure();
+      }
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }, true);
   var zoomJob = null;
   stage.addEventListener("wheel", (e) => {
     if (!(e.ctrlKey || e.metaKey)) return;

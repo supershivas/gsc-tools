@@ -118,3 +118,7 @@ sup,sub{font-size:.7em;line-height:0}
 .rich .p-cap{font-size:var(--t-caption-size);line-height:var(--t-caption-lh);font-weight:var(--t-caption-weight)}
 .col-main{min-width:0}
 .col-free{min-width:0}
+.rich .p-fig{font-family:var(--t-figure-family);font-size:var(--t-figure-size);line-height:var(--t-figure-lh);font-weight:var(--t-figure-weight)}
+.rich .p-figsm{font-family:var(--t-figureSm-family);font-size:var(--t-figureSm-size);line-height:var(--t-figureSm-lh);font-weight:var(--t-figureSm-weight)}
+.col-text-free{box-sizing:border-box}
+.stage .col-text-free:hover{outline:1px dashed #F28C28;outline-offset:2px;cursor:move}

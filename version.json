@@ -1,9 +1,8 @@
 {
-  "version": "1.56.0",
+  "version": "1.57.0",
   "date": "2026-11-04",
   "changes": [
-    "Barres : « Position de la légende › Dans les barres » écrit les noms des séries (EU, Ukraine…) dans chaque barre sans avoir à cocher la légende ; avec « Libellés dans les barres » et un libellé vide, le nom de la série sert de libellé",
-    "Texte libre lié à n'importe quelle colonne (au-dessus, en dessous, à gauche ou à droite), en texte riche",
-    "Styles de paragraphe dans le texte riche des colonnes, cartes et textes libres : Texte, Titre 1, Titre 2, Légende"
+    "Textes libres : plusieurs par colonne, placés où l'on veut (glisser dans l'aperçu, ou X / Y / largeur dans les propriétés), en texte riche ; remplace le texte libre « au-dessus / en dessous / à côté »",
+    "Styles de paragraphe : ajout de « Chiffre clé » et « Chiffre clé (petit) » (même typographie que les chiffres clés)"
   ]
 }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.57.0 — 2026-11-04
+- Textes libres : plusieurs par colonne, placés où l'on veut (glisser dans l'aperçu, ou X / Y / largeur dans les propriétés), en texte riche ; remplace le texte libre « au-dessus / en dessous / à côté »
+- Styles de paragraphe : ajout de « Chiffre clé » et « Chiffre clé (petit) » (même typographie que les chiffres clés)
+
 ## 1.56.0 — 2026-11-04
 - Barres : « Position de la légende › Dans les barres » écrit les noms des séries (EU, Ukraine…) dans chaque barre sans avoir à cocher la légende ; avec « Libellés dans les barres » et un libellé vide, le nom de la série sert de libellé
 - Texte libre lié à n'importe quelle colonne (au-dessus, en dessous, à gauche ou à droite), en texte riche

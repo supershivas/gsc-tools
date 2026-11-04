@@ -64,7 +64,7 @@ const mkToHtml = t => {
   const lines = String(t || '').replace(/\r\n?/g, '\n').split('\n').filter(l => l.trim());
   let html = '', ul = false;
   for (const l of lines) {
-    const hd = l.trim().match(/^(#{1,3})\s+(.*)$/);
+    const hd = l.trim().match(/^(#{1,5})\s+(.*)$/);
     if (hd) { if (ul) { html += '</ul>'; ul = false; } html += `<h${hd[1].length}>${inline(hd[2])}</h${hd[1].length}>`; continue; }
     const m = l.trim().match(/^[-•]\s+(.*)$/);
     if (m && !ul) { html += '<ul>'; ul = true; } else if (!m && ul) { html += '</ul>'; ul = false; }
@@ -90,7 +90,7 @@ function htmlToMk(root) {
     if (tag === 'SUB') s.sub = true;
     if (tag === 'U' || /underline/.test(n.style.textDecoration)) s.u = true;
     if (tag === 'UL' || tag === 'OL') { for (const c of n.childNodes) walk(c, s, true); return; }
-    if (/^H[1-3]$/.test(tag)) { if (cur.length) flush(bullet); for (const c of n.childNodes) walk(c, s, bullet); flush(bullet, '#'.repeat(+tag[1]) + ' '); return; }
+    if (/^H[1-5]$/.test(tag)) { if (cur.length) flush(bullet); for (const c of n.childNodes) walk(c, s, bullet); flush(bullet, '#'.repeat(+tag[1]) + ' '); return; }
     const block = tag === 'LI' || tag === 'DIV' || tag === 'P';
     if (block && cur.length) flush(bullet);
     const b2 = bullet || tag === 'LI';
@@ -109,10 +109,10 @@ export function richEditor(value, onChange, opts = {}) {
   const styleSel = opts.bullets === false ? null : h('select', { class: 're-style', title: t('Style de paragraphe'), 'aria-label': t('Style de paragraphe'),
     onmousedown: () => { const sl = window.getSelection(); if (sl.rangeCount && ed.contains(sl.anchorNode)) saved = sl.getRangeAt(0).cloneRange(); },
     onchange: e => { const v = e.target.value; ed.focus(); if (saved) { const sl = window.getSelection(); sl.removeAllRanges(); sl.addRange(saved); } document.execCommand('formatBlock', false, v); onChange(htmlToMk(ed)); sync(); } },
-    [['DIV', 'Texte'], ['H1', 'Titre 1'], ['H2', 'Titre 2'], ['H3', 'Légende']].map(([v, l]) => h('option', { value: v, textContent: t(l) })));
+    [['DIV', 'Texte'], ['H1', 'Titre 1'], ['H2', 'Titre 2'], ['H3', 'Légende'], ['H4', 'Chiffre clé'], ['H5', 'Chiffre clé (petit)']].map(([v, l]) => h('option', { value: v, textContent: t(l) })));
   let saved = null;
   const sync = () => { bar.querySelectorAll('[data-cmd]').forEach(b => { let on = false; try { on = document.queryCommandState(b.dataset.cmd); } catch (e) {} b.classList.toggle('on', on); });
-    if (styleSel) { let v = ''; try { v = String(document.queryCommandValue('formatBlock') || '').toUpperCase().replace(/[<>]/g, ''); } catch (e) {} styleSel.value = /^H[1-3]$/.test(v) ? v : 'DIV'; } };
+    if (styleSel) { let v = ''; try { v = String(document.queryCommandValue('formatBlock') || '').toUpperCase().replace(/[<>]/g, ''); } catch (e) {} styleSel.value = /^H[1-5]$/.test(v) ? v : 'DIV'; } };
   ed.addEventListener('input', () => onChange(htmlToMk(ed)));
   ed.addEventListener('keyup', sync); ed.addEventListener('mouseup', sync); ed.addEventListener('focus', sync);
   ed.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain')); });

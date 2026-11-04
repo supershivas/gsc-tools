@@ -274,6 +274,23 @@ stage.addEventListener('click', e => {
   ctx.select(n ? n.dataset.sel : null);
 });
 
+/* Textes libres d'une colonne : glisser = les placer où l'on veut dans la colonne (x en % de la largeur, y en px) */
+stage.addEventListener('pointerdown', e => {
+  if (e.button !== 0 || handOn()) return;
+  const n = e.target.closest('[data-free]'); if (!n) return;
+  const q = n.dataset.free.split(':'), idx = +q.pop(), col = doc.sections[+q[1]]?.subs[+q[2]]?.cols[+q[3]], tx = col && col.texts && col.texts[idx], colEl = n.closest('.col'); if (!tx || !colEl) return;
+  const sc = colEl.closest('.page').getBoundingClientRect().width / PAGE.w, cr = colEl.getBoundingClientRect(), nr = n.getBoundingClientRect();
+  const colW = cr.width / sc, x0 = +tx.x || 0, y0 = (nr.top - cr.top) / sc, w = +tx.w || 50, px = e.clientX, py = e.clientY; let moved = false;
+  e.stopPropagation(); hover.hide();
+  const move = ev => {
+    if (!moved && Math.hypot(ev.clientX - px, ev.clientY - py) < 3) return; moved = true;
+    tx.x = Math.round(Math.max(0, Math.min(100 - Math.min(w, 100), x0 + (ev.clientX - px) / sc / colW * 100)) * 10) / 10;
+    tx.y = Math.round(Math.max(0, y0 + (ev.clientY - py) / sc)); ctx.changed();
+  };
+  const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); if (moved) { suppressClick = true; setTimeout(() => { suppressClick = false; }, 0); ctx.restructure(); } };
+  window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+}, true);
+
 /* Cmd/Ctrl + molette (ou pincement du pavé tactile) : zoom continu de l'aperçu, centré sur le curseur : le point de la page sous le curseur reste sous le curseur.
    Les rafales d'événements sont regroupées en un seul redessin par image. */
 let zoomJob = null;
