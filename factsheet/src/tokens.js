@@ -90,7 +90,7 @@ export const FONT = {
 export const TYPE = {
   overline:   { family: 'sans',  size: 16, weight: 200, lh: u(9),  upper: true },
   title:      { family: 'sans',  size: 30, weight: 600, lh: u(16) },
-  subtitle:   { family: 'sans',  size: 22, weight: 600, lh: u(12) },
+  subtitle:   { family: 'sans',  size: 22, weight: 600, lh: u(10) },   // 30 : un sous-titre sur 2 lignes reste dans le header
   section:    { family: 'sans',  size: 21, weight: 700, lh: u(11) },
   subsection: { family: 'sans',  size: 14, weight: 700, lh: u(8)  },
   body:       { family: 'sans',  size: 12, weight: 400, lh: u(7)  },

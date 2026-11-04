@@ -13,7 +13,7 @@
 .hd-img.ph{width:96px}
 .hd-logo{position:absolute;top:0;right:0;width:138px;height:42px;object-fit:contain;object-position:right top}
 .ph{display:flex;align-items:center;justify-content:center;background:#fff;color:#000;font-weight:600;font-size:var(--t-body-size)}
-.hd-text{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-between;overflow:visible}
+.hd-text{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-start;gap:var(--gap-headerOverlineRule);overflow:visible}   /* filet → titre = surtitre → filet, quel que soit le nombre de lignes */
 .hd-over{font-size:var(--t-overline-size);line-height:var(--t-overline-lh);font-weight:var(--t-overline-weight);text-transform:uppercase;padding-right:150px}
 .hd-rule{width:24px;height:0;border-top:var(--stroke) solid currentColor;margin-top:var(--gap-headerOverlineRule)}
 .hd-title{font-size:var(--t-title-size);line-height:var(--t-title-lh);font-weight:var(--t-title-weight)}

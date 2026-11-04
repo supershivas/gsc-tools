@@ -100,7 +100,8 @@
   var TYPE = {
     overline: { family: "sans", size: 16, weight: 200, lh: u(9), upper: true },
     title: { family: "sans", size: 30, weight: 600, lh: u(16) },
-    subtitle: { family: "sans", size: 22, weight: 600, lh: u(12) },
+    subtitle: { family: "sans", size: 22, weight: 600, lh: u(10) },
+    // 30 : un sous-titre sur 2 lignes reste dans le header
     section: { family: "sans", size: 21, weight: 700, lh: u(11) },
     subsection: { family: "sans", size: 14, weight: 700, lh: u(8) },
     body: { family: "sans", size: 12, weight: 400, lh: u(7) },
@@ -4437,8 +4438,8 @@ ${lorem}` },
       if (last) last.style.minHeight = Math.max(0, PAGE.h - p.top - last.offsetTop) + "px";
       if (p.key === "recto") {
         const top = p.el.querySelector(".hd-top"), bot = p.el.querySelector(".hd-bottom"), inner = p.el.querySelector(".hd-inner");
-        const hd = p.el.querySelector(".hd"), room = inner && hd ? inner.clientHeight + (hd.clientHeight - inner.clientHeight) / 2 - GAP.boxPad * 1.5 : 0;
-        if (top && bot && inner && top.offsetHeight + bot.offsetHeight > room + 0.5) warnings.push("Header : titre trop long, il ne tient pas dans la hauteur du header.");
+        const hd = p.el.querySelector(".hd"), room = inner && hd ? inner.clientHeight + (hd.clientHeight - inner.clientHeight) / 2 - GAP.boxPad : 0;
+        if (top && bot && inner && bot.offsetTop + bot.offsetHeight > room + 0.5) warnings.push("Header : titre trop long, il ne tient pas dans la hauteur du header.");
       }
     }
     result.warnings = warnings;
@@ -5988,6 +5989,7 @@ ${lorem}` },
   var current2 = null;
   var shut2 = /* @__PURE__ */ new Set();
   var tab = "data";
+  shut2.add("dv-type");
   var LABEL_KEYS = /* @__PURE__ */ new Set(["legend", "showValues", "decimals", "suffix", "totalTpl", "layout"]);
   var SERIES_COLORS2 = ["sky", "yellow", "blue", "slate", "grey"];
   var availH = 360;
@@ -6069,43 +6071,29 @@ ${lorem}` },
     };
     const refreshForm = () => buildForm();
     const card = (id, icon, name, nodes) => cardEl(id, icon, name, nodes, { shut: shut2, refresh: refreshForm });
-    let menuOpen = false;
-    const typeMenu = () => {
-      const cur = VIZ_TYPES[col.viz.kind], wrap = h("div", { class: "ve-typesel" });
-      const btn = h(
-        "button",
-        { type: "button", class: "ve-typebtn", "aria-haspopup": "listbox", "aria-expanded": String(menuOpen), onclick: () => {
-          menuOpen = !menuOpen;
-          buildForm();
-        } },
-        ico(cur.icon || "chart-bar"),
-        h("span", { class: "ve-typename", textContent: t(cur.label) }),
-        ico(menuOpen ? "chevron-up" : "chevron-down")
-      );
-      wrap.append(btn);
-      if (menuOpen) {
-        const list = h("div", { class: "ve-typemenu", role: "listbox" });
-        for (const [fk, fl] of Object.entries(VIZ_FAMILIES)) {
-          const items = Object.entries(VIZ_TYPES).filter(([, v]) => v.family === fk);
-          if (!items.length) continue;
-          list.append(h("div", { class: "ve-typefam", textContent: t(fl) }), ...items.map(([k, v]) => h("button", {
-            type: "button",
-            role: "option",
-            class: "ve-typeopt" + (col.viz.kind === k ? " on" : ""),
-            "aria-selected": String(col.viz.kind === k),
-            onclick: () => {
-              menuOpen = false;
-              if (col.viz.kind !== k) {
-                col.viz = switchKind(col.viz, k);
-                ui.sel = -1;
-                fctx.restructure();
-              } else buildForm();
-            }
-          }, ico(v.icon || "chart-bar"), h("span", { textContent: t(v.label) }))));
-        }
-        wrap.append(list);
+    const typeCard = () => {
+      const cur = VIZ_TYPES[col.viz.kind], list = h("div", { class: "ve-typelist", role: "listbox" });
+      for (const [fk, fl] of Object.entries(VIZ_FAMILIES)) {
+        const items = Object.entries(VIZ_TYPES).filter(([, v]) => v.family === fk);
+        if (!items.length) continue;
+        list.append(h("div", { class: "ve-typefam", textContent: t(fl) }), ...items.map(([k, v]) => h("button", {
+          type: "button",
+          role: "option",
+          class: "ve-typeopt" + (col.viz.kind === k ? " on" : ""),
+          "aria-selected": String(col.viz.kind === k),
+          onclick: () => {
+            shut2.add("dv-type");
+            if (col.viz.kind !== k) {
+              col.viz = switchKind(col.viz, k);
+              ui.sel = -1;
+              fctx.restructure();
+            } else buildForm();
+          }
+        }, ico(v.icon || "chart-bar"), h("span", { textContent: t(v.label) }))));
       }
-      return wrap;
+      const el2 = card("dv-type", cur.icon || "chart-bar", `${t("Type")} \xB7 ${t(cur.label)}`, [list]);
+      el2.classList.add("ve-typecard");
+      return el2;
     };
     const heightCard = (ty) => card("dv-height", "ruler-2", t("Hauteur"), heightNodes(ty, col.viz.opts, { ctx: fctx, width, avail: { get: () => availH, set: (v) => {
       availH = v;
@@ -6114,7 +6102,7 @@ ${lorem}` },
     function buildForm() {
       const top = form.scrollTop;
       form.innerHTML = "";
-      form.append(typeMenu(), tabs);
+      form.append(typeCard(), tabs);
       const ty = VIZ_TYPES[col.viz.kind], fields = ty.fields || [], F = (g) => fields.filter((f) => groupOf(f) === g);
       const head = col.viz.head || (col.viz.head = { title: "", source: "" });
       const dataFields = F("data"), hasData = !!ty.data || dataFields.length > 0;
@@ -6221,12 +6209,7 @@ ${lorem}` },
       ctx2.restructure();
     };
     const onKey = (e) => {
-      if (e.key === "Escape") {
-        if (menuOpen) {
-          menuOpen = false;
-          buildForm();
-        } else close(false);
-      }
+      if (e.key === "Escape") close(false);
     };
     window.addEventListener("keydown", onKey);
     root.append(

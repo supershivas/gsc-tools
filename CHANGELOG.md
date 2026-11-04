@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.30.0 — 2026-11-04
+- Header : un sous-titre de 2 lignes ne déclenche plus d'avertissement (interligne du sous-titre 36 → 30 px, mesure corrigée) et l'espace filet → titre est toujours égal à l'espace surtitre → filet (9 px)
+- Éditeur de dataviz : le type a sa propre carte repliable en tête, mise en valeur, dont l'en-tête affiche le type courant ; repliée par défaut
+
 ## 1.29.0 — 2026-11-04
 - Dataviz : le type se choisit aussi depuis les propriétés de la colonne (menu déroulant par famille)
 - Éditeur de dataviz : le choix du type tient dans un seul bouton compact (icône + nom) au-dessus des onglets, avec un menu rangé par famille

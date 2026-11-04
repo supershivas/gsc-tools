@@ -367,12 +367,11 @@ body.v3d-open{overflow:hidden}
 textarea.ml{display:block;width:100%;min-height:34px;resize:none;overflow:hidden;line-height:1.35;font:inherit;padding:6px 8px;box-sizing:border-box}
 .pp-body textarea.ml{min-height:36px;font-size:14px}
 
-/* choix du type de dataviz : bouton compact + menu */
-.ve-typesel{position:relative;margin:0 0 10px}
-.ve-typebtn{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:0 12px;background:#fff;font-size:14px;text-align:left}
-.ve-typebtn .ti:first-child{font-size:20px;color:var(--ui-blue)}.ve-typename{flex:1;font-weight:600}
-.ve-typemenu{position:absolute;z-index:5;left:0;right:0;top:calc(100% + 4px);max-height:60vh;overflow:auto;padding:6px;background:#fff;border:1px solid var(--ui-line);border-radius:10px;box-shadow:0 8px 24px #0003}
-.ve-typefam{margin:8px 6px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ui-mute)}.ve-typefam:first-child{margin-top:2px}
+/* choix du type de dataviz : carte repliable mise en valeur */
+.ve-typecard{border-color:var(--ui-blue)}
+.ve-typecard .pp-card-h{background:#eef2ff}.ve-typecard .pp-card-h b{color:var(--ui-blue)}.ve-typecard .pp-card-h .ti:first-child{color:var(--ui-blue)}
+.ve-typelist{display:grid;gap:2px}
+.ve-typefam{margin:8px 4px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ui-mute)}.ve-typefam:first-child{margin-top:0}
 .ve-typeopt{display:flex;align-items:center;gap:8px;width:100%;min-height:34px;padding:0 8px;border:0;border-radius:6px;background:transparent;font-size:13px;text-align:left}
 .ve-typeopt .ti{font-size:18px;color:var(--ui-mute)}
 .ve-typeopt.on{background:#eef2ff;color:var(--ui-blue)}.ve-typeopt.on .ti{color:var(--ui-blue)}

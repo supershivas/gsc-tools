@@ -15,7 +15,8 @@ import { t } from './i18n.js';
 
 let current = null;
 const shut = new Set();   // cartes repliées (gardées d'une ouverture à l'autre)
-let tab = 'data';          // onglet : 'data' (Données) ou 'viz' (Visualisation)
+let tab = 'data';
+shut.add('dv-type');      // la carte du type est repliée à la première ouverture          // onglet : 'data' (Données) ou 'viz' (Visualisation)
 
 /* Rangement des champs d'un type dans les cartes de l'onglet Visualisation (un champ peut forcer `g: 'format' | 'labels' | 'style' | 'data'`) */
 const LABEL_KEYS = new Set(['legend', 'showValues', 'decimals', 'suffix', 'totalTpl', 'layout']);
@@ -74,30 +75,24 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     restructure: () => { applyVars(root, cssVars(doc.theme, doc.colors)); buildForm(); draw(); } };
   const refreshForm = () => buildForm();
   const card = (id, icon, name, nodes) => cardEl(id, icon, name, nodes, { shut, refresh: refreshForm });
-  /* Choix du type : un seul bouton (icône + nom) au-dessus des onglets ; la liste, rangée par famille, s'ouvre en menu */
-  let menuOpen = false;
-  const typeMenu = () => {
-    const cur = VIZ_TYPES[col.viz.kind], wrap = h('div', { class: 've-typesel' });
-    const btn = h('button', { type: 'button', class: 've-typebtn', 'aria-haspopup': 'listbox', 'aria-expanded': String(menuOpen), onclick: () => { menuOpen = !menuOpen; buildForm(); } },
-      ico(cur.icon || 'chart-bar'), h('span', { class: 've-typename', textContent: t(cur.label) }), ico(menuOpen ? 'chevron-up' : 'chevron-down'));
-    wrap.append(btn);
-    if (menuOpen) {
-      const list = h('div', { class: 've-typemenu', role: 'listbox' });
-      for (const [fk, fl] of Object.entries(VIZ_FAMILIES)) {
-        const items = Object.entries(VIZ_TYPES).filter(([, v]) => v.family === fk);
-        if (!items.length) continue;
-        list.append(h('div', { class: 've-typefam', textContent: t(fl) }), ...items.map(([k, v]) => h('button', { type: 'button', role: 'option', class: 've-typeopt' + (col.viz.kind === k ? ' on' : ''), 'aria-selected': String(col.viz.kind === k),
-          onclick: () => { menuOpen = false; if (col.viz.kind !== k) { col.viz = switchKind(col.viz, k); ui.sel = -1; fctx.restructure(); } else buildForm(); } }, ico(v.icon || 'chart-bar'), h('span', { textContent: t(v.label) }))));
-      }
-      wrap.append(list);
+  /* Choix du type : sa propre carte repliable en tête de colonne, dont l'en-tête affiche le type courant (icône + nom) ;
+     repliée par défaut et après chaque choix, pour ne pas alourdir la page */
+  const typeCard = () => {
+    const cur = VIZ_TYPES[col.viz.kind], list = h('div', { class: 've-typelist', role: 'listbox' });
+    for (const [fk, fl] of Object.entries(VIZ_FAMILIES)) {
+      const items = Object.entries(VIZ_TYPES).filter(([, v]) => v.family === fk);
+      if (!items.length) continue;
+      list.append(h('div', { class: 've-typefam', textContent: t(fl) }), ...items.map(([k, v]) => h('button', { type: 'button', role: 'option', class: 've-typeopt' + (col.viz.kind === k ? ' on' : ''), 'aria-selected': String(col.viz.kind === k),
+        onclick: () => { shut.add('dv-type'); if (col.viz.kind !== k) { col.viz = switchKind(col.viz, k); ui.sel = -1; fctx.restructure(); } else buildForm(); } }, ico(v.icon || 'chart-bar'), h('span', { textContent: t(v.label) }))));
     }
-    return wrap;
+    const el = card('dv-type', cur.icon || 'chart-bar', `${t('Type')} · ${t(cur.label)}`, [list]);
+    el.classList.add('ve-typecard'); return el;
   };
   /* Carte « Hauteur » (nœuds partagés avec le panneau de propriétés : vizheight.js) */
   const heightCard = ty => card('dv-height', 'ruler-2', t('Hauteur'), heightNodes(ty, col.viz.opts, { ctx: fctx, width, avail: { get: () => availH, set: v => { availH = v; draw(); } } }));
   function buildForm() {
     const top = form.scrollTop;
-    form.innerHTML = ''; form.append(typeMenu(), tabs);
+    form.innerHTML = ''; form.append(typeCard(), tabs);
     const ty = VIZ_TYPES[col.viz.kind], fields = ty.fields || [], F = g => fields.filter(f => groupOf(f) === g);
     const head = col.viz.head || (col.viz.head = { title: '', source: '' });
     const dataFields = F('data'), hasData = !!ty.data || dataFields.length > 0;
@@ -163,7 +158,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     window.removeEventListener('keydown', onKey); root.remove(); current = null; document.body.classList.remove('ve-open');
     ctx.restructure();
   };
-  const onKey = e => { if (e.key === 'Escape') { if (menuOpen) { menuOpen = false; buildForm(); } else close(false); } };
+  const onKey = e => { if (e.key === 'Escape') close(false); };
   window.addEventListener('keydown', onKey);
 
   root.append(
