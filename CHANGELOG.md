@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.47.0 — 2026-11-04
+- Poignée de hauteur aussi sous les colonnes texte, image, carte et chiffre : glisser règle la hauteur minimale, repère orange sur la colonne voisine, double-clic = adapter à la voisine (aussi dans Propriétés › Hauteur)
+- Liste à icônes : le texte des éléments garde ses retours à la ligne dans le document
+
 ## 1.46.0 — 2026-11-04
 - Texte riche (gras, italique, souligné, retours à la ligne) dans les champs courts : surtitre, titres, cartes, titre et source de dataviz, chiffre à côté
 - Liste à icônes : le bouton « Importer un SVG » est maintenant dans l'onglet Données, sous la liste des éléments

@@ -392,6 +392,10 @@
     "Annuler": "Cancel",
     "Exporter": "Export",
     "Terminer": "Done",
+    "Hauteur minimale (px, 0 = automatique)": "Minimum height (px, 0 = automatic)",
+    "Ou glisser la poign\xE9e sous la colonne dans l\u2019aper\xE7u : elle se cale sur la colonne voisine.": "Or drag the handle under the column in the preview: it snaps to the neighbouring column.",
+    "Glisser : hauteur du contenu (se cale sur la colonne voisine) \xB7 double-clic : adapter \xE0 la colonne voisine": "Drag: content height (snaps to the neighbouring column) \xB7 double-click: match the neighbouring column",
+    "Hauteur du contenu": "Content height",
     "Annuler (Cmd/Ctrl + Z)": "Undo (Cmd/Ctrl + Z)",
     "Annuler la derni\xE8re modification": "Undo the last change",
     "R\xE9tablir (Cmd/Ctrl + Maj + Z)": "Redo (Cmd/Ctrl + Shift + Z)",
@@ -4807,6 +4811,9 @@ ${short}`)])
       wrap.append(node || h("div", { class: "viz-ph" }, h("span", { textContent: "dataviz" })));
       if (node && env.fills && col.viz.opts && (col.viz.opts.hmode === "fill" || col.viz.opts.hmode === "match")) env.fills.push({ page: env.page, col, w, node, wrap, env, mode: col.viz.opts.hmode });
     }
+    if (col.type !== "viz" && +col.minH > 0) {
+      Object.assign(wrap.style, { minHeight: col.minH + "px", display: "flex", flexDirection: "column", alignSelf: isBox(col) ? "stretch" : "start", justifyContent: { start: "flex-start", center: "center", end: "flex-end" }[al] });
+    }
     return wrap;
   }
   function renderSub(sub, si, bi, env, W) {
@@ -4898,6 +4905,22 @@ ${short}`)])
     node.style.display = prev;
     const target = rowH - own - extra;
     return target >= 60 ? Math.floor(target / 3) * 3 : null;
+  }
+  function matchColTarget(wrap) {
+    const row = wrap.parentElement;
+    if (!row || row.children.length < 2) return null;
+    const kids = [...wrap.children], prev = wrap.style.minHeight;
+    kids.forEach((k) => {
+      k._d = k.style.display;
+      k.style.display = "none";
+    });
+    wrap.style.minHeight = "0px";
+    const rowH = row.offsetHeight;
+    kids.forEach((k) => {
+      k.style.display = k._d;
+    });
+    wrap.style.minHeight = prev;
+    return rowH >= 30 ? Math.round(rowH / 3) * 3 : null;
   }
   function matchRows(fills) {
     for (const f of fills) {
@@ -6399,7 +6422,13 @@ ${short}`)])
       root.append(
         card("col-content", ICONS2[col.type] || "text-size", t("Contenu"), [typeSel, ...editor]),
         col.type === "text" || col.type === "card" ? card("col-side", "number", t("Chiffre \xE0 c\xF4t\xE9"), buildFields(SIDE_FIELDS, col.side || (col.side = newColSide()), ctx2, {}, h)) : null,
-        vt && vt.heights ? card("col-height", "ruler-2", t("Hauteur"), heightNodes(vt, col.viz.opts, { ctx: ctx2, width: columnWidth(doc2, si, bi, ci) })) : null,
+        vt && vt.heights ? card("col-height", "ruler-2", t("Hauteur"), heightNodes(vt, col.viz.opts, { ctx: ctx2, width: columnWidth(doc2, si, bi, ci) })) : col.type !== "viz" ? card("col-height", "ruler-2", t("Hauteur"), [
+          field("Hauteur minimale (px, 0 = automatique)", h("input", { type: "number", min: 0, max: 1e3, step: 3, value: col.minH || 0, oninput: (e) => {
+            col.minH = Math.max(0, +e.target.value || 0);
+            ctx2.changed();
+          } })),
+          h("p", { class: "hint", textContent: t("Ou glisser la poign\xE9e sous la colonne dans l\u2019aper\xE7u : elle se cale sur la colonne voisine.") })
+        ]) : null,
         card("col-layout", "layout-align-middle", t("Disposition"), [
           segmented("Alignement vertical dans la colonne", col, "valign", VALIGNS, { top: t("Haut"), center: t("Centre"), bottom: t("Bas") }),
           col.type === "text" ? segmented("Alignement du texte", col, "align", ALIGNS, { left: t("Gauche"), center: t("Centr\xE9"), right: t("Droite"), justify: t("Justifi\xE9") }) : null,
@@ -7120,14 +7149,15 @@ ${short}`)])
       ctx2.restructure();
       ctx2.select(`sec:${at.si + 1}`);
     });
-    const grip = h("button", { type: "button", class: "hv-grip", style: { display: "none" }, title: t("Glisser : hauteur de la dataviz (se cale sur la colonne voisine) \xB7 double-clic : adapter \xE0 la colonne voisine"), "aria-label": t("Hauteur de la dataviz") }, ico("grip-horizontal"));
+    const grip = h("button", { type: "button", class: "hv-grip", style: { display: "none" }, title: t("Glisser : hauteur du contenu (se cale sur la colonne voisine) \xB7 double-clic : adapter \xE0 la colonne voisine"), "aria-label": t("Hauteur du contenu") }, ico("grip-horizontal"));
     const guide = h("div", { class: "hv-guide", style: { display: "none" } });
     const vizOf = (it) => {
       const col = getDoc().sections[it.si].subs[it.bi].cols[it.ci];
       return col.type === "viz" && col.viz && (VIZ_TYPES[col.viz.kind] || {}).heights ? col : null;
     };
+    const colOf = (it) => getDoc().sections[it.si].subs[it.bi].cols[it.ci];
     const placeGrip = (it) => {
-      const el2 = document.querySelector(`[data-sel="${it.path}"]`), nd = el2 && el2.firstElementChild;
+      const el2 = document.querySelector(`[data-sel="${it.path}"]`), nd = el2 && (vizOf(it) ? el2.firstElementChild : el2);
       if (!nd) {
         grip.style.display = "none";
         return;
@@ -7137,14 +7167,60 @@ ${short}`)])
       grip._at = it;
     };
     grip.addEventListener("dblclick", () => {
-      const it = grip._at, col = it && vizOf(it);
+      const it = grip._at;
+      if (it && !vizOf(it)) {
+        const el2 = document.querySelector(`[data-sel="${it.path}"]`), n = el2 && matchColTarget(el2);
+        if (n) {
+          colOf(it).minH = n;
+          hide2();
+          ctx2.restructure();
+        }
+        return;
+      }
+      const col = it && vizOf(it);
       if (!col) return;
       col.viz.opts.hmode = "match";
       hide2();
       ctx2.restructure();
     });
+    const gripOther = (e, it) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const col = colOf(it);
+      const colEl = document.querySelector(`[data-sel="${it.path}"]`), sc = colEl.closest(".page").getBoundingClientRect().width / PAGE.w;
+      const startH = colEl.getBoundingClientRect().height / sc, neigh = matchColTarget(colEl), y0 = e.clientY;
+      let snapped = false;
+      grip.setPointerCapture(e.pointerId);
+      bar.style.display = out.style.display = addSubBtn.style.display = addSecBtn.style.display = "none";
+      const move = (ev) => {
+        let hh = Math.round(Math.max(30, Math.min(1e3, startH + (ev.clientY - y0) / sc)) / 3) * 3;
+        snapped = neigh != null && Math.abs(hh - neigh) <= 9;
+        if (snapped) hh = neigh;
+        col.minH = hh;
+        ctx2.changed();
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          placeGrip(it);
+          const el2 = document.querySelector(`[data-sel="${it.path}"]`);
+          if (el2 && neigh != null) {
+            const r = el2.getBoundingClientRect();
+            Object.assign(guide.style, { display: "block", left: r.left - 6 + "px", width: r.width + 12 + "px", top: r.top + neigh * sc + "px", borderTopStyle: snapped ? "solid" : "dashed" });
+          }
+        }));
+      };
+      const up = () => {
+        grip.removeEventListener("pointermove", move);
+        grip.removeEventListener("pointerup", up);
+        guide.style.display = "none";
+        hide2();
+        ctx2.restructure();
+      };
+      grip.addEventListener("pointermove", move);
+      grip.addEventListener("pointerup", up);
+    };
     grip.addEventListener("pointerdown", (e) => {
-      const it = grip._at, col = it && vizOf(it);
+      const it = grip._at;
+      if (it && !e.button && !vizOf(it)) return gripOther(e, it);
+      const col = it && vizOf(it);
       if (!col || e.button) return;
       e.preventDefault();
       e.stopPropagation();
@@ -7309,7 +7385,7 @@ ${short}`)])
       cur = key;
       {
         const ci = chain.find((c2) => c2.kind === "col");
-        if (ci && vizOf(ci)) placeGrip(ci);
+        if (ci) placeGrip(ci);
         else grip.style.display = "none";
       }
       const doc2 = getDoc();

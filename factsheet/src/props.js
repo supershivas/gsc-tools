@@ -209,7 +209,9 @@ export function buildProps(root, ctx) {
     const vt = col.type === 'viz' && col.viz && VIZ_TYPES[col.viz.kind];
     root.append(card('col-content', ICONS[col.type] || 'text-size', t('Contenu'), [typeSel, ...editor]),
       col.type === 'text' || col.type === 'card' ? card('col-side', 'number', t('Chiffre à côté'), buildFields(SIDE_FIELDS, col.side || (col.side = newColSide()), ctx, {}, h)) : null,
-      vt && vt.heights ? card('col-height', 'ruler-2', t('Hauteur'), heightNodes(vt, col.viz.opts, { ctx, width: columnWidth(doc, si, bi, ci) })) : null,
+      vt && vt.heights ? card('col-height', 'ruler-2', t('Hauteur'), heightNodes(vt, col.viz.opts, { ctx, width: columnWidth(doc, si, bi, ci) }))
+        : col.type !== 'viz' ? card('col-height', 'ruler-2', t('Hauteur'), [field('Hauteur minimale (px, 0 = automatique)', h('input', { type: 'number', min: 0, max: 1000, step: 3, value: col.minH || 0, oninput: e => { col.minH = Math.max(0, +e.target.value || 0); ctx.changed(); } })),
+          h('p', { class: 'hint', textContent: t('Ou glisser la poignée sous la colonne dans l’aperçu : elle se cale sur la colonne voisine.') })]) : null,
       card('col-layout', 'layout-align-middle', t('Disposition'), [segmented('Alignement vertical dans la colonne', col, 'valign', VALIGNS, { top: t('Haut'), center: t('Centre'), bottom: t('Bas') }),
         col.type === 'text' ? segmented('Alignement du texte', col, 'align', ALIGNS, { left: t('Gauche'), center: t('Centré'), right: t('Droite'), justify: t('Justifié') }) : null, swap]),
       col.type !== 'card' ? card('col-box', 'border-all', t('Fond et contour'), boxControls(col)) : null,

@@ -116,6 +116,9 @@ function renderCol(col, w, path, env) {
     wrap.append(node || h('div', { class: 'viz-ph' }, h('span', { textContent: 'dataviz' })));
     if (node && env.fills && col.viz.opts && (col.viz.opts.hmode === 'fill' || col.viz.opts.hmode === 'match')) env.fills.push({ page: env.page, col, w, node, wrap, env, mode: col.viz.opts.hmode });
   }
+  if (col.type !== 'viz' && +col.minH > 0) {   // hauteur minimale réglée à la poignée : le contenu se place dans la colonne selon valign
+    Object.assign(wrap.style, { minHeight: col.minH + 'px', display: 'flex', flexDirection: 'column', alignSelf: isBox(col) ? 'stretch' : 'start', justifyContent: { start: 'flex-start', center: 'center', end: 'flex-end' }[al] });
+  }
   return wrap;
 }
 
@@ -214,6 +217,14 @@ export function matchTarget(wrap, node) {
   const rowH = row.offsetHeight; node.style.display = prev;
   const target = rowH - own - extra;
   return target >= 60 ? Math.floor(target / 3) * 3 : null;
+}
+/** Hauteur de la voisine la plus haute de la rangée, pour une colonne qui n'est pas une dataviz (null sans voisine) :
+    on vide la colonne le temps de mesurer, la rangée prend alors la hauteur des autres */
+export function matchColTarget(wrap) {
+  const row = wrap.parentElement; if (!row || row.children.length < 2) return null;
+  const kids = [...wrap.children], prev = wrap.style.minHeight; kids.forEach(k => { k._d = k.style.display; k.style.display = 'none'; }); wrap.style.minHeight = '0px';
+  const rowH = row.offsetHeight; kids.forEach(k => { k.style.display = k._d; }); wrap.style.minHeight = prev;
+  return rowH >= 30 ? Math.round(rowH / 3) * 3 : null;
 }
 /** Dataviz en mode « Adapter à la colonne voisine » : redessinées à la hauteur de la voisine la plus haute */
 function matchRows(fills) {
