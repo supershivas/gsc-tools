@@ -113,7 +113,8 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
   const out = [];
   const live = fn => e => { fn(e.target); ctx.changed(); };
   for (const f of spec) {
-    if ((f.t === 'text' || f.t === 'lines') && f.rich) out.push(h2('div', { class: 'f' }, h2('div', { class: 'hint' }, f.label, helpBtn(f.label)), richEditor(getP(obj, f.k) ?? '', v => { setP(obj, f.k, v); ctx.changed(); }, { bullets: false })));
+    if (f.t === 'node') out.push(f.build(root, ctx));
+    else if ((f.t === 'text' || f.t === 'lines') && f.rich) out.push(h2('div', { class: 'f' }, h2('div', { class: 'hint' }, f.label, helpBtn(f.label)), richEditor(getP(obj, f.k) ?? '', v => { setP(obj, f.k, v); ctx.changed(); }, { bullets: false })));
     else if (f.t === 'text') out.push(h2('label', { class: 'f' }, f.label, helpBtn(f.label), f.k === 'suffix' || f.single ? h2('input', { type: 'text', value: getP(obj, f.k) ?? '', oninput: live(t => setP(obj, f.k, t.value)) }) : multiline(h2, getP(obj, f.k), e => { setP(obj, f.k, e.target.value); ctx.changed(); })));
     else if (f.t === 'area') out.push(h2('div', { class: 'f' }, h2('div', { class: 'hint', textContent: f.label }), richEditor(getP(obj, f.k) ?? '', v => { setP(obj, f.k, v); ctx.changed(); })));
     else if (f.t === 'lines') out.push(h2('label', { class: 'f' }, f.label, h2('textarea', { value: getP(obj, f.k) ?? '', style: { minHeight: '64px' }, oninput: live(t => setP(obj, f.k, t.value)) })));

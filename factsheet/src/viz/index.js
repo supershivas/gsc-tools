@@ -15,7 +15,7 @@ import survey from './survey.js';
 import waffle from './waffle.js';
 import timeline from './timeline.js';
 import { pictoTypes } from './picto.js';
-import { el, heightOf, fmt } from './util.js';
+import { el, heightOf, fmt, inlineMk } from './util.js';
 import { renderFigure } from '../figure.js';
 
 export const VIZ_TYPES = { donut, bars, hbars, line, timeline, scatter, survey, waffle, sunburst, bubbles, treemap, sankey, ...pictoTypes, icons: iconlist };
@@ -51,9 +51,9 @@ function withHead(viz, node) {
   const hd = viz.head || {};
   if (!node || !(hd.title || '').trim() && !(hd.source || '').trim()) return node;
   const wrap = el('div', { class: 'viz-wrap' });
-  if ((hd.title || '').trim()) wrap.append(el('div', { class: 'viz-title', textContent: hd.title }));
+  if ((hd.title || '').trim()) wrap.append(el('div', { class: 'viz-title', innerHTML: inlineMk(hd.title) }));
   wrap.append(node);
-  if ((hd.source || '').trim()) wrap.append(el('div', { class: 'viz-source', textContent: hd.source }));
+  if ((hd.source || '').trim()) wrap.append(el('div', { class: 'viz-source', innerHTML: inlineMk(hd.source) }));
   return wrap;
 }
 
@@ -70,7 +70,7 @@ export { fill as fillTokens };
 /** Champs de la carte « Chiffre à côté » (dataviz, texte, carte) */
 export const SIDE_FIELDS = [
   { k: 'pos', t: 'select', label: 'Chiffre à côté', options: { none: 'Aucun', right: 'À droite', left: 'À gauche' } },
-  { k: 'value', t: 'text', label: 'Chiffre ({pct} = part de la 1re donnée)' }, { k: 'text', t: 'text', label: 'Texte sous le chiffre (vide = libellé de la 1re donnée)' },
+  { k: 'value', t: 'text', rich: true, label: 'Chiffre ({pct} = part de la 1re donnée)' }, { k: 'text', t: 'text', rich: true, label: 'Texte sous le chiffre (vide = libellé de la 1re donnée)' },
   { k: 'share', t: 'number', label: 'Largeur du contenu (% de la largeur)', min: 25, max: 80 },
   { k: 'scale', t: 'select', label: 'Taille du chiffre', options: { 1: 'Normal', 1.5: 'Grand', 2: 'Très grand' } },
   { k: 'align', t: 'select', label: 'Position verticale du chiffre', options: { top: 'En haut', center: 'Centré', bottom: 'En bas' } },

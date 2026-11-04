@@ -128,7 +128,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
       form.append(card('dv-data', 'table', t('Données'), nodes));
     } else {
       form.append(...[
-        card('dv-head', 'typography', t('Titre et source'), buildFields([{ k: 'title', t: 'text', label: 'Titre de la dataviz (facultatif)' }, { k: 'source', t: 'text', label: 'Source (facultatif)' }], head, fctx, {}, h)),
+        card('dv-head', 'typography', t('Titre et source'), buildFields([{ k: 'title', t: 'text', rich: true, label: 'Titre de la dataviz (facultatif)' }, { k: 'source', t: 'text', rich: true, label: 'Source (facultatif)' }], head, fctx, {}, h)),
         ty.panel ? card('dv-picto', 'mood-smile', t(ty.panelTitle || 'Pictogramme'), ty.panel(col.viz.opts, fctx)) : null,
         card('dv-side', 'number', t('Chiffre à côté'), buildFields(SIDE_FIELDS, col.viz.side || (col.viz.side = newSide(col.viz.kind)), fctx, {}, h)),
         ty.heights ? heightCard(ty) : null,

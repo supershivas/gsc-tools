@@ -17,8 +17,8 @@ export default {
     { k: 'scale', t: 'select', label: 'Taille des icônes et du texte', options: { 1: 'Normal', 1.5: 'Grand', 2: 'Très grand' } },
     { k: 'items', t: 'list', label: 'Éléments', min: 1, max: 8, item: () => ({ icon: 'check', text: t('Nouvel élément') }),
       fields: [{ k: 'icon', t: 'select', icons: true, label: 'Icône', options: root => ({ ...ICON_OPTIONS, ...Object.fromEntries(((root && root.customIcons) || []).map(c => ['custom:' + c.id, `${t('Importé')} · ${c.name}`])) }) }, { k: 'text', t: 'text', rich: true, label: 'Texte' }] },
+    { t: 'node', g: 'data', build: (root, ctx) => { const n = document.createElement('div'); n.className = 'f'; n.append(...iconImportPanel(root, ctx)); return n; } },
   ],
-  panel: iconImportPanel, panelTitle: 'Icônes importées',
   render(o, W, env) {
     const sc = +o.scale || 1, C = VIZ.iconCircle * sc, G = VIZ.iconGlyph * sc, bodyPx = pxOf(TYPE.body.size) * sc;
     const list = el('div', { class: 'viz-icons' });

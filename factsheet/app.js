@@ -2281,10 +2281,14 @@
         max: 8,
         item: () => ({ icon: "check", text: t("Nouvel \xE9l\xE9ment") }),
         fields: [{ k: "icon", t: "select", icons: true, label: "Ic\xF4ne", options: (root) => ({ ...ICON_OPTIONS, ...Object.fromEntries((root && root.customIcons || []).map((c2) => ["custom:" + c2.id, `${t("Import\xE9")} \xB7 ${c2.name}`])) }) }, { k: "text", t: "text", rich: true, label: "Texte" }]
-      }
+      },
+      { t: "node", g: "data", build: (root, ctx2) => {
+        const n = document.createElement("div");
+        n.className = "f";
+        n.append(...iconImportPanel(root, ctx2));
+        return n;
+      } }
     ],
-    panel: iconImportPanel,
-    panelTitle: "Ic\xF4nes import\xE9es",
     render(o, W, env) {
       const sc = +o.scale || 1, C = VIZ.iconCircle * sc, G = VIZ.iconGlyph * sc, bodyPx = pxOf(TYPE.body.size) * sc;
       const list = el("div", { class: "viz-icons" });
@@ -4252,9 +4256,9 @@
     const hd = viz.head || {};
     if (!node || !(hd.title || "").trim() && !(hd.source || "").trim()) return node;
     const wrap = el("div", { class: "viz-wrap" });
-    if ((hd.title || "").trim()) wrap.append(el("div", { class: "viz-title", textContent: hd.title }));
+    if ((hd.title || "").trim()) wrap.append(el("div", { class: "viz-title", innerHTML: inlineMk(hd.title) }));
     wrap.append(node);
-    if ((hd.source || "").trim()) wrap.append(el("div", { class: "viz-source", textContent: hd.source }));
+    if ((hd.source || "").trim()) wrap.append(el("div", { class: "viz-source", innerHTML: inlineMk(hd.source) }));
     return wrap;
   }
   function sideTokens(o, env) {
@@ -4266,8 +4270,8 @@
   var fill = (str, tk) => String(str ?? "").replace(/\{(pct|value|total|label)\}/g, (_, k) => tk ? tk[k] : "");
   var SIDE_FIELDS = [
     { k: "pos", t: "select", label: "Chiffre \xE0 c\xF4t\xE9", options: { none: "Aucun", right: "\xC0 droite", left: "\xC0 gauche" } },
-    { k: "value", t: "text", label: "Chiffre ({pct} = part de la 1re donn\xE9e)" },
-    { k: "text", t: "text", label: "Texte sous le chiffre (vide = libell\xE9 de la 1re donn\xE9e)" },
+    { k: "value", t: "text", rich: true, label: "Chiffre ({pct} = part de la 1re donn\xE9e)" },
+    { k: "text", t: "text", rich: true, label: "Texte sous le chiffre (vide = libell\xE9 de la 1re donn\xE9e)" },
     { k: "share", t: "number", label: "Largeur du contenu (% de la largeur)", min: 25, max: 80 },
     { k: "scale", t: "select", label: "Taille du chiffre", options: { 1: "Normal", 1.5: "Grand", 2: "Tr\xE8s grand" } },
     { k: "align", t: "select", label: "Position verticale du chiffre", options: { top: "En haut", center: "Centr\xE9", bottom: "En bas" } }
@@ -5732,7 +5736,8 @@ ${short}`)])
       ctx2.changed();
     };
     for (const f of spec) {
-      if ((f.t === "text" || f.t === "lines") && f.rich) out.push(h2("div", { class: "f" }, h2("div", { class: "hint" }, f.label, helpBtn(f.label)), richEditor(getP(obj, f.k) ?? "", (v) => {
+      if (f.t === "node") out.push(f.build(root, ctx2));
+      else if ((f.t === "text" || f.t === "lines") && f.rich) out.push(h2("div", { class: "f" }, h2("div", { class: "hint" }, f.label, helpBtn(f.label)), richEditor(getP(obj, f.k) ?? "", (v) => {
         setP(obj, f.k, v);
         ctx2.changed();
       }, { bullets: false })));
@@ -5950,9 +5955,10 @@ ${short}`)])
       ctx2.restructure();
     };
     const field = (label, input) => h("label", { class: "f" }, label, helpBtn(label), input);
-    const text = (obj, k, label, ph) => field(label, multiline(h, obj[k] || "", live((v) => {
+    const text = (obj, k, label, ph) => h("div", { class: "f" }, h("div", { class: "hint" }, label, helpBtn(label)), richEditor(obj[k] || "", (v) => {
       obj[k] = v;
-    }), ph || ""));
+      ctx2.changed();
+    }, { bullets: false }));
     const select = (obj, k, label, opts, onSet) => {
       const s2 = h("select", { onchange: (e) => {
         obj[k] = e.target.value;
@@ -6147,12 +6153,12 @@ ${short}`)])
         return field(label, s2);
       };
       const fields = [
-        { k: "tag", t: "text", label: "\xC9tiquette" },
-        { k: "title", t: "text", label: "Titre" },
-        { k: "figure", t: "text", label: "Chiffre" },
+        { k: "tag", t: "text", rich: true, label: "\xC9tiquette" },
+        { k: "title", t: "text", rich: true, label: "Titre" },
+        { k: "figure", t: "text", rich: true, label: "Chiffre" },
         { k: "text", t: "area", label: "Texte" },
-        { k: "bullets", t: "lines", label: "Puces (une par ligne)" },
-        { k: "link", t: "text", label: "Lien" }
+        { k: "bullets", t: "lines", rich: true, label: "Puces (une par ligne)" },
+        { k: "link", t: "text", rich: true, label: "Lien" }
       ];
       return h(
         "div",
@@ -6944,7 +6950,7 @@ ${short}`)])
         form.append(card("dv-data", "table", t("Donn\xE9es"), nodes));
       } else {
         form.append(...[
-          card("dv-head", "typography", t("Titre et source"), buildFields([{ k: "title", t: "text", label: "Titre de la dataviz (facultatif)" }, { k: "source", t: "text", label: "Source (facultatif)" }], head, fctx, {}, h)),
+          card("dv-head", "typography", t("Titre et source"), buildFields([{ k: "title", t: "text", rich: true, label: "Titre de la dataviz (facultatif)" }, { k: "source", t: "text", rich: true, label: "Source (facultatif)" }], head, fctx, {}, h)),
           ty.panel ? card("dv-picto", "mood-smile", t(ty.panelTitle || "Pictogramme"), ty.panel(col.viz.opts, fctx)) : null,
           card("dv-side", "number", t("Chiffre \xE0 c\xF4t\xE9"), buildFields(SIDE_FIELDS, col.viz.side || (col.viz.side = newSide(col.viz.kind)), fctx, {}, h)),
           ty.heights ? heightCard(ty) : null,

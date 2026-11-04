@@ -26,7 +26,7 @@ export function buildProps(root, ctx) {
   const live = fn => e => { fn(e.target.value, e); ctx.changed(); };
   const struct = fn => () => { fn(); ctx.restructure(); };
   const field = (label, input) => h('label', { class: 'f' }, label, helpBtn(label), input);
-  const text = (obj, k, label, ph) => field(label, multiline(h, obj[k] || '', live(v => { obj[k] = v; }), ph || ''));
+  const text = (obj, k, label, ph) => h('div', { class: 'f' }, h('div', { class: 'hint' }, label, helpBtn(label)), richEditor(obj[k] || '', v => { obj[k] = v; ctx.changed(); }, { bullets: false }));
   const select = (obj, k, label, opts, onSet) => {
     const s = h('select', { onchange: e => { obj[k] = e.target.value; onSet ? onSet() : ctx.changed(); } }, Object.entries(opts).map(([v, l]) => h('option', { value: v, textContent: l })));
     s.value = obj[k]; return field(label, s);
@@ -105,8 +105,8 @@ export function buildProps(root, ctx) {
     const chosen = fn => { fn(); C.auto = false; ctx.restructure(); };
     const check = ([k, label]) => h('label', { class: 'row' }, h('input', { type: 'checkbox', checked: !!C[k], onchange: e => chosen(() => { C[k] = e.target.checked; }) }), label);
     const sel = (k, label, opts) => { const s = h('select', { onchange: e => chosen(() => { C[k] = e.target.value; }) }, Object.entries(opts).map(([v, l]) => h('option', { value: v, textContent: l }))); s.value = C[k]; return field(label, s); };
-    const fields = [{ k: 'tag', t: 'text', label: 'Étiquette' }, { k: 'title', t: 'text', label: 'Titre' }, { k: 'figure', t: 'text', label: 'Chiffre' }, { k: 'text', t: 'area', label: 'Texte' },
-      { k: 'bullets', t: 'lines', label: 'Puces (une par ligne)' }, { k: 'link', t: 'text', label: 'Lien' }];
+    const fields = [{ k: 'tag', t: 'text', rich: true, label: 'Étiquette' }, { k: 'title', t: 'text', rich: true, label: 'Titre' }, { k: 'figure', t: 'text', rich: true, label: 'Chiffre' }, { k: 'text', t: 'area', label: 'Texte' },
+      { k: 'bullets', t: 'lines', rich: true, label: 'Puces (une par ligne)' }, { k: 'link', t: 'text', rich: true, label: 'Lien' }];
     return h('div', {},
       ...buildFields(fields, ct, ctx, palOpts, h),
       C.image ? imgPicker('Image de la carte', () => C.src, v => { C.src = v; }, 1200) : null,

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.46.0 — 2026-11-04
+- Texte riche (gras, italique, souligné, retours à la ligne) dans les champs courts : surtitre, titres, cartes, titre et source de dataviz, chiffre à côté
+- Liste à icônes : le bouton « Importer un SVG » est maintenant dans l'onglet Données, sous la liste des éléments
+
 ## 1.45.0 — 2026-11-04
 - Éditeur de dataviz : annuler / rétablir (boutons et Cmd/Ctrl + Z), y compris le changement de type, pour revenir exactement où l'on en était
 - Liste à icônes, chiffre clé : texte avec gras, italique, souligné et retours à la ligne, aussi dans les titres, cartes et légendes
