@@ -68,6 +68,10 @@ const EN = {
   /* hauteur des dataviz */
   'Automatique (hauteur naturelle)': 'Automatic (natural height)', 'Proportion de la largeur': 'Proportion of the width', 'Fixe': 'Fixed', 'Remplir la place disponible': 'Fill the available space', 'Hauteur': 'Height', 'Hauteur du graphique (px)': 'Chart height (px)', 'Hauteur minimale (px)': 'Minimum height (px)', 'Hauteur maximale (px)': 'Maximum height (px)', 'Place disponible pour cet aperçu (px)': 'Available space for this preview (px)', 'Dans le document, la dataviz occupe la place restante de la page (partagée s’il y en a plusieurs), entre ces deux bornes.': 'In the document, the dataviz takes the remaining space on the page (shared if there are several), between these two limits.',
   'Filet entre les sous-sections': 'Rule between subsections',
+  /* texte du centre du donut */
+  'Texte du centre': 'Centre text', 'Titre 1 (grand)': 'Heading 1 (large)', 'Titre 2 (moyen)': 'Heading 2 (medium)', 'Texte courant': 'Body text', 'Une ligne par paragraphe. {total} = somme des valeurs. Le texte passe à la ligne et ne dépasse jamais l’anneau.': 'One line per paragraph. {total} = sum of the values. The text wraps and never exceeds the ring.',
+  /* frise chronologique */
+  'Frise chronologique': 'Timeline', 'Orientation': 'Orientation', 'Verticale': 'Vertical', 'Horizontale': 'Horizontal', 'Alterner les événements de part et d’autre de la ligne': 'Alternate events on both sides of the line', 'Afficher les dates': 'Show dates', 'Date': 'Date', 'Une ligne par événement, dans l’ordre d’affichage.': 'One row per event, in display order.',
   /* types de dataviz */
   'Barres (jumelées, groupées, empilées)': 'Bars (overlapping, grouped, stacked)', 'Plusieurs séries': 'Multiple series', 'Jumelées (2 séries qui se chevauchent)': 'Overlapping (2 series overlap)',
   'Côte à côte': 'Side by side', 'Empilées': 'Stacked', 'Format du graphique': 'Chart ratio', '2:1 (large)': '2:1 (wide)', '1:1 (carré)': '1:1 (square)',

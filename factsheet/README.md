@@ -23,6 +23,9 @@ Les couleurs sont des clés de palette (le thème recolore tout). Largeur = cell
 `scatter` (nuage de points / bulles), `survey` (résultats d'enquête : un point par répondant en nuage hexagonal, anneaux = réponses, un nuage par groupe), `sunburst`, `bubbles` (pack), `treemap` (hiérarchies : `viz/hier.js`, colonnes Niveau 1/2/3 + valeur, d3-hierarchy), `sankey` (d3-sankey), pictogrammes (`viz/picto.js`, 4 types : barres, barres verticales, simple vertical, simple horizontal ; SVG importé nettoyé par `sanitizeSvg` et stocké dans `opts.customIcons`, donc dans le JSON).
 Un type peut déclarer `data: { k, cols[], item }` : l'onglet Données affiche alors un tableau d'enregistrements (`vizdata.js`, `recordsAdapter`) ; `family` et `icon` le rangent dans le sélecteur de type ; `panel(opts, ctx)` ajoute une carte (pictogrammes). Aides communes dans `viz/util.js` : `autoColor`/`CYCLE`, `inkOn` (texte lisible sur un fond), `heightOf`, `layoutLegend` (légende qui passe à la ligne).
 
+`timeline` (`viz/timeline.js`) : frise verticale ou horizontale, option « alterner » ; hauteur automatique, fixe ou « remplir » (l'écart entre événements s'étire en vertical).
+Texte du centre du donut (`totalTpl`, champ `ctext`) : une ligne par paragraphe, `## ` titre 2, `### ` texte courant, sans préfixe = titre 1 ; passage à la ligne et réduction commune jusqu'à tenir dans l'anneau.
+
 ### Hauteur des dataviz
 Un type qui déclare `heights: [...]` reçoit la carte « Hauteur » : `auto` (hauteur naturelle), `ratio` (proportion de la largeur, option `ratio`), `fixed` (`hfixed` px), `fill` (remplir la place disponible, bornes `hmin`/`hmax`). `heightOf` (`viz/util.js`) calcule la hauteur ; en mode `fill`, `render.js` note ces dataviz (`env.fills`) et `measure()` → `fillPage` partage l'espace libre de la page entre elles en relançant leur rendu avec `env.fillH` (arrondi vers le bas : jamais de débordement). Dans l'éditeur, « Place disponible pour cet aperçu » simule cet espace. Les types sans `heights` (donut, enquête, listes, pictogrammes en barres) gardent leur hauteur naturelle.
 
@@ -53,6 +56,7 @@ Contour optionnel (couleur, fond blanc) sur section, sous-section et colonne : t
 Glisser la poignée de la barre au survol (aperçu) ou celle d'une ligne de la structure sur une autre colonne **échange** les deux contenus ; la liste « Échanger le contenu avec… » du panneau fait la même chose. Une sous-section se glisse dans la structure (avant/après une autre, ou sur une section pour la ranger à la fin) ou via « Déplacer vers la section ». Chaque déplacement propose « Annuler le déplacement ». Alignement vertical du contenu dans la colonne (`valign`) et alignement du texte (`align`) dans le panneau de la colonne.
 
 ## Aperçu 3D
+Rendu « papier » (v1.27) : feuille de 0,3 mm sur un maillage courbé (`makeSheet`, courbure de repos + pic pendant le retournement), lumière hémisphérique + lumière principale avec ombre douce (VSM) reçue par un mur invisible (`ShadowMaterial`), grain de papier en relief (`bumpMap`) et en voile multiplié léger sur les pages.
 Bouton « Aperçu 3D » : les pages sont dessinées en images (`src/raster.js`) puis posées sur une feuille A4 en three.js (`src/viewer3d.js`, bundle séparé `viewer3d.js` chargé à la demande). Léger balancement tant que la caméra n'est pas touchée, puis caméra libre (clic gauche tourner, clic droit déplacer, molette zoomer) ; boutons Retourner (recto/verso, touche F), Deux pages, Recentrer ; Échap ferme.
 
 ## Langue de l'interface

@@ -105,6 +105,19 @@ export function buildFields(spec, obj, ctx, palOpts, h2) {
     else if (f.t === 'area') out.push(h2('div', { class: 'f' }, h2('div', { class: 'hint', textContent: f.label }), richEditor(getP(obj, f.k) ?? '', v => { setP(obj, f.k, v); ctx.changed(); })));
     else if (f.t === 'lines') out.push(h2('label', { class: 'f' }, f.label, h2('textarea', { value: getP(obj, f.k) ?? '', style: { minHeight: '64px' }, oninput: live(t => setP(obj, f.k, t.value)) })));
     else if (f.t === 'number') out.push(h2('label', { class: 'f' }, f.label, h2('input', { type: 'number', value: getP(obj, f.k) ?? 0, min: f.min, max: f.max, step: f.step || 1, oninput: live(t => { const v = parseFloat(t.value); if (!isNaN(v)) setP(obj, f.k, v); }) })));
+    else if (f.t === 'ctext') {
+      /* petit éditeur de texte à niveaux : H1 (sans préfixe), H2 (« ## »), Texte (« ### ») appliqués aux lignes sélectionnées */
+      const ta = h2('textarea', { value: getP(obj, f.k) ?? '', style: { minHeight: '84px' }, oninput: live(t => setP(obj, f.k, t.value)) });
+      const level = n => () => {
+        const v = ta.value, a = ta.selectionStart, b = ta.selectionEnd, s0 = v.lastIndexOf('\n', a - 1) + 1; let e0 = v.indexOf('\n', b); if (e0 < 0) e0 = v.length;
+        const out = v.slice(s0, e0).split('\n').map(l => l.replace(/^#{1,3} ?/, '')).map(l => n === 1 ? l : '#'.repeat(n) + ' ' + l).join('\n');
+        ta.value = v.slice(0, s0) + out + v.slice(e0); setP(obj, f.k, ta.value); ctx.changed(); ta.focus(); ta.setSelectionRange(s0, s0 + out.length);
+      };
+      const tb = (label, title, n) => h2('button', { type: 'button', class: 'mini', textContent: label, title, onmousedown: e => e.preventDefault(), onclick: level(n) });
+      out.push(h2('div', { class: 'f' }, h2('div', { class: 'hint', textContent: f.label }),
+        h2('div', { class: 'row fmt' }, tb('H1', t('Titre 1 (grand)'), 1), tb('H2', t('Titre 2 (moyen)'), 2), tb('Aa', t('Texte courant'), 3)), ta,
+        h2('div', { class: 'hint', textContent: t('Une ligne par paragraphe. {total} = somme des valeurs. Le texte passe à la ligne et ne dépasse jamais l’anneau.') })));
+    }
     else if (f.t === 'bool') out.push(h2('label', { class: 'row', style: { marginBottom: '8px' } }, h2('input', { type: 'checkbox', checked: !!getP(obj, f.k), onchange: live(t => setP(obj, f.k, t.checked)) }), f.label));
     else if (f.t === 'select' || f.t === 'color') {
       const opts = f.t === 'color' ? palOpts : f.options;

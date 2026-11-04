@@ -2,7 +2,7 @@
    libellés autour de l'anneau avec traits de repère (colonnes larges)
    ou en légende sous l'anneau (colonnes étroites). Logique reprise de donut-export. */
 import { VIZ, TYPE, GAP } from '../tokens.js';
-import { s, SW, colorRef, pxOf, fmt, mw, SERIF, round3, textLines, drawLines } from './util.js';
+import { s, SW, colorRef, pxOf, fmt, mw, SERIF, SANS, round3, textLines, drawLines } from './util.js';
 import { t } from '../i18n.js';
 
 const BODY = pxOf(TYPE.body.size), LH = TYPE.body.lh;
@@ -33,7 +33,7 @@ export default {
   }),
   fields: [
     { k: 'style', t: 'select', label: 'Forme', options: { donut: 'Anneau (total au centre)', pie: 'Camembert' } },
-    { k: 'totalTpl', t: 'text', label: 'Texte du centre ({total} = somme des valeurs)' },
+    { k: 'totalTpl', t: 'ctext', label: 'Texte du centre' },
     { k: 'decimals', t: 'number', label: 'Décimales du total', min: 0, max: 4 },
     { k: 'layout', t: 'select', label: 'Libellés', options: { auto: 'Auto (selon la largeur)', around: 'Autour de l’anneau', legend: 'Légende sous l’anneau' } },
     { k: 'orient', t: 'select', label: 'Orientation de l’anneau', options: { largest: 'Plus grand segment à un angle donné', first: '1er segment en haut', manual: 'Manuelle (glisser l’anneau dans l’éditeur)' } },
@@ -112,17 +112,34 @@ export default {
       if (pie) return `M${cx},${cy}L${x0},${y0}A${Ro},${Ro} 0 ${big} 1 ${x1},${y1}Z`;
       return `M${x0},${y0}A${Ro},${Ro} 0 ${big} 1 ${x1},${y1}L${x2},${y2}A${Ri},${Ri} 0 ${big} 0 ${x3},${y3}Z`;
     };
+    /* Texte du centre : une ligne par paragraphe ; « ## » = titre 2, « ### » = texte courant (sans préfixe ou « # » = titre 1).
+       Chaque ligne passe à la ligne dans l'anneau (mot trop long coupé), puis toutes les tailles baissent ensemble jusqu'à ce que tout tienne. */
     const centerNode = (cx, cy) => {
       if (pie) return s('g');
-      const tpl = (o.totalTpl || '').replace(/\n/g, ' '), n = fmt(total, env.locale, o.decimals);
-      const txt = tpl.includes('{total}') ? tpl.replace(/\{total\}/g, n) : tpl;
-      const maxC = 2 * Ri * 0.86; let size = pxOf(TYPE.figure.size), lines = [];
-      const wrapC = z => { const out = []; let cur = ''; for (const w of txt.split(/ +/)) { const t = cur ? cur + ' ' + w : w; if (!cur || mw(t, 700, SERIF, z) <= maxC) cur = t; else { out.push(cur); cur = w; } } out.push(cur); return out; };
+      const n = fmt(total, env.locale, o.decimals), BASE = pxOf(TYPE.figure.size);
+      const LV = { 1: { k: 1, w: 700, f: SERIF, fam: 'var(--t-figure-family)' }, 2: { k: 0.62, w: 700, f: SERIF, fam: 'var(--t-figure-family)' }, 3: { k: 0, w: 400, f: SANS, fam: 'inherit' } };
+      const paras = String(o.totalTpl || '').replace(/\{total\}/g, n).split('\n').map(l => { const m = l.match(/^(#{1,3}) ?(.*)$/); return { lv: m ? m[1].length : 1, text: (m ? m[2] : l).trim() }; }).filter(p => p.text);
+      const sizeOf = (lv, k) => (lv === 3 ? BODY : BASE * LV[lv].k) * k;
+      const wrap = (text, lv, z, maxW) => {
+        const out = []; let cur = '';
+        const put = w => { const t = cur ? cur + ' ' + w : w; if (!cur || mw(t, LV[lv].w, LV[lv].f, z) <= maxW) { cur = t; return; } out.push(cur); cur = w; };
+        for (const word of text.split(/ +/)) {
+          if (mw(word, LV[lv].w, LV[lv].f, z) <= maxW) { put(word); continue; }
+          let part = ''; for (const ch of word) { if (part && mw(part + ch, LV[lv].w, LV[lv].f, z) > maxW) { put(part); out.push(cur); cur = ''; part = ''; } part += ch; }   // mot plus large que l'anneau : coupé
+          if (part) put(part);
+        }
+        if (cur) out.push(cur); return out;
+      };
       const chord = y => 2 * Math.sqrt(Math.max(0, (Ri * 0.94) ** 2 - y * y));      // largeur disponible dans l'anneau à la hauteur y
-      const fits = (ls, z) => { const tot = ls.length * z; return ls.every((l, i) => { const t = -tot / 2 + i * z, y = Math.max(Math.abs(t), Math.abs(t + z)); return mw(l, 700, SERIF, z) <= chord(y); }); };
-      for (let i = 0; i < 60; i++) { lines = wrapC(size); if (fits(lines, size) || size < 6) break; size *= 0.95; }
-      const g = s('g', { 'font-size': size, 'font-weight': 700, 'text-anchor': 'middle', style: { fontFamily: 'var(--t-figure-family)' } });
-      const tot = lines.length * size; lines.forEach((l, i) => g.append(s('text', { x: cx, y: cy - tot / 2 + i * size + size / 2 + 0.33 * size }, l)));
+      const maxC = 2 * Ri * 0.86; let k = 1, lines = [], tot = 0;
+      for (let i = 0; i < 70; i++) {
+        lines = paras.flatMap(p => { const z = sizeOf(p.lv, k); return wrap(p.text, p.lv, z, maxC).map(text => ({ text, lv: p.lv, z })); });
+        let y = 0; lines.forEach(l => { l.h = l.z * (l.lv === 3 ? 1.25 : 1.05); l.y0 = y; y += l.h; }); tot = y;
+        const ok = lines.every(l => { const a = l.y0 - tot / 2, b2 = a + l.h; return mw(l.text, LV[l.lv].w, LV[l.lv].f, l.z) <= chord(Math.max(Math.abs(a), Math.abs(b2))); });
+        if (ok || k < 0.25) break; k *= 0.94;
+      }
+      const g = s('g', { 'text-anchor': 'middle' });
+      lines.forEach(l => g.append(s('text', { x: cx, y: cy - tot / 2 + l.y0 + l.h / 2 + 0.33 * l.z, 'font-size': l.z, 'font-weight': LV[l.lv].w, style: { fontFamily: LV[l.lv].fam } }, l.text)));
       return g;
     };
     const ringNodes = (cx, cy) => {

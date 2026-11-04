@@ -609,6 +609,21 @@
     "Place disponible pour cet aper\xE7u (px)": "Available space for this preview (px)",
     "Dans le document, la dataviz occupe la place restante de la page (partag\xE9e s\u2019il y en a plusieurs), entre ces deux bornes.": "In the document, the dataviz takes the remaining space on the page (shared if there are several), between these two limits.",
     "Filet entre les sous-sections": "Rule between subsections",
+    /* texte du centre du donut */
+    "Texte du centre": "Centre text",
+    "Titre 1 (grand)": "Heading 1 (large)",
+    "Titre 2 (moyen)": "Heading 2 (medium)",
+    "Texte courant": "Body text",
+    "Une ligne par paragraphe. {total} = somme des valeurs. Le texte passe \xE0 la ligne et ne d\xE9passe jamais l\u2019anneau.": "One line per paragraph. {total} = sum of the values. The text wraps and never exceeds the ring.",
+    /* frise chronologique */
+    "Frise chronologique": "Timeline",
+    "Orientation": "Orientation",
+    "Verticale": "Vertical",
+    "Horizontale": "Horizontal",
+    "Alterner les \xE9v\xE9nements de part et d\u2019autre de la ligne": "Alternate events on both sides of the line",
+    "Afficher les dates": "Show dates",
+    "Date": "Date",
+    "Une ligne par \xE9v\xE9nement, dans l\u2019ordre d\u2019affichage.": "One row per event, in display order.",
     /* types de dataviz */
     "Barres (jumel\xE9es, group\xE9es, empil\xE9es)": "Bars (overlapping, grouped, stacked)",
     "Plusieurs s\xE9ries": "Multiple series",
@@ -1288,7 +1303,7 @@
     }),
     fields: [
       { k: "style", t: "select", label: "Forme", options: { donut: "Anneau (total au centre)", pie: "Camembert" } },
-      { k: "totalTpl", t: "text", label: "Texte du centre ({total} = somme des valeurs)" },
+      { k: "totalTpl", t: "ctext", label: "Texte du centre" },
       { k: "decimals", t: "number", label: "D\xE9cimales du total", min: 0, max: 4 },
       { k: "layout", t: "select", label: "Libell\xE9s", options: { auto: "Auto (selon la largeur)", around: "Autour de l\u2019anneau", legend: "L\xE9gende sous l\u2019anneau" } },
       { k: "orient", t: "select", label: "Orientation de l\u2019anneau", options: { largest: "Plus grand segment \xE0 un angle donn\xE9", first: "1er segment en haut", manual: "Manuelle (glisser l\u2019anneau dans l\u2019\xE9diteur)" } },
@@ -1415,40 +1430,69 @@
       };
       const centerNode = (cx2, cy2) => {
         if (pie) return s("g");
-        const tpl = (o.totalTpl || "").replace(/\n/g, " "), n = fmt(total, env.locale, o.decimals);
-        const txt = tpl.includes("{total}") ? tpl.replace(/\{total\}/g, n) : tpl;
-        const maxC = 2 * Ri * 0.86;
-        let size = pxOf(TYPE.figure.size), lines = [];
-        const wrapC = (z) => {
+        const n = fmt(total, env.locale, o.decimals), BASE2 = pxOf(TYPE.figure.size);
+        const LV = { 1: { k: 1, w: 700, f: SERIF, fam: "var(--t-figure-family)" }, 2: { k: 0.62, w: 700, f: SERIF, fam: "var(--t-figure-family)" }, 3: { k: 0, w: 400, f: SANS, fam: "inherit" } };
+        const paras = String(o.totalTpl || "").replace(/\{total\}/g, n).split("\n").map((l) => {
+          const m2 = l.match(/^(#{1,3}) ?(.*)$/);
+          return { lv: m2 ? m2[1].length : 1, text: (m2 ? m2[2] : l).trim() };
+        }).filter((p) => p.text);
+        const sizeOf = (lv, k2) => (lv === 3 ? BODY : BASE2 * LV[lv].k) * k2;
+        const wrap = (text, lv, z, maxW) => {
           const out = [];
           let cur = "";
-          for (const w of txt.split(/ +/)) {
+          const put = (w) => {
             const t2 = cur ? cur + " " + w : w;
-            if (!cur || mw(t2, 700, SERIF, z) <= maxC) cur = t2;
-            else {
-              out.push(cur);
-              cur = w;
+            if (!cur || mw(t2, LV[lv].w, LV[lv].f, z) <= maxW) {
+              cur = t2;
+              return;
             }
+            out.push(cur);
+            cur = w;
+          };
+          for (const word of text.split(/ +/)) {
+            if (mw(word, LV[lv].w, LV[lv].f, z) <= maxW) {
+              put(word);
+              continue;
+            }
+            let part = "";
+            for (const ch of word) {
+              if (part && mw(part + ch, LV[lv].w, LV[lv].f, z) > maxW) {
+                put(part);
+                out.push(cur);
+                cur = "";
+                part = "";
+              }
+              part += ch;
+            }
+            if (part) put(part);
           }
-          out.push(cur);
+          if (cur) out.push(cur);
           return out;
         };
         const chord = (y) => 2 * Math.sqrt(Math.max(0, (Ri * 0.94) ** 2 - y * y));
-        const fits = (ls, z) => {
-          const tot2 = ls.length * z;
-          return ls.every((l, i) => {
-            const t2 = -tot2 / 2 + i * z, y = Math.max(Math.abs(t2), Math.abs(t2 + z));
-            return mw(l, 700, SERIF, z) <= chord(y);
+        const maxC = 2 * Ri * 0.86;
+        let k = 1, lines = [], tot = 0;
+        for (let i = 0; i < 70; i++) {
+          lines = paras.flatMap((p) => {
+            const z = sizeOf(p.lv, k);
+            return wrap(p.text, p.lv, z, maxC).map((text) => ({ text, lv: p.lv, z }));
           });
-        };
-        for (let i = 0; i < 60; i++) {
-          lines = wrapC(size);
-          if (fits(lines, size) || size < 6) break;
-          size *= 0.95;
+          let y = 0;
+          lines.forEach((l) => {
+            l.h = l.z * (l.lv === 3 ? 1.25 : 1.05);
+            l.y0 = y;
+            y += l.h;
+          });
+          tot = y;
+          const ok = lines.every((l) => {
+            const a3 = l.y0 - tot / 2, b2 = a3 + l.h;
+            return mw(l.text, LV[l.lv].w, LV[l.lv].f, l.z) <= chord(Math.max(Math.abs(a3), Math.abs(b2)));
+          });
+          if (ok || k < 0.25) break;
+          k *= 0.94;
         }
-        const g = s("g", { "font-size": size, "font-weight": 700, "text-anchor": "middle", style: { fontFamily: "var(--t-figure-family)" } });
-        const tot = lines.length * size;
-        lines.forEach((l, i) => g.append(s("text", { x: cx2, y: cy2 - tot / 2 + i * size + size / 2 + 0.33 * size }, l)));
+        const g = s("g", { "text-anchor": "middle" });
+        lines.forEach((l) => g.append(s("text", { x: cx2, y: cy2 - tot / 2 + l.y0 + l.h / 2 + 0.33 * l.z, "font-size": l.z, "font-weight": LV[l.lv].w, style: { fontFamily: LV[l.lv].fam } }, l.text)));
         return g;
       };
       const ringNodes = (cx2, cy2) => {
@@ -2583,10 +2627,10 @@
         svg.append(s("text", { x: 0, y: capPx, "font-size": capPx }, t("Aucune donn\xE9e")));
         return { node: svg };
       }
-      const R = Math.max(30, Math.min(W / 2, (H - legH) / 2) - 1), hole = Math.max(0, Math.min(0.6, +o.hole || 0)) * R;
-      const depth = root.height, ring = (R - hole) / depth;
+      const R2 = Math.max(30, Math.min(W / 2, (H - legH) / 2) - 1), hole = Math.max(0, Math.min(0.6, +o.hole || 0)) * R2;
+      const depth = root.height, ring = (R2 - hole) / depth;
       partition().size([Math.PI * 2, 1])(root);
-      const g = s("g", { transform: `translate(${W / 2},${R + 1})` }), labels = s("g");
+      const g = s("g", { transform: `translate(${W / 2},${R2 + 1})` }), labels = s("g");
       for (const n of root.descendants()) {
         if (!n.depth) continue;
         const r0 = hole + (n.depth - 1) * ring, r1 = r0 + ring, key = topOf(n).data.color, a2 = depthAlpha(n.depth);
@@ -3321,8 +3365,8 @@
   // src/viz/survey.js
   var SQ3 = Math.sqrt(3);
   function hexDisc(n, d) {
-    const R = Math.ceil(Math.sqrt(n / 2.6)) + 3, pts = [];
-    for (let r = -R; r <= R; r++) for (let q = -R; q <= R; q++) {
+    const R2 = Math.ceil(Math.sqrt(n / 2.6)) + 3, pts = [];
+    for (let r = -R2; r <= R2; r++) for (let q = -R2; q <= R2; q++) {
       const x = d * (q + r / 2), y = d * SQ3 / 2 * r;
       pts.push([x, y, Math.round(Math.hypot(x, y) / d * 1e4) / 1e4, Math.atan2(y, x)]);
     }
@@ -3405,6 +3449,89 @@
         svg.append(gEl);
       });
       if (LG) drawLegendWrap(svg, LG, H - LG.h);
+      return { node: svg };
+    }
+  };
+
+  // src/viz/timeline.js
+  var R = 5;
+  var timeline_default = {
+    label: "Frise chronologique",
+    icon: "timeline",
+    family: "trend",
+    heights: ["auto", "fixed", "fill"],
+    defaults: () => ({
+      orientation: "vertical",
+      alternate: false,
+      showDates: true,
+      rows: [["2021", "Launch", "The programme is announced."], ["2022", "First results", "Early adopters report a clear impact on their daily work."], ["2023", "Extension", "Three new member states join."], ["2025", "Review", "An independent evaluation concludes the first phase."]].map(([date, title, text]) => ({ date, title, text, color: "blue" }))
+    }),
+    fields: [
+      { k: "orientation", t: "select", label: "Orientation", options: { vertical: "Verticale", horizontal: "Horizontale" } },
+      { k: "alternate", t: "bool", label: "Alterner les \xE9v\xE9nements de part et d\u2019autre de la ligne" },
+      { k: "showDates", t: "bool", label: "Afficher les dates" }
+    ],
+    data: {
+      k: "rows",
+      min: 1,
+      cols: [{ k: "date", label: "Date", t: "text" }, { k: "title", label: "Titre", t: "text" }, { k: "text", label: "Texte", t: "text" }, { k: "color", label: "Couleur", t: "color", def: "blue" }],
+      item: () => ({ date: "", title: "", text: "", color: "blue" })
+    },
+    dataHint: "Une ligne par \xE9v\xE9nement, dans l\u2019ordre d\u2019affichage.",
+    render(o, W, env) {
+      const items = (o.rows || []).filter((r) => r.date || r.title || r.text), capPx = pxOf(TYPE.caption.size), lh = TYPE.caption.lh, numPx = pxOf(TYPE.captionNum.size);
+      const showDates = o.showDates !== false, horizontal = o.orientation === "horizontal";
+      const mk = (H2) => s("svg", { width: W, height: H2, viewBox: `0 0 ${W} ${H2}`, style: { display: "block", overflow: "visible" } });
+      if (!items.length) {
+        const v = mk(40);
+        v.append(s("text", { x: 0, y: capPx, "font-size": capPx }, t("Aucune donn\xE9e")));
+        return { node: v };
+      }
+      const dateNode = (txt, x, y, anchor) => s("text", { x, y: y + lh / 2 + 0.33 * numPx, "text-anchor": anchor, "font-size": numPx, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, txt);
+      const dot = (cx, cy, color) => s("circle", { cx, cy, r: R, fill: colorRef(color || "blue"), stroke: "currentColor", "stroke-width": SW });
+      const block = (it, maxW) => ({ lines: textLines(it.title || "", it.text || "", capPx, maxW), dateH: showDates && it.date ? lh : 0 });
+      const stretch = (natural2) => o.hmode === "fixed" || o.hmode === "fill" ? Math.max(0, heightOf(o, W, env, natural2) - natural2) : 0;
+      if (!horizontal) {
+        const alt2 = o.alternate && W >= 240, lineX = alt2 ? W / 2 : R + 1, side = alt2 ? W / 2 - R - 12 : W - (2 * R + 14) - 1;
+        const laid = [];
+        const end = { l: 0, r: 0 };
+        let prevY = -1e9;
+        items.forEach((it, i) => {
+          const left2 = alt2 && i % 2 === 1, b = block(it, side), h2 = b.dateH + b.lines.length * lh, k = left2 ? "l" : "r";
+          const y = Math.max(end[k], prevY + lh * 1.6);
+          end[k] = y + h2 + 12;
+          prevY = y;
+          laid.push({ it, b, left: left2, y, h: h2 });
+        });
+        const natural2 = Math.max(...laid.map((l) => l.y + l.h)), extra2 = stretch(natural2), H2 = natural2 + extra2, n2 = laid.length;
+        const svg2 = mk(H2);
+        svg2.append(s("line", { x1: lineX, x2: lineX, y1: 0, y2: H2, stroke: "currentColor", "stroke-width": SW }));
+        laid.forEach((l, i) => {
+          const y = l.y + (n2 > 1 ? extra2 * i / (n2 - 1) : 0), x = l.left ? lineX - R - 10 : lineX + R + 10, anchor = l.left ? "end" : "start";
+          svg2.append(dot(lineX, y + lh / 2, l.it.color));
+          if (l.b.dateH) svg2.append(dateNode(l.it.date, x, y, anchor));
+          svg2.append(drawLines(l.b.lines, x, y + l.b.dateH, lh, capPx, anchor));
+        });
+        return { node: svg2 };
+      }
+      const n = items.length, slot = W / n, alt = o.alternate && n > 1, tw = Math.max(36, (alt ? 2 * slot : slot) - 10);
+      const blocks = items.map((it) => block(it, tw)), hOf = (b) => b.dateH + b.lines.length * lh;
+      const up = alt ? Math.max(0, ...blocks.filter((_, i) => i % 2 === 1).map(hOf)) : showDates ? lh : 0, down = Math.max(0, ...blocks.filter((_, i) => !alt || i % 2 === 0).map((b) => alt ? hOf(b) : b.lines.length * lh));
+      const lineY = up + (up ? 10 : 0) + R + 1, natural = lineY + R + 8 + down, extra = stretch(natural), H = natural + extra;
+      const svg = mk(H);
+      svg.append(s("line", { x1: 0, x2: W, y1: lineY, y2: lineY, stroke: "currentColor", "stroke-width": SW }));
+      items.forEach((it, i) => {
+        const cx = slot * (i + 0.5), b = blocks[i], above = alt && i % 2 === 1;
+        svg.append(dot(cx, lineY, it.color));
+        if (alt) {
+          const y0 = above ? lineY - R - 8 - hOf(b) : lineY + R + 8;
+          if (b.dateH) svg.append(dateNode(it.date, cx, y0, "middle"));
+          svg.append(drawLines(b.lines, cx, y0 + b.dateH, lh, capPx, "middle"));
+        } else {
+          if (b.dateH) svg.append(dateNode(it.date, cx, lineY - R - 8 - lh, "middle"));
+          svg.append(drawLines(b.lines, cx, lineY + R + 8, lh, capPx, "middle"));
+        }
+      });
       return { node: svg };
     }
   };
@@ -3636,7 +3763,7 @@
   var pictoTypes = { pictoBars: make("rows"), pictoCols: make("cols"), pictoV: make("single_v"), pictoH: make("single_h") };
 
   // src/viz/index.js
-  var VIZ_TYPES = { donut: donut_default, bars: bars_default, hbars: hbars_default, line: line_default, scatter: scatter_default, survey: survey_default, sunburst: sunburst_default, bubbles: bubbles_default, treemap: treemap_default, sankey: sankey_default, ...pictoTypes, icons: iconlist_default };
+  var VIZ_TYPES = { donut: donut_default, bars: bars_default, hbars: hbars_default, line: line_default, timeline: timeline_default, scatter: scatter_default, survey: survey_default, sunburst: sunburst_default, bubbles: bubbles_default, treemap: treemap_default, sankey: sankey_default, ...pictoTypes, icons: iconlist_default };
   var VIZ_OPTIONS = Object.fromEntries(Object.entries(VIZ_TYPES).map(([k, v]) => [k, v.label]));
   var VIZ_FAMILIES = { compare: "Comparaison", part: "Proportions", trend: "\xC9volution", hier: "Hi\xE9rarchies", flow: "Flux", picto: "Pictogrammes", list: "Listes" };
   var newViz = (kind = "bars") => ({ kind, opts: VIZ_TYPES[kind].defaults(), head: { title: "", source: "" } });
@@ -4914,7 +5041,29 @@ ${lorem}` },
         const v = parseFloat(t2.value);
         if (!isNaN(v)) setP(obj, f.k, v);
       }) })));
-      else if (f.t === "bool") out.push(h2("label", { class: "row", style: { marginBottom: "8px" } }, h2("input", { type: "checkbox", checked: !!getP(obj, f.k), onchange: live((t2) => setP(obj, f.k, t2.checked)) }), f.label));
+      else if (f.t === "ctext") {
+        const ta = h2("textarea", { value: getP(obj, f.k) ?? "", style: { minHeight: "84px" }, oninput: live((t2) => setP(obj, f.k, t2.value)) });
+        const level = (n) => () => {
+          const v = ta.value, a2 = ta.selectionStart, b = ta.selectionEnd, s0 = v.lastIndexOf("\n", a2 - 1) + 1;
+          let e0 = v.indexOf("\n", b);
+          if (e0 < 0) e0 = v.length;
+          const out2 = v.slice(s0, e0).split("\n").map((l) => l.replace(/^#{1,3} ?/, "")).map((l) => n === 1 ? l : "#".repeat(n) + " " + l).join("\n");
+          ta.value = v.slice(0, s0) + out2 + v.slice(e0);
+          setP(obj, f.k, ta.value);
+          ctx2.changed();
+          ta.focus();
+          ta.setSelectionRange(s0, s0 + out2.length);
+        };
+        const tb = (label, title, n) => h2("button", { type: "button", class: "mini", textContent: label, title, onmousedown: (e) => e.preventDefault(), onclick: level(n) });
+        out.push(h2(
+          "div",
+          { class: "f" },
+          h2("div", { class: "hint", textContent: f.label }),
+          h2("div", { class: "row fmt" }, tb("H1", t("Titre 1 (grand)"), 1), tb("H2", t("Titre 2 (moyen)"), 2), tb("Aa", t("Texte courant"), 3)),
+          ta,
+          h2("div", { class: "hint", textContent: t("Une ligne par paragraphe. {total} = somme des valeurs. Le texte passe \xE0 la ligne et ne d\xE9passe jamais l\u2019anneau.") })
+        ));
+      } else if (f.t === "bool") out.push(h2("label", { class: "row", style: { marginBottom: "8px" } }, h2("input", { type: "checkbox", checked: !!getP(obj, f.k), onchange: live((t2) => setP(obj, f.k, t2.checked)) }), f.label));
       else if (f.t === "select" || f.t === "color") {
         const opts = f.t === "color" ? palOpts : f.options;
         const sel = h2("select", { onchange: live((t2) => setP(obj, f.k, t2.value)) }, Object.entries(opts).map(([v, l]) => h2("option", { value: v, textContent: l })));

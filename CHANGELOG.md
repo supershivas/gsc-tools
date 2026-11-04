@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.27.0 — 2026-11-04
+- Dataviz : frise chronologique (verticale ou horizontale, alternance de part et d'autre de la ligne)
+- Aperçu 3D plus papier : feuille fine et légèrement courbe, lumière diffuse, ombre portée douce, grain de papier léger
+- Donut : le texte du centre passe à la ligne sans jamais dépasser l'anneau, avec un petit éditeur de niveaux (H1, H2, texte)
+
 ## 1.26.1 — 2026-11-04
 - Section avec fond : les boutons « Nouvelle sous-section » / « Nouvelle section » ne disparaissent plus quand le pointeur traverse le bas de la section pour les atteindre
 
