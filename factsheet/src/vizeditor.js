@@ -9,6 +9,7 @@ import { buildFields, paletteOptions } from './editor.js';
 import { colWidth, cssVars, applyVars, paletteOf } from './tokens.js';
 import { VIZ_TYPES, VIZ_FAMILIES, switchKind, renderVizFull } from './viz/index.js';
 import { cardEl } from './cards.js';
+import { loadFonts } from './viz/util.js';
 import { heightNodes } from './vizheight.js';
 import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
 import { t } from './i18n.js';
@@ -172,5 +173,5 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
   document.body.append(root); document.body.classList.add('ve-open'); current = root;
   new ResizeObserver(() => { if (zoom === 'fit') draw(); }).observe(stage);
   buildForm(); draw();
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (current === root) draw(); });
+  loadFonts().then(() => { if (current === root) draw(); });
 }

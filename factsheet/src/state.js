@@ -75,7 +75,7 @@ export function defaultDoc() {
     sub('Roadmap', '1', [viz('timeline', { orientation: 'horizontal', alternate: true })]),
   ]);
   const s5 = sec('verso', 'Deep dive', 'tint-grey', [
-    sub('Where the money goes', '2-1', [viz('treemap', { ratio: '16:9' }), viz('pictoV', { hmode: 'fill', perIcon: 100 })]),
+    sub('Where the money goes', '2-1', [viz('treemap', { ratio: '16:9' }), txt(`**Lorem ipsum.** ${lorem}\n${short}`)]),
   ]);
   return {
     schema: SCHEMA, name: 'factsheet', locale: 'en-GB', density: 'normal',
@@ -255,7 +255,7 @@ export function addColor(doc, hex) {
 }
 /** Retire une couleur ajoutée : ce qui l'utilisait passe en bleu (les fonds en « aucun ») */
 export function removeColor(doc, key) {
-  delete doc.colors[key]; delete (doc.colorNames || {})[key];
+  delete doc.colors[key]; delete (doc.colorNames || {})[key]; delete (doc.cmyk || {})[key];
   const gone = k => (k === key || k === 'tint-' + key ? 'none' : k);
   remapColors(doc, k => (k === key ? 'blue' : k === 'tint-' + key ? 'tint-blue' : k), gone, gone);
 }

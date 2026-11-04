@@ -385,3 +385,4 @@ textarea.dg-ml{display:block;width:100%;min-width:90px;border:0;border-radius:0;
 @media (hover:hover){.hlp:hover{color:var(--ui-blue)}}
 .hlp-tip{position:fixed;z-index:3000;display:none;max-width:270px;padding:8px 10px;background:#1C1C1E;color:#fff;border-radius:8px;font-size:12px;line-height:1.4;font-weight:400;text-transform:none;letter-spacing:0;pointer-events:none;box-shadow:0 4px 16px #0004}
 @media print{.hlp,.hlp-tip{display:none!important}}
+.pp-card-h{cursor:pointer;user-select:none}

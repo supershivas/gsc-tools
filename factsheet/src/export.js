@@ -3,6 +3,7 @@
    les polices sont incorporées. Trois modes : A4 net, fond perdu 3 mm, fond perdu + traits de coupe. */
 import { PAGE } from './tokens.js';
 import { renderDocument, measure, h } from './render.js';
+import { loadFonts } from './viz/util.js';
 
 const MM = 96 / 25.4;
 export const A4 = { w: 210, h: 297 };
@@ -31,7 +32,7 @@ function cropMarks(offset) {
 /** Construit #print-root + la règle @page. Retourne une fonction de nettoyage. */
 export async function preparePrint(doc, mode) {
   const m = EXPORT_MODES[mode] || EXPORT_MODES.net, size = sheetSize(mode);
-  if (document.fonts && document.fonts.ready) await document.fonts.ready;
+  await loadFonts();
   cleanupPrint();
   const root = h('div', { id: 'print-root', class: m.bleed ? 'print-bleed' : '' });
   // mesure hors écran (les dernières sections colorées descendent jusqu'au bas de page)

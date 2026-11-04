@@ -2,6 +2,7 @@ import { PAGE, cssVars, applyVars, DENSITIES } from './tokens.js';
 import { openPalette } from './palette.js';
 import { loadDoc, saveDoc, migrate, defaultDoc, blankDoc, LOCALES, moveSection, moveSub, storage, localImageCount, swapCols, removeCol } from './state.js';
 import { renderDocument, measure, h, ico, columnWidth } from './render.js';
+import { loadFonts } from './viz/util.js';
 import { buildTree } from './tree.js';
 import { buildProps } from './props.js';
 import { openVizEditor } from './vizeditor.js';
@@ -548,7 +549,7 @@ new ResizeObserver(schedule).observe(stage);
 
 drawTree(); drawProps();
 schedule();
-(document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(schedule);
+loadFonts().then(schedule);   // les mesures de texte supposent les polices chargées
 
 /* ---------- Export PDF ---------- */
 const dlg = document.getElementById('exportDlg');

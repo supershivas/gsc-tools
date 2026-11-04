@@ -30,10 +30,10 @@ function hsv2rgb({ h: hh, s, v }) {
 let current = null;
 
 /** opts : { anchor (élément), hex, title, onChange(hex), onClose?(committed) } */
-export function openColorEditor({ anchor, hex, title, onChange, onClose }) {
+export function openColorEditor({ anchor, hex, title, onChange, onClose, cmyk }) {
   if (current) current.close(true);
   const start = normHex(hex) || '#000000';
-  let hsv = rgb2hsv(toRgb(start)), mode = 'rgb', done = false, cm = null;   // cm : valeurs CMJN en cours de saisie (évite la dérive d'arrondi)
+  let hsv = rgb2hsv(toRgb(start)), mode = 'rgb', done = false, cm = cmyk ? cmyk.slice() : null;   // cm : valeurs CMJN en cours de saisie (évite la dérive d'arrondi)
   const rgb = () => hsv2rgb(hsv);
 
   /* carré S/V */
@@ -87,7 +87,7 @@ export function openColorEditor({ anchor, hex, title, onChange, onClose }) {
     hue.firstChild.style.cssText = `left:${hsv.h / 359.999 * 100}%;background:${pure}`;
     after.style.background = hx; if (document.activeElement !== hexIn) hexIn.value = hx;
     if (!keepSliders) drawSliders(); else if (mode === 'hsv' || true) { const rs = sliders.querySelectorAll('input[type=range]'), ns = sliders.querySelectorAll('input[type=number]'); specs().forEach(([, , , v], i) => { if (document.activeElement !== ns[i]) ns[i].value = Math.round(v); if (document.activeElement !== rs[i]) rs[i].value = Math.round(v); rs[i].style.background = gradient(i); }); }
-    if (hx !== last) { last = hx; cancelAnimationFrame(raf); raf = requestAnimationFrame(() => onChange(hx)); }
+    if (hx !== last) { last = hx; cancelAnimationFrame(raf); raf = requestAnimationFrame(() => onChange(hx, cm && cm.map(Math.round))); }
   }
 
   const pop = h('div', { class: 'ce', role: 'dialog', 'aria-label': title || t('Couleur') },
@@ -102,12 +102,12 @@ export function openColorEditor({ anchor, hex, title, onChange, onClose }) {
     let left = a.left - w - 14; if (left < 8) left = Math.min(window.innerWidth - w - 8, a.left);
     pop.style.left = left + 'px'; pop.style.top = clamp(a.top - 20, 8, window.innerHeight - hh - 8) + 'px';
   };
-  update(); place();
+  update(false, !!cm); place();
 
   function close(commit) {
     if (done) return; done = true; cancelAnimationFrame(raf);
     document.removeEventListener('pointerdown', outside, true); window.removeEventListener('keydown', onKey, true);
-    if (!commit) onChange(start); else onChange(toHex(rgb()));
+    if (!commit) onChange(start, cmyk || null); else onChange(toHex(rgb()), cm && cm.map(Math.round));
     pop.remove(); current = null; if (onClose) onClose(commit);
   }
   const outside = e => { if (!pop.contains(e.target) && !(anchor && anchor.contains(e.target))) close(true); };

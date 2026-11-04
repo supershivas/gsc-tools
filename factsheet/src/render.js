@@ -120,6 +120,7 @@ function renderCol(col, w, path, env) {
 function renderSub(sub, si, bi, env, W) {
   const L = GRID.layouts[sub.layout];
   const el = h('div', { class: 'sub', dataset: { sel: `sub:${si}:${bi}` } });
+  if (bi > 0) el.append(h('div', { class: 'sub-rule' }));   // filet entre sous-sections (vrai élément : l'export PDF le lit)
   strokeStyle(el)(sub); if (isBox(sub)) W = insetW(W);
   if (sub.title && sub.title.trim() && sub.showTitle !== false) el.append(h('h3', { class: 'sub-title', textContent: sub.title }));
   const cols = h('div', { class: 'cols', style: { gridTemplateColumns: `repeat(${L.cols}, minmax(0, 1fr))` } });

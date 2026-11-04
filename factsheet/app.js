@@ -194,15 +194,18 @@
     eu: {
       label: "Bleu UE",
       colors: {
-        blue: "#0434F8",
-        // texte, traits, fond de header, séries principales
-        sky: "#A4CCFC",
-        // séries claires
-        yellow: "#FCDC0C",
+        blue: "#003399",
+        // texte, traits, fond de header, séries principales — Reflex Blue, CMJN 100/80/0/0
+        sky: "#A8CBEF",
+        // séries claires — CMJN 35/12/0/0
+        yellow: "#FFCC00",
+        // CMJN 0/0/100/0
         slate: "#5E6566",
         grey: "#DADDE3"
         // gris clair : fonds et séries neutres
       },
+      /* valeurs CMJN d'imprimeur (0–100) : celles du PDF exporté ; le RVB ci-dessus est l'équivalent écran */
+      cmyk: { blue: [100, 80, 0, 0], sky: [35, 12, 0, 0], yellow: [0, 0, 100, 0], slate: [62, 48, 47, 30], grey: [14, 9, 7, 0] },
       names: { blue: "Bleu", sky: "Bleu ciel", yellow: "Jaune", slate: "Ardoise", grey: "Gris clair" },
       text: "blue"
       // couleur des textes et traits par défaut
@@ -1301,6 +1304,20 @@
       svg.append(s("text", { x: e.x + L.fixed, y: yy + VIZ.legendH / 2 + 0.33 * L.capPx, "font-size": L.capPx, "font-weight": TYPE.caption.weight }, e.name));
     }));
   }
+  var FONT_SPECS = [
+    '200 16px "Source Sans 3"',
+    '400 16px "Source Sans 3"',
+    '600 16px "Source Sans 3"',
+    '700 16px "Source Sans 3"',
+    'italic 400 16px "Source Sans 3"',
+    'italic 700 16px "Source Sans 3"',
+    '400 16px "Source Serif 4"',
+    '600 16px "Source Serif 4"',
+    '700 16px "Source Serif 4"'
+  ];
+  var fontsLoaded = null;
+  var loadFonts = () => fontsLoaded || (fontsLoaded = document.fonts && document.fonts.load ? Promise.all(FONT_SPECS.map((f) => document.fonts.load(f, "Aa\xC9\xE9\u20AC0123 ").catch(() => {
+  }))).then(() => document.fonts.ready) : Promise.resolve());
 
   // src/viz/donut.js
   var BODY = pxOf(TYPE.body.size);
@@ -3557,7 +3574,8 @@
         return { node: svg2 };
       }
       const n = items.length, slot = W / n, alt = o.alternate && n > 1, tw = Math.max(36, (alt ? 2 * slot : slot) - 10);
-      const blocks = items.map((it) => block(it, tw)), hOf = (b) => b.dateH + b.lines.length * lh;
+      const twAt = (i) => Math.max(36, Math.min(tw, 2 * Math.min(slot * (i + 0.5), W - slot * (i + 0.5)) - 4));
+      const blocks = items.map((it, i) => block(it, twAt(i))), hOf = (b) => b.dateH + b.lines.length * lh;
       const up = alt ? Math.max(0, ...blocks.filter((_, i) => i % 2 === 1).map(hOf)) : showDates ? lh : 0, down = Math.max(0, ...blocks.filter((_, i) => !alt || i % 2 === 0).map((b) => alt ? hOf(b) : b.lines.length * lh));
       const lineY = up + (up ? 10 : 0) + R + 1, natural = lineY + R + 8 + down, extra = stretch(natural), H = natural + extra;
       const svg = mk(H);
@@ -3985,7 +4003,8 @@ ${short}`), viz("line", { ratio: "2:1" })])
       sub("Roadmap", "1", [viz("timeline", { orientation: "horizontal", alternate: true })])
     ]);
     const s5 = sec("verso", "Deep dive", "tint-grey", [
-      sub("Where the money goes", "2-1", [viz("treemap", { ratio: "16:9" }), viz("pictoV", { hmode: "fill", perIcon: 100 })])
+      sub("Where the money goes", "2-1", [viz("treemap", { ratio: "16:9" }), txt(`**Lorem ipsum.** ${lorem}
+${short}`)])
     ]);
     return {
       schema: SCHEMA,
@@ -4212,6 +4231,7 @@ ${short}`), viz("line", { ratio: "2:1" })])
   function removeColor(doc2, key) {
     delete doc2.colors[key];
     delete (doc2.colorNames || {})[key];
+    delete (doc2.cmyk || {})[key];
     const gone = (k) => k === key || k === "tint-" + key ? "none" : k;
     remapColors(doc2, (k) => k === key ? "blue" : k === "tint-" + key ? "tint-blue" : k, gone, gone);
   }
@@ -4382,6 +4402,7 @@ ${short}`), viz("line", { ratio: "2:1" })])
   function renderSub(sub, si, bi, env, W) {
     const L = GRID.layouts[sub.layout];
     const el2 = h("div", { class: "sub", dataset: { sel: `sub:${si}:${bi}` } });
+    if (bi > 0) el2.append(h("div", { class: "sub-rule" }));
     strokeStyle(el2)(sub);
     if (isBox(sub)) W = insetW(W);
     if (sub.title && sub.title.trim() && sub.showTitle !== false) el2.append(h("h3", { class: "sub-title", textContent: sub.title }));
@@ -4513,7 +4534,6 @@ ${short}`), viz("line", { ratio: "2:1" })])
     return [(1 - r / 255 - k) / (1 - k), (1 - g / 255 - k) / (1 - k), (1 - b / 255 - k) / (1 - k), k].map((x) => x * 100);
   }
   var cmyk2rgb = ([c2, m2, y, k]) => ({ r: 255 * (1 - c2 / 100) * (1 - k / 100), g: 255 * (1 - m2 / 100) * (1 - k / 100), b: 255 * (1 - y / 100) * (1 - k / 100) });
-  var cmykText = (hex) => rgb2cmyk(toRgb(hex)).map((x) => Math.round(x)).join(" \xB7 ");
   function rgb2hsv({ r, g, b }) {
     r /= 255;
     g /= 255;
@@ -4531,10 +4551,10 @@ ${short}`), viz("line", { ratio: "2:1" })])
     return { r: f(5) * 255, g: f(3) * 255, b: f(1) * 255 };
   }
   var current = null;
-  function openColorEditor({ anchor, hex, title, onChange, onClose }) {
+  function openColorEditor({ anchor, hex, title, onChange, onClose, cmyk }) {
     if (current) current.close(true);
     const start = normHex(hex) || "#000000";
-    let hsv = rgb2hsv(toRgb(start)), mode = "rgb", done = false, cm = null;
+    let hsv = rgb2hsv(toRgb(start)), mode = "rgb", done = false, cm = cmyk ? cmyk.slice() : null;
     const rgb = () => hsv2rgb(hsv);
     const sv = h("div", { class: "ce-sv" }, h("i", { class: "ce-knob" }));
     const hue = h("div", { class: "ce-hue" }, h("i", { class: "ce-knob" }));
@@ -4677,7 +4697,7 @@ ${short}`), viz("line", { ratio: "2:1" })])
       if (hx !== last) {
         last = hx;
         cancelAnimationFrame(raf2);
-        raf2 = requestAnimationFrame(() => onChange(hx));
+        raf2 = requestAnimationFrame(() => onChange(hx, cm && cm.map(Math.round)));
       }
     }
     const pop2 = h(
@@ -4699,7 +4719,7 @@ ${short}`), viz("line", { ratio: "2:1" })])
       pop2.style.left = left2 + "px";
       pop2.style.top = clamp(a2.top - 20, 8, window.innerHeight - hh - 8) + "px";
     };
-    update();
+    update(false, !!cm);
     place3();
     function close(commit) {
       if (done) return;
@@ -4707,8 +4727,8 @@ ${short}`), viz("line", { ratio: "2:1" })])
       cancelAnimationFrame(raf2);
       document.removeEventListener("pointerdown", outside, true);
       window.removeEventListener("keydown", onKey, true);
-      if (!commit) onChange(start);
-      else onChange(toHex(rgb()));
+      if (!commit) onChange(start, cmyk || null);
+      else onChange(toHex(rgb()), cm && cm.map(Math.round));
       pop2.remove();
       current = null;
       if (onClose) onClose(commit);
@@ -4728,18 +4748,39 @@ ${short}`), viz("line", { ratio: "2:1" })])
     return current;
   }
 
+  // src/cmyk.js
+  var hex2rgb2 = (h2) => {
+    const n = parseInt(String(h2).replace("#", ""), 16);
+    return [n >> 16 & 255, n >> 8 & 255, n & 255];
+  };
+  function rgb2cmyk2([r, g, b]) {
+    const k = 1 - Math.max(r, g, b) / 255;
+    if (k >= 1) return [0, 0, 0, 100];
+    const f = (v) => (1 - v / 255 - k) / (1 - k) * 100;
+    return [f(r), f(g), f(b), k * 100];
+  }
+  function paletteCmyk(doc2) {
+    const th = THEMES[doc2.theme] || THEMES[DEFAULT_THEME], pal = paletteOf(doc2.theme, doc2.colors), out = {};
+    for (const k of Object.keys(pal)) out[k] = doc2.cmyk && doc2.cmyk[k] || (th.cmyk && th.cmyk[k] && (!doc2.colors || !doc2.colors[k] || doc2.colors[k].toLowerCase() === th.colors[k].toLowerCase()) ? th.cmyk[k] : null) || rgb2cmyk2(hex2rgb2(pal[k]));
+    return out;
+  }
+
   // src/palette.js
   function buildPalette(ctx2, redraw) {
     const doc2 = ctx2.getDoc(), th = THEMES[doc2.theme] || THEMES.eu, pal = paletteOf(doc2.theme, doc2.colors), extras = extraColorKeys(doc2);
     doc2.colorNames = doc2.colorNames || {};
     const defName = (k) => extras.includes(k) ? k : t(th.names[k] || k);
+    const cm = paletteCmyk(doc2), cmTxt = (k) => cm[k].map((v) => Math.round(v)).join(" \xB7 ");
     const open = (k, sw) => openColorEditor({
       anchor: sw,
       hex: pal[k],
+      cmyk: cm[k],
       title: t(colorLabel(doc2, k)),
-      onChange: (hex) => {
+      onChange: (hex, c2) => {
         doc2.colors[k] = hex;
         sw.style.background = hex;
+        if (c2) (doc2.cmyk || (doc2.cmyk = {}))[k] = c2;
+        else if (doc2.cmyk) delete doc2.cmyk[k];
         ctx2.changed();
       },
       onClose: redraw
@@ -4760,7 +4801,7 @@ ${short}`), viz("line", { ratio: "2:1" })])
         sw,
         chip,
         name,
-        h("span", { class: "pal2-hex", textContent: pal[k].toUpperCase(), title: `CMJN ${cmykText(pal[k])}` }),
+        h("span", { class: "pal2-hex", textContent: cmTxt(k).replace(/ · /g, "\xB7"), title: `CMJN ${cmTxt(k)} \u2014 RVB \xE9cran ${pal[k].toUpperCase()}` }),
         isExtra ? h("button", { type: "button", class: "mini danger", title: t("Supprimer"), "aria-label": t("Supprimer"), onclick: () => {
           if (confirm(t("Supprimer cette couleur ? Ce qui l\u2019utilise passera en bleu."))) {
             removeColor(doc2, k);
@@ -4769,6 +4810,7 @@ ${short}`), viz("line", { ratio: "2:1" })])
           }
         } }, ico("x")) : recolored || renamed ? h("button", { type: "button", class: "mini", title: t("R\xE9tablir la couleur du th\xE8me"), "aria-label": t("R\xE9tablir la couleur du th\xE8me"), onclick: () => {
           delete doc2.colors[k];
+          if (doc2.cmyk) delete doc2.cmyk[k];
           delete doc2.colorNames[k];
           ctx2.changed();
           redraw();
@@ -4994,12 +5036,19 @@ ${short}`), viz("line", { ratio: "2:1" })])
   // src/cards.js
   function cardEl(id, icon, name, nodes, { shut: shut3, refresh, toggle = null, live = true }) {
     const open = !shut3.has(id), show2 = open && live;
+    const flip = () => {
+      open ? shut3.add(id) : shut3.delete(id);
+      refresh();
+    };
     return h(
       "section",
       { class: "pp-card" },
+      /* tout l'en-tête replie ou déplie la carte (sauf ses boutons : interrupteur, aide) */
       h(
         "div",
-        { class: "pp-card-h" },
+        { class: "pp-card-h", onclick: (e) => {
+          if (!e.target.closest("button, input, select, a") || e.target.closest(".pp-chev")) flip();
+        } },
         ico(icon),
         h("b", { textContent: name }),
         helpBtn(name),
@@ -5009,11 +5058,7 @@ ${short}`), viz("line", { ratio: "2:1" })])
           type: "button",
           class: "pp-chev",
           "aria-expanded": String(open),
-          "aria-label": open ? t("Replier") : t("D\xE9plier"),
-          onclick: () => {
-            open ? shut3.add(id) : shut3.delete(id);
-            refresh();
-          }
+          "aria-label": open ? t("Replier") : t("D\xE9plier")
         }, ico(open ? "chevron-up" : "chevron-down"))
       ),
       show2 ? h("div", { class: "pp-body" }, nodes.flat().filter(Boolean)) : null
@@ -6377,7 +6422,7 @@ ${short}`), viz("line", { ratio: "2:1" })])
     }).observe(stage2);
     buildForm();
     draw();
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => {
+    loadFonts().then(() => {
       if (current2 === root) draw();
     });
   }
@@ -6611,7 +6656,7 @@ ${short}`), viz("line", { ratio: "2:1" })])
   }
   async function preparePrint(doc2, mode) {
     const m2 = EXPORT_MODES[mode] || EXPORT_MODES.net, size = sheetSize(mode);
-    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    await loadFonts();
     cleanupPrint();
     const root = h("div", { id: "print-root", class: m2.bleed ? "print-bleed" : "" });
     Object.assign(root.style, { display: "block", position: "absolute", left: "-20000px", top: "0" });
@@ -6678,7 +6723,7 @@ ${short}`), viz("line", { ratio: "2:1" })])
     }));
   }
   async function rasterizeDocument(doc2, scale = 2) {
-    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    await loadFonts();
     const css = await documentCss();
     const stage2 = h("div", { style: { position: "absolute", left: "-20000px", top: "0" } });
     document.body.append(stage2);
@@ -7623,7 +7668,7 @@ ${short}`), viz("line", { ratio: "2:1" })])
   drawTree();
   drawProps();
   schedule();
-  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(schedule);
+  loadFonts().then(schedule);
   var dlg = document.getElementById("exportDlg");
   var exportMode = "net";
   function openExport() {

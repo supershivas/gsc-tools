@@ -53,7 +53,9 @@ export default {
 
     /* horizontale : une colonne par événement, la ligne en haut (ou au milieu quand on alterne) */
     const n = items.length, slot = W / n, alt = o.alternate && n > 1, tw = Math.max(36, (alt ? 2 * slot : slot) - 10);   // en alternance, deux colonnes voisines d'un même côté sont à 2 pas
-    const blocks = items.map(it => block(it, tw)), hOf = b => b.dateH + b.lines.length * lh;
+    /* un texte centré sur sa colonne ne doit jamais sortir de la dataviz : largeur limitée par la distance au bord le plus proche */
+    const twAt = i => Math.max(36, Math.min(tw, 2 * Math.min(slot * (i + 0.5), W - slot * (i + 0.5)) - 4));
+    const blocks = items.map((it, i) => block(it, twAt(i))), hOf = b => b.dateH + b.lines.length * lh;
     const up = alt ? Math.max(0, ...blocks.filter((_, i) => i % 2 === 1).map(hOf)) : (showDates ? lh : 0), down = Math.max(0, ...blocks.filter((_, i) => !alt || i % 2 === 0).map(b => alt ? hOf(b) : b.lines.length * lh));
     const lineY = up + (up ? 10 : 0) + R + 1, natural = lineY + R + 8 + down, extra = stretch(natural), H = natural + extra;
     const svg = mk(H);

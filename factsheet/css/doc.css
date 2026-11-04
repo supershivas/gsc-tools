@@ -25,8 +25,8 @@
 /* filet de 0,5 pt entre sous-sections, sur toute la largeur de la page : blanc sur un fond de section, bleu UE sur fond blanc */
 .sec{--rule-ext:var(--margin);--rule:#fff}
 .sec-box{--rule-ext:var(--gap-boxPad)}
-.sub + .sub::before{content:"";position:absolute;left:calc(-1 * var(--rule-ext));right:calc(-1 * var(--rule-ext));top:calc(-0.5 * var(--gap-subsectionBefore) - var(--stroke) / 2);height:0;border-top:var(--stroke) solid var(--rule);pointer-events:none}
-.sec-norules .sub + .sub::before{display:none}
+.sub-rule{position:absolute;left:calc(-1 * var(--rule-ext));right:calc(-1 * var(--rule-ext));top:calc(-0.5 * var(--gap-subsectionBefore) - var(--stroke) / 2);height:0;border-top:var(--stroke) solid var(--rule);pointer-events:none}
+.sec-norules .sub-rule{display:none}
 .sub-title{margin:0 0 var(--gap-subsectionTitle);font-size:var(--t-subsection-size);line-height:var(--t-subsection-lh);font-weight:var(--t-subsection-weight)}
 .cols{display:grid;column-gap:var(--gap-columns);align-items:start}
 .col{min-width:0}

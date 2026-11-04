@@ -3,6 +3,7 @@
    CSS du document et polices (latin, en base64) y sont embarquées, car une image SVG ne charge rien d'extérieur. */
 import { PAGE, cssVars } from './tokens.js';
 import { renderDocument, measure, h } from './render.js';
+import { loadFonts } from './viz/util.js';
 
 const linkHref = name => { const l = [...document.querySelectorAll('link[rel=stylesheet]')].find(x => x.href.endsWith(name)); return l ? l.href : new URL('css/' + name, location.href).href; };
 const asDataUrl = blob => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob); });
@@ -36,7 +37,7 @@ async function inlineImages(root) {
 
 /** → [{ key, canvas }] pour le recto et le verso, à `scale` × la taille A4 en px CSS */
 export async function rasterizeDocument(doc, scale = 2) {
-  if (document.fonts && document.fonts.ready) await document.fonts.ready;
+  await loadFonts();
   const css = await documentCss();
   const stage = h('div', { style: { position: 'absolute', left: '-20000px', top: '0' } });
   document.body.append(stage);

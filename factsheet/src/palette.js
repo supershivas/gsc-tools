@@ -3,7 +3,8 @@
 import { h, ico } from './render.js';
 import { t } from './i18n.js';
 import { THEMES, paletteOf, colorLabel, tintOf } from './tokens.js';
-import { openColorEditor, cmykText } from './colorpicker.js';
+import { openColorEditor } from './colorpicker.js';
+import { paletteCmyk } from './cmyk.js';
 import { extraColorKeys, addColor, removeColor, canAddColor } from './state.js';
 
 /** redraw : redessine l'appelant après un changement de structure (ajout, suppression, retour au thème) */
@@ -11,8 +12,9 @@ export function buildPalette(ctx, redraw) {
   const doc = ctx.getDoc(), th = THEMES[doc.theme] || THEMES.eu, pal = paletteOf(doc.theme, doc.colors), extras = extraColorKeys(doc);
   doc.colorNames = doc.colorNames || {};
   const defName = k => (extras.includes(k) ? k : t(th.names[k] || k));
-  const open = (k, sw) => openColorEditor({ anchor: sw, hex: pal[k], title: t(colorLabel(doc, k)),
-    onChange: hex => { doc.colors[k] = hex; sw.style.background = hex; ctx.changed(); }, onClose: redraw });
+  const cm = paletteCmyk(doc), cmTxt = k => cm[k].map(v => Math.round(v)).join(' · ');
+  const open = (k, sw) => openColorEditor({ anchor: sw, hex: pal[k], cmyk: cm[k], title: t(colorLabel(doc, k)),
+    onChange: (hex, c) => { doc.colors[k] = hex; sw.style.background = hex; if (c) (doc.cmyk || (doc.cmyk = {}))[k] = c; else if (doc.cmyk) delete doc.cmyk[k]; ctx.changed(); }, onClose: redraw });
   const row = k => {
     const isExtra = extras.includes(k), recolored = !isExtra && doc.colors[k] && doc.colors[k].toLowerCase() !== th.colors[k].toLowerCase(), renamed = !isExtra && !!doc.colorNames[k];
     const sw = h('button', { type: 'button', class: 'pal2-sw', title: t('Modifier la couleur'), 'aria-label': t('Modifier la couleur'), style: { background: pal[k] }, onclick: () => open(k, sw) });
@@ -23,9 +25,9 @@ export function buildPalette(ctx, redraw) {
     } });
     const chip = h('i', { class: 'pal2-tint', title: t('Ton léger (20 %)'), style: { background: tintOf(pal[k]) } });
     return h('div', { class: 'pal2-row', dataset: { key: k } }, sw, chip, name,
-      h('span', { class: 'pal2-hex', textContent: pal[k].toUpperCase(), title: `CMJN ${cmykText(pal[k])}` }),
+      h('span', { class: 'pal2-hex', textContent: cmTxt(k).replace(/ · /g, '·'), title: `CMJN ${cmTxt(k)} — RVB écran ${pal[k].toUpperCase()}` }),
       isExtra ? h('button', { type: 'button', class: 'mini danger', title: t('Supprimer'), 'aria-label': t('Supprimer'), onclick: () => { if (confirm(t('Supprimer cette couleur ? Ce qui l’utilise passera en bleu.'))) { removeColor(doc, k); ctx.changed(); redraw(); } } }, ico('x'))
-        : recolored || renamed ? h('button', { type: 'button', class: 'mini', title: t('Rétablir la couleur du thème'), 'aria-label': t('Rétablir la couleur du thème'), onclick: () => { delete doc.colors[k]; delete doc.colorNames[k]; ctx.changed(); redraw(); } }, ico('restore')) : h('span'));
+        : recolored || renamed ? h('button', { type: 'button', class: 'mini', title: t('Rétablir la couleur du thème'), 'aria-label': t('Rétablir la couleur du thème'), onclick: () => { delete doc.colors[k]; if (doc.cmyk) delete doc.cmyk[k]; delete doc.colorNames[k]; ctx.changed(); redraw(); } }, ico('restore')) : h('span'));
   };
   return h('div', { class: 'pal2-wrap' },
     h('div', { class: 'pal2' }, Object.keys(pal).map(row)),

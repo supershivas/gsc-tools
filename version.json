@@ -1,8 +1,10 @@
 {
-  "version": "1.32.0",
+  "version": "1.33.0",
   "date": "2026-11-04",
   "changes": [
-    "Factsheet par défaut refaite : recto et verso remplis (chiffres clés, texte, cartes, courbes, anneau, frise, treemap, pictogrammes) avec les gabarits 1, 2, 3 colonnes, 2/3 + 1/3 et 1/3 + 2/3",
-    "Petits « ? » d'aide à côté des champs, interrupteurs et cartes (infobulle au survol ou au focus)"
+    "Factsheet par défaut : plus aucun texte hors cadre (anneau, frise), la dernière dataviz est remplacée par du texte",
+    "Les mesures de texte attendent le chargement des polices (plus de débordement au premier affichage)",
+    "Couleurs par défaut en CMJN d'imprimeur (bleu Reflex 100/80/0/0, jaune 0/0/100/0…) ; le sélecteur CMJN garde la valeur exacte",
+    "Cartes repliables : tout l'en-tête est cliquable"
   ]
 }

@@ -159,12 +159,14 @@ export const THEMES = {
   eu: {
     label: 'Bleu UE',
     colors: {
-      blue:     '#0434F8',   // texte, traits, fond de header, séries principales
-      sky:      '#A4CCFC',   // séries claires
-      yellow:   '#FCDC0C',
+      blue:     '#003399',   // texte, traits, fond de header, séries principales — Reflex Blue, CMJN 100/80/0/0
+      sky:      '#A8CBEF',   // séries claires — CMJN 35/12/0/0
+      yellow:   '#FFCC00',   // CMJN 0/0/100/0
       slate:    '#5E6566',
       grey:     '#DADDE3',   // gris clair : fonds et séries neutres
     },
+    /* valeurs CMJN d'imprimeur (0–100) : celles du PDF exporté ; le RVB ci-dessus est l'équivalent écran */
+    cmyk: { blue: [100, 80, 0, 0], sky: [35, 12, 0, 0], yellow: [0, 0, 100, 0], slate: [62, 48, 47, 30], grey: [14, 9, 7, 0] },
     names: { blue: 'Bleu', sky: 'Bleu ciel', yellow: 'Jaune', slate: 'Ardoise', grey: 'Gris clair' },
     text: 'blue',            // couleur des textes et traits par défaut
   },
