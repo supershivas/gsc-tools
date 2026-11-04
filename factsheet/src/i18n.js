@@ -138,6 +138,10 @@ const EN = {
   'Chiffre à côté': 'Figure beside', 'Chiffre ({pct} = part de la 1re donnée)': 'Figure ({pct} = share of the 1st item)', 'Texte sous le chiffre (vide = libellé de la 1re donnée)': 'Text under the figure (empty = label of the 1st item)', 'Largeur de la dataviz (% de la largeur)': 'Dataviz width (% of the width)', 'Autres logements': 'Other housing', 'Repère': 'Mark', 'Icône · ': 'Icon · ', 'Une ligne par catégorie : les cases se remplissent dans cet ordre, ligne par ligne ; une catégorie blanche reste une case vide. Le repère se choisit par catégorie.': 'One row per category: cells fill in this order, row by row; a white category stays an empty cell. The mark is chosen per category.',
   'Un chiffre clé (par exemple 14 %) et son texte à côté de la dataviz, qui prend alors la part de largeur choisie.': 'A key figure (e.g. 14 %) and its text beside the dataviz, which then takes the chosen share of the width.',
   'Taille du chiffre': 'Figure size', 'Normal': 'Normal', 'Grand': 'Large', 'Très grand': 'Extra large',
+  'Largeur du contenu (% de la largeur)': 'Content width (% of the width)',
+  /* icônes importées */
+  'Icônes importées': 'Imported icons', 'Une fois importée, l’icône est proposée dans le choix « Icône » de chaque élément (onglet Données).': 'Once imported, the icon is offered in each item’s “Icon” choice (Data tab).',
+  'Taille des icônes et du texte': 'Icon and text size',
   /* types de dataviz */
   'Barres (jumelées, groupées, empilées)': 'Bars (overlapping, grouped, stacked)', 'Plusieurs séries': 'Multiple series', 'Jumelées (2 séries qui se chevauchent)': 'Overlapping (2 series overlap)',
   'Côte à côte': 'Side by side', 'Empilées': 'Stacked', 'Format du graphique': 'Chart ratio', '2:1 (large)': '2:1 (wide)', '1:1 (carré)': '1:1 (square)',

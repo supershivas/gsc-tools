@@ -11,7 +11,7 @@ import { VIZ_TYPES, VIZ_FAMILIES, switchKind, renderVizFull } from './viz/index.
 import { cardEl } from './cards.js';
 import { loadFonts } from './viz/util.js';
 import { startReorder } from './vizreorder.js';
-import { newSide } from './viz/index.js';
+import { newSide, SIDE_FIELDS } from './viz/index.js';
 import { heightNodes } from './vizheight.js';
 import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
 import { t } from './i18n.js';
@@ -114,12 +114,8 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     } else {
       form.append(...[
         card('dv-head', 'typography', t('Titre et source'), buildFields([{ k: 'title', t: 'text', label: 'Titre de la dataviz (facultatif)' }, { k: 'source', t: 'text', label: 'Source (facultatif)' }], head, fctx, {}, h)),
-        ty.panel ? card('dv-picto', 'mood-smile', t('Pictogramme'), ty.panel(col.viz.opts, fctx)) : null,
-        card('dv-side', 'number', t('Chiffre à côté'), buildFields([
-          { k: 'pos', t: 'select', label: 'Chiffre à côté', options: { none: 'Aucun', right: 'À droite', left: 'À gauche' } },
-          { k: 'value', t: 'text', label: 'Chiffre ({pct} = part de la 1re donnée)' }, { k: 'text', t: 'text', label: 'Texte sous le chiffre (vide = libellé de la 1re donnée)' },
-          { k: 'share', t: 'number', label: 'Largeur de la dataviz (% de la largeur)', min: 25, max: 80 }, { k: 'scale', t: 'select', label: 'Taille du chiffre', options: { 1: 'Normal', 1.5: 'Grand', 2: 'Très grand' } }, { k: 'align', t: 'select', label: 'Position verticale du chiffre', options: { top: 'En haut', center: 'Centré', bottom: 'En bas' } }],
-          col.viz.side || (col.viz.side = newSide(col.viz.kind)), fctx, {}, h)),
+        ty.panel ? card('dv-picto', 'mood-smile', t(ty.panelTitle || 'Pictogramme'), ty.panel(col.viz.opts, fctx)) : null,
+        card('dv-side', 'number', t('Chiffre à côté'), buildFields(SIDE_FIELDS, col.viz.side || (col.viz.side = newSide(col.viz.kind)), fctx, {}, h)),
         ty.heights ? heightCard(ty) : null,
         F('format').length ? card('dv-format', 'ruler-2', t('Dimensions'), gen(F('format'))) : null,
         card('dv-colors', 'palette', t('Couleurs'), [h('button', { type: 'button', class: 'pp-btn', onclick: e => openPalette(e.currentTarget, palCtx) }, ico('palette'), h('span', { textContent: t('Couleurs du document') }))]),

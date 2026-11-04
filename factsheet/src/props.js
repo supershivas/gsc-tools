@@ -9,7 +9,7 @@ import { layoutSelect } from './layoutselect.js';
 import { heightNodes } from './vizheight.js';
 import { newCard, cardPresetFor, CARD_CHECKS } from './cardmodel.js';
 import { COL_TYPES, IMAGE_RATIOS, LOCALES, LOGO_VARIANTS, DEFAULT_LOGOS, DEFAULT_IMAGE_ID, VALIGNS, ALIGNS, newCol, stepSection, newHeaderImage, swapCols, allCols, moveSub, refreshAutoCards } from './state.js';
-import { VIZ_TYPES, VIZ_OPTIONS, VIZ_FAMILIES, newViz, switchKind } from './viz/index.js';
+import { VIZ_TYPES, VIZ_OPTIONS, VIZ_FAMILIES, newViz, switchKind, SIDE_FIELDS, newColSide } from './viz/index.js';
 import { buildFields, readImage, richEditor, paletteOptions, multiline } from './editor.js';
 import { FIGURE_DEFAULTS, FIGURE_FIELDS } from './figure.js';
 import { ICON_OPTIONS } from './viz/icons.js';
@@ -207,6 +207,7 @@ export function buildProps(root, ctx) {
     })());
     const vt = col.type === 'viz' && col.viz && VIZ_TYPES[col.viz.kind];
     root.append(card('col-content', ICONS[col.type] || 'text-size', t('Contenu'), [typeSel, ...editor]),
+      col.type === 'text' || col.type === 'card' ? card('col-side', 'number', t('Chiffre à côté'), buildFields(SIDE_FIELDS, col.side || (col.side = newColSide()), ctx, {}, h)) : null,
       vt && vt.heights ? card('col-height', 'ruler-2', t('Hauteur'), heightNodes(vt, col.viz.opts, { ctx, width: columnWidth(doc, si, bi, ci) })) : null,
       card('col-layout', 'layout-align-middle', t('Disposition'), [segmented('Alignement vertical dans la colonne', col, 'valign', VALIGNS, { top: t('Haut'), center: t('Centre'), bottom: t('Bas') }),
         col.type === 'text' ? segmented('Alignement du texte', col, 'align', ALIGNS, { left: t('Gauche'), center: t('Centré'), right: t('Droite'), justify: t('Justifié') }) : null, swap]),

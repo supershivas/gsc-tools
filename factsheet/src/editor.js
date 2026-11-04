@@ -107,7 +107,7 @@ export function richEditor(value, onChange) {
   return h('div', { class: 're-wrap' }, bar, ed);
 }
 
-export function buildFields(spec, obj, ctx, palOpts, h2) {
+export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
   const out = [];
   const live = fn => e => { fn(e.target); ctx.changed(); };
   for (const f of spec) {
@@ -131,7 +131,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2) {
     else if (f.t === 'bool') out.push(h2('label', { class: 'row', style: { marginBottom: '8px' } }, h2('input', { type: 'checkbox', checked: !!getP(obj, f.k), onchange: live(t => setP(obj, f.k, t.checked)) }), f.label, helpBtn(f.label)));
     else if (f.t === 'color') out.push(h2('div', { class: 'f' }, h2('div', { class: 'hint' }, f.label, helpBtn(f.label)), colorSelect({ value: getP(obj, f.k) ?? 'blue', options: palOpts, text: true, onChange: v => { setP(obj, f.k, v); ctx.changed(); } })));
     else if (f.t === 'select') {
-      const opts = f.options;
+      const opts = typeof f.options === 'function' ? f.options(root) : f.options;
       const sel = h2('select', { onchange: live(t => setP(obj, f.k, t.value)) }, Object.entries(opts).map(([v, l]) => h2('option', { value: v, textContent: l })));
       sel.value = getP(obj, f.k) ?? Object.keys(opts)[0];
       out.push(h2('label', { class: 'f' }, f.label, helpBtn(f.label), sel));
@@ -144,7 +144,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2) {
           h2('div', { class: 'chd' }, h2('span', { textContent: `#${i + 1}` }), h2('span', { class: 'row' },
             h2('button', { type: 'button', class: 'mini', onclick: mv(-1) }, ico('arrow-up')), h2('button', { type: 'button', class: 'mini', onclick: mv(1) }, ico('arrow-down')),
             arr.length > (f.min || 1) ? h2('button', { type: 'button', class: 'mini danger', title: 'Supprimer', onclick: () => { arr.splice(i, 1); ctx.restructure(); } }, ico('x')) : null)),
-          buildFields(f.fields, it, ctx, palOpts, h2)));
+          buildFields(f.fields, it, ctx, palOpts, h2, root)));
       });
       if (arr.length < (f.max || 12)) box.append(h2('button', { type: 'button', textContent: '+ Ajouter', onclick: () => { arr.push(f.item(arr.length)); ctx.restructure(); } }));
       out.push(box);

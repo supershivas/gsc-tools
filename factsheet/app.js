@@ -770,6 +770,11 @@
     "Normal": "Normal",
     "Grand": "Large",
     "Tr\xE8s grand": "Extra large",
+    "Largeur du contenu (% de la largeur)": "Content width (% of the width)",
+    /* icônes importées */
+    "Ic\xF4nes import\xE9es": "Imported icons",
+    "Une fois import\xE9e, l\u2019ic\xF4ne est propos\xE9e dans le choix \xAB Ic\xF4ne \xBB de chaque \xE9l\xE9ment (onglet Donn\xE9es).": "Once imported, the icon is offered in each item\u2019s \u201CIcon\u201D choice (Data tab).",
+    "Taille des ic\xF4nes et du texte": "Icon and text size",
     /* types de dataviz */
     "Barres (jumel\xE9es, group\xE9es, empil\xE9es)": "Bars (overlapping, grouped, stacked)",
     "Plusieurs s\xE9ries": "Multiple series",
@@ -1900,17 +1905,285 @@
   };
   var ICON_OPTIONS = Object.fromEntries(Object.entries(ICONS).map(([k, v]) => [k, v.label]));
 
+  // src/viz/picto.js
+  var PICTOS = {
+    person: { label: "Personne", vb: [0, 0, 24, 24], d: "M12 2.5a4 4 0 1 0 0 8a4 4 0 1 0 0-8zM4.5 22v-5a7.5 7.5 0 0 1 15 0v5z" },
+    circle: { label: "Rond", vb: [0, 0, 24, 24], d: "M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20z" },
+    square: { label: "Carr\xE9", vb: [0, 0, 24, 24], d: "M3 3h18v18H3z" },
+    heart: { label: "C\u0153ur", vb: [0, 0, 24, 24], d: "M12 21C5 15.5 2 12 2 8.2A5.2 5.2 0 0 1 12 6a5.2 5.2 0 0 1 10 2.2C22 12 19 15.5 12 21z" },
+    house: { label: "Maison", vb: [0, 0, 24, 24], d: "M12 2.5L2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z" },
+    star: { label: "\xC9toile", vb: [0, 0, 24, 24], d: "M12 2l3 6.6 7.2.8-5.4 4.8 1.6 7.1L12 17.6 5.6 21.3l1.6-7.1L1.8 9.4 9 8.6z" }
+  };
+  var pictoChoices = (o) => ({
+    ...Object.fromEntries(Object.entries(PICTOS).map(([k, v]) => [`picto:${k}`, t(v.label)])),
+    ...Object.fromEntries((o.customIcons || []).map((c2) => [`custom:${c2.id}`, `${t("Import\xE9")} \xB7 ${c2.name}`])),
+    ...Object.fromEntries(Object.entries(ICONS).map(([k, v]) => [`icon:${k}`, `${t("Trait")} \xB7 ${t(v.label)}`]))
+  });
+  function sanitizeSvg(text, name = "icon") {
+    if (text.length > 4e5) throw new Error("trop lourd");
+    const doc2 = new DOMParser().parseFromString(text, "image/svg+xml"), svg = doc2.documentElement;
+    if (!svg || svg.nodeName.toLowerCase() !== "svg" || doc2.querySelector("parsererror")) throw new Error("svg illisible");
+    doc2.querySelectorAll("script,foreignObject,iframe,object,embed,animate,animateTransform,animateMotion,set,image,audio,video").forEach((n) => n.remove());
+    doc2.querySelectorAll("style").forEach((n) => {
+      if (/@import|url\((?!\s*['"]?#)/i.test(n.textContent)) n.remove();
+    });
+    doc2.querySelectorAll("*").forEach((n) => [...n.attributes].forEach((a2) => {
+      const ln = a2.name.toLowerCase();
+      if (ln.startsWith("on")) n.removeAttribute(a2.name);
+      else if ((ln === "href" || ln.endsWith(":href")) && !a2.value.startsWith("#")) n.removeAttribute(a2.name);
+      else if (/url\((?!\s*['"]?#)/i.test(a2.value) || /javascript:/i.test(a2.value)) n.removeAttribute(a2.name);
+    }));
+    let vb = (svg.getAttribute("viewBox") || "").split(/[\s,]+/).map(Number);
+    if (vb.length !== 4 || vb.some(isNaN)) {
+      const w = parseFloat(svg.getAttribute("width")), h2 = parseFloat(svg.getAttribute("height"));
+      vb = [0, 0, w || 24, h2 || 24];
+    }
+    const inner = [...svg.childNodes].map((n) => new XMLSerializer().serializeToString(n)).join("").replace(/ xmlns(:\w+)?="[^"]*"/g, "");
+    return { id: "c" + Math.random().toString(36).slice(2, 8), name: name.replace(/\.svg$/i, "").slice(0, 40), vb, markup: inner };
+  }
+  function iconNode(o, key, x, y, w, h2, color) {
+    const [kind, id] = String(key || "picto:person").split(":");
+    let vb = [0, 0, 24, 24], inner = null;
+    const col = colorRef(color);
+    const svg = s("svg", { x, y, width: w, height: h2, viewBox: "0 0 24 24", preserveAspectRatio: "xMidYMid meet", style: { overflow: "hidden" } });
+    if (kind === "icon") svg.append(s("path", { d: (ICONS[id] || ICONS.check).d, fill: "none", stroke: col, "stroke-width": 1.6, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+    else if (kind === "custom") {
+      const c2 = (o.customIcons || []).find((k) => k.id === id);
+      if (c2) {
+        svg.setAttribute("viewBox", c2.vb.join(" "));
+        svg.setAttribute("fill", col);
+        const tmp = new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${c2.markup}</svg>`, "image/svg+xml").documentElement;
+        if (o.recolor !== false) tmp.querySelectorAll("*").forEach((n) => {
+          const f = n.getAttribute("fill"), st = n.getAttribute("stroke");
+          if (f && f !== "none") n.removeAttribute("fill");
+          if (st && st !== "none") n.setAttribute("stroke", col);
+          n.removeAttribute("style");
+        });
+        [...tmp.childNodes].forEach((n) => svg.append(document.importNode(n, true)));
+      }
+    } else {
+      const p = PICTOS[id] || PICTOS.person;
+      svg.append(s("path", { d: p.d, fill: col }));
+    }
+    return svg;
+  }
+  var clipN = 0;
+  function partial(o, key, x, y, w, h2, color, frac, dir) {
+    frac = Math.max(0, Math.min(1, frac));
+    const g = s("g");
+    g.append(s("g", { opacity: 0.22 }, iconNode(o, key, x, y, w, h2, color)));
+    if (frac <= 0) return g;
+    if (frac >= 1) {
+      g.append(iconNode(o, key, x, y, w, h2, color));
+      return g;
+    }
+    const id = "pc" + ++clipN;
+    const r = dir === "v" ? { x, y: y + h2 * (1 - frac), width: w, height: h2 * frac } : { x, y, width: w * frac, height: h2 };
+    g.append(s("clipPath", { id }, s("rect", r)), s("g", { "clip-path": `url(#${id})` }, iconNode(o, key, x, y, w, h2, color)));
+    return g;
+  }
+  function pictoPanel(o, ctx2) {
+    const choices = pictoChoices(o), ico2 = (n) => el("i", { class: "ti ti-" + n });
+    const sel = el("select", { onchange: (e) => {
+      o.icon = e.target.value;
+      ctx2.changed();
+    } }, Object.entries(choices).map(([v, l]) => el("option", { value: v, textContent: l, selected: o.icon === v })));
+    const inp = el("input", { type: "file", accept: ".svg,image/svg+xml", hidden: true, onchange: async () => {
+      const f = inp.files[0];
+      inp.value = "";
+      if (!f) return;
+      try {
+        const c2 = sanitizeSvg(await f.text(), f.name);
+        (o.customIcons || (o.customIcons = [])).push(c2);
+        o.icon = "custom:" + c2.id;
+        ctx2.restructure();
+      } catch (e) {
+        alert(t("SVG illisible ou trop lourd."));
+      }
+    } });
+    const list = (o.customIcons || []).map((c2) => el(
+      "div",
+      { class: "row", style: { justifyContent: "space-between" } },
+      el("span", { textContent: c2.name }),
+      el("button", { type: "button", class: "mini danger", title: t("Retirer"), onclick: () => {
+        o.customIcons = o.customIcons.filter((k) => k.id !== c2.id);
+        if (o.icon === "custom:" + c2.id) o.icon = "picto:person";
+        ctx2.restructure();
+      } }, ico2("x"))
+    ));
+    return [
+      el("label", { class: "f" }, t("Pictogramme"), sel),
+      el("button", { type: "button", class: "pp-btn", onclick: () => inp.click() }, ico2("upload"), el("span", { textContent: t("Importer un SVG\u2026") })),
+      inp,
+      el("label", { class: "row" }, el("input", { type: "checkbox", checked: o.recolor !== false, onchange: (e) => {
+        o.recolor = e.target.checked;
+        ctx2.changed();
+      } }), t("Recolorer le SVG import\xE9 avec la couleur choisie")),
+      ...list
+    ];
+  }
+  function iconImportPanel(o, ctx2) {
+    const ico2 = (n) => el("i", { class: "ti ti-" + n });
+    const inp = el("input", { type: "file", accept: ".svg,image/svg+xml", hidden: true, onchange: async () => {
+      const f = inp.files[0];
+      inp.value = "";
+      if (!f) return;
+      try {
+        (o.customIcons || (o.customIcons = [])).push(sanitizeSvg(await f.text(), f.name));
+        ctx2.restructure();
+      } catch (e) {
+        alert(t("SVG illisible ou trop lourd."));
+      }
+    } });
+    const list = (o.customIcons || []).map((c2) => el(
+      "div",
+      { class: "row", style: { justifyContent: "space-between" } },
+      el("span", { textContent: c2.name }),
+      el("button", { type: "button", class: "mini danger", title: t("Retirer"), onclick: () => {
+        o.customIcons = o.customIcons.filter((k) => k.id !== c2.id);
+        (o.items || []).forEach((it) => {
+          if (it.icon === "custom:" + c2.id) it.icon = "check";
+        });
+        ctx2.restructure();
+      } }, ico2("x"))
+    ));
+    return [
+      el("button", { type: "button", class: "pp-btn", onclick: () => inp.click() }, ico2("upload"), el("span", { textContent: t("Importer un SVG\u2026") })),
+      inp,
+      el("label", { class: "row" }, el("input", { type: "checkbox", checked: o.recolor !== false, onchange: (e) => {
+        o.recolor = e.target.checked;
+        ctx2.changed();
+      } }), t("Recolorer le SVG import\xE9 avec la couleur choisie")),
+      el("p", { class: "hint", textContent: t("Une fois import\xE9e, l\u2019ic\xF4ne est propos\xE9e dans le choix \xAB Ic\xF4ne \xBB de chaque \xE9l\xE9ment (onglet Donn\xE9es).") }),
+      ...list
+    ];
+  }
+  var VARIANTS = {
+    rows: { label: "Pictogrammes \xB7 barres", icon: "layout-list" },
+    cols: { label: "Pictogrammes \xB7 barres verticales", icon: "layout-columns" },
+    single_v: { label: "Pictogramme simple vertical", icon: "arrow-bar-up" },
+    single_h: { label: "Pictogramme simple horizontal", icon: "arrow-bar-right" }
+  };
+  function make(variant) {
+    const multi = variant === "rows" || variant === "cols";
+    return {
+      label: VARIANTS[variant].label,
+      icon: VARIANTS[variant].icon,
+      family: "picto",
+      boxed: variant === "rows" || variant === "cols",
+      defaults: () => ({
+        icon: "picto:person",
+        color: "blue",
+        recolor: true,
+        customIcons: [],
+        perIcon: multi ? 10 : 100,
+        showValues: true,
+        decimals: 0,
+        suffix: multi ? "" : " %",
+        ratio: "3:2",
+        rows: [["Women", 62, ""], ["Men", 48, ""], ["Young people", 35, ""], ["Seniors", 21, ""]].map(([label, value2, color]) => ({ label, value: value2, color }))
+      }),
+      heights: multi ? ["auto", "fixed", "fill"] : ["ratio", "fixed", "fill"],
+      fields: [
+        { k: "perIcon", t: "number", label: multi ? "Valeur d\u2019un pictogramme" : "Valeur du pictogramme plein (ex. 100)", min: 1e-4, step: "any" },
+        { k: "color", t: "color", label: "Couleur des pictogrammes" },
+        { k: "showValues", t: "bool", label: "Afficher les valeurs" },
+        { k: "decimals", t: "number", label: "D\xE9cimales des valeurs", min: 0, max: 4 },
+        { k: "suffix", t: "text", label: "Unit\xE9 apr\xE8s la valeur (%, M\u20AC\u2026)" }
+      ].concat(multi ? [] : [{ k: "ratio", t: "select", label: "Format du graphique", options: { "2:1": "2:1 (large)", "16:9": "16:9", "3:2": "3:2", "1:1": "1:1 (carr\xE9)" }, g: "format" }]),
+      data: {
+        k: "rows",
+        min: 1,
+        cols: [{ k: "label", label: "Libell\xE9", t: "text" }, { k: "value", label: "Valeur", t: "number", def: 10 }, { k: "color", label: "Couleur", t: "color", auto: true, def: "" }],
+        item: () => ({ label: "", value: 10, color: "" })
+      },
+      /* choix du pictogramme et import SVG (carte « Pictogramme » de l'éditeur) */
+      panel: pictoPanel,
+      render(o, W, env) {
+        const rows = (o.rows || []).map((r) => ({ label: String(r.label || ""), value: Math.max(0, +r.value || 0), color: r.color || o.color || "blue" }));
+        const capPx = pxOf(TYPE.caption.size), numPx = pxOf(TYPE.captionNum.size), suffix = o.suffix || "", per = +o.perIcon > 0 ? +o.perIcon : 1, G = 3;
+        const val = (v) => fmt(v, env.locale, o.decimals) + suffix, valTxt = (x, y, v, anchor = "start") => s("text", { x, y, "text-anchor": anchor, "font-size": numPx, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, val(v));
+        const mk = (H2) => s("svg", { width: W, height: H2, viewBox: `0 0 ${W} ${H2}`, style: { display: "block", overflow: "visible" } });
+        if (!rows.length) {
+          const v = mk(40);
+          v.append(s("text", { x: 0, y: capPx, "font-size": capPx }, t("Aucune donn\xE9e")));
+          return { node: v };
+        }
+        const label = (txt, x, y, maxW, anchor = "start") => {
+          const f = fitText(txt, TYPE.caption.weight, SANS, capPx, maxW, 0.7);
+          return s("text", { x, y: y + 0.33 * f.size, "text-anchor": anchor, "font-size": f.size }, f.text);
+        };
+        if (variant === "rows") {
+          const labW2 = Math.min(W * 0.35, Math.max(0, ...rows.map((r) => mw(r.label, TYPE.caption.weight, SANS, capPx))) + VIZ.iconGap), valW2 = o.showValues ? mw(val(1e3), 700, '"Source Serif 4", serif', numPx) + 6 : 0;
+          const span = Math.max(40, W - labW2 - valW2), maxN = Math.max(1, ...rows.map((r) => Math.ceil(r.value / per)));
+          const sz2 = Math.max(14, Math.min(27, Math.floor((span + G) / maxN - G))), perLine = Math.max(1, Math.floor((span + G) / (sz2 + G)));
+          const lines = (r) => Math.max(1, Math.ceil(Math.ceil(r.value / per) / perLine)), rowH = (r) => lines(r) * (sz2 + G) - G;
+          const H2 = rows.reduce((a2, r) => a2 + rowH(r), 0) + (rows.length - 1) * (G * 3);
+          const svg2 = mk(H2);
+          let y = 0;
+          for (const r of rows) {
+            const n = r.value / per, h2 = rowH(r);
+            svg2.append(label(r.label, 0, y + sz2 / 2, labW2 - VIZ.iconGap));
+            for (let i = 0; i < Math.ceil(n); i++) svg2.append(partial(o, o.icon, labW2 + i % perLine * (sz2 + G), y + Math.floor(i / perLine) * (sz2 + G), sz2, sz2, r.color, Math.min(1, n - i), "h"));
+            if (o.showValues) svg2.append(valTxt(labW2 + Math.min(Math.ceil(n), perLine) * (sz2 + G) + 3, y + sz2 / 2 + 0.33 * numPx, r.value));
+            svg2.append(reorderHit(env, "rows", rows.indexOf(r), "y", 0, y - G, W, h2 + 2 * G));
+            y += h2 + G * 3;
+          }
+          return { node: svg2 };
+        }
+        if (variant === "cols") {
+          const cw = W / rows.length, sz2 = Math.max(12, Math.min(27, Math.floor(cw - 6))), maxN = Math.max(1, ...rows.map((r) => Math.ceil(r.value / per)));
+          const top = o.showValues ? numPx * 1.5 : 0, stackH = maxN * (sz2 + G) - G, labH = capPx * 2.6;
+          const H2 = top + stackH + 6 + labH, svg2 = mk(H2);
+          rows.forEach((r, i) => {
+            const cx = cw * (i + 0.5), n = r.value / per, base = top + stackH;
+            for (let k = 0; k < Math.ceil(n); k++) svg2.append(partial(o, o.icon, cx - sz2 / 2, base - (k + 1) * sz2 - k * G, sz2, sz2, r.color, Math.min(1, n - k), "v"));
+            if (o.showValues) svg2.append(valTxt(cx, base - Math.ceil(n) * (sz2 + G) + G - 3, r.value, "middle"));
+            svg2.append(label(r.label, cx, base + 6 + capPx * 0.6, cw - 4, "middle"));
+            svg2.append(reorderHit(env, "rows", i, "x", cw * i, 0, cw, H2));
+          });
+          return { node: svg2 };
+        }
+        if (variant === "single_v") {
+          const cw = W / rows.length, top = o.showValues ? numPx * 1.6 : 0, labH = capPx * 2.2;
+          const H2 = heightOf(o, W, env, null, "3:2"), box = Math.max(24, H2 - top - labH - 6), sz2 = Math.min(box, cw - 12), svg2 = mk(H2);
+          rows.forEach((r, i) => {
+            const cx = cw * (i + 0.5), y = top + (box - sz2) / 2 + 0;
+            svg2.append(partial(o, o.icon, cx - sz2 / 2, y, sz2, sz2, r.color, r.value / per, "v"));
+            if (o.showValues) svg2.append(valTxt(cx, numPx, r.value, "middle"));
+            svg2.append(label(r.label, cx, top + box + 6 + capPx * 0.6, cw - 4, "middle"));
+            svg2.append(reorderHit(env, "rows", i, "x", cw * i, 0, cw, H2));
+          });
+          return { node: svg2 };
+        }
+        const labW = Math.min(W * 0.32, Math.max(0, ...rows.map((r) => mw(r.label, TYPE.caption.weight, SANS, capPx))) + VIZ.iconGap), valW = o.showValues ? mw(val(1e3), 700, '"Source Serif 4", serif', numPx) + 6 : 0;
+        const H = heightOf(o, W, env, null, "3:2"), rh = Math.max(24, (H - (rows.length - 1) * 9) / rows.length), sz = Math.min(rh, 96), svg = mk(H);
+        rows.forEach((r, i) => {
+          const y = i * (rh + 9) + (rh - sz) / 2;
+          svg.append(label(r.label, 0, i * (rh + 9) + rh / 2, labW - VIZ.iconGap));
+          svg.append(partial(o, o.icon, labW, y, sz, sz, r.color, r.value / per, "h"));
+          if (o.showValues) svg.append(valTxt(labW + sz + 6, i * (rh + 9) + rh / 2 + 0.33 * numPx, r.value));
+          svg.append(reorderHit(env, "rows", i, "y", 0, i * (rh + 9) - 4, W, rh + 8));
+        });
+        return { node: svg };
+      },
+      variant
+    };
+  }
+  var pictoTypes = { pictoBars: make("rows"), pictoCols: make("cols"), pictoV: make("single_v"), pictoH: make("single_h") };
+
   // src/viz/iconlist.js
   var iconlist_default = {
     label: "Liste \xE0 ic\xF4nes",
     icon: "list-check",
     family: "list",
-    defaults: () => ({ items: [
+    defaults: () => ({ scale: "1", items: [
       { icon: "sliders", text: t("Premier \xE9l\xE9ment de liste") },
       { icon: "send", text: t("Deuxi\xE8me \xE9l\xE9ment de liste") },
       { icon: "pencil", text: t("Troisi\xE8me \xE9l\xE9ment de liste") }
     ] }),
     fields: [
+      { k: "scale", t: "select", label: "Taille des ic\xF4nes et du texte", options: { 1: "Normal", 1.5: "Grand", 2: "Tr\xE8s grand" } },
       {
         k: "items",
         t: "list",
@@ -1918,30 +2191,24 @@
         min: 1,
         max: 8,
         item: () => ({ icon: "check", text: t("Nouvel \xE9l\xE9ment") }),
-        fields: [{ k: "icon", t: "select", label: "Ic\xF4ne", options: ICON_OPTIONS }, { k: "text", t: "text", label: "Texte" }]
+        fields: [{ k: "icon", t: "select", label: "Ic\xF4ne", options: (root) => ({ ...ICON_OPTIONS, ...Object.fromEntries((root && root.customIcons || []).map((c2) => ["custom:" + c2.id, `${t("Import\xE9")} \xB7 ${c2.name}`])) }) }, { k: "text", t: "text", label: "Texte" }]
       }
     ],
+    panel: iconImportPanel,
+    panelTitle: "Ic\xF4nes import\xE9es",
     render(o, W, env) {
-      const C = VIZ.iconCircle, G = VIZ.iconGlyph;
+      const sc = +o.scale || 1, C = VIZ.iconCircle * sc, G = VIZ.iconGlyph * sc, bodyPx = pxOf(TYPE.body.size) * sc;
       const list = el("div", { class: "viz-icons" });
       (o.items || []).forEach((it, idx) => {
+        const k = G / 24, isCustom = String(it.icon || "").startsWith("custom:");
         const ic = ICONS[it.icon] || ICONS.check;
-        const k = G / 24;
         const svg = s(
           "svg",
           { width: C, height: C, viewBox: `0 0 ${C} ${C}`, class: "vi-ic" },
           s("circle", { cx: C / 2, cy: C / 2, r: C / 2 - SW / 2, fill: "none", stroke: "currentColor", "stroke-width": SW }),
-          s("path", {
-            d: ic.d,
-            fill: "none",
-            stroke: "currentColor",
-            "stroke-width": SW / k,
-            "stroke-linecap": "round",
-            "stroke-linejoin": "round",
-            transform: `translate(${(C - G) / 2} ${(C - G) / 2}) scale(${k})`
-          })
+          isCustom ? iconNode(o, it.icon, (C - G) / 2, (C - G) / 2, G, G, "text") : s("path", { d: ic.d, fill: "none", stroke: "currentColor", "stroke-width": SW / k, "stroke-linecap": "round", "stroke-linejoin": "round", transform: `translate(${(C - G) / 2} ${(C - G) / 2}) scale(${k})` })
         );
-        list.append(el("div", { class: "vi-row", ...env && env.ui ? { "data-reorder": `items:${idx}`, "data-axis": "y", style: { cursor: "grab" } } : {} }, svg, el("div", { class: "vi-text", innerHTML: String(it.text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>") })));
+        list.append(el("div", { class: "vi-row", style: { ...sc !== 1 ? { minHeight: C + "px" } : {}, ...env && env.ui ? { cursor: "grab" } : {} }, ...env && env.ui ? { "data-reorder": `items:${idx}`, "data-axis": "y" } : {} }, svg, el("div", { class: "vi-text", style: sc !== 1 ? { fontSize: bodyPx + "px", lineHeight: TYPE.body.lh * sc + "px" } : null, innerHTML: String(it.text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>") })));
       });
       return { node: list };
     }
@@ -3824,237 +4091,6 @@
     }
   };
 
-  // src/viz/picto.js
-  var PICTOS = {
-    person: { label: "Personne", vb: [0, 0, 24, 24], d: "M12 2.5a4 4 0 1 0 0 8a4 4 0 1 0 0-8zM4.5 22v-5a7.5 7.5 0 0 1 15 0v5z" },
-    circle: { label: "Rond", vb: [0, 0, 24, 24], d: "M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20z" },
-    square: { label: "Carr\xE9", vb: [0, 0, 24, 24], d: "M3 3h18v18H3z" },
-    heart: { label: "C\u0153ur", vb: [0, 0, 24, 24], d: "M12 21C5 15.5 2 12 2 8.2A5.2 5.2 0 0 1 12 6a5.2 5.2 0 0 1 10 2.2C22 12 19 15.5 12 21z" },
-    house: { label: "Maison", vb: [0, 0, 24, 24], d: "M12 2.5L2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z" },
-    star: { label: "\xC9toile", vb: [0, 0, 24, 24], d: "M12 2l3 6.6 7.2.8-5.4 4.8 1.6 7.1L12 17.6 5.6 21.3l1.6-7.1L1.8 9.4 9 8.6z" }
-  };
-  var pictoChoices = (o) => ({
-    ...Object.fromEntries(Object.entries(PICTOS).map(([k, v]) => [`picto:${k}`, t(v.label)])),
-    ...Object.fromEntries((o.customIcons || []).map((c2) => [`custom:${c2.id}`, `${t("Import\xE9")} \xB7 ${c2.name}`])),
-    ...Object.fromEntries(Object.entries(ICONS).map(([k, v]) => [`icon:${k}`, `${t("Trait")} \xB7 ${t(v.label)}`]))
-  });
-  function sanitizeSvg(text, name = "icon") {
-    if (text.length > 4e5) throw new Error("trop lourd");
-    const doc2 = new DOMParser().parseFromString(text, "image/svg+xml"), svg = doc2.documentElement;
-    if (!svg || svg.nodeName.toLowerCase() !== "svg" || doc2.querySelector("parsererror")) throw new Error("svg illisible");
-    doc2.querySelectorAll("script,foreignObject,iframe,object,embed,animate,animateTransform,animateMotion,set,image,audio,video").forEach((n) => n.remove());
-    doc2.querySelectorAll("style").forEach((n) => {
-      if (/@import|url\((?!\s*['"]?#)/i.test(n.textContent)) n.remove();
-    });
-    doc2.querySelectorAll("*").forEach((n) => [...n.attributes].forEach((a2) => {
-      const ln = a2.name.toLowerCase();
-      if (ln.startsWith("on")) n.removeAttribute(a2.name);
-      else if ((ln === "href" || ln.endsWith(":href")) && !a2.value.startsWith("#")) n.removeAttribute(a2.name);
-      else if (/url\((?!\s*['"]?#)/i.test(a2.value) || /javascript:/i.test(a2.value)) n.removeAttribute(a2.name);
-    }));
-    let vb = (svg.getAttribute("viewBox") || "").split(/[\s,]+/).map(Number);
-    if (vb.length !== 4 || vb.some(isNaN)) {
-      const w = parseFloat(svg.getAttribute("width")), h2 = parseFloat(svg.getAttribute("height"));
-      vb = [0, 0, w || 24, h2 || 24];
-    }
-    const inner = [...svg.childNodes].map((n) => new XMLSerializer().serializeToString(n)).join("").replace(/ xmlns(:\w+)?="[^"]*"/g, "");
-    return { id: "c" + Math.random().toString(36).slice(2, 8), name: name.replace(/\.svg$/i, "").slice(0, 40), vb, markup: inner };
-  }
-  function iconNode(o, key, x, y, w, h2, color) {
-    const [kind, id] = String(key || "picto:person").split(":");
-    let vb = [0, 0, 24, 24], inner = null;
-    const col = colorRef(color);
-    const svg = s("svg", { x, y, width: w, height: h2, viewBox: "0 0 24 24", preserveAspectRatio: "xMidYMid meet", style: { overflow: "hidden" } });
-    if (kind === "icon") svg.append(s("path", { d: (ICONS[id] || ICONS.check).d, fill: "none", stroke: col, "stroke-width": 1.6, "stroke-linecap": "round", "stroke-linejoin": "round" }));
-    else if (kind === "custom") {
-      const c2 = (o.customIcons || []).find((k) => k.id === id);
-      if (c2) {
-        svg.setAttribute("viewBox", c2.vb.join(" "));
-        svg.setAttribute("fill", col);
-        const tmp = new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${c2.markup}</svg>`, "image/svg+xml").documentElement;
-        if (o.recolor !== false) tmp.querySelectorAll("*").forEach((n) => {
-          const f = n.getAttribute("fill"), st = n.getAttribute("stroke");
-          if (f && f !== "none") n.removeAttribute("fill");
-          if (st && st !== "none") n.setAttribute("stroke", col);
-          n.removeAttribute("style");
-        });
-        [...tmp.childNodes].forEach((n) => svg.append(document.importNode(n, true)));
-      }
-    } else {
-      const p = PICTOS[id] || PICTOS.person;
-      svg.append(s("path", { d: p.d, fill: col }));
-    }
-    return svg;
-  }
-  var clipN = 0;
-  function partial(o, key, x, y, w, h2, color, frac, dir) {
-    frac = Math.max(0, Math.min(1, frac));
-    const g = s("g");
-    g.append(s("g", { opacity: 0.22 }, iconNode(o, key, x, y, w, h2, color)));
-    if (frac <= 0) return g;
-    if (frac >= 1) {
-      g.append(iconNode(o, key, x, y, w, h2, color));
-      return g;
-    }
-    const id = "pc" + ++clipN;
-    const r = dir === "v" ? { x, y: y + h2 * (1 - frac), width: w, height: h2 * frac } : { x, y, width: w * frac, height: h2 };
-    g.append(s("clipPath", { id }, s("rect", r)), s("g", { "clip-path": `url(#${id})` }, iconNode(o, key, x, y, w, h2, color)));
-    return g;
-  }
-  function pictoPanel(o, ctx2) {
-    const choices = pictoChoices(o), ico2 = (n) => el("i", { class: "ti ti-" + n });
-    const sel = el("select", { onchange: (e) => {
-      o.icon = e.target.value;
-      ctx2.changed();
-    } }, Object.entries(choices).map(([v, l]) => el("option", { value: v, textContent: l, selected: o.icon === v })));
-    const inp = el("input", { type: "file", accept: ".svg,image/svg+xml", hidden: true, onchange: async () => {
-      const f = inp.files[0];
-      inp.value = "";
-      if (!f) return;
-      try {
-        const c2 = sanitizeSvg(await f.text(), f.name);
-        (o.customIcons || (o.customIcons = [])).push(c2);
-        o.icon = "custom:" + c2.id;
-        ctx2.restructure();
-      } catch (e) {
-        alert(t("SVG illisible ou trop lourd."));
-      }
-    } });
-    const list = (o.customIcons || []).map((c2) => el(
-      "div",
-      { class: "row", style: { justifyContent: "space-between" } },
-      el("span", { textContent: c2.name }),
-      el("button", { type: "button", class: "mini danger", title: t("Retirer"), onclick: () => {
-        o.customIcons = o.customIcons.filter((k) => k.id !== c2.id);
-        if (o.icon === "custom:" + c2.id) o.icon = "picto:person";
-        ctx2.restructure();
-      } }, ico2("x"))
-    ));
-    return [
-      el("label", { class: "f" }, t("Pictogramme"), sel),
-      el("button", { type: "button", class: "pp-btn", onclick: () => inp.click() }, ico2("upload"), el("span", { textContent: t("Importer un SVG\u2026") })),
-      inp,
-      el("label", { class: "row" }, el("input", { type: "checkbox", checked: o.recolor !== false, onchange: (e) => {
-        o.recolor = e.target.checked;
-        ctx2.changed();
-      } }), t("Recolorer le SVG import\xE9 avec la couleur choisie")),
-      ...list
-    ];
-  }
-  var VARIANTS = {
-    rows: { label: "Pictogrammes \xB7 barres", icon: "layout-list" },
-    cols: { label: "Pictogrammes \xB7 barres verticales", icon: "layout-columns" },
-    single_v: { label: "Pictogramme simple vertical", icon: "arrow-bar-up" },
-    single_h: { label: "Pictogramme simple horizontal", icon: "arrow-bar-right" }
-  };
-  function make(variant) {
-    const multi = variant === "rows" || variant === "cols";
-    return {
-      label: VARIANTS[variant].label,
-      icon: VARIANTS[variant].icon,
-      family: "picto",
-      boxed: variant === "rows" || variant === "cols",
-      defaults: () => ({
-        icon: "picto:person",
-        color: "blue",
-        recolor: true,
-        customIcons: [],
-        perIcon: multi ? 10 : 100,
-        showValues: true,
-        decimals: 0,
-        suffix: multi ? "" : " %",
-        ratio: "3:2",
-        rows: [["Women", 62, ""], ["Men", 48, ""], ["Young people", 35, ""], ["Seniors", 21, ""]].map(([label, value2, color]) => ({ label, value: value2, color }))
-      }),
-      heights: multi ? ["auto", "fixed", "fill"] : ["ratio", "fixed", "fill"],
-      fields: [
-        { k: "perIcon", t: "number", label: multi ? "Valeur d\u2019un pictogramme" : "Valeur du pictogramme plein (ex. 100)", min: 1e-4, step: "any" },
-        { k: "color", t: "color", label: "Couleur des pictogrammes" },
-        { k: "showValues", t: "bool", label: "Afficher les valeurs" },
-        { k: "decimals", t: "number", label: "D\xE9cimales des valeurs", min: 0, max: 4 },
-        { k: "suffix", t: "text", label: "Unit\xE9 apr\xE8s la valeur (%, M\u20AC\u2026)" }
-      ].concat(multi ? [] : [{ k: "ratio", t: "select", label: "Format du graphique", options: { "2:1": "2:1 (large)", "16:9": "16:9", "3:2": "3:2", "1:1": "1:1 (carr\xE9)" }, g: "format" }]),
-      data: {
-        k: "rows",
-        min: 1,
-        cols: [{ k: "label", label: "Libell\xE9", t: "text" }, { k: "value", label: "Valeur", t: "number", def: 10 }, { k: "color", label: "Couleur", t: "color", auto: true, def: "" }],
-        item: () => ({ label: "", value: 10, color: "" })
-      },
-      /* choix du pictogramme et import SVG (carte « Pictogramme » de l'éditeur) */
-      panel: pictoPanel,
-      render(o, W, env) {
-        const rows = (o.rows || []).map((r) => ({ label: String(r.label || ""), value: Math.max(0, +r.value || 0), color: r.color || o.color || "blue" }));
-        const capPx = pxOf(TYPE.caption.size), numPx = pxOf(TYPE.captionNum.size), suffix = o.suffix || "", per = +o.perIcon > 0 ? +o.perIcon : 1, G = 3;
-        const val = (v) => fmt(v, env.locale, o.decimals) + suffix, valTxt = (x, y, v, anchor = "start") => s("text", { x, y, "text-anchor": anchor, "font-size": numPx, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, val(v));
-        const mk = (H2) => s("svg", { width: W, height: H2, viewBox: `0 0 ${W} ${H2}`, style: { display: "block", overflow: "visible" } });
-        if (!rows.length) {
-          const v = mk(40);
-          v.append(s("text", { x: 0, y: capPx, "font-size": capPx }, t("Aucune donn\xE9e")));
-          return { node: v };
-        }
-        const label = (txt, x, y, maxW, anchor = "start") => {
-          const f = fitText(txt, TYPE.caption.weight, SANS, capPx, maxW, 0.7);
-          return s("text", { x, y: y + 0.33 * f.size, "text-anchor": anchor, "font-size": f.size }, f.text);
-        };
-        if (variant === "rows") {
-          const labW2 = Math.min(W * 0.35, Math.max(0, ...rows.map((r) => mw(r.label, TYPE.caption.weight, SANS, capPx))) + VIZ.iconGap), valW2 = o.showValues ? mw(val(1e3), 700, '"Source Serif 4", serif', numPx) + 6 : 0;
-          const span = Math.max(40, W - labW2 - valW2), maxN = Math.max(1, ...rows.map((r) => Math.ceil(r.value / per)));
-          const sz2 = Math.max(14, Math.min(27, Math.floor((span + G) / maxN - G))), perLine = Math.max(1, Math.floor((span + G) / (sz2 + G)));
-          const lines = (r) => Math.max(1, Math.ceil(Math.ceil(r.value / per) / perLine)), rowH = (r) => lines(r) * (sz2 + G) - G;
-          const H2 = rows.reduce((a2, r) => a2 + rowH(r), 0) + (rows.length - 1) * (G * 3);
-          const svg2 = mk(H2);
-          let y = 0;
-          for (const r of rows) {
-            const n = r.value / per, h2 = rowH(r);
-            svg2.append(label(r.label, 0, y + sz2 / 2, labW2 - VIZ.iconGap));
-            for (let i = 0; i < Math.ceil(n); i++) svg2.append(partial(o, o.icon, labW2 + i % perLine * (sz2 + G), y + Math.floor(i / perLine) * (sz2 + G), sz2, sz2, r.color, Math.min(1, n - i), "h"));
-            if (o.showValues) svg2.append(valTxt(labW2 + Math.min(Math.ceil(n), perLine) * (sz2 + G) + 3, y + sz2 / 2 + 0.33 * numPx, r.value));
-            svg2.append(reorderHit(env, "rows", rows.indexOf(r), "y", 0, y - G, W, h2 + 2 * G));
-            y += h2 + G * 3;
-          }
-          return { node: svg2 };
-        }
-        if (variant === "cols") {
-          const cw = W / rows.length, sz2 = Math.max(12, Math.min(27, Math.floor(cw - 6))), maxN = Math.max(1, ...rows.map((r) => Math.ceil(r.value / per)));
-          const top = o.showValues ? numPx * 1.5 : 0, stackH = maxN * (sz2 + G) - G, labH = capPx * 2.6;
-          const H2 = top + stackH + 6 + labH, svg2 = mk(H2);
-          rows.forEach((r, i) => {
-            const cx = cw * (i + 0.5), n = r.value / per, base = top + stackH;
-            for (let k = 0; k < Math.ceil(n); k++) svg2.append(partial(o, o.icon, cx - sz2 / 2, base - (k + 1) * sz2 - k * G, sz2, sz2, r.color, Math.min(1, n - k), "v"));
-            if (o.showValues) svg2.append(valTxt(cx, base - Math.ceil(n) * (sz2 + G) + G - 3, r.value, "middle"));
-            svg2.append(label(r.label, cx, base + 6 + capPx * 0.6, cw - 4, "middle"));
-            svg2.append(reorderHit(env, "rows", i, "x", cw * i, 0, cw, H2));
-          });
-          return { node: svg2 };
-        }
-        if (variant === "single_v") {
-          const cw = W / rows.length, top = o.showValues ? numPx * 1.6 : 0, labH = capPx * 2.2;
-          const H2 = heightOf(o, W, env, null, "3:2"), box = Math.max(24, H2 - top - labH - 6), sz2 = Math.min(box, cw - 12), svg2 = mk(H2);
-          rows.forEach((r, i) => {
-            const cx = cw * (i + 0.5), y = top + (box - sz2) / 2 + 0;
-            svg2.append(partial(o, o.icon, cx - sz2 / 2, y, sz2, sz2, r.color, r.value / per, "v"));
-            if (o.showValues) svg2.append(valTxt(cx, numPx, r.value, "middle"));
-            svg2.append(label(r.label, cx, top + box + 6 + capPx * 0.6, cw - 4, "middle"));
-            svg2.append(reorderHit(env, "rows", i, "x", cw * i, 0, cw, H2));
-          });
-          return { node: svg2 };
-        }
-        const labW = Math.min(W * 0.32, Math.max(0, ...rows.map((r) => mw(r.label, TYPE.caption.weight, SANS, capPx))) + VIZ.iconGap), valW = o.showValues ? mw(val(1e3), 700, '"Source Serif 4", serif', numPx) + 6 : 0;
-        const H = heightOf(o, W, env, null, "3:2"), rh = Math.max(24, (H - (rows.length - 1) * 9) / rows.length), sz = Math.min(rh, 96), svg = mk(H);
-        rows.forEach((r, i) => {
-          const y = i * (rh + 9) + (rh - sz) / 2;
-          svg.append(label(r.label, 0, i * (rh + 9) + rh / 2, labW - VIZ.iconGap));
-          svg.append(partial(o, o.icon, labW, y, sz, sz, r.color, r.value / per, "h"));
-          if (o.showValues) svg.append(valTxt(labW + sz + 6, i * (rh + 9) + rh / 2 + 0.33 * numPx, r.value));
-          svg.append(reorderHit(env, "rows", i, "y", 0, i * (rh + 9) - 4, W, rh + 8));
-        });
-        return { node: svg };
-      },
-      variant
-    };
-  }
-  var pictoTypes = { pictoBars: make("rows"), pictoCols: make("cols"), pictoV: make("single_v"), pictoH: make("single_h") };
-
   // src/figure.js
   var FIGURE_DEFAULTS = () => ({
     value: "5 000",
@@ -4139,13 +4175,21 @@
     const f = (x) => fmt(x, env.locale, 0);
     return { pct: `${f(total ? v0 / total * 100 : 0)}%`, value: f(v0), total: f(total), label: String(first.label || first.title || first.name || first.text || "") };
   }
-  var fill = (str, tk) => String(str ?? "").replace(/\{(pct|value|total|label)\}/g, (_, k) => tk[k]);
-  function composed(viz, W, env, core) {
-    const sd = viz.side;
+  var fill = (str, tk) => String(str ?? "").replace(/\{(pct|value|total|label)\}/g, (_, k) => tk ? tk[k] : "");
+  var SIDE_FIELDS = [
+    { k: "pos", t: "select", label: "Chiffre \xE0 c\xF4t\xE9", options: { none: "Aucun", right: "\xC0 droite", left: "\xC0 gauche" } },
+    { k: "value", t: "text", label: "Chiffre ({pct} = part de la 1re donn\xE9e)" },
+    { k: "text", t: "text", label: "Texte sous le chiffre (vide = libell\xE9 de la 1re donn\xE9e)" },
+    { k: "share", t: "number", label: "Largeur du contenu (% de la largeur)", min: 25, max: 80 },
+    { k: "scale", t: "select", label: "Taille du chiffre", options: { 1: "Normal", 1.5: "Grand", 2: "Tr\xE8s grand" } },
+    { k: "align", t: "select", label: "Position verticale du chiffre", options: { top: "En haut", center: "Centr\xE9", bottom: "En bas" } }
+  ];
+  var newColSide = () => ({ pos: "none", value: "14 %", text: "", share: 60, align: "top", scale: "1.5" });
+  function composeSide(sd, W, env, tk, core) {
     if (!sd || sd.pos !== "right" && sd.pos !== "left") return core(W);
     const GAPF = 18, wv = Math.round(W * Math.max(25, Math.min(80, +sd.share || 60)) / 100), wf = Math.max(40, W - wv - GAPF), r = core(wv);
     if (!r) return r;
-    const tk = sideTokens(viz.opts || {}, env), fig = renderFigure({ value: fill(sd.value, tk), icon: "none", scale: +sd.scale || 1, text: fill((sd.text || "").trim() || "{label}", tk) }, wf, "left");
+    const fig = renderFigure({ value: fill(sd.value, tk), icon: "none", scale: +sd.scale || 1, text: fill((sd.text || "").trim() || "{label}", tk) }, wf, "left");
     const align = { center: "center", bottom: "flex-end" }[sd.align] || "flex-start";
     const box = el(
       "div",
@@ -4155,6 +4199,7 @@
     );
     return { ...r, node: box };
   }
+  var composed = (viz, W, env, core) => composeSide(viz.side, W, env, viz.side && viz.side.pos !== "none" ? sideTokens(viz.opts || {}, env) : null, core);
   function renderViz(viz, width, env) {
     const t2 = viz && VIZ_TYPES[viz.kind];
     if (!t2) return null;
@@ -4656,12 +4701,14 @@ ${short}`)])
       wrap.style.justifyContent = { start: "flex-start", center: "center", end: "flex-end" }[al];
       w = insetW(w);
     } else wrap.style.alignSelf = al;
-    if (col.type === "text") wrap.append(richText(col.text, col.align));
+    const strip2 = (x) => String(x || "").replace(/\*\*|__|~~/g, "").replace(/^[-•]\s+/gm, "").split("\n").find((l) => l.trim()) || "";
+    const side = (label, core) => composeSide(col.side, w, env, { pct: "", value: "", total: "", label }, core).node;
+    if (col.type === "text") wrap.append(side(strip2(col.text), (ww) => ({ node: col.side && col.side.pos !== "none" ? h("div", { style: { width: ww + "px" } }, richText(col.text, col.align)) : richText(col.text, col.align) })));
     else if (col.type === "image") {
       wrap.append(renderImage(col, w));
       if (col.caption && col.caption.trim()) wrap.append(h("div", { class: "cap", textContent: col.caption }));
     } else if (col.type === "card" && col.card) {
-      wrap.append(renderCard(col.card, w));
+      wrap.append(side(strip2(col.card.content && col.card.content.title), (ww) => ({ node: renderCard(col.card, ww) })));
     } else if (col.type === "figure") {
       wrap.append(renderFigure(col.figure || {}, w, col.align));
     } else {
@@ -5650,7 +5697,7 @@ ${short}`)])
     });
     return h("div", { class: "re-wrap" }, bar, ed);
   }
-  function buildFields(spec, obj, ctx2, palOpts, h2) {
+  function buildFields(spec, obj, ctx2, palOpts, h2, root = obj) {
     const out = [];
     const live = (fn) => (e) => {
       fn(e.target);
@@ -5698,7 +5745,7 @@ ${short}`)])
         ctx2.changed();
       } })));
       else if (f.t === "select") {
-        const opts = f.options;
+        const opts = typeof f.options === "function" ? f.options(root) : f.options;
         const sel = h2("select", { onchange: live((t2) => setP(obj, f.k, t2.value)) }, Object.entries(opts).map(([v, l]) => h2("option", { value: v, textContent: l })));
         sel.value = getP(obj, f.k) ?? Object.keys(opts)[0];
         out.push(h2("label", { class: "f" }, f.label, helpBtn(f.label), sel));
@@ -5725,7 +5772,7 @@ ${short}`)])
                 ctx2.restructure();
               } }, ico("x")) : null
             )),
-            buildFields(f.fields, it, ctx2, palOpts, h2)
+            buildFields(f.fields, it, ctx2, palOpts, h2, root)
           ));
         });
         if (arr.length < (f.max || 12)) box.append(h2("button", { type: "button", textContent: "+ Ajouter", onclick: () => {
@@ -6305,6 +6352,7 @@ ${short}`)])
       const vt = col.type === "viz" && col.viz && VIZ_TYPES[col.viz.kind];
       root.append(
         card("col-content", ICONS2[col.type] || "text-size", t("Contenu"), [typeSel, ...editor]),
+        col.type === "text" || col.type === "card" ? card("col-side", "number", t("Chiffre \xE0 c\xF4t\xE9"), buildFields(SIDE_FIELDS, col.side || (col.side = newColSide()), ctx2, {}, h)) : null,
         vt && vt.heights ? card("col-height", "ruler-2", t("Hauteur"), heightNodes(vt, col.viz.opts, { ctx: ctx2, width: columnWidth(doc2, si, bi, ci) })) : null,
         card("col-layout", "layout-align-middle", t("Disposition"), [
           segmented("Alignement vertical dans la colonne", col, "valign", VALIGNS, { top: t("Haut"), center: t("Centre"), bottom: t("Bas") }),
@@ -6815,21 +6863,8 @@ ${short}`)])
       } else {
         form.append(...[
           card("dv-head", "typography", t("Titre et source"), buildFields([{ k: "title", t: "text", label: "Titre de la dataviz (facultatif)" }, { k: "source", t: "text", label: "Source (facultatif)" }], head, fctx, {}, h)),
-          ty.panel ? card("dv-picto", "mood-smile", t("Pictogramme"), ty.panel(col.viz.opts, fctx)) : null,
-          card("dv-side", "number", t("Chiffre \xE0 c\xF4t\xE9"), buildFields(
-            [
-              { k: "pos", t: "select", label: "Chiffre \xE0 c\xF4t\xE9", options: { none: "Aucun", right: "\xC0 droite", left: "\xC0 gauche" } },
-              { k: "value", t: "text", label: "Chiffre ({pct} = part de la 1re donn\xE9e)" },
-              { k: "text", t: "text", label: "Texte sous le chiffre (vide = libell\xE9 de la 1re donn\xE9e)" },
-              { k: "share", t: "number", label: "Largeur de la dataviz (% de la largeur)", min: 25, max: 80 },
-              { k: "scale", t: "select", label: "Taille du chiffre", options: { 1: "Normal", 1.5: "Grand", 2: "Tr\xE8s grand" } },
-              { k: "align", t: "select", label: "Position verticale du chiffre", options: { top: "En haut", center: "Centr\xE9", bottom: "En bas" } }
-            ],
-            col.viz.side || (col.viz.side = newSide(col.viz.kind)),
-            fctx,
-            {},
-            h
-          )),
+          ty.panel ? card("dv-picto", "mood-smile", t(ty.panelTitle || "Pictogramme"), ty.panel(col.viz.opts, fctx)) : null,
+          card("dv-side", "number", t("Chiffre \xE0 c\xF4t\xE9"), buildFields(SIDE_FIELDS, col.viz.side || (col.viz.side = newSide(col.viz.kind)), fctx, {}, h)),
           ty.heights ? heightCard(ty) : null,
           F("format").length ? card("dv-format", "ruler-2", t("Dimensions"), gen(F("format"))) : null,
           card("dv-colors", "palette", t("Couleurs"), [h("button", { type: "button", class: "pp-btn", onclick: (e) => openPalette(e.currentTarget, palCtx) }, ico("palette"), h("span", { textContent: t("Couleurs du document") }))]),

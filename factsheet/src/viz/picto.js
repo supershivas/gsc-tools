@@ -40,7 +40,7 @@ export function sanitizeSvg(text, name = 'icon') {
 }
 
 /** Nœud <svg> imbriqué (x, y, w, h) contenant le pictogramme, de couleur `color` */
-function iconNode(o, key, x, y, w, h, color) {
+export function iconNode(o, key, x, y, w, h, color) {
   const [kind, id] = String(key || 'picto:person').split(':');
   let vb = [0, 0, 24, 24], inner = null;
   const col = colorRef(color);
@@ -85,6 +85,20 @@ export function pictoPanel(o, ctx) {
     el('button', { type: 'button', class: 'pp-btn', onclick: () => inp.click() }, ico('upload'), el('span', { textContent: t('Importer un SVG…') })), inp,
     el('label', { class: 'row' }, el('input', { type: 'checkbox', checked: o.recolor !== false, onchange: e => { o.recolor = e.target.checked; ctx.changed(); } }), t('Recolorer le SVG importé avec la couleur choisie')),
     ...list];
+}
+
+/** Carte « Icônes importées » (liste à icônes) : import d'un SVG (nettoyé, stocké dans le JSON), retrait, recoloration */
+export function iconImportPanel(o, ctx) {
+  const ico = n => el('i', { class: 'ti ti-' + n });
+  const inp = el('input', { type: 'file', accept: '.svg,image/svg+xml', hidden: true, onchange: async () => {
+    const f = inp.files[0]; inp.value = ''; if (!f) return;
+    try { (o.customIcons || (o.customIcons = [])).push(sanitizeSvg(await f.text(), f.name)); ctx.restructure(); } catch (e) { alert(t('SVG illisible ou trop lourd.')); }
+  } });
+  const list = (o.customIcons || []).map(c => el('div', { class: 'row', style: { justifyContent: 'space-between' } }, el('span', { textContent: c.name }),
+    el('button', { type: 'button', class: 'mini danger', title: t('Retirer'), onclick: () => { o.customIcons = o.customIcons.filter(k => k.id !== c.id); (o.items || []).forEach(it => { if (it.icon === 'custom:' + c.id) it.icon = 'check'; }); ctx.restructure(); } }, ico('x'))));
+  return [el('button', { type: 'button', class: 'pp-btn', onclick: () => inp.click() }, ico('upload'), el('span', { textContent: t('Importer un SVG…') })), inp,
+    el('label', { class: 'row' }, el('input', { type: 'checkbox', checked: o.recolor !== false, onchange: e => { o.recolor = e.target.checked; ctx.changed(); } }), t('Recolorer le SVG importé avec la couleur choisie')),
+    el('p', { class: 'hint', textContent: t('Une fois importée, l’icône est proposée dans le choix « Icône » de chaque élément (onglet Données).') }), ...list];
 }
 
 const VARIANTS = {

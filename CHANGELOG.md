@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.44.0 — 2026-11-04
+- Chiffre à côté aussi pour les contenus texte et les cartes (carte « Chiffre à côté » dans les propriétés de la colonne)
+- Liste à icônes : import d'icônes SVG (nettoyées, stockées dans le JSON) proposées dans le choix d'icône de chaque élément, et taille réglable (normal, grand, très grand) pour les icônes et le texte
+
 ## 1.43.0 — 2026-11-04
 - Chiffre à côté pour toutes les dataviz (carte « Chiffre à côté » : à droite ou à gauche, jetons {pct} {value} {total} {label}, texte, part de largeur, taille, position verticale)
 - Waffle : repère par catégorie défini dans les données (croix, point, coche ou icône, avec sa couleur) — plus de repère sur les cases d'une catégorie blanche ; cases plus grandes quand le chiffre est à côté (65 % de la largeur)

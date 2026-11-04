@@ -64,19 +64,32 @@ function sideTokens(o, env) {
   const f = x => fmt(x, env.locale, 0);
   return { pct: `${f(total ? v0 / total * 100 : 0)}%`, value: f(v0), total: f(total), label: String(first.label || first.title || first.name || first.text || '') };
 }
-const fill = (str, tk) => String(str ?? '').replace(/\{(pct|value|total|label)\}/g, (_, k) => tk[k]);
+const fill = (str, tk) => String(str ?? '').replace(/\{(pct|value|total|label)\}/g, (_, k) => (tk ? tk[k] : ''));
+export { fill as fillTokens };
 
-/** Dataviz + chiffre clé à côté : la dataviz est dessinée à la part de largeur choisie, le chiffre occupe le reste */
-function composed(viz, W, env, core) {
-  const sd = viz.side;
+/** Champs de la carte « Chiffre à côté » (dataviz, texte, carte) */
+export const SIDE_FIELDS = [
+  { k: 'pos', t: 'select', label: 'Chiffre à côté', options: { none: 'Aucun', right: 'À droite', left: 'À gauche' } },
+  { k: 'value', t: 'text', label: 'Chiffre ({pct} = part de la 1re donnée)' }, { k: 'text', t: 'text', label: 'Texte sous le chiffre (vide = libellé de la 1re donnée)' },
+  { k: 'share', t: 'number', label: 'Largeur du contenu (% de la largeur)', min: 25, max: 80 },
+  { k: 'scale', t: 'select', label: 'Taille du chiffre', options: { 1: 'Normal', 1.5: 'Grand', 2: 'Très grand' } },
+  { k: 'align', t: 'select', label: 'Position verticale du chiffre', options: { top: 'En haut', center: 'Centré', bottom: 'En bas' } },
+];
+/** Chiffre à côté d'un texte ou d'une carte : pas de donnée à lire, le chiffre est saisi */
+export const newColSide = () => ({ pos: 'none', value: '14 %', text: '', share: 60, align: 'top', scale: '1.5' });
+
+/** Un contenu + un chiffre clé à côté : le contenu est dessiné à la part de largeur choisie, le chiffre occupe le reste.
+    core(w) → { node, … } ; tk = jetons du chiffre (voir sideTokens) */
+export function composeSide(sd, W, env, tk, core) {
   if (!sd || (sd.pos !== 'right' && sd.pos !== 'left')) return core(W);
   const GAPF = 18, wv = Math.round(W * Math.max(25, Math.min(80, +sd.share || 60)) / 100), wf = Math.max(40, W - wv - GAPF), r = core(wv); if (!r) return r;
-  const tk = sideTokens(viz.opts || {}, env), fig = renderFigure({ value: fill(sd.value, tk), icon: 'none', scale: +sd.scale || 1, text: fill((sd.text || '').trim() || '{label}', tk) }, wf, 'left');
+  const fig = renderFigure({ value: fill(sd.value, tk), icon: 'none', scale: +sd.scale || 1, text: fill((sd.text || '').trim() || '{label}', tk) }, wf, 'left');
   const align = { center: 'center', bottom: 'flex-end' }[sd.align] || 'flex-start';
   const box = el('div', { class: 'viz-side', style: { display: 'flex', width: W + 'px', gap: GAPF + 'px', alignItems: align, flexDirection: sd.pos === 'left' ? 'row-reverse' : 'row' } },
     el('div', { style: { width: wv + 'px', flex: 'none' } }, r.node), el('div', { style: { width: wf + 'px', flex: 'none' } }, fig));
   return { ...r, node: box };
 }
+const composed = (viz, W, env, core) => composeSide(viz.side, W, env, viz.side && viz.side.pos !== 'none' ? sideTokens(viz.opts || {}, env) : null, core);
 
 /** Rendu d'une dataviz dans une colonne de largeur `width` (px) */
 export function renderViz(viz, width, env) {
