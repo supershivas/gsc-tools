@@ -12,11 +12,12 @@ import treemap from './treemap.js';
 import sankey from './sankey.js';
 import scatter from './scatter.js';
 import survey from './survey.js';
+import waffle from './waffle.js';
 import timeline from './timeline.js';
 import { pictoTypes } from './picto.js';
 import { el, heightOf } from './util.js';
 
-export const VIZ_TYPES = { donut, bars, hbars, line, timeline, scatter, survey, sunburst, bubbles, treemap, sankey, ...pictoTypes, icons: iconlist };
+export const VIZ_TYPES = { donut, bars, hbars, line, timeline, scatter, survey, waffle, sunburst, bubbles, treemap, sankey, ...pictoTypes, icons: iconlist };
 export const VIZ_OPTIONS = Object.fromEntries(Object.entries(VIZ_TYPES).map(([k, v]) => [k, v.label]));
 /** Familles proposées dans le sélecteur de type (clé française, passée par t()) */
 export const VIZ_FAMILIES = { compare: 'Comparaison', part: 'Proportions', trend: 'Évolution', hier: 'Hiérarchies', flow: 'Flux', picto: 'Pictogrammes', list: 'Listes' };

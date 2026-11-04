@@ -130,6 +130,8 @@ const EN = {
   'Outil main (Espace ou H)': 'Hand tool (Space or H)',
   /* poignée de hauteur */
   'Glisser : hauteur de la dataviz (se cale sur la colonne voisine) · double-clic : adapter à la colonne voisine': 'Drag: dataviz height (snaps to the neighbouring column) · double-click: match the neighbouring column', 'Hauteur de la dataviz': 'Dataviz height',
+  /* grille waffle */
+  'Grille de pourcentage (waffle)': 'Percentage grid (waffle)', 'Logements endommagés ou détruits': 'Housing damaged or destroyed', 'Cases par ligne': 'Cells per row', 'Nombre de lignes': 'Number of rows', 'Valeur de la grille entière (0 = somme des valeurs)': 'Value of the whole grid (0 = sum of the values)', 'Forme des cases': 'Cell shape', 'Carrée': 'Square', 'Arrondie': 'Rounded', 'Ronde': 'Round', 'Repère sur les cases pleines': 'Mark on filled cells', 'Croix': 'Cross', 'Point': 'Dot', 'Coche': 'Tick', 'Couleur du repère': 'Mark colour', 'Une ligne par catégorie : les cases se remplissent dans cet ordre, ligne par ligne.': 'One row per category: cells fill in this order, row by row.',
   /* types de dataviz */
   'Barres (jumelées, groupées, empilées)': 'Bars (overlapping, grouped, stacked)', 'Plusieurs séries': 'Multiple series', 'Jumelées (2 séries qui se chevauchent)': 'Overlapping (2 series overlap)',
   'Côte à côte': 'Side by side', 'Empilées': 'Stacked', 'Format du graphique': 'Chart ratio', '2:1 (large)': '2:1 (wide)', '1:1 (carré)': '1:1 (square)',

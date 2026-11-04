@@ -713,6 +713,22 @@
     /* poignée de hauteur */
     "Glisser : hauteur de la dataviz (se cale sur la colonne voisine) \xB7 double-clic : adapter \xE0 la colonne voisine": "Drag: dataviz height (snaps to the neighbouring column) \xB7 double-click: match the neighbouring column",
     "Hauteur de la dataviz": "Dataviz height",
+    /* grille waffle */
+    "Grille de pourcentage (waffle)": "Percentage grid (waffle)",
+    "Logements endommag\xE9s ou d\xE9truits": "Housing damaged or destroyed",
+    "Cases par ligne": "Cells per row",
+    "Nombre de lignes": "Number of rows",
+    "Valeur de la grille enti\xE8re (0 = somme des valeurs)": "Value of the whole grid (0 = sum of the values)",
+    "Forme des cases": "Cell shape",
+    "Carr\xE9e": "Square",
+    "Arrondie": "Rounded",
+    "Ronde": "Round",
+    "Rep\xE8re sur les cases pleines": "Mark on filled cells",
+    "Croix": "Cross",
+    "Point": "Dot",
+    "Coche": "Tick",
+    "Couleur du rep\xE8re": "Mark colour",
+    "Une ligne par cat\xE9gorie : les cases se remplissent dans cet ordre, ligne par ligne.": "One row per category: cells fill in this order, row by row.",
     /* types de dataviz */
     "Barres (jumel\xE9es, group\xE9es, empil\xE9es)": "Bars (overlapping, grouped, stacked)",
     "Plusieurs s\xE9ries": "Multiple series",
@@ -3575,6 +3591,73 @@
     }
   };
 
+  // src/viz/waffle.js
+  var waffle_default = {
+    label: "Grille de pourcentage (waffle)",
+    icon: "layout-grid",
+    family: "part",
+    defaults: () => ({
+      cols: 10,
+      gridRows: 10,
+      total: 100,
+      shape: "rounded",
+      mark: "cross",
+      markColor: "yellow",
+      gap: 3,
+      legend: false,
+      rows: [{ label: t("Logements endommag\xE9s ou d\xE9truits"), value: 14, color: "blue" }]
+    }),
+    fields: [
+      { k: "cols", t: "number", label: "Cases par ligne", min: 1, max: 40 },
+      { k: "gridRows", t: "number", label: "Nombre de lignes", min: 1, max: 40 },
+      { k: "total", t: "number", label: "Valeur de la grille enti\xE8re (0 = somme des valeurs)", min: 0, step: "any" },
+      { k: "shape", t: "select", label: "Forme des cases", options: { square: "Carr\xE9e", rounded: "Arrondie", circle: "Ronde" } },
+      { k: "mark", t: "select", label: "Rep\xE8re sur les cases pleines", options: { none: "Aucun", cross: "Croix", dot: "Point", check: "Coche" } },
+      { k: "markColor", t: "color", label: "Couleur du rep\xE8re" },
+      { k: "gap", t: "number", label: "Espace entre les cases (px)", min: 0, max: 12 },
+      { k: "legend", t: "bool", label: "Afficher la l\xE9gende" }
+    ],
+    data: {
+      k: "rows",
+      min: 1,
+      cols: [{ k: "label", label: "Libell\xE9", t: "text" }, { k: "value", label: "Valeur", t: "number", def: 10 }, { k: "color", label: "Couleur", t: "color", def: "blue" }],
+      item: () => ({ label: "", value: 10, color: "blue" })
+    },
+    dataHint: "Une ligne par cat\xE9gorie : les cases se remplissent dans cet ordre, ligne par ligne.",
+    render(o, W, env) {
+      const cols = Math.max(1, Math.round(+o.cols) || 10), rowsN = Math.max(1, Math.round(+o.gridRows) || 10), n = cols * rowsN, gap = Math.max(0, +o.gap || 0);
+      const cats = (o.rows || []).map((r) => ({ label: String(r.label || ""), value: Math.max(0, +r.value || 0), color: r.color || "blue" }));
+      const sum2 = cats.reduce((a2, c2) => a2 + c2.value, 0), total = +o.total > 0 ? +o.total : sum2 || 1;
+      const raw = cats.map((c2) => c2.value / total * n), cnt = raw.map(Math.floor);
+      let left2 = Math.min(n, Math.round(raw.reduce((a2, b) => a2 + b, 0))) - cnt.reduce((a2, b) => a2 + b, 0);
+      raw.map((v, i) => [v - Math.floor(v), i]).sort((a2, b) => b[0] - a2[0]).forEach(([, i]) => {
+        if (left2 > 0) {
+          cnt[i]++;
+          left2--;
+        }
+      });
+      const size = Math.max(4, (W - gap * (cols - 1)) / cols), gridH = rowsN * size + (rowsN - 1) * gap;
+      const LG = o.legend && cats.length > 1 ? layoutLegend(cats.map((c2) => ({ name: c2.label, color: c2.color })), W) : null, legH = LG ? VIZ.legendGap + LG.h : 0, H = Math.ceil(gridH + legH);
+      const svg = s("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: "block", overflow: "visible" } });
+      const owner = [];
+      cnt.forEach((c2, i) => {
+        for (let k = 0; k < c2; k++) owner.push(i);
+      });
+      const sw = SW * 1.5, rx = { square: 0.5, rounded: Math.min(VIZ.barRadius, size / 3), circle: size / 2 }[o.shape] ?? VIZ.barRadius, mc = colorRef(o.markColor || "yellow"), inset = size * 0.28;
+      for (let i = 0; i < n; i++) {
+        const x = i % cols * (size + gap), y = Math.floor(i / cols) * (size + gap), on = i < owner.length, c2 = on ? cats[owner[i]] : null;
+        svg.append(s("rect", { x: x + sw / 2, y: y + sw / 2, width: size - sw, height: size - sw, rx, fill: on ? colorRef(c2.color) : "none", stroke: on ? "currentColor" : colorRef(cats[0] ? cats[0].color : "blue"), "stroke-width": sw }));
+        if (on && o.mark && o.mark !== "none") {
+          if (o.mark === "cross") svg.append(s("path", { d: `M${x + inset},${y + inset}L${x + size - inset},${y + size - inset}M${x + size - inset},${y + inset}L${x + inset},${y + size - inset}`, fill: "none", stroke: mc, "stroke-width": Math.max(1, size * 0.1), "stroke-linecap": "round" }));
+          else if (o.mark === "dot") svg.append(s("circle", { cx: x + size / 2, cy: y + size / 2, r: size * 0.17, fill: mc }));
+          else svg.append(s("path", { d: `M${x + size * 0.27},${y + size * 0.52}L${x + size * 0.44},${y + size * 0.68}L${x + size * 0.74},${y + size * 0.33}`, fill: "none", stroke: mc, "stroke-width": Math.max(1, size * 0.1), "stroke-linecap": "round", "stroke-linejoin": "round" }));
+        }
+      }
+      if (LG) drawLegendWrap(svg, LG, gridH + VIZ.legendGap);
+      return { node: svg };
+    }
+  };
+
   // src/viz/timeline.js
   var R = 5;
   var timeline_default = {
@@ -3919,7 +4002,7 @@
   var pictoTypes = { pictoBars: make("rows"), pictoCols: make("cols"), pictoV: make("single_v"), pictoH: make("single_h") };
 
   // src/viz/index.js
-  var VIZ_TYPES = { donut: donut_default, bars: bars_default, hbars: hbars_default, line: line_default, timeline: timeline_default, scatter: scatter_default, survey: survey_default, sunburst: sunburst_default, bubbles: bubbles_default, treemap: treemap_default, sankey: sankey_default, ...pictoTypes, icons: iconlist_default };
+  var VIZ_TYPES = { donut: donut_default, bars: bars_default, hbars: hbars_default, line: line_default, timeline: timeline_default, scatter: scatter_default, survey: survey_default, waffle: waffle_default, sunburst: sunburst_default, bubbles: bubbles_default, treemap: treemap_default, sankey: sankey_default, ...pictoTypes, icons: iconlist_default };
   var VIZ_OPTIONS = Object.fromEntries(Object.entries(VIZ_TYPES).map(([k, v]) => [k, v.label]));
   var VIZ_FAMILIES = { compare: "Comparaison", part: "Proportions", trend: "\xC9volution", hier: "Hi\xE9rarchies", flow: "Flux", picto: "Pictogrammes", list: "Listes" };
   var newViz = (kind = "bars") => ({ kind, opts: VIZ_TYPES[kind].defaults(), head: { title: "", source: "" } });

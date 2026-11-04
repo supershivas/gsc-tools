@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.40.0 — 2026-11-04
+- Dataviz : grille de pourcentage (« waffle ») — grille de cases (10 × 10 par défaut) remplies à hauteur de la valeur, repère croix, point ou coche sur les cases pleines, plusieurs catégories possibles ; à associer à un chiffre clé dans une sous-section à contour
+
 ## 1.39.0 — 2026-11-04
 - Éditeur de dataviz : les choix de couleur sont des pastilles (nom ajouté quand il y a la place) ouvrant une liste de pastilles avec leurs noms, au lieu de listes déroulantes de texte
 

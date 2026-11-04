@@ -20,7 +20,7 @@ import { startReorder } from './vizreorder.js';
 const VIZ_DESC = {
   donut: 'Anneau ou camembert : glisser l’anneau (rotation), un libellé (position, côté) ou le point blanc (ancrage du trait).', bars: 'Barres jumelées, groupées ou empilées, avec accolade « évolution ».',
   hbars: 'Barres horizontales : la hauteur des barres suit la hauteur du conteneur.', line: 'Courbes à plusieurs séries.', timeline: 'Frise verticale ou horizontale ; extrémités de la ligne au choix.',
-  scatter: 'Nuage de points ou bulles, un groupe = une couleur.', survey: 'Un point par répondant, anneaux = réponses, un nuage par groupe.', sunburst: 'Anneaux concentriques, un par niveau de la hiérarchie.',
+  scatter: 'Nuage de points ou bulles, un groupe = une couleur.', waffle: 'Grille de cases (10 × 10) remplies à hauteur de la valeur, avec repère sur les cases pleines : l’idéal pour « 14 % ».', survey: 'Un point par répondant, anneaux = réponses, un nuage par groupe.', sunburst: 'Anneaux concentriques, un par niveau de la hiérarchie.',
   bubbles: 'Cercles proportionnels regroupés par branche.', treemap: 'Rectangles proportionnels regroupés par branche.', sankey: 'Flux entre nœuds, épaisseur = valeur.',
   pictoBars: 'Rangées de pictogrammes, une par catégorie.', pictoCols: 'Colonnes de pictogrammes empilés.', pictoV: 'Un pictogramme par catégorie, rempli en hauteur.', pictoH: 'Un pictogramme par ligne, rempli en largeur.', icons: 'Liste à icônes.',
 };
