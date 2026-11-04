@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.28.1 — 2026-11-04
+- Header : l'avertissement « titre trop long » ne se déclenche plus pour un sous-titre de 2 lignes ; il compare le texte à la hauteur réelle du header
+
 ## 1.28.0 — 2026-11-04
 - Tous les champs texte acceptent les retours à la ligne (Entrée) : titre, sous-titre et surtitre du header, titres de sections et de sous-sections, légendes, textes de cartes, titres de dataviz
 

@@ -4427,7 +4427,8 @@ ${lorem}` },
       if (last) last.style.minHeight = Math.max(0, PAGE.h - p.top - last.offsetTop) + "px";
       if (p.key === "recto") {
         const top = p.el.querySelector(".hd-top"), bot = p.el.querySelector(".hd-bottom"), inner = p.el.querySelector(".hd-inner");
-        if (top && bot && inner && top.offsetHeight + bot.offsetHeight > inner.clientHeight + 0.5) warnings.push("Header : titre trop long, il ne tient pas dans la hauteur du header.");
+        const hd = p.el.querySelector(".hd"), room = inner && hd ? inner.clientHeight + (hd.clientHeight - inner.clientHeight) / 2 - GAP.boxPad * 1.5 : 0;
+        if (top && bot && inner && top.offsetHeight + bot.offsetHeight > room + 0.5) warnings.push("Header : titre trop long, il ne tient pas dans la hauteur du header.");
       }
     }
     result.warnings = warnings;

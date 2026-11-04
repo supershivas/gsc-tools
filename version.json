@@ -1,7 +1,7 @@
 {
-  "version": "1.28.0",
+  "version": "1.28.1",
   "date": "2026-11-04",
   "changes": [
-    "Tous les champs texte acceptent les retours à la ligne (Entrée) : titre, sous-titre et surtitre du header, titres de sections et de sous-sections, légendes, textes de cartes, titres de dataviz"
+    "Header : l'avertissement « titre trop long » ne se déclenche plus pour un sous-titre de 2 lignes ; il compare le texte à la hauteur réelle du header"
   ]
 }
