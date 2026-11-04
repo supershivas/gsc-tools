@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.31.1 — 2026-11-04
+- Aperçu 3D : plus de zébrures d'ombre sur la feuille ni d'effet bizarre quand elle approche du mur (pas d'auto-ombrage, mur reculé, lumière plus frontale)
+
 ## 1.31.0 — 2026-11-04
 - Aperçu 3D : on déplace la feuille, pas la caméra (la lumière reste fixe, la feuille y est toujours) ; la feuille réagit en souplesse, se courbe et se gauchit légèrement quand on la bouge, puis revient en oscillant
 - Filet entre sous-sections : couleur au choix (propriétés de la section) ; bleu léger (teinte 20 %) par défaut sur fond blanc

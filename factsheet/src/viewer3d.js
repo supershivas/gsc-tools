@@ -55,7 +55,7 @@ function makeSheet(matFront, matBack, matEdge) {
   const eIdx = []; ring.forEach((_, r) => { const o = r * 4; eIdx.push(o, o + 1, o + 2, o, o + 2, o + 3); }); gE.setIndex(eIdx);
   const front = new Mesh(gF, matFront), back = new Mesh(gB, matBack), edge = new Mesh(gE, matEdge), group = new Group();
   [front, back, edge].forEach(m => { m.castShadow = true; group.add(m); });
-  front.receiveShadow = back.receiveShadow = true;
+  // la feuille ne reçoit pas d'ombre (pas d'auto-ombrage : ses plis sinon se couvrent de zébrures) ; seul le mur la reçoit
   /* courbure : cylindre autour de l'axe vertical + léger gauchissement (les bords se détachent un peu vers l'arrière) */
   const bend = (x, y, c, d, tw) => -c * x * x / 2 + (0.22 * c + d) * y * y / 2 + c * 0.6 * x * y / 120 + tw * (2 * x / W) * (2 * y / H);
   /* curl : courbure autour de l'axe vertical ; dy : courbure haut/bas ; tw : gauchissement (mm aux coins) — le mouvement les fait varier */
@@ -109,14 +109,14 @@ function open(opts) {
     /* rendu « papier » : lumière diffuse (ciel + une lumière principale douce), ombre portée sur un mur invisible, grain léger */
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = VSMShadowMap; renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true;   // l'ombre n'est recalculée que si quelque chose bouge
     scene.add(new HemisphereLight(0xffffff, 0xe3e8f2, 1.75));
-    const key = new DirectionalLight(0xfff5ea, 1.3); key.position.set(-300, 340, 480); key.castShadow = true;
+    const key = new DirectionalLight(0xfff5ea, 1.3); key.position.set(-170, 200, 480); key.castShadow = true;
     Object.assign(key.shadow, { radius: 10, blurSamples: 16, bias: -0.0004, normalBias: 0.2 });
     key.shadow.mapSize.set(1024, 1024); Object.assign(key.shadow.camera, { left: -330, right: 330, top: 330, bottom: -330, near: 100, far: 1600 });
     scene.add(key, key.target);
     const rim = new DirectionalLight(0xdfe7ff, 0.3); rim.position.set(400, 120, 200); scene.add(rim);
     const head = new DirectionalLight(0xffffff, 0.6); head.position.set(60, 40, 500); scene.add(head);   // lumière « de la caméra » : une face tournée vers l'écran est toujours éclairée
     wall = new Mesh(new PlaneGeometry(2600, 2000), new ShadowMaterial({ opacity: 0.15 }));
-    wall.position.z = -55; wall.receiveShadow = true; scene.add(wall);
+    wall.position.z = -200;   // plus loin que la demi-diagonale ne la fait osciller : la feuille ne traverse jamais le mur wall.receiveShadow = true; scene.add(wall);
 
     const grain = grainCanvas(), bump = new CanvasTexture(grain);
     bump.wrapS = bump.wrapT = RepeatWrapping; bump.repeat.set(W / 18, H / 18); textures.push(bump);
