@@ -1,8 +1,8 @@
 {
-  "version": "1.24.0",
+  "version": "1.25.0",
   "date": "2026-11-04",
   "changes": [
     "Les options de hauteur des dataviz sont aussi dans les propriétés de la colonne, sans ouvrir l'éditeur",
-    "Éditeur de dataviz : le texte « null » au-dessus de certaines cartes est supprimé"
+    "Éditeur de dataviz : onglets Données et Visualisation en haut de la colonne de gauche (Données en premier) ; texte « null » supprimé"
   ]
 }

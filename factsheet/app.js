@@ -5798,7 +5798,7 @@ ${lorem}` },
   // src/vizeditor.js
   var current2 = null;
   var shut2 = /* @__PURE__ */ new Set();
-  var tab = "viz";
+  var tab = "data";
   var LABEL_KEYS = /* @__PURE__ */ new Set(["legend", "showValues", "decimals", "suffix", "totalTpl", "layout"]);
   var SERIES_COLORS2 = ["sky", "yellow", "blue", "slate", "grey"];
   var availH = 360;
@@ -5820,7 +5820,7 @@ ${lorem}` },
     const form = h("aside", { class: "panel ve-form" });
     const hint = h("div", { class: "ve-hint" });
     const body = h("div", { class: "ve-body" });
-    const tabBtns = [["viz", "adjustments", "Visualisation"], ["data", "table", "Donn\xE9es"]].map(([k, ic, l]) => h("button", { type: "button", class: "ve-tab", dataset: { tab: k }, onclick: () => {
+    const tabBtns = [["data", "table", "Donn\xE9es"], ["viz", "adjustments", "Visualisation"]].map(([k, ic, l]) => h("button", { type: "button", class: "ve-tab", dataset: { tab: k }, onclick: () => {
       tab = k;
       buildForm();
     } }, ico(ic), h("span", { textContent: t(l) })));
@@ -5915,6 +5915,7 @@ ${lorem}` },
     function buildForm() {
       const top = form.scrollTop;
       form.innerHTML = "";
+      form.append(tabs);
       const ty = VIZ_TYPES[col.viz.kind], fields = ty.fields || [], F = (g) => fields.filter((f) => groupOf(f) === g);
       const head = col.viz.head || (col.viz.head = { title: "", source: "" });
       const dataFields = F("data"), hasData = !!ty.data || dataFields.length > 0;
@@ -6030,7 +6031,6 @@ ${lorem}` },
         "div",
         { class: "ve-bar" },
         h("strong", { textContent: "\xC9diteur de dataviz" }),
-        tabs,
         h("label", { class: "zoom" }, "Aper\xE7u \xE0 la largeur ", wSel),
         h("label", { class: "zoom" }, "Zoom ", zSel),
         h("span", { style: { flex: 1 } }),

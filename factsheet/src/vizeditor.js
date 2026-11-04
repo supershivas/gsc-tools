@@ -15,7 +15,7 @@ import { t } from './i18n.js';
 
 let current = null;
 const shut = new Set();   // cartes repliées (gardées d'une ouverture à l'autre)
-let tab = 'viz';          // onglet : 'data' (Données) ou 'viz' (Visualisation)
+let tab = 'data';          // onglet : 'data' (Données) ou 'viz' (Visualisation)
 
 /* Rangement des champs d'un type dans les cartes de l'onglet Visualisation (un champ peut forcer `g: 'format' | 'labels' | 'style' | 'data'`) */
 const LABEL_KEYS = new Set(['legend', 'showValues', 'decimals', 'suffix', 'totalTpl', 'layout']);
@@ -41,7 +41,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
   const form = h('aside', { class: 'panel ve-form' });
   const hint = h('div', { class: 've-hint' });
   const body = h('div', { class: 've-body' });
-  const tabBtns = [['viz', 'adjustments', 'Visualisation'], ['data', 'table', 'Données']].map(([k, ic, l]) => h('button', { type: 'button', class: 've-tab', dataset: { tab: k }, onclick: () => { tab = k; buildForm(); } }, ico(ic), h('span', { textContent: t(l) })));
+  const tabBtns = [['data', 'table', 'Données'], ['viz', 'adjustments', 'Visualisation']].map(([k, ic, l]) => h('button', { type: 'button', class: 've-tab', dataset: { tab: k }, onclick: () => { tab = k; buildForm(); } }, ico(ic), h('span', { textContent: t(l) })));
   const tabs = h('div', { class: 've-tabs', role: 'tablist' }, ...tabBtns);
   const syncTabs = hasData => { tabs.style.display = hasData ? '' : 'none'; tabBtns.forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); }); };
 
@@ -96,7 +96,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
   const heightCard = ty => card('dv-height', 'ruler-2', t('Hauteur'), heightNodes(ty, col.viz.opts, { ctx: fctx, width, avail: { get: () => availH, set: v => { availH = v; draw(); } } }));
   function buildForm() {
     const top = form.scrollTop;
-    form.innerHTML = '';
+    form.innerHTML = ''; form.append(tabs);
     const ty = VIZ_TYPES[col.viz.kind], fields = ty.fields || [], F = g => fields.filter(f => groupOf(f) === g);
     const head = col.viz.head || (col.viz.head = { title: '', source: '' });
     const dataFields = F('data'), hasData = !!ty.data || dataFields.length > 0;
@@ -168,7 +168,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
 
   root.append(
     h('div', { class: 've-bar' }, h('strong', { textContent: 'Éditeur de dataviz' }),
-      tabs, h('label', { class: 'zoom' }, 'Aperçu à la largeur ', wSel), h('label', { class: 'zoom' }, 'Zoom ', zSel),
+      h('label', { class: 'zoom' }, 'Aperçu à la largeur ', wSel), h('label', { class: 'zoom' }, 'Zoom ', zSel),
       h('span', { style: { flex: 1 } }),
       h('button', { type: 'button', textContent: 'Annuler', onclick: () => close(false) }),
       h('button', { type: 'button', class: 'primary', textContent: 'Terminer', onclick: () => close(true) })),

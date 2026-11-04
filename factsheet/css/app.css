@@ -108,8 +108,8 @@ body.dragging,body.dragging *{cursor:grabbing!important}
 .ve-body{flex:1;min-height:0;display:grid;grid-template-columns:360px 1fr}
 .ve-form{border-right:1px solid var(--ui-line);background:var(--ui-bg);padding:16px 14px 40px}
 .ve-body.data{grid-template-columns:minmax(440px,48%) 1fr}
-.ve-tabs{display:inline-flex;border:1px solid var(--ui-line);border-radius:8px;overflow:hidden}
-.ve-tab{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border:0;border-radius:0;background:#fff;font-size:14px}
+.ve-tabs{display:flex;margin:0 0 12px;border:1px solid var(--ui-line);border-radius:8px;overflow:hidden}
+.ve-tab{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:0 14px;border:0;border-radius:0;background:#fff;font-size:14px}
 .ve-tab.on{background:var(--ui-blue);color:#fff}
 .ve-types .hint{margin:10px 0 4px}.ve-types .hint:first-child{margin-top:0}
 .ve-tgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:8px}
