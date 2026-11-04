@@ -1,9 +1,11 @@
 /* Choix d'une icône : le bouton montre l'icône choisie (et son nom quand il y a la place), la liste montre chaque icône avec son nom.
    Clés reconnues : « none », « cross », « dot », « check » (repères), une clé de la bibliothèque (ICONS), « icon:<clé> », « picto:<clé> » (pictogrammes pleins),
    « custom:<id> » (icône SVG importée, dans root.customIcons). */
-import { s } from './viz/util.js';
+import { s, el } from './viz/util.js';
+import { t } from './i18n.js';
 import { ICONS } from './viz/icons.js';
-import { PICTOS, iconNode } from './viz/picto.js';
+import { PICTOS, iconNode, importSvgFile } from './viz/picto.js';
+import { customList } from './viz/icons.js';
 import { richSelect } from './colorselect.js';
 
 export function iconGlyph(key, root, size = 20) {
@@ -21,4 +23,12 @@ export function iconGlyph(key, root, size = 20) {
 }
 
 /** options : { clé → libellé } ; root : options de la dataviz (pour les icônes importées) */
-export const iconSelect = ({ root, ...o }) => richSelect({ ...o, lead: k => iconGlyph(k, root) });
+export function iconSelect({ root, refresh, ...o }) {
+  const footer = ({ close, pick }) => {   // « Importer un SVG… » au bas de la liste : partout où l'on choisit une icône
+    const inp = el('input', { type: 'file', accept: '.svg,image/svg+xml', hidden: true, onchange: async () => {
+      const f = inp.files[0]; inp.value = ''; if (!f) return; const c = await importSvgFile(f); if (!c) return;
+      o.options['custom:' + c.id] = `${t('Importé')} · ${c.name}`; pick('custom:' + c.id); if (refresh) refresh(); } });
+    return el('div', { class: 'cs-foot' }, el('button', { type: 'button', class: 'cs-opt', onclick: () => inp.click() }, el('i', { class: 'ti ti-upload' }), el('span', { textContent: t('Importer un SVG…') })), inp);
+  };
+  return richSelect({ ...o, footer, lead: k => iconGlyph(k, root) });
+}

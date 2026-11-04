@@ -12,7 +12,7 @@ import { COL_TYPES, IMAGE_RATIOS, LOCALES, LOGO_VARIANTS, DEFAULT_LOGOS, DEFAULT
 import { VIZ_TYPES, VIZ_OPTIONS, VIZ_FAMILIES, newViz, switchKind, SIDE_FIELDS, newColSide } from './viz/index.js';
 import { buildFields, readImage, richEditor, paletteOptions, multiline } from './editor.js';
 import { FIGURE_DEFAULTS, FIGURE_FIELDS } from './figure.js';
-import { ICON_OPTIONS } from './viz/icons.js';
+import { ICON_OPTIONS, customChoices } from './viz/icons.js';
 import { iconSelect } from './iconselect.js';
 
 const shut = new Set();   // cartes repliées (gardées d'une sélection à l'autre)
@@ -114,7 +114,7 @@ export function buildProps(root, ctx) {
         h('label', { class: 'row' }, h('input', { type: 'checkbox', checked: !!C.auto, onchange: e => { C.auto = e.target.checked; if (C.auto) Object.assign(C, cardPresetFor(W)); ctx.restructure(); } }), 'Type de carte selon la largeur de la colonne'),
         sel('layout', 'Position de l’image', { vertical: t('En haut'), left: t('À gauche'), right: t('À droite') }),
         sel('align', 'Alignement', { left: t('Gauche'), center: t('Centré') }),
-        C.icon ? h('div', { class: 'f' }, h('div', { class: 'hint', textContent: t('Icône choisie') }), iconSelect({ value: C.iconName || Object.keys(ICON_OPTIONS)[0], options: ICON_OPTIONS, text: true, onChange: v => chosen(() => { C.iconName = v; }) })) : null,
+        C.icon ? h('div', { class: 'f' }, h('div', { class: 'hint', textContent: t('Icône choisie') }), iconSelect({ value: C.iconName || Object.keys(ICON_OPTIONS)[0], options: { ...ICON_OPTIONS, ...customChoices() }, text: true, refresh: () => ctx.restructure(), onChange: v => chosen(() => { C.iconName = v; }) })) : null,
         CARD_CHECKS.map(check)));
   };
 

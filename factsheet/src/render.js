@@ -4,6 +4,7 @@ import { PAGE, GRID, HEADER, GAP, cssVars, applyVars, colWidth, insetW, setDensi
 import { IMAGE_RATIOS } from './state.js';
 import { renderViz, composeSide } from './viz/index.js';
 import { inlineMk, s } from './viz/util.js';
+import { iconLib } from './viz/icons.js';
 import { renderFigure } from './figure.js';
 import { renderCard } from './card.js';
 
@@ -189,6 +190,7 @@ function renderSection(sec, si, env, pos) {
 
 /** → { pages: [{el, key, content, top, max, used, overflow}], warnings: [] } */
 export function renderDocument(doc) {
+  iconLib.list = doc.customIcons || (doc.customIcons = []);   // icônes SVG importées, communes à tout le document
   setDensity(doc.density);
   const vars = cssVars(doc.theme, doc.colors);
   const env = { locale: doc.locale || 'en-GB', pal: paletteOf(doc.theme, doc.colors), fills: [], page: '' };

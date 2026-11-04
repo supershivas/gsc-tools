@@ -134,7 +134,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
     }
     else if (f.t === 'bool') out.push(h2('label', { class: 'row', style: { marginBottom: '8px' } }, h2('input', { type: 'checkbox', checked: !!getP(obj, f.k), onchange: live(t => setP(obj, f.k, t.checked)) }), f.label, helpBtn(f.label)));
     else if (f.t === 'color') out.push(h2('div', { class: 'f' }, h2('div', { class: 'hint' }, f.label, helpBtn(f.label)), colorSelect({ value: getP(obj, f.k) ?? 'blue', options: palOpts, text: true, onChange: v => { setP(obj, f.k, v); ctx.changed(); } })));
-    else if (f.t === 'select' && f.icons) { const opts = typeof f.options === 'function' ? f.options(root) : f.options; out.push(h2('div', { class: 'f' }, h2('div', { class: 'hint' }, f.label, helpBtn(f.label)), iconSelect({ value: getP(obj, f.k) ?? Object.keys(opts)[0], options: opts, text: true, root, onChange: v => { setP(obj, f.k, v); ctx.changed(); } }))); }
+    else if (f.t === 'select' && f.icons) { const opts = typeof f.options === 'function' ? f.options(root) : f.options; out.push(h2('div', { class: 'f' }, h2('div', { class: 'hint' }, f.label, helpBtn(f.label)), iconSelect({ value: getP(obj, f.k) ?? Object.keys(opts)[0], options: opts, text: true, root, refresh: () => ctx.restructure(), onChange: v => { setP(obj, f.k, v); ctx.changed(); } }))); }
     else if (f.t === 'select') {
       const opts = typeof f.options === 'function' ? f.options(root) : f.options;
       const sel = h2('select', { onchange: live(t => setP(obj, f.k, t.value)) }, Object.entries(opts).map(([v, l]) => h2('option', { value: v, textContent: l })));

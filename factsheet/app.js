@@ -1818,6 +1818,15 @@
     pencil: { label: "R\xE9daction", d: "M4 20l1-4L16 5l3 3L8 19z M14 7l3 3" }
   };
   var ICON_OPTIONS = Object.fromEntries(Object.entries(ICONS).map(([k, v]) => [k, v.label]));
+  var iconLib = { list: [] };
+  var customList = (o) => {
+    const a2 = [...iconLib.list];
+    (o && o.customIcons || []).forEach((c2) => {
+      if (!a2.some((x) => x.id === c2.id)) a2.push(c2);
+    });
+    return a2;
+  };
+  var customChoices = (o) => Object.fromEntries(customList(o).map((c2) => [`custom:${c2.id}`, `${t("Import\xE9")} \xB7 ${c2.name}`]));
 
   // src/colorselect.js
   var FALLBACK = cssVars(DEFAULT_THEME, {});
@@ -1832,7 +1841,7 @@
     o.pop.remove();
     o.btn.setAttribute("aria-expanded", "false");
   };
-  function richSelect({ value: value2, options, onChange, text = false, lead }) {
+  function richSelect({ value: value2, options, onChange, text = false, lead, footer }) {
     let cur = value2;
     const label = (k) => k === "" ? t("Auto") : t(options[k] ?? k);
     const btn = h("button", { type: "button", class: "cs" + (text ? " cs-text" : ""), "aria-haspopup": "listbox", "aria-expanded": "false", title: label(cur) });
@@ -1860,6 +1869,12 @@
           onChange(k);
         }
       }, lead(k), h("span", { textContent: label(k) }))));
+      if (footer) pop2.append(footer({ close, pick: (k) => {
+        cur = k;
+        paint();
+        close();
+        onChange(k);
+      } }));
       (btn.closest(".ve, .props, .panel, .labo-opts") || document.body).append(pop2);
       const r = btn.getBoundingClientRect(), w = Math.min(320, Math.max(300, r.width)), hh = pop2.offsetHeight;
       Object.assign(pop2.style, { width: w + "px", left: Math.max(8, Math.min(window.innerWidth - w - 8, r.left)) + "px", top: (r.bottom + hh + 12 > window.innerHeight ? Math.max(8, r.top - hh - 4) : r.bottom + 4) + "px" });
@@ -1900,7 +1915,22 @@
     }
     return svg;
   }
-  var iconSelect = ({ root, ...o }) => richSelect({ ...o, lead: (k) => iconGlyph(k, root) });
+  function iconSelect({ root, refresh, ...o }) {
+    const footer = ({ close: close3, pick }) => {
+      const inp = el("input", { type: "file", accept: ".svg,image/svg+xml", hidden: true, onchange: async () => {
+        const f = inp.files[0];
+        inp.value = "";
+        if (!f) return;
+        const c2 = await importSvgFile(f);
+        if (!c2) return;
+        o.options["custom:" + c2.id] = `${t("Import\xE9")} \xB7 ${c2.name}`;
+        pick("custom:" + c2.id);
+        if (refresh) refresh();
+      } });
+      return el("div", { class: "cs-foot" }, el("button", { type: "button", class: "cs-opt", onclick: () => inp.click() }, el("i", { class: "ti ti-upload" }), el("span", { textContent: t("Importer un SVG\u2026") })), inp);
+    };
+    return richSelect({ ...o, footer, lead: (k) => iconGlyph(k, root) });
+  }
 
   // src/viz/picto.js
   var PICTOS = {
@@ -1913,7 +1943,7 @@
   };
   var pictoChoices = (o) => ({
     ...Object.fromEntries(Object.entries(PICTOS).map(([k, v]) => [`picto:${k}`, t(v.label)])),
-    ...Object.fromEntries((o.customIcons || []).map((c2) => [`custom:${c2.id}`, `${t("Import\xE9")} \xB7 ${c2.name}`])),
+    ...customChoices(o),
     ...Object.fromEntries(Object.entries(ICONS).map(([k, v]) => [`icon:${k}`, `${t("Trait")} \xB7 ${t(v.label)}`]))
   });
   function sanitizeSvg(text, name = "icon") {
@@ -1945,7 +1975,7 @@
     const svg = s("svg", { x, y, width: w, height: h2, viewBox: "0 0 24 24", preserveAspectRatio: "xMidYMid meet", style: { overflow: "hidden" } });
     if (kind === "icon") svg.append(s("path", { d: (ICONS[id] || ICONS.check).d, fill: "none", stroke: col, "stroke-width": 1.6, "stroke-linecap": "round", "stroke-linejoin": "round" }));
     else if (kind === "custom") {
-      const c2 = (o.customIcons || []).find((k) => k.id === id);
+      const c2 = customList(o).find((k) => k.id === id);
       if (c2) {
         svg.setAttribute("viewBox", c2.vb.join(" "));
         svg.setAttribute("fill", col);
@@ -1979,68 +2009,31 @@
     g.append(s("clipPath", { id }, s("rect", r)), s("g", { "clip-path": `url(#${id})` }, iconNode(o, key, x, y, w, h2, color)));
     return g;
   }
-  function pictoPanel(o, ctx2) {
-    const choices = pictoChoices(o), ico2 = (n) => el("i", { class: "ti ti-" + n });
-    const sel = iconSelect({ value: o.icon || "picto:person", options: choices, text: true, root: o, onChange: (v) => {
-      o.icon = v;
-      ctx2.changed();
-    } });
-    const inp = el("input", { type: "file", accept: ".svg,image/svg+xml", hidden: true, onchange: async () => {
-      const f = inp.files[0];
-      inp.value = "";
-      if (!f) return;
-      try {
-        const c2 = sanitizeSvg(await f.text(), f.name);
-        (o.customIcons || (o.customIcons = [])).push(c2);
-        o.icon = "custom:" + c2.id;
-        ctx2.restructure();
-      } catch (e) {
-        alert(t("SVG illisible ou trop lourd."));
-      }
-    } });
-    const list = (o.customIcons || []).map((c2) => el(
-      "div",
-      { class: "row", style: { justifyContent: "space-between" } },
-      el("span", { textContent: c2.name }),
-      el("button", { type: "button", class: "mini danger", title: t("Retirer"), onclick: () => {
-        o.customIcons = o.customIcons.filter((k) => k.id !== c2.id);
-        if (o.icon === "custom:" + c2.id) o.icon = "picto:person";
-        ctx2.restructure();
-      } }, ico2("x"))
-    ));
-    return [
-      el("div", { class: "f" }, el("div", { class: "hint", textContent: t("Pictogramme") }), sel),
-      el("button", { type: "button", class: "pp-btn", onclick: () => inp.click() }, ico2("upload"), el("span", { textContent: t("Importer un SVG\u2026") })),
-      inp,
-      el("label", { class: "row" }, el("input", { type: "checkbox", checked: o.recolor !== false, onchange: (e) => {
-        o.recolor = e.target.checked;
-        ctx2.changed();
-      } }), t("Recolorer le SVG import\xE9 avec la couleur choisie")),
-      ...list
-    ];
+  async function importSvgFile(file2) {
+    try {
+      const c2 = sanitizeSvg(await file2.text(), file2.name);
+      iconLib.list.push(c2);
+      return c2;
+    } catch (e) {
+      alert(t("SVG illisible ou trop lourd."));
+      return null;
+    }
   }
-  function iconImportPanel(o, ctx2) {
+  function importParts(o, ctx2, hint) {
     const ico2 = (n) => el("i", { class: "ti ti-" + n });
     const inp = el("input", { type: "file", accept: ".svg,image/svg+xml", hidden: true, onchange: async () => {
       const f = inp.files[0];
       inp.value = "";
-      if (!f) return;
-      try {
-        (o.customIcons || (o.customIcons = [])).push(sanitizeSvg(await f.text(), f.name));
-        ctx2.restructure();
-      } catch (e) {
-        alert(t("SVG illisible ou trop lourd."));
-      }
+      if (f && await importSvgFile(f)) ctx2.restructure();
     } });
-    const list = (o.customIcons || []).map((c2) => el(
+    const list = customList(o).map((c2) => el(
       "div",
       { class: "row", style: { justifyContent: "space-between" } },
       el("span", { textContent: c2.name }),
       el("button", { type: "button", class: "mini danger", title: t("Retirer"), onclick: () => {
-        o.customIcons = o.customIcons.filter((k) => k.id !== c2.id);
-        (o.items || []).forEach((it) => {
-          if (it.icon === "custom:" + c2.id) it.icon = "check";
-        });
+        const i = iconLib.list.findIndex((k) => k.id === c2.id);
+        if (i >= 0) iconLib.list.splice(i, 1);
+        if (o.customIcons) o.customIcons = o.customIcons.filter((k) => k.id !== c2.id);
         ctx2.restructure();
       } }, ico2("x"))
     ));
@@ -2051,9 +2044,19 @@
         o.recolor = e.target.checked;
         ctx2.changed();
       } }), t("Recolorer le SVG import\xE9 avec la couleur choisie")),
-      el("p", { class: "hint", textContent: t("Une fois import\xE9e, l\u2019ic\xF4ne est propos\xE9e dans le choix \xAB Ic\xF4ne \xBB de chaque \xE9l\xE9ment (onglet Donn\xE9es).") }),
+      hint ? el("p", { class: "hint", textContent: t(hint) }) : null,
       ...list
-    ];
+    ].filter(Boolean);
+  }
+  function pictoPanel(o, ctx2) {
+    const sel = iconSelect({ value: o.icon || "picto:person", options: pictoChoices(o), text: true, root: o, refresh: () => ctx2.restructure(), onChange: (v) => {
+      o.icon = v;
+      ctx2.changed();
+    } });
+    return [el("div", { class: "f" }, el("div", { class: "hint", textContent: t("Pictogramme") }), sel), ...importParts(o, ctx2)];
+  }
+  function iconImportPanel(o, ctx2) {
+    return importParts(o, ctx2, "Les ic\xF4nes import\xE9es sont disponibles partout dans le document, dans chaque choix d\u2019ic\xF4ne.");
   }
   var VARIANTS = {
     rows: { label: "Pictogrammes \xB7 barres", icon: "layout-list" },
@@ -2333,7 +2336,7 @@
         min: 1,
         max: 8,
         item: () => ({ icon: "check", text: t("Nouvel \xE9l\xE9ment") }),
-        fields: [{ k: "icon", t: "select", icons: true, label: "Ic\xF4ne", options: (root) => ({ ...ICON_OPTIONS, ...Object.fromEntries((root && root.customIcons || []).map((c2) => ["custom:" + c2.id, `${t("Import\xE9")} \xB7 ${c2.name}`])) }) }, { k: "text", t: "text", rich: true, label: "Texte" }]
+        fields: [{ k: "icon", t: "select", icons: true, label: "Ic\xF4ne", options: (root) => ({ ...ICON_OPTIONS, ...customChoices(root) }) }, { k: "text", t: "text", rich: true, label: "Texte" }]
       },
       { t: "node", g: "data", build: (root, ctx2) => {
         const n = document.createElement("div");
@@ -4101,7 +4104,7 @@
         { k: "label", label: "Libell\xE9", t: "text" },
         { k: "value", label: "Valeur", t: "number", def: 10 },
         { k: "color", label: "Couleur", t: "color", def: "blue" },
-        { k: "mark", label: "Rep\xE8re", t: "select", def: "none", options: MARKS, icons: true },
+        { k: "mark", label: "Rep\xE8re", t: "select", def: "none", options: (root) => ({ ...MARKS, ...customChoices(root) }), icons: true },
         { k: "markColor", label: "Couleur du rep\xE8re", t: "color", def: "yellow" }
       ],
       item: () => ({ label: "", value: 10, color: "blue", mark: "none", markColor: "yellow" })
@@ -4131,6 +4134,7 @@
         if (m2 === "cross") return s("path", { d: `M${x + inset},${y + inset}L${x + size - inset},${y + size - inset}M${x + size - inset},${y + inset}L${x + inset},${y + size - inset}`, fill: "none", stroke: mc, "stroke-width": Math.max(1, size * 0.1), "stroke-linecap": "round" });
         if (m2 === "dot") return s("circle", { cx: x + size / 2, cy: y + size / 2, r: size * 0.17, fill: mc });
         if (m2 === "check") return s("path", { d: `M${x + size * 0.27},${y + size * 0.52}L${x + size * 0.44},${y + size * 0.68}L${x + size * 0.74},${y + size * 0.33}`, fill: "none", stroke: mc, "stroke-width": Math.max(1, size * 0.1), "stroke-linecap": "round", "stroke-linejoin": "round" });
+        if (m2.startsWith("custom:")) return iconNode(o, m2, x + size * 0.18, y + size * 0.18, size * 0.64, size * 0.64, mc);
         const ic = m2.startsWith("icon:") && ICONS[m2.slice(5)];
         if (!ic) return null;
         const k = size * 0.64 / 24;
@@ -4270,7 +4274,7 @@
   });
   var FIGURE_FIELDS = [
     { k: "value", t: "text", rich: true, label: "Chiffre (texte libre : \xAB 5 000 \xBB, \xAB 64 % \xBB\u2026)" },
-    { k: "icon", t: "select", label: "Ic\xF4ne devant le chiffre", options: { none: "Aucune", ...ICON_OPTIONS }, icons: true },
+    { k: "icon", t: "select", label: "Ic\xF4ne devant le chiffre", options: () => ({ none: "Aucune", ...ICON_OPTIONS, ...customChoices() }), icons: true },
     { k: "iconStyle", t: "select", label: "Style de l\u2019ic\xF4ne", options: { plain: "Pictogramme seul", circle: "Dans une pastille" } },
     { k: "text", t: "area", label: "Texte" },
     { k: "bar", t: "number", label: "Barre de progression sous le chiffre (% ; 0 = pas de barre)", min: 0, max: 100 },
@@ -4286,17 +4290,17 @@
     { k: "barColor", t: "color", label: "Couleur de la barre", def: "yellow" },
     { k: "barRest", t: "color", label: "Couleur du reste de la barre", def: "tint-blue" },
     { k: "headText", t: "text", label: "En-t\xEAte (petites capitales, ex. \xAB Sous occupation \xBB)" },
-    { k: "headIcon", t: "select", label: "Ic\xF4ne de l\u2019en-t\xEAte", options: { none: "Aucune", ...ICON_OPTIONS }, icons: true }
+    { k: "headIcon", t: "select", label: "Ic\xF4ne de l\u2019en-t\xEAte", options: () => ({ none: "Aucune", ...ICON_OPTIONS, ...customChoices() }), icons: true }
   ];
   function figureIcon(key, size, circle) {
-    const ic = ICONS[key];
-    if (!ic) return null;
+    const custom3 = String(key || "").startsWith("custom:"), ic = ICONS[key];
+    if (!ic && !custom3) return null;
     const G = circle ? size * 0.58 : size * 0.82, k = G / 24, o = (size - G) / 2;
     return s(
       "svg",
       { width: size, height: size, viewBox: `0 0 ${size} ${size}`, class: "vi-ic fg-ic" },
       circle ? s("circle", { cx: size / 2, cy: size / 2, r: size / 2 - SW / 2, fill: "none", stroke: "currentColor", "stroke-width": SW }) : null,
-      s("path", { d: ic.d, fill: "none", stroke: "currentColor", "stroke-width": SW / k, "stroke-linecap": "round", "stroke-linejoin": "round", transform: `translate(${o} ${o}) scale(${k})` })
+      custom3 ? iconNode({}, key, o, o, G, G, "blue") : s("path", { d: ic.d, fill: "none", stroke: "currentColor", "stroke-width": SW / k, "stroke-linecap": "round", "stroke-linejoin": "round", transform: `translate(${o} ${o}) scale(${k})` })
     );
   }
   function progressBar(pct, W, o) {
@@ -4587,6 +4591,8 @@ ${short}`)])
   }
   function migrate(j) {
     const d = Object.assign(defaultDoc(), j);
+    d.customIcons = Array.isArray(j.customIcons) ? j.customIcons : [];
+    for (const sec of d.sections || []) for (const sb of sec.subs || []) for (const cl of sb.cols || []) for (const ic of cl.viz && cl.viz.opts && cl.viz.opts.customIcons || []) if (!d.customIcons.some((x) => x.id === ic.id)) d.customIcons.push(ic);
     d.header = Object.assign(defaultDoc().header, j.header || {});
     migrateHeader(d.header, j.header || {});
     d.sections.forEach((s2) => {
@@ -4996,6 +5002,7 @@ ${short}`)])
     return el2;
   }
   function renderDocument(doc2) {
+    iconLib.list = doc2.customIcons || (doc2.customIcons = []);
     setDensity(doc2.density);
     const vars = cssVars(doc2.theme, doc2.colors);
     const env = { locale: doc2.locale || "en-GB", pal: paletteOf(doc2.theme, doc2.colors), fills: [], page: "" };
@@ -5933,7 +5940,7 @@ ${short}`)])
       } })));
       else if (f.t === "select" && f.icons) {
         const opts = typeof f.options === "function" ? f.options(root) : f.options;
-        out.push(h2("div", { class: "f" }, h2("div", { class: "hint" }, f.label, helpBtn(f.label)), iconSelect({ value: getP(obj, f.k) ?? Object.keys(opts)[0], options: opts, text: true, root, onChange: (v) => {
+        out.push(h2("div", { class: "f" }, h2("div", { class: "hint" }, f.label, helpBtn(f.label)), iconSelect({ value: getP(obj, f.k) ?? Object.keys(opts)[0], options: opts, text: true, root, refresh: () => ctx2.restructure(), onChange: (v) => {
           setP(obj, f.k, v);
           ctx2.changed();
         } })));
@@ -6328,7 +6335,7 @@ ${short}`)])
           } }), "Type de carte selon la largeur de la colonne"),
           sel("layout", "Position de l\u2019image", { vertical: t("En haut"), left: t("\xC0 gauche"), right: t("\xC0 droite") }),
           sel("align", "Alignement", { left: t("Gauche"), center: t("Centr\xE9") }),
-          C.icon ? h("div", { class: "f" }, h("div", { class: "hint", textContent: t("Ic\xF4ne choisie") }), iconSelect({ value: C.iconName || Object.keys(ICON_OPTIONS)[0], options: ICON_OPTIONS, text: true, onChange: (v) => chosen(() => {
+          C.icon ? h("div", { class: "f" }, h("div", { class: "hint", textContent: t("Ic\xF4ne choisie") }), iconSelect({ value: C.iconName || Object.keys(ICON_OPTIONS)[0], options: { ...ICON_OPTIONS, ...customChoices() }, text: true, refresh: () => ctx2.restructure(), onChange: (v) => chosen(() => {
             C.iconName = v;
           }) })) : null,
           CARD_CHECKS.map(check)
@@ -6730,7 +6737,7 @@ ${short}`)])
     const conv = (c2, v) => c2.t === "number" ? num(v) ?? 0 : c2.t === "color" ? palOpts[v] ? v : c2.auto ? "" : c2.def || "blue" : v;
     const blank = () => Object.fromEntries(cols.map((c2) => [c2.k, c2.def ?? (c2.t === "number" ? 0 : "")]));
     return {
-      cols: cols.map((c2) => ({ name: c2.label, type: c2.t === "number" ? "number" : "text", ml: !!c2.ml, select: c2.t === "color" ? c2.auto ? { "": t("Auto"), ...palOpts } : palOpts : c2.options || null, isColor: c2.t === "color", isIcon: !!c2.icons })),
+      cols: cols.map((c2) => ({ name: c2.label, type: c2.t === "number" ? "number" : "text", ml: !!c2.ml, select: c2.t === "color" ? c2.auto ? { "": t("Auto"), ...palOpts } : palOpts : (typeof c2.options === "function" ? c2.options(obj) : c2.options) || null, isColor: c2.t === "color", isIcon: !!c2.icons })),
       rows: () => rows.length,
       get: (i, j) => String(rows[i][cols[j].k] ?? ""),
       set: (i, j, v) => {
@@ -6831,7 +6838,7 @@ ${short}`)])
     const cell = (i, j) => {
       const c2 = ad.cols[j], v = ad.get(i, j);
       const common = { "data-r": i, "data-c": j };
-      if (c2.isIcon) return h("td", {}, iconSelect({ value: v || "none", options: c2.select, text: true, root: ad.root, onChange: (nv) => {
+      if (c2.isIcon) return h("td", {}, iconSelect({ value: v || "none", options: c2.select, text: true, root: ad.root, refresh: () => ctx2.restructure && ctx2.restructure(), onChange: (nv) => {
         ad.set(i, j, nv);
         ctx2.changed();
       } }));

@@ -2,7 +2,8 @@
    en lisant ligne par ligne. Une catégorie = une couleur ; un repère (croix, point, coche) peut marquer les cases pleines. */
 import { VIZ, TYPE } from '../tokens.js';
 import { s, SW, colorRef, layoutLegend, drawLegendWrap } from './util.js';
-import { ICONS } from './icons.js';
+import { ICONS, customChoices } from './icons.js';
+import { iconNode } from './picto.js';
 import { t } from '../i18n.js';
 
 const MARKS = { none: 'Aucun', cross: 'Croix', dot: 'Point', check: 'Coche', ...Object.fromEntries(Object.entries(ICONS).map(([k, v]) => ['icon:' + k, `Icône · ${v.label}`])) };
@@ -23,7 +24,7 @@ export default {
   ],
   /* chaque catégorie a sa couleur et son repère (croix, point, coche ou une icône), choisis dans le tableau */
   data: { k: 'rows', min: 1, cols: [{ k: 'label', label: 'Libellé', t: 'text' }, { k: 'value', label: 'Valeur', t: 'number', def: 10 }, { k: 'color', label: 'Couleur', t: 'color', def: 'blue' },
-    { k: 'mark', label: 'Repère', t: 'select', def: 'none', options: MARKS, icons: true }, { k: 'markColor', label: 'Couleur du repère', t: 'color', def: 'yellow' }],
+    { k: 'mark', label: 'Repère', t: 'select', def: 'none', options: root => ({ ...MARKS, ...customChoices(root) }), icons: true }, { k: 'markColor', label: 'Couleur du repère', t: 'color', def: 'yellow' }],
     item: () => ({ label: '', value: 10, color: 'blue', mark: 'none', markColor: 'yellow' }) },
   dataHint: 'Une ligne par catégorie : les cases se remplissent dans cet ordre, ligne par ligne ; une catégorie blanche reste une case vide. Le repère se choisit par catégorie.',
   render(o, W, env) {
@@ -44,6 +45,7 @@ export default {
       if (m === 'cross') return s('path', { d: `M${x + inset},${y + inset}L${x + size - inset},${y + size - inset}M${x + size - inset},${y + inset}L${x + inset},${y + size - inset}`, fill: 'none', stroke: mc, 'stroke-width': Math.max(1, size * 0.1), 'stroke-linecap': 'round' });
       if (m === 'dot') return s('circle', { cx: x + size / 2, cy: y + size / 2, r: size * 0.17, fill: mc });
       if (m === 'check') return s('path', { d: `M${x + size * 0.27},${y + size * 0.52}L${x + size * 0.44},${y + size * 0.68}L${x + size * 0.74},${y + size * 0.33}`, fill: 'none', stroke: mc, 'stroke-width': Math.max(1, size * 0.1), 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+      if (m.startsWith('custom:')) return iconNode(o, m, x + size * 0.18, y + size * 0.18, size * 0.64, size * 0.64, mc);
       const ic = m.startsWith('icon:') && ICONS[m.slice(5)]; if (!ic) return null;
       const k = (size * 0.64) / 24;
       return s('path', { d: ic.d, fill: 'none', stroke: mc, 'stroke-width': Math.max(0.8, size * 0.07) / k, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', transform: `translate(${x + size * 0.18} ${y + size * 0.18}) scale(${k})` });

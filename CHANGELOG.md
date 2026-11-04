@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.52.0 — 2026-11-04
+- Partout où l'on choisit une icône (liste à icônes, waffle, pictogrammes, icônes sous les barres, chiffre clé, en-tête du chiffre clé, cartes), « Importer un SVG… » est proposé au bas de la liste
+- Les icônes SVG importées sont communes à tout le document : disponibles dans tous les choix d'icône, y compris celles importées avant dans une dataviz
+
 ## 1.51.0 — 2026-11-04
 - Liste à icônes : icône sans cercle, espace réglable entre les éléments, espace réglable entre l'accolade et la liste, trait de liaison de l'accolade vers l'extérieur
 - Texte : Entrée = nouveau paragraphe, Maj + Entrée = retour à la ligne dans le paragraphe

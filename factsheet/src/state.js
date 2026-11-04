@@ -111,6 +111,9 @@ export const storage = { ok: true };
 export function saveDoc(doc) { try { localStorage.setItem(KEY, JSON.stringify(doc)); storage.ok = true; } catch (e) { storage.ok = false; } }
 export function migrate(j) {
   const d = Object.assign(defaultDoc(), j);
+  /* icônes importées : anciennes icônes propres à une dataviz → bibliothèque du document */
+  d.customIcons = Array.isArray(j.customIcons) ? j.customIcons : [];
+  for (const sec of d.sections || []) for (const sb of sec.subs || []) for (const cl of sb.cols || []) for (const ic of ((cl.viz && cl.viz.opts && cl.viz.opts.customIcons) || [])) if (!d.customIcons.some(x => x.id === ic.id)) d.customIcons.push(ic);
   d.header = Object.assign(defaultDoc().header, j.header || {});
   migrateHeader(d.header, j.header || {});
   d.sections.forEach(s => {

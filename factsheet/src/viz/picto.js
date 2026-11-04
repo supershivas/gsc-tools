@@ -2,7 +2,7 @@
    (bibliothèque ou SVG importé, stocké dans le JSON de la dataviz). */
 import { VIZ, TYPE } from '../tokens.js';
 import { reorderHit, s, el, SW, colorRef, pxOf, fmt, SANS, drawLegend, fitText, mw, heightOf, round3 } from './util.js';
-import { ICONS } from './icons.js';
+import { ICONS, iconLib, customList, customChoices } from './icons.js';
 import { iconSelect } from '../iconselect.js';
 import { t } from '../i18n.js';
 
@@ -17,7 +17,7 @@ export const PICTOS = {
 };
 export const pictoChoices = o => ({
   ...Object.fromEntries(Object.entries(PICTOS).map(([k, v]) => [`picto:${k}`, t(v.label)])),
-  ...Object.fromEntries((o.customIcons || []).map(c => [`custom:${c.id}`, `${t('Importé')} · ${c.name}`])),
+  ...customChoices(o),
   ...Object.fromEntries(Object.entries(ICONS).map(([k, v]) => [`icon:${k}`, `${t('Trait')} · ${t(v.label)}`])),
 });
 
@@ -48,7 +48,7 @@ export function iconNode(o, key, x, y, w, h, color) {
   const svg = s('svg', { x, y, width: w, height: h, viewBox: '0 0 24 24', preserveAspectRatio: 'xMidYMid meet', style: { overflow: 'hidden' } });
   if (kind === 'icon') svg.append(s('path', { d: (ICONS[id] || ICONS.check).d, fill: 'none', stroke: col, 'stroke-width': 1.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
   else if (kind === 'custom') {
-    const c = (o.customIcons || []).find(k => k.id === id);
+    const c = customList(o).find(k => k.id === id);
     if (c) {
       svg.setAttribute('viewBox', c.vb.join(' ')); svg.setAttribute('fill', col);
       const tmp = new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${c.markup}</svg>`, 'image/svg+xml').documentElement;
@@ -71,36 +71,27 @@ function partial(o, key, x, y, w, h, color, frac, dir) {
   return g;
 }
 
-/** Carte « Pictogramme » de l'éditeur : choix du pictogramme, import d'un SVG (nettoyé, stocké dans le JSON), retrait des SVG importés */
-export function pictoPanel(o, ctx) {
-  const choices = pictoChoices(o), ico = n => el('i', { class: 'ti ti-' + n });
-  const sel = iconSelect({ value: o.icon || 'picto:person', options: choices, text: true, root: o, onChange: v => { o.icon = v; ctx.changed(); } });
-  const inp = el('input', { type: 'file', accept: '.svg,image/svg+xml', hidden: true, onchange: async () => {
-    const f = inp.files[0]; inp.value = ''; if (!f) return;
-    try { const c = sanitizeSvg(await f.text(), f.name); (o.customIcons || (o.customIcons = [])).push(c); o.icon = 'custom:' + c.id; ctx.restructure(); }
-    catch (e) { alert(t('SVG illisible ou trop lourd.')); }
-  } });
-  const list = (o.customIcons || []).map(c => el('div', { class: 'row', style: { justifyContent: 'space-between' } }, el('span', { textContent: c.name }),
-    el('button', { type: 'button', class: 'mini danger', title: t('Retirer'), onclick: () => { o.customIcons = o.customIcons.filter(k => k.id !== c.id); if (o.icon === 'custom:' + c.id) o.icon = 'picto:person'; ctx.restructure(); } }, ico('x'))));
-  return [el('div', { class: 'f' }, el('div', { class: 'hint', textContent: t('Pictogramme') }), sel),
-    el('button', { type: 'button', class: 'pp-btn', onclick: () => inp.click() }, ico('upload'), el('span', { textContent: t('Importer un SVG…') })), inp,
-    el('label', { class: 'row' }, el('input', { type: 'checkbox', checked: o.recolor !== false, onchange: e => { o.recolor = e.target.checked; ctx.changed(); } }), t('Recolorer le SVG importé avec la couleur choisie')),
-    ...list];
+/** Importe un fichier SVG dans la bibliothèque du document (nettoyé, stocké dans doc.customIcons) ; renvoie l'icône ou null */
+export async function importSvgFile(file) {
+  try { const c = sanitizeSvg(await file.text(), file.name); iconLib.list.push(c); return c; } catch (e) { alert(t('SVG illisible ou trop lourd.')); return null; }
 }
-
-/** Carte « Icônes importées » (liste à icônes) : import d'un SVG (nettoyé, stocké dans le JSON), retrait, recoloration */
-export function iconImportPanel(o, ctx) {
+/** Bouton d'import + liste des icônes importées (retrait) + recoloration : commun à tous les types */
+function importParts(o, ctx, hint) {
   const ico = n => el('i', { class: 'ti ti-' + n });
-  const inp = el('input', { type: 'file', accept: '.svg,image/svg+xml', hidden: true, onchange: async () => {
-    const f = inp.files[0]; inp.value = ''; if (!f) return;
-    try { (o.customIcons || (o.customIcons = [])).push(sanitizeSvg(await f.text(), f.name)); ctx.restructure(); } catch (e) { alert(t('SVG illisible ou trop lourd.')); }
-  } });
-  const list = (o.customIcons || []).map(c => el('div', { class: 'row', style: { justifyContent: 'space-between' } }, el('span', { textContent: c.name }),
-    el('button', { type: 'button', class: 'mini danger', title: t('Retirer'), onclick: () => { o.customIcons = o.customIcons.filter(k => k.id !== c.id); (o.items || []).forEach(it => { if (it.icon === 'custom:' + c.id) it.icon = 'check'; }); ctx.restructure(); } }, ico('x'))));
+  const inp = el('input', { type: 'file', accept: '.svg,image/svg+xml', hidden: true, onchange: async () => { const f = inp.files[0]; inp.value = ''; if (f && await importSvgFile(f)) ctx.restructure(); } });
+  const list = customList(o).map(c => el('div', { class: 'row', style: { justifyContent: 'space-between' } }, el('span', { textContent: c.name }),
+    el('button', { type: 'button', class: 'mini danger', title: t('Retirer'), onclick: () => { const i = iconLib.list.findIndex(k => k.id === c.id); if (i >= 0) iconLib.list.splice(i, 1); if (o.customIcons) o.customIcons = o.customIcons.filter(k => k.id !== c.id); ctx.restructure(); } }, ico('x'))));
   return [el('button', { type: 'button', class: 'pp-btn', onclick: () => inp.click() }, ico('upload'), el('span', { textContent: t('Importer un SVG…') })), inp,
     el('label', { class: 'row' }, el('input', { type: 'checkbox', checked: o.recolor !== false, onchange: e => { o.recolor = e.target.checked; ctx.changed(); } }), t('Recolorer le SVG importé avec la couleur choisie')),
-    el('p', { class: 'hint', textContent: t('Une fois importée, l’icône est proposée dans le choix « Icône » de chaque élément (onglet Données).') }), ...list];
+    hint ? el('p', { class: 'hint', textContent: t(hint) }) : null, ...list].filter(Boolean);
 }
+/** Carte « Pictogramme » de l'éditeur : choix du pictogramme et import d'un SVG */
+export function pictoPanel(o, ctx) {
+  const sel = iconSelect({ value: o.icon || 'picto:person', options: pictoChoices(o), text: true, root: o, refresh: () => ctx.restructure(), onChange: v => { o.icon = v; ctx.changed(); } });
+  return [el('div', { class: 'f' }, el('div', { class: 'hint', textContent: t('Pictogramme') }), sel), ...importParts(o, ctx)];
+}
+/** Import d'icônes SVG (liste à icônes, barres…) : les icônes importées sont communes à tout le document */
+export function iconImportPanel(o, ctx) { return importParts(o, ctx, 'Les icônes importées sont disponibles partout dans le document, dans chaque choix d’icône.'); }
 
 const VARIANTS = {
   rows: { label: 'Pictogrammes · barres', icon: 'layout-list' },

@@ -1,7 +1,8 @@
 /* Chiffre clé : type de contenu à part (pas une dataviz). Grand chiffre en Source Serif 4, éventuellement précédé d'une icône,
    texte en dessous. Le contour éventuel est celui de la colonne (voir render.js). */
 import { el, s, SW, SERIF, pxOf, fitSize, inlineMk, stripMk, colorRef } from './viz/util.js';
-import { ICONS, ICON_OPTIONS } from './viz/icons.js';
+import { ICONS, ICON_OPTIONS, customChoices } from './viz/icons.js';
+import { iconNode } from './viz/picto.js';
 import { TYPE, VIZ } from './tokens.js';
 
 export const FIGURE_DEFAULTS = () => ({
@@ -10,7 +11,7 @@ export const FIGURE_DEFAULTS = () => ({
 });
 export const FIGURE_FIELDS = [
   { k: 'value', t: 'text', rich: true, label: 'Chiffre (texte libre : « 5 000 », « 64 % »…)' },
-  { k: 'icon', t: 'select', label: 'Icône devant le chiffre', options: { none: 'Aucune', ...ICON_OPTIONS }, icons: true },
+  { k: 'icon', t: 'select', label: 'Icône devant le chiffre', options: () => ({ none: 'Aucune', ...ICON_OPTIONS, ...customChoices() }), icons: true },
   { k: 'iconStyle', t: 'select', label: 'Style de l’icône', options: { plain: 'Pictogramme seul', circle: 'Dans une pastille' } },
   { k: 'text', t: 'area', label: 'Texte' },
   { k: 'bar', t: 'number', label: 'Barre de progression sous le chiffre (% ; 0 = pas de barre)', min: 0, max: 100 },
@@ -19,18 +20,18 @@ export const FIGURE_FIELDS = [
   { k: 'barColor', t: 'color', label: 'Couleur de la barre', def: 'yellow' },
   { k: 'barRest', t: 'color', label: 'Couleur du reste de la barre', def: 'tint-blue' },
   { k: 'headText', t: 'text', label: 'En-tête (petites capitales, ex. « Sous occupation »)' },
-  { k: 'headIcon', t: 'select', label: 'Icône de l’en-tête', options: { none: 'Aucune', ...ICON_OPTIONS }, icons: true },
+  { k: 'headIcon', t: 'select', label: 'Icône de l’en-tête', options: () => ({ none: 'Aucune', ...ICON_OPTIONS, ...customChoices() }), icons: true },
 ];
 
 const esc = t => String(t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
 
 /** Icône au trait, à la hauteur de ligne du chiffre ; pastille ronde 0,5 pt en option */
 export function figureIcon(key, size, circle) {
-  const ic = ICONS[key]; if (!ic) return null;
+  const custom = String(key || '').startsWith('custom:'), ic = ICONS[key]; if (!ic && !custom) return null;
   const G = circle ? size * 0.58 : size * 0.82, k = G / 24, o = (size - G) / 2;
   return s('svg', { width: size, height: size, viewBox: `0 0 ${size} ${size}`, class: 'vi-ic fg-ic' },
     circle ? s('circle', { cx: size / 2, cy: size / 2, r: size / 2 - SW / 2, fill: 'none', stroke: 'currentColor', 'stroke-width': SW }) : null,
-    s('path', { d: ic.d, fill: 'none', stroke: 'currentColor', 'stroke-width': SW / k, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', transform: `translate(${o} ${o}) scale(${k})` }));
+    custom ? iconNode({}, key, o, o, G, G, 'blue') : s('path', { d: ic.d, fill: 'none', stroke: 'currentColor', 'stroke-width': SW / k, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', transform: `translate(${o} ${o}) scale(${k})` }));
 }
 
 /** Barre de progression : rectangle à coins arrondis, contour 0,5 pt, partie pleine puis reste (éléments SVG réels, lisibles par l'export PDF) */

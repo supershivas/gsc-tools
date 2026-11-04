@@ -1,3 +1,4 @@
+import { t } from '../i18n.js';
 /* Bibliothèque d'icônes : tracé fin, viewBox 24 × 24. Pour en ajouter : une clé + un tracé SVG. */
 export const ICONS = {
   check:    { label: 'Validé',      d: 'M5 12.5l4.5 4.5L19 7.5' },
@@ -22,3 +23,8 @@ export const ICONS = {
   pencil:   { label: 'Rédaction',   d: 'M4 20l1-4L16 5l3 3L8 19z M14 7l3 3' },
 };
 export const ICON_OPTIONS = Object.fromEntries(Object.entries(ICONS).map(([k, v]) => [k, v.label]));
+
+/** Icônes SVG importées, communes à tout le document (`doc.customIcons`, branché par `renderDocument`) ; `o.customIcons` = anciennes icônes propres à une dataviz */
+export const iconLib = { list: [] };
+export const customList = o => { const a = [...iconLib.list]; ((o && o.customIcons) || []).forEach(c => { if (!a.some(x => x.id === c.id)) a.push(c); }); return a; };
+export const customChoices = o => Object.fromEntries(customList(o).map(c => [`custom:${c.id}`, `${t('Importé')} · ${c.name}`]));

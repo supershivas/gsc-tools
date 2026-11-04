@@ -1,7 +1,7 @@
 /* Liste à icônes : pastille ronde 0,5 pt + pictogramme + texte. */
 import { VIZ, TYPE } from '../tokens.js';
 import { s, el, SW, pxOf, inlineMk } from './util.js';
-import { ICONS, ICON_OPTIONS } from './icons.js';
+import { ICONS, ICON_OPTIONS, customChoices } from './icons.js';
 import { iconNode, iconImportPanel } from './picto.js';
 import { t } from '../i18n.js';
 
@@ -21,7 +21,7 @@ export default {
     { k: 'bracketLink', t: 'number', label: 'Accolade : trait de liaison vers l’extérieur, longueur au-delà de la colonne (px, 0 = aucun)', min: 0, max: 120 },
     { k: 'scale', t: 'select', label: 'Taille des icônes et du texte', options: { 1: 'Normal', 1.5: 'Grand', 2: 'Très grand' } },
     { k: 'items', t: 'list', label: 'Éléments', min: 1, max: 8, item: () => ({ icon: 'check', text: t('Nouvel élément') }),
-      fields: [{ k: 'icon', t: 'select', icons: true, label: 'Icône', options: root => ({ ...ICON_OPTIONS, ...Object.fromEntries(((root && root.customIcons) || []).map(c => ['custom:' + c.id, `${t('Importé')} · ${c.name}`])) }) }, { k: 'text', t: 'text', rich: true, label: 'Texte' }] },
+      fields: [{ k: 'icon', t: 'select', icons: true, label: 'Icône', options: root => ({ ...ICON_OPTIONS, ...customChoices(root) }) }, { k: 'text', t: 'text', rich: true, label: 'Texte' }] },
     { t: 'node', g: 'data', build: (root, ctx) => { const n = document.createElement('div'); n.className = 'f'; n.append(...iconImportPanel(root, ctx)); return n; } },
   ],
   render(o, W, env) {
