@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.24.0 — 2026-11-04
+- Nouvel outil sur l'accueil : Donut export (graphique en anneau exportable en PNG ou JPG)
+
 ## 1.23.0 — 2026-11-03
 - Dataviz : option Hauteur (automatique, proportion, fixe, remplir la place disponible de la page)
 - Mode « Remplir » : la dataviz occupe l'espace restant de sa page, partagé entre plusieurs dataviz, sans déborder
