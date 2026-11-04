@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.24.2 — 2026-11-04
+- Donut export : en-tête commun GSC tools, réglages et mise à jour automatique
+
 ## 1.24.1 — 2026-11-04
 - Donut export : le fichier exporté commence par UA_ suivi de la date (UA_AAMMJJ_nom)
 
