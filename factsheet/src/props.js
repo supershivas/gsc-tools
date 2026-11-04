@@ -148,7 +148,8 @@ export function buildProps(root, ctx) {
   } else if (kind === 'sec' && sec) {
     title(sec.title || 'Section');
     root.append(card('sec-main', 'layout-rows', t('Section'), [text(sec, 'title', 'Titre de section'), switchRow(t('Afficher le titre'), sec.showTitle !== false, () => { sec.showTitle = sec.showTitle === false; }),
-        switchRow(t('Filet entre les sous-sections'), sec.subRules !== false, () => { sec.subRules = sec.subRules === false; }),
+        switchRow(t('Filet au-dessus de la section'), sec.secRule !== false, () => { sec.secRule = sec.secRule === false; }),
+      switchRow(t('Filet entre les sous-sections'), sec.subRules !== false, () => { sec.subRules = sec.subRules === false; }),
       sec.subRules !== false ? swatches('Couleur du filet', { get ruleColor() { return sec.ruleColor || defaultRuleColor(sec); }, set ruleColor(v) { sec.ruleColor = v; } }, 'ruleColor', toneKeys(doc)) : null,
         select(sec, 'page', 'Page', { recto: 'Recto', verso: 'Verso' }, () => ctx.restructure())]),
       card('sec-bg', 'color-swatch', t('Fond de la section'), [swatches('Fond', sec, 'bg', toneKeys(doc), true)]),

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.37.0 — 2026-11-04
+- Filet de 0,5 pt entre les sections, pleine largeur : au milieu de l'écart entre deux sections sur fond blanc, ou à la jonction de deux bandes de couleur ; interrupteur « Filet au-dessus de la section » et couleur dans les propriétés
+
 ## 1.36.0 — 2026-11-04
 - Anneau : alignement vertical du contenu dans son conteneur (haut, centré, bas) quand la hauteur est fixe ou « remplir » ; interlignage des textes un peu réduit (18 px) et réglable
 - Alignement vertical et hauteur de conteneur aussi pour l'enquête et les pictogrammes en barres

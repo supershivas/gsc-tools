@@ -164,6 +164,9 @@ function renderSection(sec, si, env, pos) {
   const cls = ['sec', band && 'sec-band', pos.first && 'sec-first', pos.last && 'sec-last', sec.subRules === false && 'sec-norules'].filter(Boolean).join(' ');
   const el = h('section', { class: cls, style, dataset: { sel: `sec:${si}` } });
   el.style.setProperty('--rule', `var(--c-${sec.ruleColor || defaultRuleColor(sec)})`);
+  /* filet entre sections (vrai élément : l'export PDF le lit) : au milieu de l'écart entre deux sections sur fond blanc, ou à la jonction de deux bandes de couleur ;
+     entre un fond blanc et une bande, le changement de fond sert déjà de séparation */
+  if (!pos.first && sec.secRule !== false && band === pos.prevBand) el.prepend(h('div', { class: 'sec-rule', style: { top: band ? '0px' : `calc(${-GAP.sectionBefore / 2}px - var(--stroke) / 2)` } }));
   let host = el, W = GRID.contentW;
   if (isBox(sec)) { host = h('div', { class: 'sec-box' }); strokeStyle(host)(sec); el.append(host); W = insetW(W); }
   if (sec.title && sec.title.trim() && sec.showTitle !== false) host.append(h('h2', { class: 'sec-title', textContent: sec.title }));

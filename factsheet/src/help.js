@@ -15,6 +15,7 @@ export const HELP = {
   'Titre de section (vide = masqué)': 'Titre de la section. Entrée = retour à la ligne ; vide ou interrupteur éteint = titre masqué (la section se déplace alors par son fond).',
   'Titre de sous-section (vide = masqué)': 'Titre de la sous-section, sous le titre de section. Vide = masqué.',
   'Afficher le titre': 'Masque le titre sans le perdre : il reste saisi, mais n’apparaît ni à l’écran ni à l’export.',
+  'Filet au-dessus de la section': 'Trait de 0,5 pt sur toute la largeur de la page entre cette section et la précédente (sections sur fond blanc, ou deux bandes de couleur côte à côte).',
   'Filet entre les sous-sections': 'Trait de 0,5 pt sur toute la largeur de la page entre deux sous-sections de cette section.',
   'Couleur du filet': 'Par défaut : blanc sur un fond de section, bleu léger (teinte 20 %) sur fond blanc.',
   'Fond de la section': 'Bande de couleur sur toute la largeur de la page, derrière la section.',

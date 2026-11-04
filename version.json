@@ -1,10 +1,7 @@
 {
-  "version": "1.36.0",
+  "version": "1.37.0",
   "date": "2026-11-04",
   "changes": [
-    "Anneau : alignement vertical du contenu dans son conteneur (haut, centré, bas) quand la hauteur est fixe ou « remplir » ; interlignage des textes un peu réduit (18 px) et réglable",
-    "Alignement vertical et hauteur de conteneur aussi pour l'enquête et les pictogrammes en barres",
-    "Frise : extrémités de la ligne en pointillés (par défaut), en trait plein, ou aucune (la ligne commence au premier cercle)",
-    "Labo : sujet « Dataviz » avec les 16 types, fausses données modifiables, hauteur de conteneur, alignement vertical, options du type et déplacement direct de l'anneau"
+    "Filet de 0,5 pt entre les sections, pleine largeur : au milieu de l'écart entre deux sections sur fond blanc, ou à la jonction de deux bandes de couleur ; interrupteur « Filet au-dessus de la section » et couleur dans les propriétés"
   ]
 }

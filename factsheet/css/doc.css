@@ -4,7 +4,8 @@
   -webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
 .page *{box-sizing:border-box}
 .content{position:absolute;left:0;right:0;display:flex;flex-direction:column}
-.sec{padding-left:var(--margin);padding-right:var(--margin)}
+.sec{padding-left:var(--margin);padding-right:var(--margin);position:relative}
+.sec-rule{position:absolute;left:0;right:0;height:0;border-top:var(--stroke) solid var(--rule);pointer-events:none}
 
 /* Header */
 .hd{height:240px;display:flex;align-items:center;padding:0 var(--gap-headerPadX)}

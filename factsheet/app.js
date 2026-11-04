@@ -699,6 +699,9 @@
     "En bas": "Bottom",
     "Quand le conteneur est plus haut que le contenu : le contenu se place en haut, au centre ou en bas.": "When the container is taller than the content: the content sits at the top, centre or bottom.",
     "Espace entre les lignes des libell\xE9s : serr\xE9, normal (18 px) ou large (21 px).": "Space between label lines: tight, normal (18 px) or loose (21 px).",
+    /* filet entre sections */
+    "Filet au-dessus de la section": "Rule above the section",
+    "Trait de 0,5 pt sur toute la largeur de la page entre cette section et la pr\xE9c\xE9dente (sections sur fond blanc, ou deux bandes de couleur c\xF4te \xE0 c\xF4te).": "0.5 pt line across the full page width between this section and the previous one (sections on white, or two colour bands side by side).",
     /* types de dataviz */
     "Barres (jumel\xE9es, group\xE9es, empil\xE9es)": "Bars (overlapping, grouped, stacked)",
     "Plusieurs s\xE9ries": "Multiple series",
@@ -4512,6 +4515,7 @@ ${short}`)])
     const cls = ["sec", band && "sec-band", pos.first && "sec-first", pos.last && "sec-last", sec.subRules === false && "sec-norules"].filter(Boolean).join(" ");
     const el2 = h("section", { class: cls, style, dataset: { sel: `sec:${si}` } });
     el2.style.setProperty("--rule", `var(--c-${sec.ruleColor || defaultRuleColor(sec)})`);
+    if (!pos.first && sec.secRule !== false && band === pos.prevBand) el2.prepend(h("div", { class: "sec-rule", style: { top: band ? "0px" : `calc(${-GAP.sectionBefore / 2}px - var(--stroke) / 2)` } }));
     let host = el2, W = GRID.contentW;
     if (isBox(sec)) {
       host = h("div", { class: "sec-box" });
@@ -5040,6 +5044,7 @@ ${short}`)])
     "Titre de section (vide = masqu\xE9)": "Titre de la section. Entr\xE9e = retour \xE0 la ligne ; vide ou interrupteur \xE9teint = titre masqu\xE9 (la section se d\xE9place alors par son fond).",
     "Titre de sous-section (vide = masqu\xE9)": "Titre de la sous-section, sous le titre de section. Vide = masqu\xE9.",
     "Afficher le titre": "Masque le titre sans le perdre : il reste saisi, mais n\u2019appara\xEEt ni \xE0 l\u2019\xE9cran ni \xE0 l\u2019export.",
+    "Filet au-dessus de la section": "Trait de 0,5 pt sur toute la largeur de la page entre cette section et la pr\xE9c\xE9dente (sections sur fond blanc, ou deux bandes de couleur c\xF4te \xE0 c\xF4te).",
     "Filet entre les sous-sections": "Trait de 0,5 pt sur toute la largeur de la page entre deux sous-sections de cette section.",
     "Couleur du filet": "Par d\xE9faut : blanc sur un fond de section, bleu l\xE9ger (teinte 20 %) sur fond blanc.",
     "Fond de la section": "Bande de couleur sur toute la largeur de la page, derri\xE8re la section.",
@@ -5789,6 +5794,9 @@ ${short}`)])
           text(sec, "title", "Titre de section"),
           switchRow(t("Afficher le titre"), sec.showTitle !== false, () => {
             sec.showTitle = sec.showTitle === false;
+          }),
+          switchRow(t("Filet au-dessus de la section"), sec.secRule !== false, () => {
+            sec.secRule = sec.secRule === false;
           }),
           switchRow(t("Filet entre les sous-sections"), sec.subRules !== false, () => {
             sec.subRules = sec.subRules === false;
