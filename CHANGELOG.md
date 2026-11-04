@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.31.0 — 2026-11-04
+- Aperçu 3D : on déplace la feuille, pas la caméra (la lumière reste fixe, la feuille y est toujours) ; la feuille réagit en souplesse, se courbe et se gauchit légèrement quand on la bouge, puis revient en oscillant
+- Filet entre sous-sections : couleur au choix (propriétés de la section) ; bleu léger (teinte 20 %) par défaut sur fond blanc
+- Frise : retours à la ligne dans les titres et les textes (cellules multilignes du tableau de données)
+
 ## 1.30.0 — 2026-11-04
 - Header : un sous-titre de 2 lignes ne déclenche plus d'avertissement (interligne du sous-titre 36 → 30 px, mesure corrigée) et l'espace filet → titre est toujours égal à l'espace surtitre → filet (9 px)
 - Éditeur de dataviz : le type a sa propre carte repliable en tête, mise en valeur, dont l'en-tête affiche le type courant ; repliée par défaut

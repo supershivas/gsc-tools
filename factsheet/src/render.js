@@ -145,6 +145,8 @@ export function columnWidth(doc, si, bi, ci) {
 }
 
 const isBand = s => !!(s.bg && s.bg !== 'none');
+/** couleur du filet entre sous-sections par défaut : blanc sur un fond de section, bleu léger (teinte 20 %) sur fond blanc */
+export const defaultRuleColor = s => (!isBand(s) || s.bg === 'white') ? 'tint-blue' : 'white';
 
 /** pos : { key: 'recto'|'verso', first, last, prevBand }
     Règles d'espacement : un fond de section touche le fond précédent (pas de bande blanche), le premier fond
@@ -158,8 +160,9 @@ function renderSection(sec, si, env, pos) {
     style.paddingTop = (pos.first ? firstGap : GAP.bandPad) + 'px';
     style.paddingBottom = (pos.last ? PAGE.marginBottom : GAP.bandPad) + 'px';
   }
-  const cls = ['sec', band && 'sec-band', pos.first && 'sec-first', pos.last && 'sec-last', sec.subRules === false && 'sec-norules', (!band || sec.bg === 'white') && 'sec-rule-blue'].filter(Boolean).join(' ');
+  const cls = ['sec', band && 'sec-band', pos.first && 'sec-first', pos.last && 'sec-last', sec.subRules === false && 'sec-norules'].filter(Boolean).join(' ');
   const el = h('section', { class: cls, style, dataset: { sel: `sec:${si}` } });
+  el.style.setProperty('--rule', `var(--c-${sec.ruleColor || defaultRuleColor(sec)})`);
   let host = el, W = GRID.contentW;
   if (isBox(sec)) { host = h('div', { class: 'sec-box' }); strokeStyle(host)(sec); el.append(host); W = insetW(W); }
   if (sec.title && sec.title.trim() && sec.showTitle !== false) host.append(h('h2', { class: 'sec-title', textContent: sec.title }));

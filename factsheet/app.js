@@ -610,6 +610,7 @@
     "Place disponible pour cet aper\xE7u (px)": "Available space for this preview (px)",
     "Dans le document, la dataviz occupe la place restante de la page (partag\xE9e s\u2019il y en a plusieurs), entre ces deux bornes.": "In the document, the dataviz takes the remaining space on the page (shared if there are several), between these two limits.",
     "Filet entre les sous-sections": "Rule between subsections",
+    "Couleur du filet": "Rule colour",
     /* texte du centre du donut */
     "Texte du centre": "Centre text",
     "Titre 1 (grand)": "Heading 1 (large)",
@@ -624,7 +625,7 @@
     "Alterner les \xE9v\xE9nements de part et d\u2019autre de la ligne": "Alternate events on both sides of the line",
     "Afficher les dates": "Show dates",
     "Date": "Date",
-    "Une ligne par \xE9v\xE9nement, dans l\u2019ordre d\u2019affichage.": "One row per event, in display order.",
+    "Une ligne par \xE9v\xE9nement, dans l\u2019ordre d\u2019affichage. Entr\xE9e = retour \xE0 la ligne dans le titre et le texte.": "One row per event, in display order. Enter = line break in the title and the text.",
     /* types de dataviz */
     "Barres (jumel\xE9es, group\xE9es, empil\xE9es)": "Bars (overlapping, grouped, stacked)",
     "Plusieurs s\xE9ries": "Multiple series",
@@ -867,7 +868,7 @@
     "Deux pages": "Both pages",
     "Une feuille": "One sheet",
     "Recentrer": "Reset view",
-    "Clic gauche : tourner \xB7 clic droit : d\xE9placer \xB7 molette : zoomer": "Left click: orbit \xB7 right click: pan \xB7 wheel: zoom",
+    "Glisser : tourner la feuille \xB7 clic droit ou Maj : la d\xE9placer \xB7 molette : zoomer": "Drag: turn the sheet \xB7 right click or Shift: move it \xB7 wheel: zoom",
     "Pr\xE9paration de l\u2019aper\xE7u\u2026": "Preparing the preview\u2026",
     "Impossible de g\xE9n\xE9rer l\u2019aper\xE7u 3D dans ce navigateur.": "The 3D preview could not be generated in this browser.",
     "WebGL indisponible.": "WebGL unavailable."
@@ -3475,10 +3476,10 @@
     data: {
       k: "rows",
       min: 1,
-      cols: [{ k: "date", label: "Date", t: "text" }, { k: "title", label: "Titre", t: "text" }, { k: "text", label: "Texte", t: "text" }, { k: "color", label: "Couleur", t: "color", def: "blue" }],
+      cols: [{ k: "date", label: "Date", t: "text" }, { k: "title", label: "Titre", t: "text", ml: true }, { k: "text", label: "Texte", t: "text", ml: true }, { k: "color", label: "Couleur", t: "color", def: "blue" }],
       item: () => ({ date: "", title: "", text: "", color: "blue" })
     },
-    dataHint: "Une ligne par \xE9v\xE9nement, dans l\u2019ordre d\u2019affichage.",
+    dataHint: "Une ligne par \xE9v\xE9nement, dans l\u2019ordre d\u2019affichage. Entr\xE9e = retour \xE0 la ligne dans le titre et le texte.",
     render(o, W, env) {
       const items = (o.rows || []).filter((r) => r.date || r.title || r.text), capPx = pxOf(TYPE.caption.size), lh = TYPE.caption.lh, numPx = pxOf(TYPE.captionNum.size);
       const showDates = o.showDates !== false, horizontal = o.orientation === "horizontal";
@@ -4358,6 +4359,7 @@ ${lorem}` },
     return isBox(col) && col.type !== "card" ? insetW(w) : w;
   }
   var isBand = (s2) => !!(s2.bg && s2.bg !== "none");
+  var defaultRuleColor = (s2) => !isBand(s2) || s2.bg === "white" ? "tint-blue" : "white";
   function renderSection(sec, si, env, pos) {
     const band = isBand(sec), style = {};
     const firstGap = pos.key === "recto" ? GAP.headerToBody : PAGE.marginTop;
@@ -4367,8 +4369,9 @@ ${lorem}` },
       style.paddingTop = (pos.first ? firstGap : GAP.bandPad) + "px";
       style.paddingBottom = (pos.last ? PAGE.marginBottom : GAP.bandPad) + "px";
     }
-    const cls = ["sec", band && "sec-band", pos.first && "sec-first", pos.last && "sec-last", sec.subRules === false && "sec-norules", (!band || sec.bg === "white") && "sec-rule-blue"].filter(Boolean).join(" ");
+    const cls = ["sec", band && "sec-band", pos.first && "sec-first", pos.last && "sec-last", sec.subRules === false && "sec-norules"].filter(Boolean).join(" ");
     const el2 = h("section", { class: cls, style, dataset: { sel: `sec:${si}` } });
+    el2.style.setProperty("--rule", `var(--c-${sec.ruleColor || defaultRuleColor(sec)})`);
     let host = el2, W = GRID.contentW;
     if (isBox(sec)) {
       host = h("div", { class: "sec-box" });
@@ -5533,6 +5536,11 @@ ${lorem}` },
           switchRow(t("Filet entre les sous-sections"), sec.subRules !== false, () => {
             sec.subRules = sec.subRules === false;
           }),
+          sec.subRules !== false ? swatches("Couleur du filet", { get ruleColor() {
+            return sec.ruleColor || defaultRuleColor(sec);
+          }, set ruleColor(v) {
+            sec.ruleColor = v;
+          } }, "ruleColor", toneKeys(doc2)) : null,
           select(sec, "page", "Page", { recto: "Recto", verso: "Verso" }, () => ctx2.restructure())
         ]),
         card("sec-bg", "color-swatch", t("Fond de la section"), [swatches("Fond", sec, "bg", toneKeys(doc2), true)]),
@@ -5790,7 +5798,7 @@ ${lorem}` },
     const conv = (c2, v) => c2.t === "number" ? num(v) ?? 0 : c2.t === "color" ? palOpts[v] ? v : c2.auto ? "" : c2.def || "blue" : v;
     const blank = () => Object.fromEntries(cols.map((c2) => [c2.k, c2.def ?? (c2.t === "number" ? 0 : "")]));
     return {
-      cols: cols.map((c2) => ({ name: c2.label, type: c2.t === "number" ? "number" : "text", select: c2.t === "color" ? c2.auto ? { "": t("Auto"), ...palOpts } : palOpts : c2.options || null })),
+      cols: cols.map((c2) => ({ name: c2.label, type: c2.t === "number" ? "number" : "text", ml: !!c2.ml, select: c2.t === "color" ? c2.auto ? { "": t("Auto"), ...palOpts } : palOpts : c2.options || null })),
       rows: () => rows.length,
       get: (i, j) => String(rows[i][cols[j].k] ?? ""),
       set: (i, j, v) => {
@@ -5903,11 +5911,18 @@ ${lorem}` },
         s2.value = v;
         return h("td", {}, s2);
       }
-      const inp = h("input", {
+      const mk = c2.ml ? ((p) => {
+        const ta2 = h("textarea", { ...p, class: "dg-ml", rows: 1, value: v });
+        const fit = () => {
+          ta2.style.height = "auto";
+          ta2.style.height = ta2.scrollHeight + "px";
+        };
+        ta2.addEventListener("input", fit);
+        requestAnimationFrame(fit);
+        return ta2;
+      }) : ((p) => h("input", { ...p, type: "text", inputMode: c2.type === "number" ? "decimal" : "text", value: v }));
+      const inp = mk({
         ...common,
-        type: "text",
-        inputMode: c2.type === "number" ? "decimal" : "text",
-        value: v,
         oninput: (e) => {
           ad.set(i, j, e.target.value);
           ctx2.changed();
@@ -5921,6 +5936,7 @@ ${lorem}` },
               n.select && n.select();
             }
           };
+          if (c2.ml) return;
           if (e.key === "Enter" || e.key === "ArrowDown") go(1, 0);
           else if (e.key === "ArrowUp") go(-1, 0);
         },
@@ -7464,7 +7480,7 @@ ${lorem}` },
         single: t("Une feuille"),
         reset: t("Recentrer"),
         close: t("Fermer"),
-        hint: t("Clic gauche : tourner \xB7 clic droit : d\xE9placer \xB7 molette : zoomer"),
+        hint: t("Glisser : tourner la feuille \xB7 clic droit ou Maj : la d\xE9placer \xB7 molette : zoomer"),
         error: t("Impossible de g\xE9n\xE9rer l\u2019aper\xE7u 3D dans ce navigateur."),
         noWebgl: t("WebGL indisponible.")
       },

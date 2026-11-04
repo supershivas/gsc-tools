@@ -24,7 +24,6 @@
 .sub + .sub{margin-top:var(--gap-subsectionBefore);position:relative}
 /* filet de 0,5 pt entre sous-sections, sur toute la largeur de la page : blanc sur un fond de section, bleu UE sur fond blanc */
 .sec{--rule-ext:var(--margin);--rule:#fff}
-.sec-rule-blue{--rule:var(--c-blue)}
 .sec-box{--rule-ext:var(--gap-boxPad)}
 .sub + .sub::before{content:"";position:absolute;left:calc(-1 * var(--rule-ext));right:calc(-1 * var(--rule-ext));top:calc(-0.5 * var(--gap-subsectionBefore) - var(--stroke) / 2);height:0;border-top:var(--stroke) solid var(--rule);pointer-events:none}
 .sec-norules .sub + .sub::before{display:none}

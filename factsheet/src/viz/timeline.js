@@ -19,9 +19,9 @@ export default {
     { k: 'alternate', t: 'bool', label: 'Alterner les événements de part et d’autre de la ligne' },
     { k: 'showDates', t: 'bool', label: 'Afficher les dates' },
   ],
-  data: { k: 'rows', min: 1, cols: [{ k: 'date', label: 'Date', t: 'text' }, { k: 'title', label: 'Titre', t: 'text' }, { k: 'text', label: 'Texte', t: 'text' }, { k: 'color', label: 'Couleur', t: 'color', def: 'blue' }],
+  data: { k: 'rows', min: 1, cols: [{ k: 'date', label: 'Date', t: 'text' }, { k: 'title', label: 'Titre', t: 'text', ml: true }, { k: 'text', label: 'Texte', t: 'text', ml: true }, { k: 'color', label: 'Couleur', t: 'color', def: 'blue' }],
     item: () => ({ date: '', title: '', text: '', color: 'blue' }) },
-  dataHint: 'Une ligne par événement, dans l’ordre d’affichage.',
+  dataHint: 'Une ligne par événement, dans l’ordre d’affichage. Entrée = retour à la ligne dans le titre et le texte.',
   render(o, W, env) {
     const items = (o.rows || []).filter(r => (r.date || r.title || r.text)), capPx = pxOf(TYPE.caption.size), lh = TYPE.caption.lh, numPx = pxOf(TYPE.captionNum.size);
     const showDates = o.showDates !== false, horizontal = o.orientation === 'horizontal';

@@ -376,3 +376,5 @@ textarea.ml{display:block;width:100%;min-height:34px;resize:none;overflow:hidden
 .ve-typeopt .ti{font-size:18px;color:var(--ui-mute)}
 .ve-typeopt.on{background:#eef2ff;color:var(--ui-blue)}.ve-typeopt.on .ti{color:var(--ui-blue)}
 @media (hover:hover){.ve-typeopt:hover{background:var(--ui-bg)}}
+textarea.dg-ml{display:block;width:100%;min-width:90px;border:0;border-radius:0;padding:7px 8px;font:inherit;font-size:13px;line-height:1.35;resize:none;overflow:hidden;background:transparent}
+.dg td textarea.dg-ml:focus{outline:2px solid var(--ui-blue);outline-offset:-2px;background:#fff}

@@ -63,7 +63,7 @@ export function recordsAdapter(spec, obj, palOpts) {
   const conv = (c, v) => c.t === 'number' ? (num(v) ?? 0) : c.t === 'color' ? (palOpts[v] ? v : c.auto ? '' : c.def || 'blue') : v;
   const blank = () => Object.fromEntries(cols.map(c => [c.k, c.def ?? (c.t === 'number' ? 0 : '')]));
   return {
-    cols: cols.map(c => ({ name: c.label, type: c.t === 'number' ? 'number' : 'text', select: c.t === 'color' ? (c.auto ? { '': t('Auto'), ...palOpts } : palOpts) : c.options || null })),
+    cols: cols.map(c => ({ name: c.label, type: c.t === 'number' ? 'number' : 'text', ml: !!c.ml, select: c.t === 'color' ? (c.auto ? { '': t('Auto'), ...palOpts } : palOpts) : c.options || null })),
     rows: () => rows.length,
     get: (i, j) => String(rows[i][cols[j].k] ?? ''),
     set: (i, j, v) => { rows[i][cols[j].k] = conv(cols[j], v); },
@@ -119,10 +119,13 @@ export function gridEditor(ad, ctx, { downloadName = 'data' } = {}) {
       const s = h('select', { ...common, onchange: e => { ad.set(i, j, e.target.value); ctx.changed(); } }, Object.entries(c.select).map(([k, l]) => h('option', { value: k, textContent: l })));
       s.value = v; return h('td', {}, s);
     }
-    const inp = h('input', { ...common, type: 'text', inputMode: c.type === 'number' ? 'decimal' : 'text', value: v,
+    /* colonne `ml` : texte sur plusieurs lignes (Entrée = retour à la ligne), la cellule grandit avec son contenu */
+    const mk = c.ml ? (p => { const ta = h('textarea', { ...p, class: 'dg-ml', rows: 1, value: v }); const fit = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }; ta.addEventListener('input', fit); requestAnimationFrame(fit); return ta; }) : (p => h('input', { ...p, type: 'text', inputMode: c.type === 'number' ? 'decimal' : 'text', value: v }));
+    const inp = mk({ ...common,
       oninput: e => { ad.set(i, j, e.target.value); ctx.changed(); },
       onkeydown: e => {
         const go = (di, dj) => { const n = table.querySelector(`[data-r="${i + di}"][data-c="${j + dj}"]`); if (n) { e.preventDefault(); n.focus(); n.select && n.select(); } };
+        if (c.ml) return;   // cellule multiligne : Entrée et flèches restent dans le texte
         if (e.key === 'Enter' || e.key === 'ArrowDown') go(1, 0); else if (e.key === 'ArrowUp') go(-1, 0);
       },
       onpaste: e => {
