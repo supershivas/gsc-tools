@@ -130,8 +130,8 @@ export default {
         }
         if (cur) out.push(cur); return out;
       };
-      const chord = y => 2 * Math.sqrt(Math.max(0, (Ri * 0.94) ** 2 - y * y));      // largeur disponible dans l'anneau à la hauteur y
-      const maxC = 2 * Ri * 0.86; let k = 1, lines = [], tot = 0;
+      const chord = y => 2 * Math.sqrt(Math.max(0, (Ri * 0.9) ** 2 - y * y));      // largeur disponible dans l'anneau à la hauteur y
+      const maxC = 2 * Ri * 0.8; let k = 1, lines = [], tot = 0;
       for (let i = 0; i < 70; i++) {
         lines = paras.flatMap(p => { const z = sizeOf(p.lv, k); return wrap(p.text, p.lv, z, maxC).map(text => ({ text, lv: p.lv, z })); });
         let y = 0; lines.forEach(l => { l.h = l.z * (l.lv === 3 ? 1.25 : 1.05); l.y0 = y; y += l.h; }); tot = y;
@@ -139,7 +139,8 @@ export default {
         if (ok || k < 0.25) break; k *= 0.94;
       }
       const g = s('g', { 'text-anchor': 'middle' });
-      lines.forEach(l => g.append(s('text', { x: cx, y: cy - tot / 2 + l.y0 + l.h / 2 + 0.33 * l.z, 'font-size': l.z, 'font-weight': LV[l.lv].w, style: { fontFamily: LV[l.lv].fam } }, l.text)));
+      /* textLength : la ligne garde exactement la largeur mesurée, même si la police réelle n'est pas encore celle de la mesure (jamais de débordement de l'anneau) */
+      lines.forEach(l => g.append(s('text', { x: cx, y: cy - tot / 2 + l.y0 + l.h / 2 + 0.33 * l.z, 'font-size': l.z, 'font-weight': LV[l.lv].w, textLength: mw(l.text, LV[l.lv].w, LV[l.lv].f, l.z), lengthAdjust: 'spacingAndGlyphs', style: { fontFamily: LV[l.lv].fam } }, l.text)));
       return g;
     };
     const ringNodes = (cx, cy) => {

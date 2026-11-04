@@ -1540,8 +1540,8 @@
           if (cur) out.push(cur);
           return out;
         };
-        const chord = (y) => 2 * Math.sqrt(Math.max(0, (Ri * 0.94) ** 2 - y * y));
-        const maxC = 2 * Ri * 0.86;
+        const chord = (y) => 2 * Math.sqrt(Math.max(0, (Ri * 0.9) ** 2 - y * y));
+        const maxC = 2 * Ri * 0.8;
         let k = 1, lines = [], tot = 0;
         for (let i = 0; i < 70; i++) {
           lines = paras.flatMap((p) => {
@@ -1563,7 +1563,7 @@
           k *= 0.94;
         }
         const g = s("g", { "text-anchor": "middle" });
-        lines.forEach((l) => g.append(s("text", { x: cx2, y: cy2 - tot / 2 + l.y0 + l.h / 2 + 0.33 * l.z, "font-size": l.z, "font-weight": LV[l.lv].w, style: { fontFamily: LV[l.lv].fam } }, l.text)));
+        lines.forEach((l) => g.append(s("text", { x: cx2, y: cy2 - tot / 2 + l.y0 + l.h / 2 + 0.33 * l.z, "font-size": l.z, "font-weight": LV[l.lv].w, textLength: mw(l.text, LV[l.lv].w, LV[l.lv].f, l.z), lengthAdjust: "spacingAndGlyphs", style: { fontFamily: LV[l.lv].fam } }, l.text)));
         return g;
       };
       const ringNodes = (cx2, cy2) => {
@@ -6694,7 +6694,7 @@ ${short}`)])
 
   // src/raster.js
   var linkHref = (name) => {
-    const l = [...document.querySelectorAll("link[rel=stylesheet]")].find((x) => x.href.endsWith(name));
+    const l = [...document.querySelectorAll("link[rel=stylesheet]")].find((x) => x.href.split("?")[0].endsWith(name));
     return l ? l.href : new URL("css/" + name, location.href).href;
   };
   var asDataUrl = (blob) => new Promise((res, rej) => {

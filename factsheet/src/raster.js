@@ -5,7 +5,7 @@ import { PAGE, cssVars } from './tokens.js';
 import { renderDocument, measure, h } from './render.js';
 import { loadFonts } from './viz/util.js';
 
-const linkHref = name => { const l = [...document.querySelectorAll('link[rel=stylesheet]')].find(x => x.href.endsWith(name)); return l ? l.href : new URL('css/' + name, location.href).href; };
+const linkHref = name => { const l = [...document.querySelectorAll('link[rel=stylesheet]')].find(x => x.href.split('?')[0].endsWith(name)); return l ? l.href : new URL('css/' + name, location.href).href; };
 const asDataUrl = blob => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob); });
 
 let cssCache = null;

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.34.1 — 2026-11-04
+- Texte au centre de l'anneau : la largeur mesurée est imposée au rendu (plus de débordement même si la police n'est pas celle de la mesure) et marges de sécurité accrues
+- Démarrage versionné du Factsheet creator : CSS et JS chargés avec la version en paramètre, une mise à jour n'est plus servie avec d'anciens fichiers du cache (10 min sur GitHub Pages)
+
 ## 1.34.0 — 2026-11-04
 - Export PDF CMJN généré par l'app : vectoriel, couleurs DeviceCMYK exactes de la palette (noir seul pour les textes noirs), polices incorporées, fond perdu et traits de coupe avec TrimBox et BleedBox
 - Les images importées sont converties en CMJN (sans profil ICC) ; l'ancien export par l'impression du navigateur (RVB) reste disponible
