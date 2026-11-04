@@ -411,3 +411,7 @@ textarea.dg-ml{display:block;width:100%;min-width:90px;border:0;border-radius:0;
 @media print{.cs-pop{display:none!important}}
 
 .stage.free{padding:min(45vh,420px) min(38vw,520px)}
+
+/* gabarit de colonnes : schéma + libellé */
+.ls-schema{flex:none;color:var(--ui-blue)}.ls-btn .ls-schema{margin-right:2px}.ls-pop{grid-template-columns:1fr}
+.cs-opt .ls-schema{color:var(--ui-mute)}.cs-opt.on .ls-schema{color:var(--ui-blue)}

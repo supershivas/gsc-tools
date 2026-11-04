@@ -87,7 +87,8 @@
       "1-2": { label: "2 colonnes (1/3 + 2/3)", cols: 3, spans: [1, 2] },
       "1-1-1-1": { label: "4 colonnes", cols: 4, spans: [1, 1, 1, 1] },
       "1-1-1-1-1": { label: "5 colonnes", cols: 5, spans: [1, 1, 1, 1, 1] },
-      "1-1-1-1-1-1": { label: "6 colonnes", cols: 6, spans: [1, 1, 1, 1, 1, 1] },
+      "1-1-1-1-1-1": { label: "6 colonnes", cols: 6, spans: [1, 1, 1, 1, 1, 1], hidden: true },
+      // plus proposé (gardé pour les fichiers qui l'utilisent)
       "3-1": { label: "2 colonnes (3/4 + 1/4)", cols: 4, spans: [3, 1] },
       "1-3": { label: "2 colonnes (1/4 + 3/4)", cols: 4, spans: [1, 3] },
       "3-2": { label: "2 colonnes (3/5 + 2/5)", cols: 5, spans: [3, 2] },
@@ -755,6 +756,20 @@
     "Texte sous le chiffre (vide = libell\xE9 de la 1re cat\xE9gorie)": "Text under the figure (empty = label of the 1st category)",
     "Largeur de la grille (% de la dataviz)": "Grid width (% of the dataviz)",
     "Position verticale du chiffre": "Figure vertical position",
+    /* chiffre à côté, repères du waffle */
+    "Chiffre \xE0 c\xF4t\xE9": "Figure beside",
+    "Chiffre ({pct} = part de la 1re donn\xE9e)": "Figure ({pct} = share of the 1st item)",
+    "Texte sous le chiffre (vide = libell\xE9 de la 1re donn\xE9e)": "Text under the figure (empty = label of the 1st item)",
+    "Largeur de la dataviz (% de la largeur)": "Dataviz width (% of the width)",
+    "Autres logements": "Other housing",
+    "Rep\xE8re": "Mark",
+    "Ic\xF4ne \xB7 ": "Icon \xB7 ",
+    "Une ligne par cat\xE9gorie : les cases se remplissent dans cet ordre, ligne par ligne ; une cat\xE9gorie blanche reste une case vide. Le rep\xE8re se choisit par cat\xE9gorie.": "One row per category: cells fill in this order, row by row; a white category stays an empty cell. The mark is chosen per category.",
+    "Un chiffre cl\xE9 (par exemple 14 %) et son texte \xE0 c\xF4t\xE9 de la dataviz, qui prend alors la part de largeur choisie.": "A key figure (e.g. 14 %) and its text beside the dataviz, which then takes the chosen share of the width.",
+    "Taille du chiffre": "Figure size",
+    "Normal": "Normal",
+    "Grand": "Large",
+    "Tr\xE8s grand": "Extra large",
     /* types de dataviz */
     "Barres (jumel\xE9es, group\xE9es, empil\xE9es)": "Bars (overlapping, grouped, stacked)",
     "Plusieurs s\xE9ries": "Multiple series",
@@ -3618,51 +3633,46 @@
   };
 
   // src/viz/waffle.js
+  var MARKS = { none: "Aucun", cross: "Croix", dot: "Point", check: "Coche", ...Object.fromEntries(Object.entries(ICONS).map(([k, v]) => ["icon:" + k, `Ic\xF4ne \xB7 ${v.label}`])) };
   var waffle_default = {
     label: "Grille de pourcentage (waffle)",
     icon: "layout-grid",
     family: "part",
+    sideShare: 65,
     defaults: () => ({
       cols: 10,
       gridRows: 10,
       total: 100,
       shape: "rounded",
-      mark: "cross",
-      markColor: "yellow",
       gap: 3,
       legend: false,
-      figure: "none",
-      figureShare: 45,
-      figureAlign: "top",
-      figureValue: "{pct}",
-      figureText: "",
-      rows: [{ label: t("Logements endommag\xE9s ou d\xE9truits"), value: 14, color: "blue" }]
+      rows: [{ label: t("Logements endommag\xE9s ou d\xE9truits"), value: 14, color: "blue", mark: "cross", markColor: "yellow" }, { label: t("Autres logements"), value: 86, color: "white", mark: "none", markColor: "yellow" }]
     }),
     fields: [
       { k: "cols", t: "number", label: "Cases par ligne", min: 1, max: 40 },
       { k: "gridRows", t: "number", label: "Nombre de lignes", min: 1, max: 40 },
       { k: "total", t: "number", label: "Valeur de la grille enti\xE8re (0 = somme des valeurs)", min: 0, step: "any" },
       { k: "shape", t: "select", label: "Forme des cases", options: { square: "Carr\xE9e", rounded: "Arrondie", circle: "Ronde" } },
-      { k: "mark", t: "select", label: "Rep\xE8re sur les cases pleines", options: { none: "Aucun", cross: "Croix", dot: "Point", check: "Coche" } },
-      { k: "markColor", t: "color", label: "Couleur du rep\xE8re" },
       { k: "gap", t: "number", label: "Espace entre les cases (px)", min: 0, max: 12 },
-      { k: "legend", t: "bool", label: "Afficher la l\xE9gende" },
-      { k: "figure", t: "select", label: "Chiffre \xE0 c\xF4t\xE9 de la grille", options: { none: "Aucun", right: "\xC0 droite", left: "\xC0 gauche" } },
-      { k: "figureValue", t: "text", label: "Chiffre ({pct} = part de la 1re cat\xE9gorie)" },
-      { k: "figureText", t: "text", label: "Texte sous le chiffre (vide = libell\xE9 de la 1re cat\xE9gorie)" },
-      { k: "figureShare", t: "number", label: "Largeur de la grille (% de la dataviz)", min: 25, max: 75 },
-      { k: "figureAlign", t: "select", label: "Position verticale du chiffre", options: { top: "En haut", center: "Centr\xE9", bottom: "En bas" } }
+      { k: "legend", t: "bool", label: "Afficher la l\xE9gende" }
     ],
+    /* chaque catégorie a sa couleur et son repère (croix, point, coche ou une icône), choisis dans le tableau */
     data: {
       k: "rows",
       min: 1,
-      cols: [{ k: "label", label: "Libell\xE9", t: "text" }, { k: "value", label: "Valeur", t: "number", def: 10 }, { k: "color", label: "Couleur", t: "color", def: "blue" }],
-      item: () => ({ label: "", value: 10, color: "blue" })
+      cols: [
+        { k: "label", label: "Libell\xE9", t: "text" },
+        { k: "value", label: "Valeur", t: "number", def: 10 },
+        { k: "color", label: "Couleur", t: "color", def: "blue" },
+        { k: "mark", label: "Rep\xE8re", t: "select", def: "none", options: MARKS },
+        { k: "markColor", label: "Couleur du rep\xE8re", t: "color", def: "yellow" }
+      ],
+      item: () => ({ label: "", value: 10, color: "blue", mark: "none", markColor: "yellow" })
     },
-    dataHint: "Une ligne par cat\xE9gorie : les cases se remplissent dans cet ordre, ligne par ligne.",
+    dataHint: "Une ligne par cat\xE9gorie : les cases se remplissent dans cet ordre, ligne par ligne ; une cat\xE9gorie blanche reste une case vide. Le rep\xE8re se choisit par cat\xE9gorie.",
     render(o, W, env) {
       const cols = Math.max(1, Math.round(+o.cols) || 10), rowsN = Math.max(1, Math.round(+o.gridRows) || 10), n = cols * rowsN, gap = Math.max(0, +o.gap || 0);
-      const cats = (o.rows || []).map((r) => ({ label: String(r.label || ""), value: Math.max(0, +r.value || 0), color: r.color || "blue" }));
+      const cats = (o.rows || []).map((r) => ({ label: String(r.label || ""), value: Math.max(0, +r.value || 0), color: r.color || "blue", mark: r.mark || "none", markColor: r.markColor || "yellow" }));
       const sum2 = cats.reduce((a2, c2) => a2 + c2.value, 0), total = +o.total > 0 ? +o.total : sum2 || 1;
       const raw = cats.map((c2) => c2.value / total * n), cnt = raw.map(Math.floor);
       let left2 = Math.min(n, Math.round(raw.reduce((a2, b) => a2 + b, 0))) - cnt.reduce((a2, b) => a2 + b, 0);
@@ -3672,38 +3682,32 @@
           left2--;
         }
       });
-      const beside = o.figure === "right" || o.figure === "left", GAPF = 18, gridW = beside ? Math.round(W * Math.max(25, Math.min(75, +o.figureShare || 45)) / 100) : W, gx = beside && o.figure === "left" ? W - gridW : 0;
-      const figW = Math.max(40, W - gridW - GAPF), fx = o.figure === "left" ? 0 : gridW + GAPF;
-      const size = Math.max(4, (gridW - gap * (cols - 1)) / cols), gridH = rowsN * size + (rowsN - 1) * gap;
-      let fig = null;
-      if (beside) {
-        const pct = cats[0] ? Math.round(cats[0].value / total * 100) : 0, val = String(o.figureValue ?? "{pct}").replace(/\{pct\}/g, `${fmt(pct, env.locale, 0)}%`).replace(/\{value\}/g, fmt(cats[0] ? cats[0].value : 0, env.locale, 0));
-        const base = pxOf(TYPE.figure.size) * 1.7, fs = fitSize(val, 700, SERIF, base, figW, 0.4), BODY2 = pxOf(TYPE.body.size), LH = TYPE.body.lh - 3;
-        const lines = textLines("", (o.figureText || "").trim() || (cats[0] ? cats[0].label : ""), BODY2, figW), h0 = fs * 1.12;
-        fig = { val, fs, lines, BODY: BODY2, LH, h0, h: h0 + 4 + lines.length * LH };
-      }
-      const bodyH = Math.max(gridH, fig ? fig.h : 0), figY = fig ? { top: 0, center: (bodyH - fig.h) / 2, bottom: bodyH - fig.h }[o.figureAlign] || 0 : 0;
-      const LG = o.legend && cats.length > 1 ? layoutLegend(cats.map((c2) => ({ name: c2.label, color: c2.color })), W) : null, legH = LG ? VIZ.legendGap + LG.h : 0, H = Math.ceil(bodyH + legH);
+      const size = Math.max(4, (W - gap * (cols - 1)) / cols), gridH = rowsN * size + (rowsN - 1) * gap;
+      const LG = o.legend && cats.length > 1 ? layoutLegend(cats.map((c2) => ({ name: c2.label, color: c2.color })), W) : null, legH = LG ? VIZ.legendGap + LG.h : 0, H = Math.ceil(gridH + legH);
       const svg = s("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: "block", overflow: "visible" } });
       const owner = [];
       cnt.forEach((c2, i) => {
         for (let k = 0; k < c2; k++) owner.push(i);
       });
-      const sw = SW * 1.5, rx = { square: 0.5, rounded: Math.min(VIZ.barRadius, size / 3), circle: size / 2 }[o.shape] ?? VIZ.barRadius, mc = colorRef(o.markColor || "yellow"), inset = size * 0.28;
+      const sw = SW * 1.5, rx = { square: 0.5, rounded: Math.min(VIZ.barRadius, size / 3), circle: size / 2 }[o.shape] ?? VIZ.barRadius, inset = size * 0.28;
+      const mark = (m2, x, y, mc) => {
+        if (m2 === "cross") return s("path", { d: `M${x + inset},${y + inset}L${x + size - inset},${y + size - inset}M${x + size - inset},${y + inset}L${x + inset},${y + size - inset}`, fill: "none", stroke: mc, "stroke-width": Math.max(1, size * 0.1), "stroke-linecap": "round" });
+        if (m2 === "dot") return s("circle", { cx: x + size / 2, cy: y + size / 2, r: size * 0.17, fill: mc });
+        if (m2 === "check") return s("path", { d: `M${x + size * 0.27},${y + size * 0.52}L${x + size * 0.44},${y + size * 0.68}L${x + size * 0.74},${y + size * 0.33}`, fill: "none", stroke: mc, "stroke-width": Math.max(1, size * 0.1), "stroke-linecap": "round", "stroke-linejoin": "round" });
+        const ic = m2.startsWith("icon:") && ICONS[m2.slice(5)];
+        if (!ic) return null;
+        const k = size * 0.64 / 24;
+        return s("path", { d: ic.d, fill: "none", stroke: mc, "stroke-width": Math.max(0.8, size * 0.07) / k, "stroke-linecap": "round", "stroke-linejoin": "round", transform: `translate(${x + size * 0.18} ${y + size * 0.18}) scale(${k})` });
+      };
       for (let i = 0; i < n; i++) {
-        const x = gx + i % cols * (size + gap), y = Math.floor(i / cols) * (size + gap), on = i < owner.length, c2 = on ? cats[owner[i]] : null;
+        const x = i % cols * (size + gap), y = Math.floor(i / cols) * (size + gap), on = i < owner.length, c2 = on ? cats[owner[i]] : null;
         svg.append(s("rect", { x: x + sw / 2, y: y + sw / 2, width: size - sw, height: size - sw, rx, fill: on ? colorRef(c2.color) : "none", stroke: on ? "currentColor" : colorRef(cats[0] ? cats[0].color : "blue"), "stroke-width": sw }));
-        if (on && o.mark && o.mark !== "none") {
-          if (o.mark === "cross") svg.append(s("path", { d: `M${x + inset},${y + inset}L${x + size - inset},${y + size - inset}M${x + size - inset},${y + inset}L${x + inset},${y + size - inset}`, fill: "none", stroke: mc, "stroke-width": Math.max(1, size * 0.1), "stroke-linecap": "round" }));
-          else if (o.mark === "dot") svg.append(s("circle", { cx: x + size / 2, cy: y + size / 2, r: size * 0.17, fill: mc }));
-          else svg.append(s("path", { d: `M${x + size * 0.27},${y + size * 0.52}L${x + size * 0.44},${y + size * 0.68}L${x + size * 0.74},${y + size * 0.33}`, fill: "none", stroke: mc, "stroke-width": Math.max(1, size * 0.1), "stroke-linecap": "round", "stroke-linejoin": "round" }));
+        if (on && c2.mark !== "none") {
+          const m2 = mark(c2.mark, x, y, colorRef(c2.markColor));
+          if (m2) svg.append(m2);
         }
       }
-      if (fig) {
-        svg.append(s("text", { x: fx, y: figY + fig.fs * 0.92, "font-size": fig.fs, "font-weight": 700, style: { fontFamily: "var(--t-figure-family)" } }, fig.val));
-        svg.append(drawLines(fig.lines, fx, figY + fig.h0 + 4, fig.LH, fig.BODY));
-      }
-      if (LG) drawLegendWrap(svg, LG, bodyH + VIZ.legendGap);
+      if (LG) drawLegendWrap(svg, LG, gridH + VIZ.legendGap);
       return { node: svg };
     }
   };
@@ -4051,61 +4055,6 @@
   }
   var pictoTypes = { pictoBars: make("rows"), pictoCols: make("cols"), pictoV: make("single_v"), pictoH: make("single_h") };
 
-  // src/viz/index.js
-  var VIZ_TYPES = { donut: donut_default, bars: bars_default, hbars: hbars_default, line: line_default, timeline: timeline_default, scatter: scatter_default, survey: survey_default, waffle: waffle_default, sunburst: sunburst_default, bubbles: bubbles_default, treemap: treemap_default, sankey: sankey_default, ...pictoTypes, icons: iconlist_default };
-  var VIZ_OPTIONS = Object.fromEntries(Object.entries(VIZ_TYPES).map(([k, v]) => [k, v.label]));
-  var VIZ_FAMILIES = { compare: "Comparaison", part: "Proportions", trend: "\xC9volution", hier: "Hi\xE9rarchies", flow: "Flux", picto: "Pictogrammes", list: "Listes" };
-  var newViz = (kind = "bars") => ({ kind, opts: VIZ_TYPES[kind].defaults(), head: { title: "", source: "" } });
-  function switchKind(viz, k) {
-    const nv = newViz(k), o = viz.opts || {}, n = nv.opts, dk = (VIZ_TYPES[viz.kind] || {}).data, nk = VIZ_TYPES[k].data;
-    nv.head = viz.head || nv.head;
-    if (o.rows && o.series && n.rows && n.series) {
-      n.rows = o.rows;
-      n.series = o.series;
-    }
-    if (dk && nk && dk.k === nk.k && dk.cols.map((c2) => c2.k).join() === nk.cols.map((c2) => c2.k).join()) n[nk.k] = o[dk.k];
-    return nv;
-  }
-  function boxed(t2, o, W, env, node) {
-    if (!t2.boxed || !node || o.hmode !== "fixed" && o.hmode !== "fill" && o.hmode !== "match") return node;
-    const natural = +node.getAttribute("height") || 0, H = Math.max(natural, heightOf(o, W, env, natural));
-    if (H <= natural + 0.5) return node;
-    const box = el("div", { class: "viz-box", style: { height: H + "px", display: "flex", alignItems: { center: "center", bottom: "flex-end" }[o.valign] || "flex-start" } }, node);
-    box.dataset.vizH = H;
-    return box;
-  }
-  function withHead(viz, node) {
-    const hd = viz.head || {};
-    if (!node || !(hd.title || "").trim() && !(hd.source || "").trim()) return node;
-    const wrap = el("div", { class: "viz-wrap" });
-    if ((hd.title || "").trim()) wrap.append(el("div", { class: "viz-title", textContent: hd.title }));
-    wrap.append(node);
-    if ((hd.source || "").trim()) wrap.append(el("div", { class: "viz-source", textContent: hd.source }));
-    return wrap;
-  }
-  function renderViz(viz, width, env) {
-    const t2 = viz && VIZ_TYPES[viz.kind];
-    if (!t2) return null;
-    try {
-      const o = viz.opts || t2.defaults();
-      return withHead(viz, boxed(t2, o, width, env || {}, t2.render(o, width, env || {}).node));
-    } catch (e) {
-      console.error("dataviz", viz.kind, e);
-      return null;
-    }
-  }
-  function renderVizFull(viz, width, env) {
-    const t2 = viz && VIZ_TYPES[viz.kind];
-    if (!t2) return null;
-    try {
-      const o = viz.opts || t2.defaults(), r = t2.render(o, width, env || {});
-      return { ...r, node: withHead(viz, boxed(t2, o, width, env || {}, r.node)), wrapped: !!(viz.head && (viz.head.title || viz.head.source)) };
-    } catch (e) {
-      console.error("dataviz", viz.kind, e);
-      return null;
-    }
-  }
-
   // src/figure.js
   var FIGURE_DEFAULTS = () => ({
     value: "5 000",
@@ -4132,7 +4081,7 @@
     );
   }
   function renderFigure(o, W, align) {
-    const base = pxOf(TYPE.figure.size), lh = TYPE.figure.lh, icon = o.icon && o.icon !== "none" ? figureIcon(o.icon, lh, o.iconStyle === "circle") : null;
+    const base0 = pxOf(TYPE.figure.size), base = base0 * (+o.scale || 1), lh = TYPE.figure.lh, icon = o.icon && o.icon !== "none" ? figureIcon(o.icon, lh, o.iconStyle === "circle") : null;
     const avail = (W || 9999) - (icon ? lh + VIZ.iconGap : 0) - 1;
     const fs = fitSize(o.value || "", TYPE.figure.weight, SERIF, base, avail, 0.4);
     const jc = { center: "center", right: "flex-end" }[align] || "flex-start";
@@ -4140,7 +4089,7 @@
       "div",
       { class: "fg-head", style: { justifyContent: jc } },
       icon,
-      el("div", { class: "vf-value", textContent: o.value || "", style: fs < base ? { fontSize: fs + "px", whiteSpace: "nowrap" } : {} })
+      el("div", { class: "vf-value", textContent: o.value || "", style: fs !== base0 ? { fontSize: fs + "px", lineHeight: 1.1, whiteSpace: "nowrap" } : {} })
     );
     return el(
       "div",
@@ -4148,6 +4097,91 @@
       head,
       o.text && o.text.trim() ? el("div", { class: "vf-text", innerHTML: esc(o.text) }) : null
     );
+  }
+
+  // src/viz/index.js
+  var VIZ_TYPES = { donut: donut_default, bars: bars_default, hbars: hbars_default, line: line_default, timeline: timeline_default, scatter: scatter_default, survey: survey_default, waffle: waffle_default, sunburst: sunburst_default, bubbles: bubbles_default, treemap: treemap_default, sankey: sankey_default, ...pictoTypes, icons: iconlist_default };
+  var VIZ_OPTIONS = Object.fromEntries(Object.entries(VIZ_TYPES).map(([k, v]) => [k, v.label]));
+  var VIZ_FAMILIES = { compare: "Comparaison", part: "Proportions", trend: "\xC9volution", hier: "Hi\xE9rarchies", flow: "Flux", picto: "Pictogrammes", list: "Listes" };
+  var newSide = (kind) => ({ pos: "none", value: "{pct}", text: "", share: (VIZ_TYPES[kind] || {}).sideShare || 60, align: "top", scale: "1.5" });
+  var newViz = (kind = "bars") => ({ kind, opts: VIZ_TYPES[kind].defaults(), head: { title: "", source: "" }, side: newSide(kind) });
+  function switchKind(viz, k) {
+    const nv = newViz(k), o = viz.opts || {}, n = nv.opts, dk = (VIZ_TYPES[viz.kind] || {}).data, nk = VIZ_TYPES[k].data;
+    nv.head = viz.head || nv.head;
+    if (viz.side) nv.side = { ...nv.side, ...viz.side, share: viz.side.share };
+    if (o.rows && o.series && n.rows && n.series) {
+      n.rows = o.rows;
+      n.series = o.series;
+    }
+    if (dk && nk && dk.k === nk.k && dk.cols.map((c2) => c2.k).join() === nk.cols.map((c2) => c2.k).join()) n[nk.k] = o[dk.k];
+    return nv;
+  }
+  function boxed(t2, o, W, env, node) {
+    if (!t2.boxed || !node || o.hmode !== "fixed" && o.hmode !== "fill" && o.hmode !== "match") return node;
+    const natural = +node.getAttribute("height") || 0, H = Math.max(natural, heightOf(o, W, env, natural));
+    if (H <= natural + 0.5) return node;
+    const box = el("div", { class: "viz-box", style: { height: H + "px", display: "flex", alignItems: { center: "center", bottom: "flex-end" }[o.valign] || "flex-start" } }, node);
+    box.dataset.vizH = H;
+    return box;
+  }
+  function withHead(viz, node) {
+    const hd = viz.head || {};
+    if (!node || !(hd.title || "").trim() && !(hd.source || "").trim()) return node;
+    const wrap = el("div", { class: "viz-wrap" });
+    if ((hd.title || "").trim()) wrap.append(el("div", { class: "viz-title", textContent: hd.title }));
+    wrap.append(node);
+    if ((hd.source || "").trim()) wrap.append(el("div", { class: "viz-source", textContent: hd.source }));
+    return wrap;
+  }
+  function sideTokens(o, env) {
+    const items = o.rows || o.segments || o.items || [], num2 = (r) => r.value != null ? +r.value : Array.isArray(r.v) ? +r.v[0] : NaN;
+    const vals = items.map(num2).filter(Number.isFinite), sum2 = vals.reduce((a2, b) => a2 + b, 0), total = +o.total > 0 ? +o.total : sum2, first = items[0] || {}, v0 = Number.isFinite(num2(first)) ? num2(first) : 0;
+    const f = (x) => fmt(x, env.locale, 0);
+    return { pct: `${f(total ? v0 / total * 100 : 0)}%`, value: f(v0), total: f(total), label: String(first.label || first.title || first.name || first.text || "") };
+  }
+  var fill = (str, tk) => String(str ?? "").replace(/\{(pct|value|total|label)\}/g, (_, k) => tk[k]);
+  function composed(viz, W, env, core) {
+    const sd = viz.side;
+    if (!sd || sd.pos !== "right" && sd.pos !== "left") return core(W);
+    const GAPF = 18, wv = Math.round(W * Math.max(25, Math.min(80, +sd.share || 60)) / 100), wf = Math.max(40, W - wv - GAPF), r = core(wv);
+    if (!r) return r;
+    const tk = sideTokens(viz.opts || {}, env), fig = renderFigure({ value: fill(sd.value, tk), icon: "none", scale: +sd.scale || 1, text: fill((sd.text || "").trim() || "{label}", tk) }, wf, "left");
+    const align = { center: "center", bottom: "flex-end" }[sd.align] || "flex-start";
+    const box = el(
+      "div",
+      { class: "viz-side", style: { display: "flex", width: W + "px", gap: GAPF + "px", alignItems: align, flexDirection: sd.pos === "left" ? "row-reverse" : "row" } },
+      el("div", { style: { width: wv + "px", flex: "none" } }, r.node),
+      el("div", { style: { width: wf + "px", flex: "none" } }, fig)
+    );
+    return { ...r, node: box };
+  }
+  function renderViz(viz, width, env) {
+    const t2 = viz && VIZ_TYPES[viz.kind];
+    if (!t2) return null;
+    try {
+      const o = viz.opts || t2.defaults(), e = env || {};
+      return withHead(viz, composed(viz, width, e, (w) => {
+        const r = t2.render(o, w, e);
+        return { ...r, node: boxed(t2, o, w, e, r.node) };
+      }).node);
+    } catch (e) {
+      console.error("dataviz", viz.kind, e);
+      return null;
+    }
+  }
+  function renderVizFull(viz, width, env) {
+    const t2 = viz && VIZ_TYPES[viz.kind];
+    if (!t2) return null;
+    try {
+      const o = viz.opts || t2.defaults(), e = env || {}, r = composed(viz, width, e, (w) => {
+        const q = t2.render(o, w, e);
+        return { ...q, node: boxed(t2, o, w, e, q.node) };
+      });
+      return { ...r, node: withHead(viz, r.node), wrapped: !!(viz.head && (viz.head.title || viz.head.source)) };
+    } catch (e) {
+      console.error("dataviz", viz.kind, e);
+      return null;
+    }
   }
 
   // src/state.js
@@ -4421,7 +4455,7 @@ ${short}`)])
     else dst.subs.push(sub);
     return { si: to.si, bi: dst.subs.indexOf(sub) };
   }
-  function remapColors(doc2, fn, bg = fn, fill = bg) {
+  function remapColors(doc2, fn, bg = fn, fill2 = bg) {
     const H = doc2.header || {};
     H.bg = fn(H.bg);
     H.fg = fn(H.fg);
@@ -4434,13 +4468,13 @@ ${short}`)])
     (doc2.sections || []).forEach((sec) => {
       sec.bg = bg(sec.bg);
       if (sec.strokeColor) sec.strokeColor = fn(sec.strokeColor);
-      if (sec.fillColor) sec.fillColor = fill(sec.fillColor);
+      if (sec.fillColor) sec.fillColor = fill2(sec.fillColor);
       (sec.subs || []).forEach((sub) => {
         if (sub.strokeColor) sub.strokeColor = fn(sub.strokeColor);
-        if (sub.fillColor) sub.fillColor = fill(sub.fillColor);
+        if (sub.fillColor) sub.fillColor = fill2(sub.fillColor);
         (sub.cols || []).forEach((c2) => {
           if (c2.strokeColor) c2.strokeColor = fn(c2.strokeColor);
-          if (c2.fillColor) c2.fillColor = fill(c2.fillColor);
+          if (c2.fillColor) c2.fillColor = fill2(c2.fillColor);
           walk2(c2.viz);
         });
       });
@@ -4970,13 +5004,13 @@ ${short}`)])
     const pop2 = h(
       "div",
       { class: "ce", role: "dialog", "aria-label": title || t("Couleur") },
-      h("div", { class: "ce-head" }, h("strong", { textContent: title || t("Couleur") }), h("button", { type: "button", class: "mini", "aria-label": t("Annuler"), onclick: () => close2(false) }, ico("x"))),
+      h("div", { class: "ce-head" }, h("strong", { textContent: title || t("Couleur") }), h("button", { type: "button", class: "mini", "aria-label": t("Annuler"), onclick: () => close3(false) }, ico("x"))),
       sv,
       hue,
       h("div", { class: "ce-cmp" }, h("span", { class: "ce-pair" }, before, after), hexIn, eye),
       tabs,
       sliders,
-      h("div", { class: "row ce-act" }, h("button", { type: "button", textContent: "Annuler", onclick: () => close2(false) }), h("button", { type: "button", class: "primary", textContent: "OK", onclick: () => close2(true) }))
+      h("div", { class: "row ce-act" }, h("button", { type: "button", textContent: "Annuler", onclick: () => close3(false) }), h("button", { type: "button", class: "primary", textContent: "OK", onclick: () => close3(true) }))
     );
     document.body.append(pop2);
     const place3 = () => {
@@ -4988,7 +5022,7 @@ ${short}`)])
     };
     update(false, !!cm);
     place3();
-    function close2(commit) {
+    function close3(commit) {
       if (done) return;
       done = true;
       cancelAnimationFrame(raf2);
@@ -5001,17 +5035,17 @@ ${short}`)])
       if (onClose) onClose(commit);
     }
     const outside = (e) => {
-      if (!pop2.contains(e.target) && !(anchor && anchor.contains(e.target))) close2(true);
+      if (!pop2.contains(e.target) && !(anchor && anchor.contains(e.target))) close3(true);
     };
     const onKey = (e) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        close2(false);
-      } else if (e.key === "Enter" && e.target.tagName !== "BUTTON") close2(true);
+        close3(false);
+      } else if (e.key === "Enter" && e.target.tagName !== "BUTTON") close3(true);
     };
     setTimeout(() => document.addEventListener("pointerdown", outside, true));
     window.addEventListener("keydown", onKey, true);
-    current = { close: close2 };
+    current = { close: close3 };
     return current;
   }
 
@@ -5038,7 +5072,7 @@ ${short}`)])
     doc2.colorNames = doc2.colorNames || {};
     const defName = (k) => extras.includes(k) ? k : t(th.names[k] || k);
     const cm = paletteCmyk(doc2), cmTxt = (k) => cm[k].map((v) => Math.round(v)).join(" \xB7 ");
-    const open2 = (k, sw) => openColorEditor({
+    const open3 = (k, sw) => openColorEditor({
       anchor: sw,
       hex: pal[k],
       cmyk: cm[k],
@@ -5054,7 +5088,7 @@ ${short}`)])
     });
     const row = (k) => {
       const isExtra = extras.includes(k), recolored = !isExtra && doc2.colors[k] && doc2.colors[k].toLowerCase() !== th.colors[k].toLowerCase(), renamed = !isExtra && !!doc2.colorNames[k];
-      const sw = h("button", { type: "button", class: "pal2-sw", title: t("Modifier la couleur"), "aria-label": t("Modifier la couleur"), style: { background: pal[k] }, onclick: () => open2(k, sw) });
+      const sw = h("button", { type: "button", class: "pal2-sw", title: t("Modifier la couleur"), "aria-label": t("Modifier la couleur"), style: { background: pal[k] }, onclick: () => open3(k, sw) });
       const name = h("input", { type: "text", value: doc2.colorNames[k] || defName(k), "aria-label": t("Nom de la couleur"), oninput: (e) => {
         const v = e.target.value.trim();
         if (v && v !== defName(k)) doc2.colorNames[k] = v;
@@ -5263,6 +5297,7 @@ ${short}`)])
     "Valeur d\u2019un pictogramme": "Valeur repr\xE9sent\xE9e par un pictogramme entier ; le dernier peut \xEAtre partiel.",
     "Valeur du pictogramme plein (ex. 100)": "Valeur correspondant \xE0 un pictogramme enti\xE8rement rempli (ex. 100 pour des pourcentages).",
     "Alterner les \xE9v\xE9nements de part et d\u2019autre de la ligne": "Les \xE9v\xE9nements pairs et impairs passent de chaque c\xF4t\xE9 de la ligne : le texte dispose de deux fois plus de largeur.",
+    "Chiffre \xE0 c\xF4t\xE9": "Un chiffre cl\xE9 (par exemple 14 %) et son texte \xE0 c\xF4t\xE9 de la dataviz, qui prend alors la part de largeur choisie.",
     "Adapter \xE0 la colonne voisine": "La dataviz prend la hauteur de la colonne voisine la plus haute de sa rang\xE9e.",
     "Position verticale de l\u2019anneau": "Quand les textes autour de l\u2019anneau sont plus hauts que lui : l\u2019anneau se place en haut, centr\xE9 sur le contenu ou en bas ; les traits de rep\xE8re suivent.",
     "Alignement vertical de la dataviz": "Quand le conteneur est plus haut que le contenu : le contenu se place en haut, au centre ou en bas.",
@@ -5308,9 +5343,9 @@ ${short}`)])
 
   // src/cards.js
   function cardEl(id, icon, name, nodes, { shut: shut3, refresh, toggle = null, live = true }) {
-    const open2 = !shut3.has(id), show2 = open2 && live;
+    const open3 = !shut3.has(id), show2 = open3 && live;
     const flip = () => {
-      open2 ? shut3.add(id) : shut3.delete(id);
+      open3 ? shut3.add(id) : shut3.delete(id);
       refresh();
     };
     return h(
@@ -5330,22 +5365,80 @@ ${short}`)])
         h("button", {
           type: "button",
           class: "pp-chev",
-          "aria-expanded": String(open2),
-          "aria-label": open2 ? t("Replier") : t("D\xE9plier")
-        }, ico(open2 ? "chevron-up" : "chevron-down"))
+          "aria-expanded": String(open3),
+          "aria-label": open3 ? t("Replier") : t("D\xE9plier")
+        }, ico(open3 ? "chevron-up" : "chevron-down"))
       ),
       show2 ? h("div", { class: "pp-body" }, nodes.flat().filter(Boolean)) : null
     );
   }
 
-  // src/colorselect.js
-  var FALLBACK = cssVars(DEFAULT_THEME, {});
-  var dot = (k) => h("i", { class: "cs-dot" + (k === "" ? " auto" : ""), style: k === "" ? {} : { background: `var(--c-${k}, ${FALLBACK["--c-" + k] || "transparent"})` } });
+  // src/layoutselect.js
+  function layoutSchema(L, w = 44, hh = 14) {
+    const gap = 2, unit = (w - (L.cols - 1) * gap) / L.cols, svg = s("svg", { width: w, height: hh, viewBox: `0 0 ${w} ${hh}`, class: "ls-schema", "aria-hidden": "true" });
+    let start = 0;
+    for (const sp of L.spans) {
+      svg.append(s("rect", { x: start * (unit + gap) + 0.5, y: 0.5, width: sp * unit + (sp - 1) * gap - 1, height: hh - 1, rx: 2, fill: "currentColor", "fill-opacity": 0.18, stroke: "currentColor", "stroke-width": 1 }));
+      start += sp;
+    }
+    return svg;
+  }
   var open = null;
   var close = () => {
     if (!open) return;
     const o = open;
     open = null;
+    document.removeEventListener("pointerdown", o.away, true);
+    document.removeEventListener("keydown", o.key, true);
+    o.pop.remove();
+    o.btn.setAttribute("aria-expanded", "false");
+  };
+  function layoutSelect({ value: value2, layouts, onChange }) {
+    const keys = Object.keys(layouts).filter((k) => !layouts[k].hidden || k === value2), L = (k) => layouts[k] || layouts["1"];
+    const btn = h("button", { type: "button", class: "cs cs-text ls-btn", "aria-haspopup": "listbox", "aria-expanded": "false" }, layoutSchema(L(value2)), h("span", { class: "cs-lab", textContent: t(L(value2).label) }), ico("chevron-down"));
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (open && open.btn === btn) {
+        close();
+        return;
+      }
+      close();
+      const pop2 = h("div", { class: "cs-pop ls-pop", role: "listbox" }, keys.map((k) => h(
+        "button",
+        { type: "button", role: "option", class: "cs-opt" + (k === value2 ? " on" : ""), "aria-selected": String(k === value2), onclick: () => {
+          close();
+          if (k !== value2) onChange(k);
+        } },
+        layoutSchema(L(k)),
+        h("span", { textContent: t(L(k).label) })
+      )));
+      (btn.closest(".panel, .props") || document.body).append(pop2);
+      const r = btn.getBoundingClientRect(), w = Math.max(280, r.width), hh = pop2.offsetHeight;
+      Object.assign(pop2.style, { width: w + "px", left: Math.max(8, Math.min(window.innerWidth - w - 8, r.left)) + "px", top: (r.bottom + hh + 12 > window.innerHeight ? Math.max(8, r.top - hh - 4) : r.bottom + 4) + "px" });
+      btn.setAttribute("aria-expanded", "true");
+      const away = (ev) => {
+        if (!pop2.contains(ev.target) && !btn.contains(ev.target)) close();
+      }, key = (ev) => {
+        if (ev.key === "Escape") {
+          ev.stopPropagation();
+          close();
+        }
+      };
+      document.addEventListener("pointerdown", away, true);
+      document.addEventListener("keydown", key, true);
+      open = { pop: pop2, btn, away, key };
+    });
+    return btn;
+  }
+
+  // src/colorselect.js
+  var FALLBACK = cssVars(DEFAULT_THEME, {});
+  var dot = (k) => h("i", { class: "cs-dot" + (k === "" ? " auto" : ""), style: k === "" ? {} : { background: `var(--c-${k}, ${FALLBACK["--c-" + k] || "transparent"})` } });
+  var open2 = null;
+  var close2 = () => {
+    if (!open2) return;
+    const o = open2;
+    open2 = null;
     document.removeEventListener("pointerdown", o.away, true);
     document.removeEventListener("keydown", o.key, true);
     o.pop.remove();
@@ -5362,11 +5455,11 @@ ${short}`)])
     paint();
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      if (open && open.btn === btn) {
-        close();
+      if (open2 && open2.btn === btn) {
+        close2();
         return;
       }
-      close();
+      close2();
       const pop2 = h("div", { class: "cs-pop", role: "listbox" }, Object.keys(options).map((k) => h("button", {
         type: "button",
         role: "option",
@@ -5375,7 +5468,7 @@ ${short}`)])
         onclick: () => {
           cur = k;
           paint();
-          close();
+          close2();
           onChange(k);
         }
       }, dot(k), h("span", { textContent: label(k) }))));
@@ -5384,16 +5477,16 @@ ${short}`)])
       Object.assign(pop2.style, { width: w + "px", left: Math.max(8, Math.min(window.innerWidth - w - 8, r.left)) + "px", top: (r.bottom + hh + 12 > window.innerHeight ? Math.max(8, r.top - hh - 4) : r.bottom + 4) + "px" });
       btn.setAttribute("aria-expanded", "true");
       const away = (ev) => {
-        if (!pop2.contains(ev.target) && !btn.contains(ev.target)) close();
+        if (!pop2.contains(ev.target) && !btn.contains(ev.target)) close2();
       }, key = (ev) => {
         if (ev.key === "Escape") {
           ev.stopPropagation();
-          close();
+          close2();
         }
       };
       document.addEventListener("pointerdown", away, true);
       document.addEventListener("keydown", key, true);
-      open = { pop: pop2, btn, away, key };
+      open2 = { pop: pop2, btn, away, key };
     });
     return btn;
   }
@@ -6099,13 +6192,14 @@ ${short}`)])
           switchRow(t("Afficher le titre"), sub.showTitle !== false, () => {
             sub.showTitle = sub.showTitle === false;
           }),
-          select(sub, "layout", "Colonnes", Object.fromEntries(Object.entries(GRID.layouts).map(([k, l]) => [k, l.label])), () => {
-            const n = GRID.layouts[sub.layout].spans.length;
+          field("Colonnes", layoutSelect({ value: sub.layout, layouts: GRID.layouts, onChange: (v) => {
+            sub.layout = v;
+            const n = GRID.layouts[v].spans.length;
             sub.cols = sub.cols.slice(0, n);
             while (sub.cols.length < n) sub.cols.push(newCol("text"));
             refreshAutoCards(sub, (i) => columnWidth(doc2, si, bi, i));
             ctx2.restructure();
-          }),
+          } })),
           field("D\xE9placer vers la section", mv)
         ]),
         card("sub-box", "border-all", t("Fond et contour"), boxControls(sub)),
@@ -6722,6 +6816,20 @@ ${short}`)])
         form.append(...[
           card("dv-head", "typography", t("Titre et source"), buildFields([{ k: "title", t: "text", label: "Titre de la dataviz (facultatif)" }, { k: "source", t: "text", label: "Source (facultatif)" }], head, fctx, {}, h)),
           ty.panel ? card("dv-picto", "mood-smile", t("Pictogramme"), ty.panel(col.viz.opts, fctx)) : null,
+          card("dv-side", "number", t("Chiffre \xE0 c\xF4t\xE9"), buildFields(
+            [
+              { k: "pos", t: "select", label: "Chiffre \xE0 c\xF4t\xE9", options: { none: "Aucun", right: "\xC0 droite", left: "\xC0 gauche" } },
+              { k: "value", t: "text", label: "Chiffre ({pct} = part de la 1re donn\xE9e)" },
+              { k: "text", t: "text", label: "Texte sous le chiffre (vide = libell\xE9 de la 1re donn\xE9e)" },
+              { k: "share", t: "number", label: "Largeur de la dataviz (% de la largeur)", min: 25, max: 80 },
+              { k: "scale", t: "select", label: "Taille du chiffre", options: { 1: "Normal", 1.5: "Grand", 2: "Tr\xE8s grand" } },
+              { k: "align", t: "select", label: "Position verticale du chiffre", options: { top: "En haut", center: "Centr\xE9", bottom: "En bas" } }
+            ],
+            col.viz.side || (col.viz.side = newSide(col.viz.kind)),
+            fctx,
+            {},
+            h
+          )),
           ty.heights ? heightCard(ty) : null,
           F("format").length ? card("dv-format", "ruler-2", t("Dimensions"), gen(F("format"))) : null,
           card("dv-colors", "palette", t("Couleurs"), [h("button", { type: "button", class: "pp-btn", onclick: (e) => openPalette(e.currentTarget, palCtx) }, ico("palette"), h("span", { textContent: t("Couleurs du document") }))]),
@@ -6754,7 +6862,7 @@ ${short}`)])
     const toPt = (e) => {
       const svg = holder.querySelector("svg");
       if (!svg) return { x: 0, y: 0 };
-      const r = svg.getBoundingClientRect(), k = r.width / svgW || 1;
+      const r = svg.getBoundingClientRect(), k = r.width / (+svg.getAttribute("width") || svgW) || 1;
       return { x: (e.clientX - r.left) / k, y: (e.clientY - r.top) / k };
     };
     stage2.addEventListener("pointerdown", (e) => {
@@ -6803,7 +6911,7 @@ ${short}`)])
       zoom = e.target.value;
       draw();
     } }, [["fit", "Ajuster"], ["1", "100 %"], ["1.5", "150 %"], ["2", "200 %"]].map(([v, l]) => h("option", { value: v, textContent: l })));
-    const close2 = (keep) => {
+    const close3 = (keep) => {
       if (!keep) {
         col.viz = JSON.parse(snapshot2);
       }
@@ -6814,7 +6922,7 @@ ${short}`)])
       ctx2.restructure();
     };
     const onKey = (e) => {
-      if (e.key === "Escape") close2(false);
+      if (e.key === "Escape") close3(false);
     };
     window.addEventListener("keydown", onKey);
     root.append(
@@ -6825,8 +6933,8 @@ ${short}`)])
         h("label", { class: "zoom" }, "Aper\xE7u \xE0 la largeur ", wSel),
         h("label", { class: "zoom" }, "Zoom ", zSel),
         h("span", { style: { flex: 1 } }),
-        h("button", { type: "button", textContent: "Annuler", onclick: () => close2(false) }),
-        h("button", { type: "button", class: "primary", textContent: "Terminer", onclick: () => close2(true) })
+        h("button", { type: "button", textContent: "Annuler", onclick: () => close3(false) }),
+        h("button", { type: "button", class: "primary", textContent: "Terminer", onclick: () => close3(true) })
       ),
       body
     );

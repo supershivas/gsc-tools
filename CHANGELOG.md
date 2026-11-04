@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.43.0 — 2026-11-04
+- Chiffre à côté pour toutes les dataviz (carte « Chiffre à côté » : à droite ou à gauche, jetons {pct} {value} {total} {label}, texte, part de largeur, taille, position verticale)
+- Waffle : repère par catégorie défini dans les données (croix, point, coche ou icône, avec sa couleur) — plus de repère sur les cases d'une catégorie blanche ; cases plus grandes quand le chiffre est à côté (65 % de la largeur)
+- Colonnes : liste déroulante avec un petit schéma de chaque gabarit ; la mise en page à 6 colonnes n'est plus proposée
+
 ## 1.42.0 — 2026-11-04
 - Cmd/Ctrl + molette (ou pincement) : le zoom se fait au niveau du curseur — le point de la page sous le curseur reste sous le curseur ; en zoom manuel, de la marge autour des pages permet de zoomer partout, et une page plus large que l'écran reste atteignable à gauche
 

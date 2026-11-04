@@ -28,12 +28,12 @@ export function figureIcon(key, size, circle) {
 
 /** W = largeur utile (px), align = alignement du texte de la colonne (left | center | right | justify) */
 export function renderFigure(o, W, align) {
-  const base = pxOf(TYPE.figure.size), lh = TYPE.figure.lh, icon = o.icon && o.icon !== 'none' ? figureIcon(o.icon, lh, o.iconStyle === 'circle') : null;
+  const base0 = pxOf(TYPE.figure.size), base = base0 * (+o.scale || 1), lh = TYPE.figure.lh, icon = o.icon && o.icon !== 'none' ? figureIcon(o.icon, lh, o.iconStyle === 'circle') : null;
   const avail = (W || 9999) - (icon ? lh + VIZ.iconGap : 0) - 1;
   const fs = fitSize(o.value || '', TYPE.figure.weight, SERIF, base, avail, 0.4);
   const jc = { center: 'center', right: 'flex-end' }[align] || 'flex-start';
   const head = el('div', { class: 'fg-head', style: { justifyContent: jc } }, icon,
-    el('div', { class: 'vf-value', textContent: o.value || '', style: fs < base ? { fontSize: fs + 'px', whiteSpace: 'nowrap' } : {} }));
+    el('div', { class: 'vf-value', textContent: o.value || '', style: fs !== base0 ? { fontSize: fs + 'px', lineHeight: 1.1, whiteSpace: 'nowrap' } : {} }));
   return el('div', { class: 'fg', style: align && align !== 'left' ? { textAlign: align } : {} }, head,
     o.text && o.text.trim() ? el('div', { class: 'vf-text', innerHTML: esc(o.text) }) : null);
 }

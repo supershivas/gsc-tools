@@ -5,6 +5,7 @@ import { GRID, THEMES, paletteKeys, toneKeys, colorLabel, cssVars, applyVars } f
 import { openPalette } from './palette.js';
 import { cardEl } from './cards.js';
 import { helpBtn } from './help.js';
+import { layoutSelect } from './layoutselect.js';
 import { heightNodes } from './vizheight.js';
 import { newCard, cardPresetFor, CARD_CHECKS } from './cardmodel.js';
 import { COL_TYPES, IMAGE_RATIOS, LOCALES, LOGO_VARIANTS, DEFAULT_LOGOS, DEFAULT_IMAGE_ID, VALIGNS, ALIGNS, newCol, stepSection, newHeaderImage, swapCols, allCols, moveSub, refreshAutoCards } from './state.js';
@@ -164,9 +165,9 @@ export function buildProps(root, ctx) {
       s.value = ''; return s;
     })();
     root.append(card('sub-main', 'columns', t('Sous-section'), [text(sub, 'title', 'Titre de sous-section'), switchRow(t('Afficher le titre'), sub.showTitle !== false, () => { sub.showTitle = sub.showTitle === false; }),
-        select(sub, 'layout', 'Colonnes', Object.fromEntries(Object.entries(GRID.layouts).map(([k, l]) => [k, l.label])), () => {
-          const n = GRID.layouts[sub.layout].spans.length; sub.cols = sub.cols.slice(0, n); while (sub.cols.length < n) sub.cols.push(newCol('text')); refreshAutoCards(sub, i => columnWidth(doc, si, bi, i)); ctx.restructure();
-        }),
+        field('Colonnes', layoutSelect({ value: sub.layout, layouts: GRID.layouts, onChange: v => {
+          sub.layout = v; const n = GRID.layouts[v].spans.length; sub.cols = sub.cols.slice(0, n); while (sub.cols.length < n) sub.cols.push(newCol('text')); refreshAutoCards(sub, i => columnWidth(doc, si, bi, i)); ctx.restructure();
+        } })),
         field('Déplacer vers la section', mv)]),
       card('sub-box', 'border-all', t('Fond et contour'), boxControls(sub)),
       actions(btn('arrow-up', t('Monter'), struct(() => { const j = bi - 1; if (j >= 0) [sec.subs[bi], sec.subs[j]] = [sec.subs[j], sec.subs[bi]]; })),
