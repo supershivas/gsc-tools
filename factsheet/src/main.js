@@ -1,6 +1,6 @@
 import { PAGE, cssVars, applyVars, DENSITIES } from './tokens.js';
 import { openPalette } from './palette.js';
-import { loadDoc, saveDoc, migrate, defaultDoc, blankDoc, LOCALES, moveSection, moveSub, storage, localImageCount, swapCols, removeCol } from './state.js';
+import { loadDoc, saveDoc, migrate, defaultDoc, blankDoc, LOCALES, moveSection, moveSub, storage, localImageCount, swapCols, removeCol, refreshAutoCards } from './state.js';
 import { renderDocument, measure, h, ico, columnWidth } from './render.js';
 import { loadFonts } from './viz/util.js';
 import { buildTree } from './tree.js';
@@ -274,6 +274,28 @@ stage.addEventListener('click', e => {
   const n = e.target.closest('[data-sel]');
   ctx.select(n ? n.dataset.sel : null);
 });
+
+/* Poignée entre deux colonnes d'une sous-section : glisser règle leurs largeurs en direct (gabarit « Personnalisé », collé aux douzièmes) */
+stage.addEventListener('pointerdown', e => {
+  if (e.button !== 0 || handOn()) return;
+  const sp = e.target.closest('.col-split'); if (!sp) return;
+  const subEl = sp.closest('.sub'), q = subEl && subEl.dataset.sel.split(':'), sb = q && doc.sections[+q[1]]?.subs[+q[2]]; if (!sb) return;
+  const i = +sp.dataset.split, cols = sp.parentElement, sc = subEl.closest('.page').getBoundingClientRect().width / PAGE.w;
+  const ws = [...cols.children].filter(c => c.classList.contains('col')).map(c => c.getBoundingClientRect().width / sc), sum = ws.reduce((a, b) => a + b, 0) || 1, f0 = ws.map(w => w / sum), px = e.clientX; let moved = false;
+  const MIN = 0.1;
+  e.preventDefault(); e.stopPropagation(); hover.hide(); document.body.style.cursor = 'col-resize';
+  const move = ev => {
+    moved = true;
+    const pair = f0[i] + f0[i + 1], before = f0.slice(0, i).reduce((a, b) => a + b, 0);
+    let b = before + f0[i] + (ev.clientX - px) / sc / sum;                       // position de la frontière (fraction de la largeur)
+    const snap = Math.round(b * 12) / 12; if (Math.abs(b - snap) < 0.014) b = snap;
+    b = Math.max(before + MIN, Math.min(before + pair - MIN, b));
+    const f = f0.slice(); f[i] = b - before; f[i + 1] = before + pair - b;
+    sb.layout = 'custom'; sb.widths = f.map(v => Math.round(v * 1000) / 1000); ctx.changed();
+  };
+  const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); document.body.style.cursor = ''; if (moved) { suppressClick = true; setTimeout(() => { suppressClick = false; }, 0); const si = +q[1], bi = +q[2]; refreshAutoCards(sb, k => columnWidth(doc, si, bi, k)); ctx.restructure(); } };
+  window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+}, true);
 
 /* Séparation entre un contenu et son chiffre à côté : glisser la poignée (entre les deux) change leurs largeurs en direct */
 stage.addEventListener('pointerdown', e => {

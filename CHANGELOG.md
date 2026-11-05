@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.61.0 — 2026-11-05
+- Largeur des colonnes : une poignée entre chaque paire de colonnes (survol orange) se glisse dans l'aperçu pour régler leurs largeurs en direct, avec collage aux douzièmes (1/2, 1/3, 1/4…) ; le menu « Colonnes » de la sous-section indique alors « Personnalisé »
+
 ## 1.60.0 — 2026-11-05
 - Éditeur de dataviz : un clic change la couleur de l'élément seul (une barre, un point) pour le mettre en valeur ; Maj ou Cmd + clic pour en choisir plusieurs ; « Toute la série » et « Couleur de la série » pour revenir en arrière
 - Chiffre à côté : la séparation entre le contenu et le chiffre se glisse dans l'aperçu, et redimensionne les deux blocs en direct

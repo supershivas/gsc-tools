@@ -123,7 +123,8 @@ export function migrate(j) {
     (s.subs || (s.subs = [])).forEach(sub => {
       sub.id = sub.id || uid('sub');
       if (!GRID.layouts[sub.layout]) sub.layout = '1';
-      const n = GRID.layouts[sub.layout].spans.length;
+      if (sub.layout === 'custom' && !(Array.isArray(sub.widths) && sub.widths.length >= 2 && sub.widths.every(f => f > 0))) sub.layout = '1';
+      const n = sub.layout === 'custom' ? sub.widths.length : GRID.layouts[sub.layout].spans.length;
       sub.cols = (sub.cols || []).slice(0, n);
       while (sub.cols.length < n) sub.cols.push(newCol('text'));
       sub.cols = sub.cols.map(c => { c = oldFigure(c); const k = Object.assign(newCol(c.type || 'text'), c); if (k.type === 'figure' && !k.figure) k.figure = FIGURE_DEFAULTS(); if (k.type === 'card' && !k.card) k.card = newCard(); if (k.type === 'viz') { if (!k.viz) k.viz = newViz('bars'); else if (!k.viz.opts) k.viz = newViz(k.viz.kind); } return k; });

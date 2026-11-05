@@ -6,7 +6,7 @@
 import { h, ico } from './render.js';
 import { openPalette } from './palette.js';
 import { buildFields, paletteOptions } from './editor.js';
-import { colWidth, cssVars, applyVars, paletteOf } from './tokens.js';
+import { colWidth, subColWidth, cssVars, applyVars, paletteOf } from './tokens.js';
 import { VIZ_TYPES, VIZ_FAMILIES, switchKind, renderVizFull } from './viz/index.js';
 import { cardEl } from './cards.js';
 import { loadFonts } from './viz/util.js';
@@ -49,7 +49,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
   if (current) return;
   const doc = ctx.getDoc();
   const snapshot = JSON.stringify(col.viz);
-  const baseW = colW || colWidth(sub.layout, ci);
+  const baseW = colW || subColWidth(sub, ci);
   const ui = { sel: -1, drag: null };
   let width = baseW, zoom = 'fit', meta = null, svgW = baseW;
 

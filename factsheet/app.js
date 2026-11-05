@@ -95,9 +95,19 @@
       "2-3": { label: "2 colonnes (2/5 + 3/5)", cols: 5, spans: [2, 3] },
       "2-1-1": { label: "3 colonnes (1/2 + 1/4 + 1/4)", cols: 4, spans: [2, 1, 1] },
       "1-2-1": { label: "3 colonnes (1/4 + 1/2 + 1/4)", cols: 4, spans: [1, 2, 1] },
-      "1-1-2": { label: "3 colonnes (1/4 + 1/4 + 1/2)", cols: 4, spans: [1, 1, 2] }
+      "1-1-2": { label: "3 colonnes (1/4 + 1/4 + 1/2)", cols: 4, spans: [1, 1, 2] },
+      custom: { label: "Personnalis\xE9 (poign\xE9es entre les colonnes)", cols: 1, spans: [1], hidden: true, custom: true }
+      // largeurs libres : sub.widths = fractions (somme 1), réglées à la souris
     }
   };
+  var customLayoutOf = (sub) => ({ ...GRID.layouts.custom, cols: 100, spans: (sub.widths || [1]).map((f) => Math.max(1, Math.round(f * 100))) });
+  function subColWidth(sub, i, W = GRID.contentW) {
+    if (sub.layout === "custom" && Array.isArray(sub.widths) && sub.widths[i] != null) {
+      const sum2 = sub.widths.reduce((a2, b) => a2 + b, 0) || 1;
+      return (W - (sub.widths.length - 1) * GRID.gutter) * sub.widths[i] / sum2;
+    }
+    return colWidth(sub.layout, i, W);
+  }
   function colWidth(layoutKey, i, W = GRID.contentW) {
     const L = GRID.layouts[layoutKey] || GRID.layouts["1"];
     const unit = (W - (L.cols - 1) * GRID.gutter) / L.cols;
@@ -392,6 +402,7 @@
     "Annuler": "Cancel",
     "Exporter": "Export",
     "Terminer": "Done",
+    "Personnalis\xE9 (poign\xE9es entre les colonnes)": "Custom (handles between the columns)",
     "Importer une ic\xF4ne ou une image\u2026": "Import an icon or an image\u2026",
     "Image illisible ou trop lourde.": "Unreadable or too large image.",
     "Ic\xF4nes et images import\xE9es (SVG, PNG, JPEG\u2026) : disponibles dans chaque choix d\u2019ic\xF4ne du document, par exemple comme drapeau sous une barre. Les retirer les retire partout.": "Imported icons and images (SVG, PNG, JPEG\u2026): available in every icon choice of the document, for example as a flag under a bar. Removing one removes it everywhere.",
@@ -4768,7 +4779,8 @@ ${short}`)])
       (s2.subs || (s2.subs = [])).forEach((sub) => {
         sub.id = sub.id || uid("sub");
         if (!GRID.layouts[sub.layout]) sub.layout = "1";
-        const n = GRID.layouts[sub.layout].spans.length;
+        if (sub.layout === "custom" && !(Array.isArray(sub.widths) && sub.widths.length >= 2 && sub.widths.every((f) => f > 0))) sub.layout = "1";
+        const n = sub.layout === "custom" ? sub.widths.length : GRID.layouts[sub.layout].spans.length;
         sub.cols = (sub.cols || []).slice(0, n);
         while (sub.cols.length < n) sub.cols.push(newCol("text"));
         sub.cols = sub.cols.map((c2) => {
@@ -5139,17 +5151,24 @@ ${short}`)])
     return wrap;
   }
   function renderSub(sub, si, bi, env, W) {
-    const L = GRID.layouts[sub.layout];
+    const L = GRID.layouts[sub.layout] || GRID.layouts["1"];
     const el2 = h("div", { class: "sub", dataset: { sel: `sub:${si}:${bi}` } });
     if (bi > 0) el2.append(h("div", { class: "sub-rule" }));
     strokeStyle(el2)(sub);
     if (isBox(sub)) W = insetW(W);
     if (sub.title && sub.title.trim() && sub.showTitle !== false) el2.append(h("h3", { class: "sub-title", innerHTML: inline(sub.title) }));
-    const cols = h("div", { class: "cols", style: { gridTemplateColumns: `repeat(${L.cols}, minmax(0, 1fr))` } });
+    const custom3 = sub.layout === "custom" && Array.isArray(sub.widths) && sub.widths.length === sub.cols.length;
+    const cols = h("div", { class: "cols", style: { gridTemplateColumns: custom3 ? sub.widths.map((f) => `minmax(0, ${f}fr)`).join(" ") : `repeat(${L.cols}, minmax(0, 1fr))`, position: "relative" } });
+    let x = 0;
     sub.cols.forEach((c2, i) => {
-      const node = renderCol(c2, colWidth(sub.layout, i, W), `col:${si}:${bi}:${i}`, env);
-      node.style.gridColumn = `span ${L.spans[i]}`;
+      const cw = subColWidth(sub, i, W), node = renderCol(c2, cw, `col:${si}:${bi}:${i}`, env);
+      node.style.gridColumn = custom3 ? "span 1" : `span ${L.spans[i]}`;
       cols.append(node);
+      x += cw;
+      if (i < sub.cols.length - 1) {
+        cols.append(h("div", { class: "col-split", dataset: { split: i }, style: { position: "absolute", top: "0", bottom: "0", left: x + "px", width: GRID.gutter + "px" } }));
+        x += GRID.gutter;
+      }
     });
     el2.append(cols);
     return el2;
@@ -5161,7 +5180,7 @@ ${short}`)])
     let W = GRID.contentW;
     if (isBox(sec)) W = insetW(W);
     if (isBox(sub)) W = insetW(W);
-    const w = colWidth(sub.layout, ci, W);
+    const w = subColWidth(sub, ci, W);
     return isBox(col) && col.type !== "card" ? insetW(w) : w;
   }
   var isBand = (s2) => !!(s2.bg && s2.bg !== "none");
@@ -6724,7 +6743,7 @@ ${short}`)])
           switchRow(t("Afficher le titre"), sub.showTitle !== false, () => {
             sub.showTitle = sub.showTitle === false;
           }),
-          field("Colonnes", layoutSelect({ value: sub.layout, layouts: GRID.layouts, onChange: (v) => {
+          field("Colonnes", layoutSelect({ value: sub.layout, layouts: { ...GRID.layouts, custom: customLayoutOf(sub) }, onChange: (v) => {
             sub.layout = v;
             const n = GRID.layouts[v].spans.length;
             sub.cols = sub.cols.slice(0, n);
@@ -7312,7 +7331,7 @@ ${short}`)])
     if (current2) return;
     const doc2 = ctx2.getDoc();
     const snapshot2 = JSON.stringify(col.viz);
-    const baseW = colW || colWidth(sub.layout, ci);
+    const baseW = colW || subColWidth(sub, ci);
     const ui = { sel: -1, drag: null };
     let width = baseW, zoom = "fit", meta = null, svgW = baseW;
     const root = h("div", { class: "ve" });
@@ -8742,6 +8761,51 @@ ${short}`)])
     const n = e.target.closest("[data-sel]");
     ctx.select(n ? n.dataset.sel : null);
   });
+  stage.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || handOn()) return;
+    const sp = e.target.closest(".col-split");
+    if (!sp) return;
+    const subEl = sp.closest(".sub"), q = subEl && subEl.dataset.sel.split(":"), sb = q && doc.sections[+q[1]]?.subs[+q[2]];
+    if (!sb) return;
+    const i = +sp.dataset.split, cols = sp.parentElement, sc = subEl.closest(".page").getBoundingClientRect().width / PAGE.w;
+    const ws = [...cols.children].filter((c2) => c2.classList.contains("col")).map((c2) => c2.getBoundingClientRect().width / sc), sum2 = ws.reduce((a2, b) => a2 + b, 0) || 1, f0 = ws.map((w) => w / sum2), px = e.clientX;
+    let moved = false;
+    const MIN = 0.1;
+    e.preventDefault();
+    e.stopPropagation();
+    hover.hide();
+    document.body.style.cursor = "col-resize";
+    const move = (ev) => {
+      moved = true;
+      const pair = f0[i] + f0[i + 1], before = f0.slice(0, i).reduce((a2, b2) => a2 + b2, 0);
+      let b = before + f0[i] + (ev.clientX - px) / sc / sum2;
+      const snap = Math.round(b * 12) / 12;
+      if (Math.abs(b - snap) < 0.014) b = snap;
+      b = Math.max(before + MIN, Math.min(before + pair - MIN, b));
+      const f = f0.slice();
+      f[i] = b - before;
+      f[i + 1] = before + pair - b;
+      sb.layout = "custom";
+      sb.widths = f.map((v) => Math.round(v * 1e3) / 1e3);
+      ctx.changed();
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      document.body.style.cursor = "";
+      if (moved) {
+        suppressClick = true;
+        setTimeout(() => {
+          suppressClick = false;
+        }, 0);
+        const si = +q[1], bi = +q[2];
+        refreshAutoCards(sb, (k) => columnWidth(doc, si, bi, k));
+        ctx.restructure();
+      }
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }, true);
   stage.addEventListener("pointerdown", (e) => {
     if (e.button !== 0 || handOn()) return;
     const sp = e.target.closest(".side-split");

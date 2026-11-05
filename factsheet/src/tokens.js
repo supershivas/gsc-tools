@@ -80,8 +80,20 @@ export const GRID = {
     '2-1-1': { label: '3 colonnes (1/2 + 1/4 + 1/4)', cols: 4, spans: [2, 1, 1] },
     '1-2-1': { label: '3 colonnes (1/4 + 1/2 + 1/4)', cols: 4, spans: [1, 2, 1] },
     '1-1-2': { label: '3 colonnes (1/4 + 1/4 + 1/2)', cols: 4, spans: [1, 1, 2] },
+    custom:  { label: 'Personnalisé (poignées entre les colonnes)', cols: 1, spans: [1], hidden: true, custom: true },   // largeurs libres : sub.widths = fractions (somme 1), réglées à la souris
   },
 };
+
+/** gabarit « personnalisé » d'une sous-section (pour le schéma du menu) : une colonne par largeur, en centièmes */
+export const customLayoutOf = sub => ({ ...GRID.layouts.custom, cols: 100, spans: (sub.widths || [1]).map(f => Math.max(1, Math.round(f * 100))) });
+/** largeur (px) de la colonne i d'une sous-section : gabarit, ou largeurs personnalisées (fractions de la place hors gouttières) */
+export function subColWidth(sub, i, W = GRID.contentW) {
+  if (sub.layout === 'custom' && Array.isArray(sub.widths) && sub.widths[i] != null) {
+    const sum = sub.widths.reduce((a, b) => a + b, 0) || 1;
+    return (W - (sub.widths.length - 1) * GRID.gutter) * sub.widths[i] / sum;
+  }
+  return colWidth(sub.layout, i, W);
+}
 
 /** largeur (px) de la colonne i d'un gabarit — sert aux dataviz */
 export function colWidth(layoutKey, i, W = GRID.contentW) {

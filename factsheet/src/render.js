@@ -1,6 +1,6 @@
 /* Rendu du document en pages A4 (HTML). Aucune valeur de mise en page en dur :
    tout vient de tokens.js via les variables CSS (--s*, --gap-*, --t-*, --c-*). */
-import { PAGE, GRID, HEADER, GAP, cssVars, applyVars, colWidth, insetW, setDensity, paletteOf } from './tokens.js';
+import { PAGE, GRID, HEADER, GAP, cssVars, applyVars, colWidth, subColWidth, insetW, setDensity, paletteOf } from './tokens.js';
 import { IMAGE_RATIOS } from './state.js';
 import { renderViz, composeSide } from './viz/index.js';
 import { inlineMk, s } from './viz/util.js';
@@ -152,16 +152,21 @@ function renderCol(col, w, path, env) {
 
 /** W = largeur disponible pour la sous-section (déjà réduite par le contour de la section) */
 function renderSub(sub, si, bi, env, W) {
-  const L = GRID.layouts[sub.layout];
+  const L = GRID.layouts[sub.layout] || GRID.layouts['1'];
   const el = h('div', { class: 'sub', dataset: { sel: `sub:${si}:${bi}` } });
   if (bi > 0) el.append(h('div', { class: 'sub-rule' }));   // filet entre sous-sections (vrai élément : l'export PDF le lit)
   strokeStyle(el)(sub); if (isBox(sub)) W = insetW(W);
   if (sub.title && sub.title.trim() && sub.showTitle !== false) el.append(h('h3', { class: 'sub-title', innerHTML: inline(sub.title) }));
-  const cols = h('div', { class: 'cols', style: { gridTemplateColumns: `repeat(${L.cols}, minmax(0, 1fr))` } });
+  const custom = sub.layout === 'custom' && Array.isArray(sub.widths) && sub.widths.length === sub.cols.length;
+  const cols = h('div', { class: 'cols', style: { gridTemplateColumns: custom ? sub.widths.map(f => `minmax(0, ${f}fr)`).join(' ') : `repeat(${L.cols}, minmax(0, 1fr))`, position: 'relative' } });
+  let x = 0;
   sub.cols.forEach((c, i) => {
-    const node = renderCol(c, colWidth(sub.layout, i, W), `col:${si}:${bi}:${i}`, env);
-    node.style.gridColumn = `span ${L.spans[i]}`;
+    const cw = subColWidth(sub, i, W), node = renderCol(c, cw, `col:${si}:${bi}:${i}`, env);
+    node.style.gridColumn = custom ? 'span 1' : `span ${L.spans[i]}`;
     cols.append(node);
+    x += cw;
+    /* poignée entre deux colonnes : glisser = largeurs personnalisées (main.js), invisible hors de l'aperçu */
+    if (i < sub.cols.length - 1) { cols.append(h('div', { class: 'col-split', dataset: { split: i }, style: { position: 'absolute', top: '0', bottom: '0', left: x + 'px', width: GRID.gutter + 'px' } })); x += GRID.gutter; }
   });
   el.append(cols);
   return el;
@@ -175,7 +180,7 @@ export function columnWidth(doc, si, bi, ci) {
   let W = GRID.contentW;
   if (isBox(sec)) W = insetW(W);
   if (isBox(sub)) W = insetW(W);
-  const w = colWidth(sub.layout, ci, W);
+  const w = subColWidth(sub, ci, W);
   return isBox(col) && col.type !== 'card' ? insetW(w) : w;
 }
 
