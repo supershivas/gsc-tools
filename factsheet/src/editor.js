@@ -115,7 +115,7 @@ export function richEditor(value, onChange, opts = {}) {
     if (styleSel) { let v = ''; try { v = String(document.queryCommandValue('formatBlock') || '').toUpperCase().replace(/[<>]/g, ''); } catch (e) {} styleSel.value = /^H[1-5]$/.test(v) ? v : 'DIV'; } };
   ed.addEventListener('input', () => onChange(htmlToMk(ed)));
   ed.addEventListener('keyup', sync); ed.addEventListener('mouseup', sync); ed.addEventListener('focus', sync);
-  ed.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain')); });
+  ed.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain').replace(/\u000B/g, '\u2028').replace(/[\u0000-\u0008\u000C\u000E-\u001F]/g, '')); });
   if (styleSel) bar.prepend(styleSel);
   if (opts.bullets === false) ed.classList.add('re-line');
   return h('div', { class: 're-wrap' }, bar, ed, opts.bullets === false ? null : h('div', { class: 'hint', textContent: t('Entrée = nouveau paragraphe · Maj + Entrée = retour à la ligne') }));

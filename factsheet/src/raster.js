@@ -36,8 +36,10 @@ async function inlineImages(root) {
 }
 
 
+/* Caractères interdits en XML 1.0 (contrôles, tabulation verticale…, souvent collés depuis InDesign, Illustrator ou un PDF) : une seule suffit à rendre l'image SVG illisible */
+const XML_BAD = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g;
 const pageSvg = (vars, css, body) => `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE.w}" height="${PAGE.h}"><foreignObject width="100%" height="100%">`
-  + `<div xmlns="http://www.w3.org/1999/xhtml" style="${vars}"><style>${css.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</style>${body}</div></foreignObject></svg>`;
+  + `<div xmlns="http://www.w3.org/1999/xhtml" style="${vars}"><style>${css.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</style>${body.replace(XML_BAD, ' ')}</div></foreignObject></svg>`;
 const loads = svg => loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)).then(() => true, () => false);
 
 /** Nom lisible d'un élément du document : image (fichier, bibliothèque de l'en-tête, logo) ou colonne */
@@ -72,7 +74,12 @@ async function diagnose(pageEl, vars, css, doc) {
 /** Descend dans un élément fautif jusqu'à l'élément le plus petit qui fait échouer le chargement ; le décrit (balise, classe, début du texte) */
 async function deepFault(el, one) {
   let budget = 50;
-  const short = n => { const t = (n.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40), cls = (n.getAttribute && n.getAttribute('class')) || ''; return `<${n.tagName.toLowerCase()}${cls ? '.' + cls.split(' ')[0] : ''}>${t ? ' « ' + t + ' »' : ''}`; };
+  const short = n => {   // balise, attributs, début du texte et caractères hors ASCII (code Unicode) : de quoi voir ce que le navigateur refuse
+    const raw = n.textContent || '', t = raw.replace(/\s+/g, ' ').trim().slice(0, 40);
+    const attrs = [...(n.attributes || [])].map(x => `${x.name}="${String(x.value).slice(0, 30)}"`).join(' ');
+    const odd = [...new Set([...raw].filter(c => c.charCodeAt(0) > 126 || (c.charCodeAt(0) < 32 && c !== '\n' && c !== '\t')).map(c => 'U+' + c.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')))].join(',');
+    return `<${n.tagName.toLowerCase()}${attrs ? ' ' + attrs : ''}>${t ? ' « ' + t + ' »' : ''}${odd ? ' [' + odd + ']' : ''}`;
+  };
   const walk = async n => {
     const bad = [];
     for (const c of n.children) { if (budget-- <= 0) break; if (!(await loads(one(c)))) bad.push(c); }

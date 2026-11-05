@@ -6086,7 +6086,7 @@ ${short}`)])
     ed.addEventListener("focus", sync);
     ed.addEventListener("paste", (e) => {
       e.preventDefault();
-      document.execCommand("insertText", false, (e.clipboardData || window.clipboardData).getData("text/plain"));
+      document.execCommand("insertText", false, (e.clipboardData || window.clipboardData).getData("text/plain").replace(/\u000B/g, "\u2028").replace(/[\u0000-\u0008\u000C\u000E-\u001F]/g, ""));
     });
     if (styleSel) bar.prepend(styleSel);
     if (opts.bullets === false) ed.classList.add("re-line");
@@ -7955,7 +7955,8 @@ ${short}`)])
       }
     }));
   }
-  var pageSvg = (vars, css, body) => `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE.w}" height="${PAGE.h}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="${vars}"><style>${css.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</style>${body}</div></foreignObject></svg>`;
+  var XML_BAD = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g;
+  var pageSvg = (vars, css, body) => `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE.w}" height="${PAGE.h}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="${vars}"><style>${css.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</style>${body.replace(XML_BAD, " ")}</div></foreignObject></svg>`;
   var loads = (svg) => loadImage("data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg)).then(() => true, () => false);
   function describe(node, doc2) {
     const q = node.closest("[data-sel]"), path = q ? q.dataset.sel : "", H = doc2.header || {};
@@ -7994,8 +7995,10 @@ ${short}`)])
   async function deepFault(el2, one) {
     let budget = 50;
     const short = (n) => {
-      const t2 = (n.textContent || "").replace(/\s+/g, " ").trim().slice(0, 40), cls = n.getAttribute && n.getAttribute("class") || "";
-      return `<${n.tagName.toLowerCase()}${cls ? "." + cls.split(" ")[0] : ""}>${t2 ? " \xAB " + t2 + " \xBB" : ""}`;
+      const raw = n.textContent || "", t2 = raw.replace(/\s+/g, " ").trim().slice(0, 40);
+      const attrs = [...n.attributes || []].map((x) => `${x.name}="${String(x.value).slice(0, 30)}"`).join(" ");
+      const odd = [...new Set([...raw].filter((c2) => c2.charCodeAt(0) > 126 || c2.charCodeAt(0) < 32 && c2 !== "\n" && c2 !== "	").map((c2) => "U+" + c2.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")))].join(",");
+      return `<${n.tagName.toLowerCase()}${attrs ? " " + attrs : ""}>${t2 ? " \xAB " + t2 + " \xBB" : ""}${odd ? " [" + odd + "]" : ""}`;
     };
     const walk2 = async (n) => {
       const bad = [];

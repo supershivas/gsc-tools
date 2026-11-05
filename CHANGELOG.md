@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.58.1 — 2026-11-05
+- Aperçu 3D : ne plante plus quand un texte contient des caractères de contrôle invisibles (souvent collés depuis InDesign, Illustrator ou un PDF) ; le collage dans les champs de texte riche nettoie ces caractères
+- Aperçu 3D : le diagnostic d'erreur indique aussi les attributs et les caractères inhabituels (code Unicode) de l'élément fautif
+
 ## 1.58.0 — 2026-11-05
 - Médias importés : la liste des icônes importées n'encombre plus chaque panneau ; elle a sa fenêtre (Édition › Médias importés…) pour renommer, retirer et importer
 - Barres verticales : « Espace entre les groupes de barres » accepte « Aucun » (barres jointives)
