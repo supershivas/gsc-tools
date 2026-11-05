@@ -140,8 +140,9 @@ table.dg{border-collapse:collapse;width:100%;font-size:13px}
 .dg-scroll{max-height:none}
 .ve-sech{margin:0 0 8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ui-mute)}
 .ve-mini{margin-bottom:12px}.ve-mini-box{overflow:hidden;border:1px solid var(--ui-line);border-radius:8px;background:#fff}.ve-mini-sheet{box-shadow:none;pointer-events:none}
-.ve-stage{flex:1;overflow:auto;padding:24px;display:flex;justify-content:safe center;align-items:flex-start;background:repeating-conic-gradient(#e9ecf0 0 25%,#f3f5f7 0 50%) 0 0/20px 20px}
-.ve-scaler{transform-origin:0 0;width:max-content}
+.ve-stage{flex:1;overflow:auto;padding:24px;display:flex;justify-content:safe center;align-items:safe center;background:repeating-conic-gradient(#e9ecf0 0 25%,#f3f5f7 0 50%) 0 0/20px 20px}
+.ve-scaler{transform-origin:0 0;width:max-content;flex:none}
+.ve-stage.fit{overflow:hidden}
 .viz-sheet{height:auto;width:auto;overflow:visible;padding:24px;box-shadow:0 1px 8px #0003}
 .viz-sheet .col{min-width:0}
 .fmt{margin:3px 0 4px;flex-wrap:wrap}
@@ -388,7 +389,7 @@ textarea.ml{display:block;width:100%;min-height:34px;resize:none;overflow:hidden
 
 /* choix du type de dataviz : carte repliable mise en valeur */
 .ve-typecard{border-color:var(--ui-line)}
-.ve-typecard .pp-card-h{background:#fff}
+.ve-typecard .pp-card-h{background:#fff}.ve-typecard .pp-card-h b{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .ve-typelist{display:grid;gap:2px}
 .ve-typefam{margin:8px 4px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ui-mute)}.ve-typefam:first-child{margin-top:0}
 .ve-typeopt{display:flex;align-items:center;gap:8px;width:100%;min-height:34px;padding:0 8px;border:0;border-radius:6px;background:transparent;font-size:13px;text-align:left}

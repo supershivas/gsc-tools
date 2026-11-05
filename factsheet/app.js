@@ -7505,7 +7505,9 @@ ${short}`)])
     };
     function scale() {
       if (zoom !== "fit") return parseFloat(zoom);
-      return Math.max(0.5, Math.min(2, (stage2.clientWidth - 80) / (width + 48)));
+      if (stage2.clientHeight < 50) return 1;
+      const cs = getComputedStyle(stage2), aw = stage2.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), ah = stage2.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+      return Math.max(0.1, Math.min(2, aw / (width + 48), ah / Math.max(1, sheet.offsetHeight)));
     }
     function draw() {
       const r = renderVizFull(col.viz, width, { locale: doc2.locale || "en-GB", ui, pal: paletteOf(doc2.theme, doc2.colors), fillH: availH });
@@ -7519,15 +7521,13 @@ ${short}`)])
       if (miniHold.isConnected) drawMini();
       const t2 = VIZ_TYPES[col.viz.kind];
       hint.textContent = holder.querySelector("[data-reorder]") ? "Glisser un \xE9l\xE9ment pour changer son ordre : les autres se r\xE9ajustent en gardant des \xE9carts proportionnels." : t2 && t2.edit ? "Cliquer un segment ou un libell\xE9 pour le s\xE9lectionner \xB7 glisser l\u2019anneau pour le tourner \xB7 glisser un libell\xE9 (verticalement, ou de l\u2019autre c\xF4t\xE9) \xB7 glisser le point blanc pour d\xE9placer l\u2019ancrage du trait" : "";
-      const k = scale();
       sheet.style.width = width + 48 + "px";
       holder.style.width = width + "px";
+      stage2.classList.toggle("fit", zoom === "fit");
+      const k = scale();
       scaler.style.transform = `scale(${k})`;
-      stage2.style.setProperty("--ve-h", "0px");
-      requestAnimationFrame(() => {
-        scaler.style.marginBottom = sheet.offsetHeight * (k - 1) + "px";
-        scaler.style.marginRight = (width + 48) * (k - 1) + "px";
-      });
+      scaler.style.marginBottom = sheet.offsetHeight * (k - 1) + "px";
+      scaler.style.marginRight = (width + 48) * (k - 1) + "px";
     }
     function drawMini() {
       const r = renderVizFull(col.viz, width, { locale: doc2.locale || "en-GB", pal: paletteOf(doc2.theme, doc2.colors), fillH: availH });

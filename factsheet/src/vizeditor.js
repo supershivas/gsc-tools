@@ -73,7 +73,10 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
   /* ----- rendu ----- */
   function scale() {
     if (zoom !== 'fit') return parseFloat(zoom);
-    return Math.max(0.5, Math.min(2, (stage.clientWidth - 80) / (width + 48)));
+    /* « Ajuster » : la feuille tient en entier dans la zone (largeur ET hauteur), donc ni défilement ni rognage */
+    if (stage.clientHeight < 50) return 1;
+    const cs = getComputedStyle(stage), aw = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), ah = stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    return Math.max(0.1, Math.min(2, aw / (width + 48), ah / Math.max(1, sheet.offsetHeight)));
   }
   function draw() {
     const r = renderVizFull(col.viz, width, { locale: doc.locale || 'en-GB', ui, pal: paletteOf(doc.theme, doc.colors), fillH: availH });
@@ -85,11 +88,11 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     hint.textContent = holder.querySelector('[data-reorder]') ? 'Glisser un élément pour changer son ordre : les autres se réajustent en gardant des écarts proportionnels.' : t && t.edit
       ? 'Cliquer un segment ou un libellé pour le sélectionner · glisser l’anneau pour le tourner · glisser un libellé (verticalement, ou de l’autre côté) · glisser le point blanc pour déplacer l’ancrage du trait'
       : '';
-    const k = scale();
     sheet.style.width = width + 48 + 'px'; holder.style.width = width + 'px';
+    stage.classList.toggle('fit', zoom === 'fit');
+    const k = scale();
     scaler.style.transform = `scale(${k})`;
-    stage.style.setProperty('--ve-h', '0px');
-    requestAnimationFrame(() => { scaler.style.marginBottom = (sheet.offsetHeight * (k - 1)) + 'px'; scaler.style.marginRight = ((width + 48) * (k - 1)) + 'px'; });
+    scaler.style.marginBottom = (sheet.offsetHeight * (k - 1)) + 'px'; scaler.style.marginRight = ((width + 48) * (k - 1)) + 'px';
   }
   /* Aperçu réduit du panneau de l'onglet Données : la dataviz à la largeur choisie, mise à l'échelle du panneau */
   function drawMini() {
