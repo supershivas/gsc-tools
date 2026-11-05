@@ -53,7 +53,7 @@ export default {
     };
     for (let i = 0; i < n; i++) {
       const x = (i % cols) * (size + gap), y = Math.floor(i / cols) * (size + gap), on = i < owner.length, c = on ? cats[owner[i]] : null;
-      svg.append(s('rect', { x: x + sw / 2, y: y + sw / 2, width: size - sw, height: size - sw, rx, fill: on ? colorRef(c.color) : 'none', stroke: on ? 'currentColor' : colorRef(cats[0] ? cats[0].color : 'blue'), 'stroke-width': sw }));
+      svg.append(s('rect', { 'data-color': env.ui && on ? `rows.${owner[i]}.color` : null, x: x + sw / 2, y: y + sw / 2, width: size - sw, height: size - sw, rx, fill: on ? colorRef(c.color) : 'none', stroke: on ? 'currentColor' : colorRef(cats[0] ? cats[0].color : 'blue'), 'stroke-width': sw }));
       if (on && c.mark !== 'none') { const m = mark(c.mark, x, y, colorRef(c.markColor)); if (m) svg.append(m); }
     }
     if (LG) drawLegendWrap(svg, LG, gridH + VIZ.legendGap);

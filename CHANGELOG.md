@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.59.0 — 2026-11-05
+- Éditeur de dataviz : un clic sur une barre, un segment d'anneau, un point de courbe ou une case de waffle ouvre le choix de sa couleur
+- Éditeur de dataviz : en réordonnant à la souris, l'élément pris suit le pointeur avec une ombre portée et le reste se réarrange en temps réel
+
 ## 1.58.1 — 2026-11-05
 - Aperçu 3D : ne plante plus quand un texte contient des caractères de contrôle invisibles (souvent collés depuis InDesign, Illustrator ou un PDF) ; le collage dans les champs de texte riche nettoie ces caractères
 - Aperçu 3D : le diagnostic d'erreur indique aussi les attributs et les caractères inhabituels (code Unicode) de l'élément fautif

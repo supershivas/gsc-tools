@@ -27,6 +27,17 @@ const SERIES_COLORS = ['sky', 'yellow', 'blue', 'slate', 'grey'];
 let availH = 360;   // place disponible simulée dans l'aperçu (mode « Remplir »)
 const groupOf = f => f.g || (f.t === 'table' || f.t === 'list' ? 'data' : f.k === 'ratio' ? 'ratio' : LABEL_KEYS.has(f.k) ? 'labels' : 'style');
 
+/** Petite fenêtre de choix de couleur à l'endroit du clic (pastilles de la palette du document) */
+function openColorPop(host, x, y, cur, options, onPick) {
+  document.querySelectorAll('.cpop').forEach(n => n.remove());
+  const away = e => { if (!pop.contains(e.target)) close(); }, close = () => { pop.remove(); document.removeEventListener('pointerdown', away, true); };
+  const pop = h('div', { class: 'cpop', role: 'listbox' }, Object.entries(options).map(([k, l]) => h('button', { type: 'button', role: 'option', class: 'cpop-sw' + (k === cur ? ' on' : ''), title: l, 'aria-label': l, onclick: () => { close(); onPick(k); } }, h('i', { class: 'cs-dot', style: { background: `var(--c-${k})` } }))));
+  host.append(pop);
+  const r = pop.getBoundingClientRect();
+  Object.assign(pop.style, { left: Math.max(8, Math.min(window.innerWidth - r.width - 8, x + 8)) + 'px', top: Math.max(8, Math.min(window.innerHeight - r.height - 8, y + 8)) + 'px' });
+  setTimeout(() => document.addEventListener('pointerdown', away, true), 0);
+}
+
 export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
   if (current) return;
   const doc = ctx.getDoc();
@@ -155,10 +166,20 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     const r = svg.getBoundingClientRect(), k = r.width / (+svg.getAttribute('width') || svgW) || 1;
     return { x: (e.clientX - r.left) / k, y: (e.clientY - r.top) / k };
   };
+  /* Clic sur un élément (barre, segment, point…) : choisir sa couleur. Un glissement (réordonner, tourner) n'ouvre rien. */
+  let suppressClick = false, dragMoved = false, down0 = null;
+  const colorAt = ev => {
+    const n = document.elementsFromPoint(ev.clientX, ev.clientY).find(x => x.getAttribute && x.getAttribute('data-color')); if (!n) return;
+    const path = n.getAttribute('data-color').split('.'), last = path[path.length - 1], parent = () => path.slice(0, -1).reduce((o, k) => o && o[k], col.viz.opts);
+    const cur = parent() && parent()[last];
+    openColorPop(root, ev.clientX, ev.clientY, cur, paletteOptions(doc), key => { const p = parent(); if (p) { p[last] = key; fctx.restructure(); } });
+  };
+  stage.addEventListener('click', e => { if (suppressClick) { suppressClick = false; return; } colorAt(e); });
   stage.addEventListener('pointerdown', e => {
+    suppressClick = false; dragMoved = false; down0 = { x: e.clientX, y: e.clientY };
     /* réordonner à la souris (barres, lignes, frise, pictogrammes, liste) : voir vizreorder.js */
     const rn = e.target.closest && e.target.closest('[data-reorder]');
-    if (rn && e.button === 0 && startReorder(e, rn, { opts: col.viz.opts, root: holder, redraw: draw, done: ch => { if (ch) changed(); else draw(); } })) return;
+    if (rn && e.button === 0 && startReorder(e, rn, { opts: col.viz.opts, root: holder, redraw: draw, click: ev => { suppressClick = true; colorAt(ev); }, done: ch => { if (ch) { suppressClick = true; changed(); } else draw(); } })) return;
     const t = VIZ_TYPES[col.viz.kind];
     const n = e.target.closest && e.target.closest('[data-hit]');
     if (!t || !t.edit || !n || e.button !== 0) { if (t && t.edit && ui.sel !== -1 && !n) { ui.sel = -1; draw(); focusItem('none'); } return; }
@@ -167,8 +188,8 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     if (drag) { e.preventDefault(); stage.setPointerCapture(e.pointerId); }
     draw();
   });
-  stage.addEventListener('pointermove', e => { if (drag) drag.move(toPt(e)); });
-  const up = () => { if (!drag) return; const d = drag; drag = null; if (d.end) d.end(); ui.drag = null; changed(); };
+  stage.addEventListener('pointermove', e => { if (drag) { if (down0 && Math.hypot(e.clientX - down0.x, e.clientY - down0.y) > 3) dragMoved = true; drag.move(toPt(e)); } });
+  const up = () => { if (!drag) return; if (dragMoved) suppressClick = true; const d = drag; drag = null; if (d.end) d.end(); ui.drag = null; changed(); };
   stage.addEventListener('pointerup', up); stage.addEventListener('pointercancel', up);
 
   /* ----- barre ----- */

@@ -73,13 +73,13 @@ export default {
         series.forEach((sr, j) => {
           const v = numVal(r, j); if (!v) return;
           const xa = x0 + acc / max * span, w = v / max * span; acc += v; end = xa + w;
-          svg.append(s('path', { d: acc >= total(r) ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`, fill: colorRef(sr.color), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round' }));
+          svg.append(s('path', { 'data-color': env.ui ? `series.${j}.color` : null, d: acc >= total(r) ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`, fill: colorRef(sr.color), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round' }));
           if ((legIn || (o.labelIn && !r.label)) && sr.name && w > mw(sr.name, TYPE.caption.weight, SANS, capPx) + VIZ.iconGap * 2) svg.append(s('text', { x: xa + w / 2, y: y + bh / 2 + 0.33 * capPx, 'text-anchor': 'middle', 'font-size': capPx, 'font-weight': TYPE.caption.weight }, sr.name));
         });
         inside = decor(y, end - x0, o.labelIn ? r.label : '', o.showValues ? fmt(total(r), env.locale, o.decimals) + suffix : '');
       } else series.forEach((sr, j) => {
         const w = numVal(r, j) / max * span, yy = y + j * (bh + sGap); end = Math.max(end, x0 + w);
-        svg.append(s('path', { d: hPath(x0, yy, Math.max(w, 0.0001), bh, VIZ.barRadius), fill: colorRef(sr.color), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round' }));
+        svg.append(s('path', { 'data-color': env.ui ? `series.${j}.color` : null, d: hPath(x0, yy, Math.max(w, 0.0001), bh, VIZ.barRadius), fill: colorRef(sr.color), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round' }));
         const ins = decor(yy, w, [j === 0 && o.labelIn ? r.label : '', (legIn || (o.labelIn && !r.label)) ? sr.name : ''].filter(Boolean).join(' · '), o.showValues ? fmt(numVal(r, j), env.locale, o.decimals) + suffix : '');
         if (o.showValues && !ins) svg.append(s('text', { x: x0 + w + VIZ.barGap * 1.5, y: yy + bh / 2 + 0.33 * numPx, 'font-size': numPx, 'font-weight': 700, style: { fontFamily: 'var(--t-captionNum-family)' } }, fmt(numVal(r, j), env.locale, o.decimals) + suffix));
       });

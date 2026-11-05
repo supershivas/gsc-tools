@@ -1759,7 +1759,7 @@
         return g;
       };
       const ringNodes = (cx2, cy2) => {
-        const out = arcs.map((p) => s("path", { d: sector(cx2, cy2, p), fill: colorRef(p.g.color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round", "data-hit": ui ? `ring:${idxOf(p.g)}` : null, style: ui ? { cursor: "grab" } : null }));
+        const out = arcs.map((p) => s("path", { "data-color": ui ? `segments.${idxOf(p.g)}.color` : null, d: sector(cx2, cy2, p), fill: colorRef(p.g.color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round", "data-hit": ui ? `ring:${idxOf(p.g)}` : null, style: ui ? { cursor: "grab" } : null }));
         if (ui) arcs.forEach((p) => {
           if (idxOf(p.g) === sel) out.push(s("path", { d: sector(cx2, cy2, p), fill: "none", stroke: ORANGE, "stroke-width": 2, "stroke-linejoin": "round", "pointer-events": "none" }));
         });
@@ -2320,7 +2320,7 @@
         svg.append(s("text", { x: tx, y: top + TYPE.callout.lh / 2 + 0.33 * cv.size, "font-size": cv.size, "font-weight": TYPE.callout.weight }, cv.text));
         svg.append(drawLines(tl.map((l) => ({ ...l, runs: l.runs.map((r) => ({ ...r, b: false })) })), tx, top + TYPE.callout.lh, TYPE.caption.lh, capPx));
       }
-      const bar = (x, y, h2, color, round) => s("path", { d: round ? barPath(x, y, bw, Math.max(h2, 1e-4), VIZ.barRadius) : `M${x},${y}h${bw}v${h2}h${-bw}Z`, fill: colorRef(color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" });
+      const bar = (x, y, h2, color, round, j) => s("path", { "data-color": env.ui ? `series.${j}.color` : null, d: round ? barPath(x, y, bw, Math.max(h2, 1e-4), VIZ.barRadius) : `M${x},${y}h${bw}v${h2}h${-bw}Z`, fill: colorRef(color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" });
       rows.forEach((r, i) => {
         if (stacked) {
           let acc = 0;
@@ -2329,11 +2329,11 @@
             if (!v) return;
             const y0 = yOf(acc + v), h2 = yOf(acc) - y0;
             acc += v;
-            svg.append(bar(barX[i][j], y0, h2, sr.color, j === series.length - 1 || acc >= total(r)));
+            svg.append(bar(barX[i][j], y0, h2, sr.color, j === series.length - 1 || acc >= total(r), j));
           });
         } else series.forEach((sr, j) => {
           const y = yOf(numVal(r, j));
-          svg.append(bar(barX[i][j], y, baseY - y, sr.color, true));
+          svg.append(bar(barX[i][j], y, baseY - y, sr.color, true, j));
         });
       });
       const inValue = /* @__PURE__ */ new Set();
@@ -2543,14 +2543,14 @@
             const xa = x0 + acc / max2 * span, w = v / max2 * span;
             acc += v;
             end = xa + w;
-            svg.append(s("path", { d: acc >= total(r) ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`, fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" }));
+            svg.append(s("path", { "data-color": env.ui ? `series.${j}.color` : null, d: acc >= total(r) ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`, fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" }));
             if ((legIn || o.labelIn && !r.label) && sr.name && w > mw(sr.name, TYPE.caption.weight, SANS, capPx) + VIZ.iconGap * 2) svg.append(s("text", { x: xa + w / 2, y: y + bh / 2 + 0.33 * capPx, "text-anchor": "middle", "font-size": capPx, "font-weight": TYPE.caption.weight }, sr.name));
           });
           inside = decor(y, end - x0, o.labelIn ? r.label : "", o.showValues ? fmt(total(r), env.locale, o.decimals) + suffix : "");
         } else series.forEach((sr, j) => {
           const w = numVal(r, j) / max2 * span, yy = y + j * (bh + sGap);
           end = Math.max(end, x0 + w);
-          svg.append(s("path", { d: hPath(x0, yy, Math.max(w, 1e-4), bh, VIZ.barRadius), fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" }));
+          svg.append(s("path", { "data-color": env.ui ? `series.${j}.color` : null, d: hPath(x0, yy, Math.max(w, 1e-4), bh, VIZ.barRadius), fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" }));
           const ins = decor(yy, w, [j === 0 && o.labelIn ? r.label : "", legIn || o.labelIn && !r.label ? sr.name : ""].filter(Boolean).join(" \xB7 "), o.showValues ? fmt(numVal(r, j), env.locale, o.decimals) + suffix : "");
           if (o.showValues && !ins) svg.append(s("text", { x: x0 + w + VIZ.barGap * 1.5, y: yy + bh / 2 + 0.33 * numPx, "font-size": numPx, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, fmt(numVal(r, j), env.locale, o.decimals) + suffix));
         });
@@ -2608,7 +2608,7 @@
         svg.append(s("path", { d, fill: "none", stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round", "stroke-linecap": "round" }));
       });
       series.forEach((sr, j) => rows.forEach((r, i) => {
-        svg.append(s("circle", { cx: xOf(i), cy: yOf(numVal(r, j)), r: VIZ.pointR, fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW }));
+        svg.append(s("circle", { "data-color": env.ui ? `series.${j}.color` : null, cx: xOf(i), cy: yOf(numVal(r, j)), r: VIZ.pointR, fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW }));
         if (o.showValues) {
           const f = fitText(fmt(numVal(r, j), env.locale, o.decimals) + suffix, 700, SERIF, numPx, slot - 2, 0.5);
           svg.append(s("text", { x: xOf(i), y: yOf(numVal(r, j)) - VIZ.pointR - 3, "text-anchor": "middle", "font-size": f.size, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, f.text));
@@ -4241,7 +4241,7 @@
       };
       for (let i = 0; i < n; i++) {
         const x = i % cols * (size + gap), y = Math.floor(i / cols) * (size + gap), on = i < owner.length, c2 = on ? cats[owner[i]] : null;
-        svg.append(s("rect", { x: x + sw / 2, y: y + sw / 2, width: size - sw, height: size - sw, rx, fill: on ? colorRef(c2.color) : "none", stroke: on ? "currentColor" : colorRef(cats[0] ? cats[0].color : "blue"), "stroke-width": sw }));
+        svg.append(s("rect", { "data-color": env.ui && on ? `rows.${owner[i]}.color` : null, x: x + sw / 2, y: y + sw / 2, width: size - sw, height: size - sw, rx, fill: on ? colorRef(c2.color) : "none", stroke: on ? "currentColor" : colorRef(cats[0] ? cats[0].color : "blue"), "stroke-width": sw }));
         if (on && c2.mark !== "none") {
           const m2 = mark(c2.mark, x, y, colorRef(c2.markColor));
           if (m2) svg.append(m2);
@@ -6822,7 +6822,7 @@ ${short}`)])
 
   // src/vizreorder.js
   var ORANGE2 = "#F28C28";
-  function startReorder(e, target, { opts, root, redraw, done }) {
+  function startReorder(e, target, { opts, root, redraw, done, click }) {
     const [key, i0s] = target.getAttribute("data-reorder").split(":"), i0 = +i0s, axis = target.getAttribute("data-axis") || "x";
     const arr0 = (opts[key] || []).slice(), n = arr0.length;
     if (n < 2) return false;
@@ -6833,7 +6833,25 @@ ${short}`)])
       centers[j] = axis === "x" ? (r.left + r.right) / 2 : (r.top + r.bottom) / 2;
     });
     const others = centers.map((c2, j) => [c2, j]).filter(([c2, j]) => j !== i0 && c2 != null);
-    let cur = i0;
+    let cur = i0, moved = false;
+    const svgEl = target.closest("svg"), host = rootEl().closest && rootEl().closest(".ve") || document.body;
+    let ghost = null;
+    const x0 = e.clientX, y0 = e.clientY;
+    const makeGhost = () => {
+      if (!svgEl) return;
+      const tr2 = target.getBoundingClientRect(), sr = svgEl.getBoundingClientRect(), k = sr.width / (+svgEl.getAttribute("width") || sr.width) || 1;
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      g.setAttribute("viewBox", `${(tr2.left - sr.left) / k} ${(tr2.top - sr.top) / k} ${tr2.width / k} ${tr2.height / k}`);
+      g.setAttribute("fill", "currentColor");
+      Object.assign(g.style, { position: "fixed", left: tr2.left + "px", top: tr2.top + "px", width: tr2.width + "px", height: tr2.height + "px", overflow: "visible", pointerEvents: "none", zIndex: 80, filter: "drop-shadow(0 12px 16px rgba(0,0,0,.35)) drop-shadow(0 2px 3px rgba(0,0,0,.25))", opacity: 0.96, color: getComputedStyle(svgEl).color });
+      svgEl.querySelectorAll("path,rect,circle,line,text,image").forEach((nd) => {
+        if (nd.closest("[data-reorder]") || nd.hasAttribute("data-reorder")) return;
+        const r = nd.getBoundingClientRect(), cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
+        if (cx >= tr2.left && cx <= tr2.right && cy >= tr2.top && cy <= tr2.bottom) g.append(nd.cloneNode(true));
+      });
+      host.append(g);
+      ghost = { el: g, left: tr2.left, top: tr2.top };
+    };
     const mark = () => {
       const nd = rootEl().querySelector(`[data-reorder="${key}:${cur}"]`);
       if (!nd) return;
@@ -6845,6 +6863,11 @@ ${short}`)])
       } else nd.style.outline = `1.5px dashed ${ORANGE2}`;
     };
     const move = (ev) => {
+      if (!moved && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 3) {
+        moved = true;
+        makeGhost();
+      }
+      if (ghost) ghost.el.style.transform = `translate(${axis === "x" ? ev.clientX - x0 : 0}px, ${axis === "y" ? ev.clientY - y0 : 0}px)`;
       const p = axis === "x" ? ev.clientX : ev.clientY, fwd = p > centers[i0];
       let t2 = 0;
       for (const [c2] of others) if (fwd ? c2 <= p : c2 < p) t2++;
@@ -6861,9 +6884,18 @@ ${short}`)])
       window.removeEventListener("pointerup", up);
       window.removeEventListener("keydown", esc, true);
       document.body.style.cursor = "";
+      if (ghost) {
+        ghost.el.remove();
+        ghost = null;
+      }
     };
-    const up = () => {
+    const up = (ev) => {
       stop();
+      if (!moved && click) {
+        click(ev);
+        done(false);
+        return;
+      }
       done(cur !== i0);
     };
     const esc = (ev) => {
@@ -7196,6 +7228,23 @@ ${short}`)])
   var SERIES_COLORS2 = ["sky", "yellow", "blue", "slate", "grey"];
   var availH = 360;
   var groupOf = (f) => f.g || (f.t === "table" || f.t === "list" ? "data" : f.k === "ratio" ? "ratio" : LABEL_KEYS.has(f.k) ? "labels" : "style");
+  function openColorPop(host, x, y, cur, options, onPick) {
+    document.querySelectorAll(".cpop").forEach((n) => n.remove());
+    const away = (e) => {
+      if (!pop2.contains(e.target)) close3();
+    }, close3 = () => {
+      pop2.remove();
+      document.removeEventListener("pointerdown", away, true);
+    };
+    const pop2 = h("div", { class: "cpop", role: "listbox" }, Object.entries(options).map(([k, l]) => h("button", { type: "button", role: "option", class: "cpop-sw" + (k === cur ? " on" : ""), title: l, "aria-label": l, onclick: () => {
+      close3();
+      onPick(k);
+    } }, h("i", { class: "cs-dot", style: { background: `var(--c-${k})` } }))));
+    host.append(pop2);
+    const r = pop2.getBoundingClientRect();
+    Object.assign(pop2.style, { left: Math.max(8, Math.min(window.innerWidth - r.width - 8, x + 8)) + "px", top: Math.max(8, Math.min(window.innerHeight - r.height - 8, y + 8)) + "px" });
+    setTimeout(() => document.addEventListener("pointerdown", away, true), 0);
+  }
   function openVizEditor({ col, sub, ci, bg, width: colW, ctx: ctx2 }) {
     if (current2) return;
     const doc2 = ctx2.getDoc();
@@ -7398,11 +7447,40 @@ ${short}`)])
       const r = svg.getBoundingClientRect(), k = r.width / (+svg.getAttribute("width") || svgW) || 1;
       return { x: (e.clientX - r.left) / k, y: (e.clientY - r.top) / k };
     };
+    let suppressClick2 = false, dragMoved = false, down0 = null;
+    const colorAt = (ev) => {
+      const n = document.elementsFromPoint(ev.clientX, ev.clientY).find((x) => x.getAttribute && x.getAttribute("data-color"));
+      if (!n) return;
+      const path = n.getAttribute("data-color").split("."), last = path[path.length - 1], parent = () => path.slice(0, -1).reduce((o, k) => o && o[k], col.viz.opts);
+      const cur = parent() && parent()[last];
+      openColorPop(root, ev.clientX, ev.clientY, cur, paletteOptions(doc2), (key) => {
+        const p = parent();
+        if (p) {
+          p[last] = key;
+          fctx.restructure();
+        }
+      });
+    };
+    stage2.addEventListener("click", (e) => {
+      if (suppressClick2) {
+        suppressClick2 = false;
+        return;
+      }
+      colorAt(e);
+    });
     stage2.addEventListener("pointerdown", (e) => {
+      suppressClick2 = false;
+      dragMoved = false;
+      down0 = { x: e.clientX, y: e.clientY };
       const rn = e.target.closest && e.target.closest("[data-reorder]");
-      if (rn && e.button === 0 && startReorder(e, rn, { opts: col.viz.opts, root: holder, redraw: draw, done: (ch) => {
-        if (ch) changed();
-        else draw();
+      if (rn && e.button === 0 && startReorder(e, rn, { opts: col.viz.opts, root: holder, redraw: draw, click: (ev) => {
+        suppressClick2 = true;
+        colorAt(ev);
+      }, done: (ch) => {
+        if (ch) {
+          suppressClick2 = true;
+          changed();
+        } else draw();
       } })) return;
       const t2 = VIZ_TYPES[col.viz.kind];
       const n = e.target.closest && e.target.closest("[data-hit]");
@@ -7423,10 +7501,14 @@ ${short}`)])
       draw();
     });
     stage2.addEventListener("pointermove", (e) => {
-      if (drag2) drag2.move(toPt(e));
+      if (drag2) {
+        if (down0 && Math.hypot(e.clientX - down0.x, e.clientY - down0.y) > 3) dragMoved = true;
+        drag2.move(toPt(e));
+      }
     });
     const up = () => {
       if (!drag2) return;
+      if (dragMoved) suppressClick2 = true;
       const d = drag2;
       drag2 = null;
       if (d.end) d.end();

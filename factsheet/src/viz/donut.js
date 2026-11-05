@@ -150,7 +150,7 @@ export default {
       return g;
     };
     const ringNodes = (cx, cy) => {
-      const out = arcs.map(p => s('path', { d: sector(cx, cy, p), fill: colorRef(p.g.color), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round', 'data-hit': ui ? `ring:${idxOf(p.g)}` : null, style: ui ? { cursor: 'grab' } : null }));
+      const out = arcs.map(p => s('path', { 'data-color': ui ? `segments.${idxOf(p.g)}.color` : null, d: sector(cx, cy, p), fill: colorRef(p.g.color), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round', 'data-hit': ui ? `ring:${idxOf(p.g)}` : null, style: ui ? { cursor: 'grab' } : null }));
       if (ui) arcs.forEach(p => { if (idxOf(p.g) === sel) out.push(s('path', { d: sector(cx, cy, p), fill: 'none', stroke: ORANGE, 'stroke-width': 2, 'stroke-linejoin': 'round', 'pointer-events': 'none' })); });
       return out;
     };
