@@ -28,7 +28,7 @@ export default {
     { k: 'legendPos', t: 'select', label: 'Position de la légende (« Dans les barres » : noms des séries écrits dans chaque barre, sans légende séparée)', options: { bottom: 'En bas', top: 'En haut', inside: 'Dans les barres' } },
     { k: 'showValues', t: 'bool', label: 'Afficher les valeurs (empilées : total)' },
     { k: 'barSize', t: 'select', label: 'Épaisseur des barres', options: { thin: 'Fine', normal: 'Normale', thick: 'Épaisse' } },
-    { k: 'groupSpace', t: 'select', label: 'Espace entre les groupes de barres', options: { tight: 'Réduit', normal: 'Normal', loose: 'Large' } },
+    { k: 'groupSpace', t: 'select', label: 'Espace entre les groupes de barres', options: { none: 'Aucun', tight: 'Réduit', normal: 'Normal', loose: 'Large' } },
     { k: 'serSpace', t: 'select', label: 'Espace entre les barres d’un même groupe', options: { none: 'Aucun', tight: 'Réduit', normal: 'Normal', loose: 'Large' } },
     { k: 'valuesIn', t: 'bool', label: 'Valeurs dans les barres (si elles rentrent)' },
     { k: 'labelIn', t: 'bool', label: 'Libellés dans les barres (au pied de la barre)' },
@@ -54,7 +54,7 @@ export default {
     let max = 0; rows.forEach(r => { if (stacked) max = Math.max(max, total(r)); else series.forEach((_, j) => { max = Math.max(max, numVal(r, j)); }); }); if (!max) max = 1;
     const slot = x1 / n;
     const sGap = VIZ.barGap * ({ none: 0, tight: 0.5, normal: 1, loose: 2 }[o.serSpace] ?? 1), wf = ({ thin: 0.7, thick: 1.3 }[o.barSize] ?? 1) * ({ tight: 1.2, loose: 0.8 }[o.groupSpace] ?? 1), capW = VIZ.barMaxW * Math.max(1, wf);
-    const bw = Math.min(slot * 0.92, wf * (stacked ? Math.min(slot * 0.5, VIZ.barMaxW) : overlap ? Math.min(slot * 0.44, VIZ.barMaxW) : Math.min((slot * 0.72 - (k - 1) * sGap) / k, VIZ.barMaxW)));
+    const bw = o.groupSpace === 'none' ? (stacked || overlap ? slot : Math.max(2, (slot - (k - 1) * sGap) / k)) : Math.min(slot * 0.92, wf * (stacked ? Math.min(slot * 0.5, VIZ.barMaxW) : overlap ? Math.min(slot * 0.44, VIZ.barMaxW) : Math.min((slot * 0.72 - (k - 1) * sGap) / k, VIZ.barMaxW)));
     const capPx = pxOf(TYPE.caption.size), numPx = pxOf(TYPE.captionNum.size);
     const yOf = v => baseY - v / max * plotH;
     const suffix = o.suffix || '';

@@ -235,7 +235,13 @@ function open(opts) {
   Promise.resolve().then(opts.load).then(pages => {
     if (closed) return;
     try { init(pages); msg.remove(); } catch (e) { msg.textContent = L.noWebgl; }
-  }).catch(e => { console.error('Aperçu 3D', e); if (!closed) msg.textContent = L.error + (e && e.message ? ' (' + e.message + ')' : ''); });
+  }).catch(e => {
+    console.error('Aperçu 3D', e); if (closed) return;
+    const txt = L.error + (e && e.message ? ' (' + e.message + ')' : '');
+    msg.textContent = ''; msg.classList.add('err');
+    const copy = el('button', { type: 'button', class: 'v3d-copy', textContent: L.copy || 'Copy', onclick: () => { try { navigator.clipboard.writeText(txt); copy.textContent = '✓'; } catch (x) { /* sélection manuelle */ } } });
+    msg.append(el('span', { class: 'v3d-errtxt', textContent: txt }), copy);
+  });
   return { close };
 }
 

@@ -51,7 +51,14 @@ function withHead(viz, node) {
   const hd = viz.head || {};
   if (!node || !(hd.title || '').trim() && !(hd.source || '').trim()) return node;
   const wrap = el('div', { class: 'viz-wrap' });
-  if ((hd.title || '').trim()) wrap.append(el('div', { class: 'viz-title', innerHTML: inlineMk(hd.title) }));
+  if ((hd.title || '').trim()) {   // titre : une ligne = un paragraphe, préfixes # à ##### = titre 1, titre 2, légende, chiffre clé, chiffre clé (petit)
+    const T = el('div', { class: 'viz-title' });
+    String(hd.title).replace(/\r\n?/g, '\n').split('\n').filter(l => l.trim()).forEach(l => {
+      const m = l.trim().match(/^(#{1,5})\s+(.*)$/);
+      T.append(el('div', { class: m ? 'p-' + ['h1', 'h2', 'cap', 'fig', 'figsm'][m[1].length - 1] : '', innerHTML: inlineMk(m ? m[2] : l.trim()) }));
+    });
+    wrap.append(T);
+  }
   wrap.append(node);
   if ((hd.source || '').trim()) wrap.append(el('div', { class: 'viz-source', innerHTML: inlineMk(hd.source) }));
   return wrap;

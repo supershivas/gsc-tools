@@ -56,7 +56,12 @@ function describe(node, doc) {
 
 /** L'image SVG de la page n'a pas pu être lue : on teste chaque image, puis chaque colonne, séparément, pour trouver la fautive */
 async function diagnose(pageEl, vars, css, doc) {
-  const one = el => pageSvg(vars, css, new XMLSerializer().serializeToString(el));
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const one = el => {   // un élément SVG ne peut pas être seul dans la page : on le replace dans un <svg> (et un tspan dans un <text>)
+    let x = new XMLSerializer().serializeToString(el);
+    if (el.namespaceURI === SVGNS && el.localName !== 'svg') { if (el.localName === 'tspan') x = `<text xmlns="${SVGNS}">${x}</text>`; x = `<svg xmlns="${SVGNS}" width="400" height="400">${x}</svg>`; }
+    return pageSvg(vars, css, x);
+  };
   const bad = [];
   for (const im of pageEl.querySelectorAll('img')) { if (!(await loads(one(im)))) bad.push(describe(im, doc)); }
   if (!bad.length) for (const c of pageEl.querySelectorAll('[data-sel^="col:"], [data-sel="header"]')) { if (!(await loads(one(c)))) { const deep = await deepFault(c, one); bad.push(describe(c, doc) + (deep ? ' → ' + deep : '')); } }

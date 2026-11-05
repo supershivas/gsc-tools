@@ -126,15 +126,23 @@ function renderCol(col, w, path, env) {
     wrap.append(node || h('div', { class: 'viz-ph' }, h('span', { textContent: 'dataviz' })));
     if (node && env.fills && col.viz.opts && (col.viz.opts.hmode === 'fill' || col.viz.opts.hmode === 'match')) env.fills.push({ page: env.page, col, w, node, wrap, env, mode: col.viz.opts.hmode });
   }
-  /* textes libres de la colonne : posés où l'on veut (x et largeur en % de la colonne, y en px), déplaçables à la souris dans l'aperçu */
+  /* textes de la colonne : « libre » = posé où l'on veut (x et largeur en % de la colonne, y en px, déplaçable à la souris) ;
+     « au-dessus » / « en dessous » = dans le flux, sur toute la largeur, avant ou après le contenu */
   if (Array.isArray(col.texts) && col.texts.length) {
-    wrap.style.position = 'relative';
+    const above = [], below = [];
     col.texts.forEach((tx, i) => {
       if (!String(tx.text || '').trim()) return;
+      if (tx.mode === 'above' || tx.mode === 'below') {
+        (tx.mode === 'above' ? above : below).push(h('div', { class: 'col-text-flow', style: { marginTop: tx.mode === 'below' ? '9px' : '0', marginBottom: tx.mode === 'above' ? '9px' : '0' } }, richText(tx.text, tx.align || 'left')));
+        return;
+      }
+      wrap.style.position = 'relative';
       const st = { position: 'absolute', left: (+tx.x || 0) + '%', width: (+tx.w || 50) + '%', zIndex: 2 };
       if (tx.y == null) st.bottom = '0'; else st.top = (+tx.y || 0) + 'px';
       wrap.append(h('div', { class: 'col-text-free', style: st, dataset: { free: `${path}:${i}` } }, richText(tx.text, tx.align || 'left')));
     });
+    if (above.length) wrap.prepend(...above);
+    if (below.length) wrap.append(...below);
   }
   if (col.type !== 'viz' && +col.minH > 0) {   // hauteur minimale réglée à la poignée : le contenu se place dans la colonne selon valign
     Object.assign(wrap.style, { minHeight: col.minH + 'px', display: 'flex', flexDirection: 'column', alignSelf: isBox(col) ? 'stretch' : 'start', justifyContent: { start: 'flex-start', center: 'center', end: 'flex-end' }[al] });

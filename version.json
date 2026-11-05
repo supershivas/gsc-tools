@@ -1,7 +1,11 @@
 {
-  "version": "1.57.3",
+  "version": "1.58.0",
   "date": "2026-11-04",
   "changes": [
-    "Aperçu 3D : en cas d'erreur, le diagnostic descend dans la colonne fautive et nomme l'élément précis (balise, classe, début du texte)"
+    "Médias importés : la liste des icônes importées n'encombre plus chaque panneau ; elle a sa fenêtre (Édition › Médias importés…) pour renommer, retirer et importer",
+    "Barres verticales : « Espace entre les groupes de barres » accepte « Aucun » (barres jointives)",
+    "Titre d'une dataviz : texte riche avec styles de paragraphe (titre 1, titre 2, légende, chiffre clé)",
+    "Textes d'une colonne : placement « libre », « au-dessus du contenu » ou « en dessous du contenu »",
+    "Aperçu 3D : message d'erreur sélectionnable avec bouton « Copier l'erreur », diagnostic des éléments SVG corrigé"
   ]
 }

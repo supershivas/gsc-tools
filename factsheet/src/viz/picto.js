@@ -79,11 +79,9 @@ export async function importSvgFile(file) {
 function importParts(o, ctx, hint) {
   const ico = n => el('i', { class: 'ti ti-' + n });
   const inp = el('input', { type: 'file', accept: '.svg,image/svg+xml', hidden: true, onchange: async () => { const f = inp.files[0]; inp.value = ''; if (f && await importSvgFile(f)) ctx.restructure(); } });
-  const list = customList(o).map(c => el('div', { class: 'row', style: { justifyContent: 'space-between' } }, el('span', { textContent: c.name }),
-    el('button', { type: 'button', class: 'mini danger', title: t('Retirer'), onclick: () => { const i = iconLib.list.findIndex(k => k.id === c.id); if (i >= 0) iconLib.list.splice(i, 1); if (o.customIcons) o.customIcons = o.customIcons.filter(k => k.id !== c.id); ctx.restructure(); } }, ico('x'))));
   return [el('button', { type: 'button', class: 'pp-btn', onclick: () => inp.click() }, ico('upload'), el('span', { textContent: t('Importer un SVG…') })), inp,
     el('label', { class: 'row' }, el('input', { type: 'checkbox', checked: o.recolor !== false, onchange: e => { o.recolor = e.target.checked; ctx.changed(); } }), t('Recolorer le SVG importé avec la couleur choisie')),
-    hint ? el('p', { class: 'hint', textContent: t(hint) }) : null, ...list].filter(Boolean);
+    hint ? el('p', { class: 'hint', textContent: t(hint) }) : null].filter(Boolean);
 }
 /** Carte « Pictogramme » de l'éditeur : choix du pictogramme et import d'un SVG */
 export function pictoPanel(o, ctx) {
@@ -91,7 +89,7 @@ export function pictoPanel(o, ctx) {
   return [el('div', { class: 'f' }, el('div', { class: 'hint', textContent: t('Pictogramme') }), sel), ...importParts(o, ctx)];
 }
 /** Import d'icônes SVG (liste à icônes, barres…) : les icônes importées sont communes à tout le document */
-export function iconImportPanel(o, ctx) { return importParts(o, ctx, 'Les icônes importées sont disponibles partout dans le document, dans chaque choix d’icône.'); }
+export function iconImportPanel(o, ctx) { return importParts(o, ctx); }
 
 const VARIANTS = {
   rows: { label: 'Pictogrammes · barres', icon: 'layout-list' },

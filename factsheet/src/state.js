@@ -114,7 +114,7 @@ export function migrate(j) {
   /* icônes importées : anciennes icônes propres à une dataviz → bibliothèque du document */
   d.customIcons = Array.isArray(j.customIcons) ? j.customIcons : [];
   /* ancien texte libre de colonne (col.free) → textes libres positionnables (col.texts) */
-  for (const sec of d.sections || []) for (const sb of sec.subs || []) for (const cl of sb.cols || []) if (cl.free) { if (cl.free.on && String(cl.free.text || '').trim()) { const f = cl.free, w = (f.pos === 'left' || f.pos === 'right') ? (+f.share || 35) : 100; (cl.texts = cl.texts || []).push({ x: f.pos === 'right' ? 100 - w : 0, y: f.pos === 'bottom' ? null : 0, w, text: f.text }); } delete cl.free; }
+  for (const sec of d.sections || []) for (const sb of sec.subs || []) for (const cl of sb.cols || []) if (cl.free) { if (cl.free.on && String(cl.free.text || '').trim()) { const f = cl.free, w = (f.pos === 'left' || f.pos === 'right') ? (+f.share || 35) : 100; (cl.texts = cl.texts || []).push(f.pos === 'top' || f.pos === 'bottom' ? { mode: f.pos === 'top' ? 'above' : 'below', text: f.text } : { x: f.pos === 'right' ? 100 - w : 0, y: 0, w, text: f.text }); } delete cl.free; }
   for (const sec of d.sections || []) for (const sb of sec.subs || []) for (const cl of sb.cols || []) for (const ic of ((cl.viz && cl.viz.opts && cl.viz.opts.customIcons) || [])) if (!d.customIcons.some(x => x.id === ic.id)) d.customIcons.push(ic);
   d.header = Object.assign(defaultDoc().header, j.header || {});
   migrateHeader(d.header, j.header || {});

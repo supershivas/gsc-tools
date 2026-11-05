@@ -392,6 +392,17 @@
     "Annuler": "Cancel",
     "Exporter": "Export",
     "Terminer": "Done",
+    "M\xE9dias import\xE9s\u2026": "Imported media\u2026",
+    "M\xE9dias import\xE9s": "Imported media",
+    "Aucun m\xE9dia import\xE9.": "No imported media.",
+    "Ic\xF4nes SVG import\xE9es : disponibles dans chaque choix d\u2019ic\xF4ne du document. Les retirer les retire partout.": "Imported SVG icons: available in every icon choice of the document. Removing one removes it everywhere.",
+    "Copier l\u2019erreur": "Copy the error",
+    "Placement": "Placement",
+    "Libre (glisser dans l\u2019aper\xE7u)": "Free (drag in the preview)",
+    "Au-dessus du contenu": "Above the content",
+    "En dessous du contenu": "Below the content",
+    "Glisser un texte \xAB libre \xBB dans l\u2019aper\xE7u pour le placer o\xF9 l\u2019on veut dans la colonne ; \xAB au-dessus \xBB ou \xAB en dessous \xBB le met dans le flux, avant ou apr\xE8s le contenu.": "Drag a \u201Cfree\u201D text in the preview to place it anywhere in the column; \u201Cabove\u201D or \u201Cbelow\u201D puts it in the flow, before or after the content.",
+    "Titre de la dataviz (facultatif) \u2014 styles de paragraphe : titre 1, titre 2, chiffre cl\xE9\u2026": "Dataviz title (optional) \u2014 paragraph styles: heading 1, heading 2, key figure\u2026",
     "Textes libres": "Free texts",
     "Ajouter un texte": "Add a text",
     "Glisser un texte dans l\u2019aper\xE7u pour le placer o\xF9 l\u2019on veut dans la colonne.": "Drag a text in the preview to place it anywhere in the column.",
@@ -2065,17 +2076,6 @@
       inp.value = "";
       if (f && await importSvgFile(f)) ctx2.restructure();
     } });
-    const list = customList(o).map((c2) => el(
-      "div",
-      { class: "row", style: { justifyContent: "space-between" } },
-      el("span", { textContent: c2.name }),
-      el("button", { type: "button", class: "mini danger", title: t("Retirer"), onclick: () => {
-        const i = iconLib.list.findIndex((k) => k.id === c2.id);
-        if (i >= 0) iconLib.list.splice(i, 1);
-        if (o.customIcons) o.customIcons = o.customIcons.filter((k) => k.id !== c2.id);
-        ctx2.restructure();
-      } }, ico2("x"))
-    ));
     return [
       el("button", { type: "button", class: "pp-btn", onclick: () => inp.click() }, ico2("upload"), el("span", { textContent: t("Importer un SVG\u2026") })),
       inp,
@@ -2083,8 +2083,7 @@
         o.recolor = e.target.checked;
         ctx2.changed();
       } }), t("Recolorer le SVG import\xE9 avec la couleur choisie")),
-      hint ? el("p", { class: "hint", textContent: t(hint) }) : null,
-      ...list
+      hint ? el("p", { class: "hint", textContent: t(hint) }) : null
     ].filter(Boolean);
   }
   function pictoPanel(o, ctx2) {
@@ -2095,7 +2094,7 @@
     return [el("div", { class: "f" }, el("div", { class: "hint", textContent: t("Pictogramme") }), sel), ...importParts(o, ctx2)];
   }
   function iconImportPanel(o, ctx2) {
-    return importParts(o, ctx2, "Les ic\xF4nes import\xE9es sont disponibles partout dans le document, dans chaque choix d\u2019ic\xF4ne.");
+    return importParts(o, ctx2);
   }
   var VARIANTS = {
     rows: { label: "Pictogrammes \xB7 barres", icon: "layout-list" },
@@ -2245,7 +2244,7 @@
       { k: "legendPos", t: "select", label: "Position de la l\xE9gende (\xAB Dans les barres \xBB : noms des s\xE9ries \xE9crits dans chaque barre, sans l\xE9gende s\xE9par\xE9e)", options: { bottom: "En bas", top: "En haut", inside: "Dans les barres" } },
       { k: "showValues", t: "bool", label: "Afficher les valeurs (empil\xE9es : total)" },
       { k: "barSize", t: "select", label: "\xC9paisseur des barres", options: { thin: "Fine", normal: "Normale", thick: "\xC9paisse" } },
-      { k: "groupSpace", t: "select", label: "Espace entre les groupes de barres", options: { tight: "R\xE9duit", normal: "Normal", loose: "Large" } },
+      { k: "groupSpace", t: "select", label: "Espace entre les groupes de barres", options: { none: "Aucun", tight: "R\xE9duit", normal: "Normal", loose: "Large" } },
       { k: "serSpace", t: "select", label: "Espace entre les barres d\u2019un m\xEAme groupe", options: { none: "Aucun", tight: "R\xE9duit", normal: "Normal", loose: "Large" } },
       { k: "valuesIn", t: "bool", label: "Valeurs dans les barres (si elles rentrent)" },
       { k: "labelIn", t: "bool", label: "Libell\xE9s dans les barres (au pied de la barre)" },
@@ -2283,7 +2282,7 @@
       if (!max2) max2 = 1;
       const slot = x1 / n;
       const sGap = VIZ.barGap * ({ none: 0, tight: 0.5, normal: 1, loose: 2 }[o.serSpace] ?? 1), wf = ({ thin: 0.7, thick: 1.3 }[o.barSize] ?? 1) * ({ tight: 1.2, loose: 0.8 }[o.groupSpace] ?? 1), capW = VIZ.barMaxW * Math.max(1, wf);
-      const bw = Math.min(slot * 0.92, wf * (stacked ? Math.min(slot * 0.5, VIZ.barMaxW) : overlap ? Math.min(slot * 0.44, VIZ.barMaxW) : Math.min((slot * 0.72 - (k - 1) * sGap) / k, VIZ.barMaxW)));
+      const bw = o.groupSpace === "none" ? stacked || overlap ? slot : Math.max(2, (slot - (k - 1) * sGap) / k) : Math.min(slot * 0.92, wf * (stacked ? Math.min(slot * 0.5, VIZ.barMaxW) : overlap ? Math.min(slot * 0.44, VIZ.barMaxW) : Math.min((slot * 0.72 - (k - 1) * sGap) / k, VIZ.barMaxW)));
       const capPx = pxOf(TYPE.caption.size), numPx = pxOf(TYPE.captionNum.size);
       const yOf = (v) => baseY - v / max2 * plotH;
       const suffix = o.suffix || "";
@@ -4478,7 +4477,14 @@
     const hd = viz.head || {};
     if (!node || !(hd.title || "").trim() && !(hd.source || "").trim()) return node;
     const wrap = el("div", { class: "viz-wrap" });
-    if ((hd.title || "").trim()) wrap.append(el("div", { class: "viz-title", innerHTML: inlineMk(hd.title) }));
+    if ((hd.title || "").trim()) {
+      const T = el("div", { class: "viz-title" });
+      String(hd.title).replace(/\r\n?/g, "\n").split("\n").filter((l) => l.trim()).forEach((l) => {
+        const m2 = l.trim().match(/^(#{1,5})\s+(.*)$/);
+        T.append(el("div", { class: m2 ? "p-" + ["h1", "h2", "cap", "fig", "figsm"][m2[1].length - 1] : "", innerHTML: inlineMk(m2 ? m2[2] : l.trim()) }));
+      });
+      wrap.append(T);
+    }
     wrap.append(node);
     if ((hd.source || "").trim()) wrap.append(el("div", { class: "viz-source", innerHTML: inlineMk(hd.source) }));
     return wrap;
@@ -4709,7 +4715,7 @@ ${short}`)])
     for (const sec of d.sections || []) for (const sb of sec.subs || []) for (const cl of sb.cols || []) if (cl.free) {
       if (cl.free.on && String(cl.free.text || "").trim()) {
         const f = cl.free, w = f.pos === "left" || f.pos === "right" ? +f.share || 35 : 100;
-        (cl.texts = cl.texts || []).push({ x: f.pos === "right" ? 100 - w : 0, y: f.pos === "bottom" ? null : 0, w, text: f.text });
+        (cl.texts = cl.texts || []).push(f.pos === "top" || f.pos === "bottom" ? { mode: f.pos === "top" ? "above" : "below", text: f.text } : { x: f.pos === "right" ? 100 - w : 0, y: 0, w, text: f.text });
       }
       delete cl.free;
     }
@@ -5072,14 +5078,21 @@ ${short}`)])
       if (node && env.fills && col.viz.opts && (col.viz.opts.hmode === "fill" || col.viz.opts.hmode === "match")) env.fills.push({ page: env.page, col, w, node, wrap, env, mode: col.viz.opts.hmode });
     }
     if (Array.isArray(col.texts) && col.texts.length) {
-      wrap.style.position = "relative";
+      const above = [], below = [];
       col.texts.forEach((tx, i) => {
         if (!String(tx.text || "").trim()) return;
+        if (tx.mode === "above" || tx.mode === "below") {
+          (tx.mode === "above" ? above : below).push(h("div", { class: "col-text-flow", style: { marginTop: tx.mode === "below" ? "9px" : "0", marginBottom: tx.mode === "above" ? "9px" : "0" } }, richText(tx.text, tx.align || "left")));
+          return;
+        }
+        wrap.style.position = "relative";
         const st = { position: "absolute", left: (+tx.x || 0) + "%", width: (+tx.w || 50) + "%", zIndex: 2 };
         if (tx.y == null) st.bottom = "0";
         else st.top = (+tx.y || 0) + "px";
         wrap.append(h("div", { class: "col-text-free", style: st, dataset: { free: `${path}:${i}` } }, richText(tx.text, tx.align || "left")));
       });
+      if (above.length) wrap.prepend(...above);
+      if (below.length) wrap.append(...below);
     }
     if (col.type !== "viz" && +col.minH > 0) {
       Object.assign(wrap.style, { minHeight: col.minH + "px", display: "flex", flexDirection: "column", alignSelf: isBox(col) ? "stretch" : "start", justifyContent: { start: "flex-start", center: "center", end: "flex-end" }[al] });
@@ -6570,7 +6583,15 @@ ${short}`)])
           tx.text = v;
           ctx2.changed();
         }),
-        h("div", { class: "row" }, num2("X (% de la colonne)", tx, "x", 0, 100), num2("Largeur (%)", tx, "w", 10, 100), tx.y == null ? null : num2("Y (px)", tx, "y", 0, 2e3))
+        field("Placement", (() => {
+          const sl = h("select", { onchange: (e) => {
+            tx.mode = e.target.value;
+            ctx2.restructure();
+          } }, [["free", "Libre (glisser dans l\u2019aper\xE7u)"], ["above", "Au-dessus du contenu"], ["below", "En dessous du contenu"]].map(([v, l]) => h("option", { value: v, textContent: t(l) })));
+          sl.value = tx.mode || "free";
+          return sl;
+        })()),
+        (tx.mode || "free") === "free" ? h("div", { class: "row" }, num2("X (% de la colonne)", tx, "x", 0, 100), num2("Largeur (%)", tx, "w", 10, 100), tx.y == null ? null : num2("Y (px)", tx, "y", 0, 2e3)) : null
       ));
       return [
         ...items,
@@ -6578,7 +6599,7 @@ ${short}`)])
           arr.push({ x: 0, y: arr.length * 30, w: 50, text: "Texte libre" });
           ctx2.restructure();
         } }, ico("plus"), h("span", { textContent: t("Ajouter un texte") })),
-        h("p", { class: "hint", textContent: t("Glisser un texte dans l\u2019aper\xE7u pour le placer o\xF9 l\u2019on veut dans la colonne.") })
+        h("p", { class: "hint", textContent: t("Glisser un texte \xAB libre \xBB dans l\u2019aper\xE7u pour le placer o\xF9 l\u2019on veut dans la colonne ; \xAB au-dessus \xBB ou \xAB en dessous \xBB le met dans le flux, avant ou apr\xE8s le contenu.") })
       ];
     };
     const actions = (...b) => h("div", { class: "pp-actions" }, ...b);
@@ -7339,7 +7360,7 @@ ${short}`)])
         form.append(card("dv-data", "table", t("Donn\xE9es"), nodes));
       } else {
         form.append(...[
-          card("dv-head", "typography", t("Titre et source"), buildFields([{ k: "title", t: "text", rich: true, label: "Titre de la dataviz (facultatif)" }, { k: "source", t: "text", rich: true, label: "Source (facultatif)" }], head, fctx, {}, h)),
+          card("dv-head", "typography", t("Titre et source"), buildFields([{ k: "title", t: "area", label: "Titre de la dataviz (facultatif) \u2014 styles de paragraphe : titre 1, titre 2, chiffre cl\xE9\u2026" }, { k: "source", t: "text", rich: true, label: "Source (facultatif)" }], head, fctx, {}, h)),
           ty.panel ? card("dv-picto", "mood-smile", t(ty.panelTitle || "Pictogramme"), ty.panel(col.viz.opts, fctx)) : null,
           card("dv-side", "number", t("Chiffre \xE0 c\xF4t\xE9"), buildFields(SIDE_FIELDS, col.viz.side || (col.viz.side = newSide(col.viz.kind)), fctx, {}, h)),
           ty.heights ? heightCard(ty) : null,
@@ -7480,6 +7501,51 @@ ${short}`)])
     loadFonts().then(() => {
       if (current2 === root) draw();
     });
+  }
+
+  // src/media.js
+  function openMedia(ctx2) {
+    const dlg2 = h("dialog", { class: "media-dlg" });
+    const inp = h("input", { type: "file", accept: ".svg,image/svg+xml", multiple: true, hidden: true, onchange: async () => {
+      const files = [...inp.files];
+      inp.value = "";
+      for (const f of files) await importSvgFile(f);
+      ctx2.changed();
+      draw();
+    } });
+    const draw = () => {
+      const rows = iconLib.list.map((c2) => h(
+        "div",
+        { class: "media-row" },
+        h("span", { class: "media-prev" }, iconGlyph("custom:" + c2.id, null, 28)),
+        h("input", { type: "text", value: c2.name, "aria-label": t("Nom"), oninput: (e) => {
+          c2.name = e.target.value;
+          ctx2.changed();
+        } }),
+        h("button", { type: "button", class: "mini danger", title: t("Retirer"), "aria-label": t("Retirer"), onclick: () => {
+          const i = iconLib.list.findIndex((k) => k.id === c2.id);
+          if (i >= 0) iconLib.list.splice(i, 1);
+          ctx2.changed();
+          draw();
+        } }, ico("x"))
+      ));
+      dlg2.replaceChildren(
+        h("h3", { textContent: t("M\xE9dias import\xE9s") }),
+        h("p", { class: "hint", textContent: t("Ic\xF4nes SVG import\xE9es : disponibles dans chaque choix d\u2019ic\xF4ne du document. Les retirer les retire partout.") }),
+        ...rows.length ? rows : [h("p", { class: "hint", textContent: t("Aucun m\xE9dia import\xE9.") })],
+        h(
+          "div",
+          { class: "row", style: { justifyContent: "space-between", marginTop: "12px" } },
+          h("button", { type: "button", class: "pp-btn", onclick: () => inp.click() }, ico("upload"), h("span", { textContent: t("Importer un SVG\u2026") })),
+          inp,
+          h("button", { type: "button", class: "primary", textContent: t("Fermer"), onclick: () => dlg2.close() })
+        )
+      );
+    };
+    dlg2.addEventListener("close", () => dlg2.remove());
+    draw();
+    document.body.append(dlg2);
+    dlg2.showModal();
   }
 
   // src/hover.js
@@ -7904,7 +7970,15 @@ ${short}`)])
     return m2 ? `colonne ${+m2[1] + 1}\xB7${+m2[2] + 1}\xB7${+m2[3] + 1}${node.tagName === "IMG" ? ` (image \xAB ${file2} \xBB)` : ""}` : path || node.tagName.toLowerCase();
   }
   async function diagnose(pageEl, vars, css, doc2) {
-    const one = (el2) => pageSvg(vars, css, new XMLSerializer().serializeToString(el2));
+    const SVGNS = "http://www.w3.org/2000/svg";
+    const one = (el2) => {
+      let x = new XMLSerializer().serializeToString(el2);
+      if (el2.namespaceURI === SVGNS && el2.localName !== "svg") {
+        if (el2.localName === "tspan") x = `<text xmlns="${SVGNS}">${x}</text>`;
+        x = `<svg xmlns="${SVGNS}" width="400" height="400">${x}</svg>`;
+      }
+      return pageSvg(vars, css, x);
+    };
     const bad = [];
     for (const im of pageEl.querySelectorAll("img")) {
       if (!await loads(one(im))) bad.push(describe(im, doc2));
@@ -8937,6 +9011,7 @@ ${short}`)])
         { label: "Historique des modifications\u2026", icon: "history", run: () => toggleHistory() },
         "-",
         { label: "Couleurs du document\u2026", icon: "palette", run: () => openPalette(nameIn, ctx) },
+        { label: "M\xE9dias import\xE9s\u2026", icon: "photo", run: () => openMedia(ctx) },
         { heading: "Format des nombres" },
         ...Object.entries(LOCALES).map(([k, l]) => ({ label: l, checked: () => doc.locale === k, run: () => {
           doc.locale = k;
@@ -9018,6 +9093,7 @@ ${short}`)])
         single: t("Une feuille"),
         reset: t("Recentrer"),
         close: t("Fermer"),
+        copy: t("Copier l\u2019erreur"),
         hint: t("Glisser : tourner la feuille \xB7 clic droit ou Maj : la d\xE9placer \xB7 molette : zoomer"),
         error: t("Impossible de g\xE9n\xE9rer l\u2019aper\xE7u 3D dans ce navigateur."),
         noWebgl: t("WebGL indisponible."),
