@@ -294,6 +294,18 @@
   }
   var getLang = () => lang;
   var EN = {
+    /* panneau d'élément (tête collante, accordéon) et éditeur de dataviz */
+    "Avanc\xE9": "Advanced",
+    "En-t\xEAte": "Header",
+    "Colonne pr\xE9c\xE9dente": "Previous column",
+    "Colonne suivante": "Next column",
+    "Aucun": "None",
+    "Auto": "Auto",
+    "Proportion": "Ratio",
+    "Remplir": "Fill",
+    "Voisine": "Neighbour",
+    "Retour \xE0 l\u2019aper\xE7u": "Back to the preview",
+    "Aper\xE7u": "Preview",
     /* page */
     "Zoom": "Zoom",
     "Ajuster": "Fit",
@@ -2364,13 +2376,13 @@
       const bar = (x, y, h2, color, round, j, i) => s("path", { "data-color": env.ui ? `rows.${i}.colors.${j}` : null, "data-color-base": env.ui ? `series.${j}.color` : null, d: round ? barPath(x, y, bw, Math.max(h2, 1e-4), VIZ.barRadius) : `M${x},${y}h${bw}v${h2}h${-bw}Z`, fill: colorRef(color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" });
       rows.forEach((r, i) => {
         if (stacked) {
-          let acc = 0;
+          let acc2 = 0;
           series.forEach((sr, j) => {
             const v = numVal(r, j);
             if (!v) return;
-            const y0 = yOf(acc + v), h2 = yOf(acc) - y0;
-            acc += v;
-            svg.append(bar(barX[i][j], y0, h2, elColor(r, j, sr), j === series.length - 1 || acc >= total(r), j, i));
+            const y0 = yOf(acc2 + v), h2 = yOf(acc2) - y0;
+            acc2 += v;
+            svg.append(bar(barX[i][j], y0, h2, elColor(r, j, sr), j === series.length - 1 || acc2 >= total(r), j, i));
           });
         } else series.forEach((sr, j) => {
           const y = yOf(numVal(r, j));
@@ -2585,14 +2597,14 @@
         }
         let end = x0, inside = false;
         if (stacked) {
-          let acc = 0;
+          let acc2 = 0;
           series.forEach((sr, j) => {
             const v = numVal(r, j);
             if (!v) return;
-            const xa = x0 + acc / max2 * span, w = v / max2 * span;
-            acc += v;
+            const xa = x0 + acc2 / max2 * span, w = v / max2 * span;
+            acc2 += v;
             end = xa + w;
-            svg.append(s("path", { "data-color": env.ui ? `rows.${i}.colors.${j}` : null, "data-color-base": env.ui ? `series.${j}.color` : null, d: acc >= total(r) ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`, fill: colorRef(elColor(r, j, sr)), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" }));
+            svg.append(s("path", { "data-color": env.ui ? `rows.${i}.colors.${j}` : null, "data-color-base": env.ui ? `series.${j}.color` : null, d: acc2 >= total(r) ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`, fill: colorRef(elColor(r, j, sr)), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" }));
             if ((legIn || o.labelIn && !r.label) && sr.name && w > mw(sr.name, TYPE.caption.weight, SANS, capPx) + VIZ.iconGap * 2) svg.append(s("text", { x: xa + w / 2, y: y + bh / 2 + 0.33 * capPx, "text-anchor": "middle", "font-size": capPx, "font-weight": TYPE.caption.weight }, sr.name));
           });
           inside = decor(y, end - x0, o.labelIn ? r.label : "", o.showValues ? fmt(total(r), env.locale, o.decimals) + suffix : "");
@@ -5868,10 +5880,13 @@ ${short}`)])
   }
 
   // src/cards.js
-  function cardEl(id, icon, name, nodes, { shut: shut3, refresh, toggle = null, live = true }) {
-    const open3 = !shut3.has(id), show2 = open3 && live;
+  function cardEl(id, icon, name, nodes, { shut: shut3, refresh, toggle = null, live = true, acc: acc2 = null, sum: sum2 = "" }) {
+    const open3 = acc2 ? (acc2.cur ?? acc2.first) === id : !shut3.has(id), show2 = open3 && live;
     const flip = () => {
-      open3 ? shut3.add(id) : shut3.delete(id);
+      if (acc2) acc2.cur = open3 ? "" : id;
+      else {
+        open3 ? shut3.add(id) : shut3.delete(id);
+      }
       refresh();
     };
     return h(
@@ -5887,6 +5902,7 @@ ${short}`)])
         h("b", { textContent: name }),
         helpBtn(name),
         h("span", { class: "pp-sp" }),
+        !open3 && sum2 ? h("em", { class: "pp-sum", textContent: sum2 }) : null,
         toggle,
         h("button", {
           type: "button",
@@ -6383,6 +6399,9 @@ ${short}`)])
 
   // src/props.js
   var shut = /* @__PURE__ */ new Set();
+  var accs = {};
+  var FIRST = { header: "hd-text", sec: "sec-main", sub: "sub-main", col: "col-content" };
+  var HMODE = { auto: "Auto", ratio: "Proportion", fixed: "Fixe", fill: "Remplir", match: "Voisine" };
   function buildProps(root, ctx2) {
     const doc2 = ctx2.getDoc(), path = ctx2.getSel();
     root.innerHTML = "";
@@ -6631,7 +6650,9 @@ ${short}`)])
     };
     const switchBtn = (on, label, fn) => h("button", { type: "button", role: "switch", "aria-checked": String(!!on), "aria-label": label, class: "pp-switch" + (on ? " on" : ""), onclick: fn });
     const switchRow = (label, on, fn) => h("div", { class: "pp-switchrow" }, h("span", {}, label, helpBtn(label)), switchBtn(on, label, struct(fn)));
-    const card = (id, icon, name, nodes, toggle) => cardEl(id, icon, name, nodes, { shut, refresh: ctx2.refreshProps, live: !toggle || toggle.on, toggle: toggle ? switchBtn(toggle.on, name, struct(toggle.set)) : null });
+    const card = (id, icon, name, nodes, toggle, sum2) => cardEl(id, icon, name, nodes, { shut, refresh: ctx2.refreshProps, live: !toggle || toggle.on, toggle: toggle ? switchBtn(toggle.on, name, struct(toggle.set)) : null, acc: acc2, sum: sum2 });
+    const sumColor = (c2) => !c2 || c2 === "none" ? t("Aucun") : t(colorLabel(doc2, c2));
+    const sumBox = (o) => [o.fillColor && o.fillColor !== "none" ? sumColor(o.fillColor) : null, o.stroke ? t("Contour") : null].filter(Boolean).join(" \xB7 ") || t("Aucun");
     const btn = (icon, label, fn, cls = "") => h("button", { type: "button", class: "pp-btn " + cls, onclick: fn }, ico(icon), h("span", { textContent: label }));
     const boxControls = (obj, fillLabel = "Fond") => [
       swatches(fillLabel, obj, "fillColor", toneKeys(doc2), true),
@@ -6641,11 +6662,22 @@ ${short}`)])
       swatches("Hachures", obj, "hatch", toneKeys(doc2), true),
       obj.stroke ? swatches("Couleur du contour", obj, "strokeColor", toneKeys(doc2)) : null
     ];
-    const title = (name, crumbs = []) => root.append(h(
+    const title = (name, crumbs = [], o = {}) => root.append(h(
       "div",
       { class: "pr-head" },
-      h("div", { class: "crumbs" }, crumbs.flatMap(([l, p]) => [h("a", { textContent: l, onclick: () => ctx2.select(p) }), " \u203A "])),
-      h("h2", { textContent: name })
+      h(
+        "div",
+        { class: "pr-id" },
+        o.icon ? h("span", { class: "pr-ic" }, ico(o.icon)) : null,
+        h(
+          "div",
+          { class: "pr-tx" },
+          crumbs.length ? h("div", { class: "crumbs" }, crumbs.flatMap(([l, p], k) => [k ? " \u203A " : "", h("a", { textContent: l, onclick: () => ctx2.select(p) })])) : null,
+          h("h2", { textContent: name }),
+          o.pill ? h("span", { class: "pr-pill", textContent: o.pill }) : null
+        )
+      ),
+      o.acts && o.acts.length ? h("div", { class: "pr-acts" }, o.acts.map(([i, l, fn, cls]) => h("button", { type: "button", class: "pr-ib " + (cls || ""), title: l, "aria-label": l, onclick: fn }, ico(i)))) : null
     ));
     const freeTexts = (col2) => {
       const arr = col2.texts || (col2.texts = []);
@@ -6686,6 +6718,7 @@ ${short}`)])
     const actions = (...b) => h("div", { class: "pp-actions" }, ...b);
     const P = (path || "").split(":"), kind = P[0] || "doc", si = +P[1], bi = +P[2], ci = +P[3];
     const sec = doc2.sections[si], sub = sec && sec.subs[bi], col = sub && sub.cols[ci];
+    const acc2 = accs[kind] ||= { cur: null, first: FIRST[kind] };
     const ICONS2 = { text: "text-size", image: "photo", card: "layout-cards", figure: "number", viz: "chart-bar" };
     if (kind === "doc") {
       root.append(h(
@@ -6697,10 +6730,10 @@ ${short}`)])
       ));
     } else if (kind === "header") {
       const H = doc2.header;
-      title("Header");
+      title("Header", [], { icon: "layout-navbar", pill: t("En-t\xEAte") });
       root.append(
         card("hd-text", "typography", t("Texte"), [text(H, "overline", "Surtitre"), text(H, "title", "Titre (taille fixe)"), text(H, "subtitle", "Sous-titre (optionnel \u2014 vide = masqu\xE9)")]),
-        card("hd-colors", "palette", t("Couleurs"), [swatches("Couleur de fond", H, "bg", toneKeys(doc2)), swatches("Couleur du texte", H, "fg", toneKeys(doc2))]),
+        card("hd-colors", "palette", t("Couleurs"), [swatches("Couleur de fond", H, "bg", toneKeys(doc2)), swatches("Couleur du texte", H, "fg", toneKeys(doc2))], null, sumColor(H.bg)),
         card("hd-image", "photo", t("Image"), [imageLibrary(H)], { on: H.showImage, set: () => {
           H.showImage = !H.showImage;
         } }),
@@ -6709,7 +6742,15 @@ ${short}`)])
         } })
       );
     } else if (kind === "sec" && sec) {
-      title(sec.title || "Section");
+      title(sec.title || "Section", [], { icon: "layout-rows", pill: sec.page === "recto" ? t("Recto") : t("Verso"), acts: [
+        ["arrow-up", t("Monter"), struct(() => {
+          stepSection(doc2, si, -1);
+        })],
+        ["arrow-down", t("Descendre"), struct(() => {
+          stepSection(doc2, si, 1);
+        })],
+        ["trash", t("Supprimer"), () => ctx2.remove(`sec:${si}`), "danger"]
+      ] });
       root.append(
         card("sec-main", "layout-rows", t("Section"), [
           text(sec, "title", "Titre de section"),
@@ -6729,20 +6770,26 @@ ${short}`)])
           } }, "ruleColor", toneKeys(doc2)) : null,
           select(sec, "page", "Page", { recto: "Recto", verso: "Verso" }, () => ctx2.restructure())
         ]),
-        card("sec-bg", "color-swatch", t("Fond de la section"), [swatches("Fond", sec, "bg", toneKeys(doc2), true)]),
-        card("sec-frame", "border-all", t("Cadre"), boxControls(sec, "Fond du cadre")),
-        actions(
-          btn("arrow-up", t("Monter"), struct(() => {
-            stepSection(doc2, si, -1);
-          })),
-          btn("arrow-down", t("Descendre"), struct(() => {
-            stepSection(doc2, si, 1);
-          })),
-          btn("trash", t("Supprimer"), () => ctx2.remove(`sec:${si}`), "danger")
-        )
+        card("sec-bg", "color-swatch", t("Fond de la section"), [swatches("Fond", sec, "bg", toneKeys(doc2), true)], null, sumColor(sec.bg)),
+        card("sec-frame", "border-all", t("Cadre"), boxControls(sec, "Fond du cadre"), null, sumBox(sec))
       );
     } else if (kind === "sub" && sub) {
-      title(sub.title || "Sous-section", [[sec.title || "Section", `sec:${si}`]]);
+      title(sub.title || "Sous-section", [[sec.title || "Section", `sec:${si}`]], { icon: "columns", pill: sub.layout, acts: [
+        ["arrow-up", t("Monter"), struct(() => {
+          const j = bi - 1;
+          if (j >= 0) [sec.subs[bi], sec.subs[j]] = [sec.subs[j], sec.subs[bi]];
+        })],
+        ["arrow-down", t("Descendre"), struct(() => {
+          const j = bi + 1;
+          if (j < sec.subs.length) [sec.subs[bi], sec.subs[j]] = [sec.subs[j], sec.subs[bi]];
+        })],
+        ["copy", t("Dupliquer"), struct(() => {
+          const c2 = JSON.parse(JSON.stringify(sub));
+          c2.id = (sub.id || "sub") + "c" + Date.now() % 1e5;
+          sec.subs.splice(bi + 1, 0, c2);
+        })],
+        ["trash", t("Supprimer"), () => ctx2.remove(`sub:${si}:${bi}`), "danger"]
+      ] });
       const mv = (() => {
         const s2 = h(
           "select",
@@ -6776,26 +6823,22 @@ ${short}`)])
           } })),
           field("D\xE9placer vers la section", mv)
         ]),
-        card("sub-box", "border-all", t("Fond et contour"), boxControls(sub)),
-        actions(
-          btn("arrow-up", t("Monter"), struct(() => {
-            const j = bi - 1;
-            if (j >= 0) [sec.subs[bi], sec.subs[j]] = [sec.subs[j], sec.subs[bi]];
-          })),
-          btn("arrow-down", t("Descendre"), struct(() => {
-            const j = bi + 1;
-            if (j < sec.subs.length) [sec.subs[bi], sec.subs[j]] = [sec.subs[j], sec.subs[bi]];
-          })),
-          btn("copy", t("Dupliquer"), struct(() => {
-            const c2 = JSON.parse(JSON.stringify(sub));
-            c2.id = (sub.id || "sub") + "c" + Date.now() % 1e5;
-            sec.subs.splice(bi + 1, 0, c2);
-          })),
-          btn("trash", t("Supprimer"), () => ctx2.remove(`sub:${si}:${bi}`), "danger")
-        )
+        card("sub-box", "border-all", t("Fond et contour"), boxControls(sub), null, sumBox(sub))
       );
     } else if (kind === "col" && col) {
-      title(`Colonne ${ci + 1}`, [[sec.title || "Section", `sec:${si}`], [sub.title || "Sous-section", `sub:${si}:${bi}`]]);
+      const nb = sub.cols.length, vt0 = col.type === "viz" && col.viz && VIZ_TYPES[col.viz.kind];
+      const nudge = (d) => () => {
+        const to = ci + d;
+        if (to < 0 || to >= nb) return;
+        ctx2.moved(() => {
+          swapCols(doc2, { si, bi, ci }, { si, bi, ci: to });
+          return `col:${si}:${bi}:${to}`;
+        });
+      };
+      title(`Colonne ${ci + 1}`, [[sec.title || "Section", `sec:${si}`], [sub.title || "Sous-section", `sub:${si}:${bi}`]], { icon: ICONS2[col.type] || "text-size", pill: t(COL_TYPES[col.type]) + (vt0 ? " \xB7 " + t(vt0.label) : ""), acts: [
+        ...nb > 1 ? [ci > 0 ? ["arrow-left", t("Colonne pr\xE9c\xE9dente"), nudge(-1)] : null, ci < nb - 1 ? ["arrow-right", t("Colonne suivante"), nudge(1)] : null].filter(Boolean) : [],
+        ["trash", t("Supprimer la colonne"), () => ctx2.remove(`col:${si}:${bi}:${ci}`), "danger"]
+      ] });
       const typeSel = field("Type de contenu", h(
         "select",
         { onchange: (e) => {
@@ -6878,23 +6921,23 @@ ${short}`)])
       })());
       const vt = col.type === "viz" && col.viz && VIZ_TYPES[col.viz.kind];
       root.append(
-        card("col-content", ICONS2[col.type] || "text-size", t("Contenu"), [typeSel, ...editor]),
-        card("col-free", "text-size", t("Textes libres"), freeTexts(col)),
-        col.type === "text" || col.type === "card" ? card("col-side", "number", t("Chiffre \xE0 c\xF4t\xE9"), buildFields(SIDE_FIELDS, col.side || (col.side = newColSide()), ctx2, {}, h)) : null,
-        vt && vt.heights ? card("col-height", "ruler-2", t("Hauteur"), heightNodes(vt, col.viz.opts, { ctx: ctx2, width: columnWidth(doc2, si, bi, ci) })) : col.type !== "viz" ? card("col-height", "ruler-2", t("Hauteur"), [
+        card("col-content", ICONS2[col.type] || "text-size", t("Contenu"), [typeSel, ...editor], null, t(COL_TYPES[col.type]) + (vt ? " \xB7 " + t(vt.label) : "")),
+        vt && vt.heights ? card("col-height", "ruler-2", t("Hauteur"), heightNodes(vt, col.viz.opts, { ctx: ctx2, width: columnWidth(doc2, si, bi, ci) }), null, t(HMODE[col.viz.opts.hmode] || "Auto")) : col.type !== "viz" ? card("col-height", "ruler-2", t("Hauteur"), [
           field("Hauteur minimale (px, 0 = automatique)", h("input", { type: "number", min: 0, max: 1e3, step: 3, value: col.minH || 0, oninput: (e) => {
             col.minH = Math.max(0, +e.target.value || 0);
             ctx2.changed();
           } })),
           h("p", { class: "hint", textContent: t("Ou glisser la poign\xE9e sous la colonne dans l\u2019aper\xE7u : elle se cale sur la colonne voisine.") })
-        ]) : null,
+        ], null, col.minH ? col.minH + " px" : t("Auto")) : null,
         card("col-layout", "layout-align-middle", t("Disposition"), [
           segmented("Alignement vertical dans la colonne", col, "valign", VALIGNS, { top: t("Haut"), center: t("Centre"), bottom: t("Bas") }),
           col.type === "text" ? segmented("Alignement du texte", col, "align", ALIGNS, { left: t("Gauche"), center: t("Centr\xE9"), right: t("Droite"), justify: t("Justifi\xE9") }) : null,
           swap
-        ]),
-        col.type !== "card" ? card("col-box", "border-all", t("Fond et contour"), boxControls(col)) : null,
-        actions(btn("trash", t("Supprimer la colonne"), () => ctx2.remove(`col:${si}:${bi}:${ci}`), "danger"))
+        ], null, t({ top: "Haut", center: "Centre", bottom: "Bas" }[col.valign || "top"])),
+        col.type !== "card" ? card("col-box", "border-all", t("Fond et contour"), boxControls(col), null, sumBox(col)) : null,
+        h("div", { class: "pr-adv", textContent: "Avanc\xE9" }),
+        card("col-free", "text-size", t("Textes libres"), freeTexts(col), null, String((col.texts || []).length || t("Aucun"))),
+        col.type === "text" || col.type === "card" ? card("col-side", "number", t("Chiffre \xE0 c\xF4t\xE9"), buildFields(SIDE_FIELDS, col.side || (col.side = newColSide()), ctx2, {}, h)) : null
       );
     } else {
       title("\xC9l\xE9ment introuvable");
@@ -7305,6 +7348,7 @@ ${short}`)])
   var shut2 = /* @__PURE__ */ new Set();
   var tab = "data";
   shut2.add("dv-type");
+  var acc = { cur: null, first: "dv-style" };
   var LABEL_KEYS = /* @__PURE__ */ new Set(["legend", "showValues", "decimals", "suffix", "totalTpl", "layout"]);
   var SERIES_COLORS2 = ["sky", "yellow", "blue", "slate", "grey"];
   var availH = 360;
@@ -7364,12 +7408,14 @@ ${short}`)])
     sheet.append(holder);
     const scaler = h("div", { class: "ve-scaler" }, sheet);
     const stage2 = h("div", { class: "ve-stage" }, scaler);
+    const dataPane = h("div", { class: "ve-data" }), miniHold = h("div", { class: "ve-mini" });
     const form = h("aside", { class: "panel ve-form" });
     const hint = h("div", { class: "ve-hint" });
-    const body = h("div", { class: "ve-body" });
+    const body = h("div", { class: "ve-body" }), main = h("div", { class: "ve-main" });
     const tabBtns = [["data", "table", "Donn\xE9es"], ["viz", "adjustments", "Visualisation"]].map(([k, ic, l]) => h("button", { type: "button", class: "ve-tab", dataset: { tab: k }, onclick: () => {
       tab = k;
       buildForm();
+      draw();
     } }, ico(ic), h("span", { textContent: t(l) })));
     const tabs = h("div", { class: "ve-tabs", role: "tablist" }, ...tabBtns);
     const syncTabs = (hasData) => {
@@ -7393,8 +7439,9 @@ ${short}`)])
         svgW = width;
       }
       hiliteSel();
+      if (miniHold.isConnected) drawMini();
       const t2 = VIZ_TYPES[col.viz.kind];
-      hint.textContent = holder.querySelector("[data-reorder]") ? "Glisser un \xE9l\xE9ment pour changer son ordre : les autres se r\xE9ajustent en gardant des \xE9carts proportionnels." : t2 && t2.edit ? "Cliquer un segment ou un libell\xE9 pour le s\xE9lectionner \xB7 glisser l\u2019anneau pour le tourner \xB7 glisser un libell\xE9 (verticalement, ou de l\u2019autre c\xF4t\xE9) \xB7 glisser le point blanc pour d\xE9placer l\u2019ancrage du trait" : "Les modifications du formulaire s\u2019appliquent en direct.";
+      hint.textContent = holder.querySelector("[data-reorder]") ? "Glisser un \xE9l\xE9ment pour changer son ordre : les autres se r\xE9ajustent en gardant des \xE9carts proportionnels." : t2 && t2.edit ? "Cliquer un segment ou un libell\xE9 pour le s\xE9lectionner \xB7 glisser l\u2019anneau pour le tourner \xB7 glisser un libell\xE9 (verticalement, ou de l\u2019autre c\xF4t\xE9) \xB7 glisser le point blanc pour d\xE9placer l\u2019ancrage du trait" : "";
       const k = scale();
       sheet.style.width = width + 48 + "px";
       holder.style.width = width + "px";
@@ -7403,6 +7450,16 @@ ${short}`)])
       requestAnimationFrame(() => {
         scaler.style.marginBottom = sheet.offsetHeight * (k - 1) + "px";
         scaler.style.marginRight = (width + 48) * (k - 1) + "px";
+      });
+    }
+    function drawMini() {
+      const r = renderVizFull(col.viz, width, { locale: doc2.locale || "en-GB", pal: paletteOf(doc2.theme, doc2.colors), fillH: availH });
+      miniHold.innerHTML = "";
+      if (!r || !r.node) return;
+      const k = Math.min(1, 270 / (width + 48)), box = h("div", { class: "page viz-sheet ve-mini-sheet", style: { width: width + 48 + "px", transform: `scale(${k})`, transformOrigin: "0 0", background: bg && bg !== "none" ? `var(--c-${bg})` : "#fff" } }, h("div", { class: "col col-viz", style: { width: width + "px" } }, r.node));
+      miniHold.append(h("div", { class: "ve-mini-box" }, box));
+      requestAnimationFrame(() => {
+        miniHold.firstChild.style.height = Math.ceil(box.offsetHeight * k) + "px";
       });
     }
     const hist = { s: [snapshot2], i: 0, at: 0, burst: false };
@@ -7465,7 +7522,7 @@ ${short}`)])
       }
     };
     const refreshForm = () => buildForm();
-    const card = (id, icon, name, nodes) => cardEl(id, icon, name, nodes, { shut: shut2, refresh: refreshForm });
+    const card = (id, icon, name, nodes, sum2) => cardEl(id, icon, name, nodes, { shut: shut2, refresh: refreshForm, acc, sum: sum2 });
     const typeCard = () => {
       const cur = VIZ_TYPES[col.viz.kind], list = h("div", { class: "ve-typelist", role: "listbox" });
       for (const [fk, fl] of Object.entries(VIZ_FAMILIES)) {
@@ -7486,24 +7543,20 @@ ${short}`)])
           }
         }, ico(v.icon || "chart-bar"), h("span", { textContent: t(v.label) }))));
       }
-      const el2 = card("dv-type", cur.icon || "chart-bar", `${t("Type")} \xB7 ${t(cur.label)}`, [list]);
+      const el2 = cardEl("dv-type", cur.icon || "chart-bar", `${t("Type")} \xB7 ${t(cur.label)}`, [list], { shut: shut2, refresh: refreshForm });
       el2.classList.add("ve-typecard");
       return el2;
     };
-    const heightCard = (ty) => card("dv-height", "ruler-2", t("Hauteur"), heightNodes(ty, col.viz.opts, { ctx: fctx, width, avail: { get: () => availH, set: (v) => {
-      availH = v;
-      draw();
-    } } }));
     function buildForm() {
       const top = form.scrollTop;
       form.innerHTML = "";
-      form.append(typeCard(), tabs);
+      dataPane.innerHTML = "";
       const ty = VIZ_TYPES[col.viz.kind], fields = ty.fields || [], F = (g) => fields.filter((f) => groupOf(f) === g);
       const head = col.viz.head || (col.viz.head = { title: "", source: "" });
       const dataFields = F("data"), hasData = !!ty.data || dataFields.length > 0;
       if (!hasData) tab = "viz";
       syncTabs(hasData);
-      body.classList.toggle("data", tab === "data");
+      main.classList.toggle("is-data", tab === "data");
       const gen = (list) => buildFields(list, col.viz.opts, fctx, paletteOptions(doc2), h);
       if (tab === "data") {
         const nodes = [];
@@ -7512,13 +7565,21 @@ ${short}`)])
           else nodes.push(...gen([f]));
         }
         if (ty.data) nodes.push(gridEditor(recordsAdapter(ty.data, col.viz.opts, paletteOptions(doc2)), fctx, { downloadName: col.viz.kind }), ty.dataHint ? h("p", { class: "hint", textContent: t(ty.dataHint) }) : null);
-        form.append(card("dv-data", "table", t("Donn\xE9es"), nodes));
+        dataPane.append(h("div", { class: "ve-data-in" }, h("h3", {}, ico("table"), h("span", { textContent: t("Donn\xE9es") })), ...nodes.flat().filter(Boolean)));
+        form.append(h("div", { class: "ve-sech", textContent: t("Aper\xE7u") }), miniHold, h("button", { type: "button", class: "pp-btn", onclick: () => {
+          tab = "viz";
+          buildForm();
+          draw();
+        } }, ico("chart-line"), h("span", { textContent: t("Retour \xE0 l\u2019aper\xE7u") })));
+        drawMini();
       } else {
-        form.append(...[
+        const ids = ["dv-head", ty.panel && "dv-picto", "dv-side", F("format").length && "dv-format", "dv-colors", F("labels").length && "dv-labels", (F("style").length || ty.actions) && "dv-style"].filter(Boolean);
+        acc.first = ["dv-style", "dv-labels", "dv-colors"].find((x) => ids.includes(x));
+        if (acc.cur && !ids.includes(acc.cur)) acc.cur = null;
+        form.append(typeCard(), ...[
           card("dv-head", "typography", t("Titre et source"), buildFields([{ k: "title", t: "area", label: "Titre de la dataviz (facultatif) \u2014 styles de paragraphe : titre 1, titre 2, chiffre cl\xE9\u2026" }, { k: "source", t: "text", rich: true, label: "Source (facultatif)" }], head, fctx, {}, h)),
           ty.panel ? card("dv-picto", "mood-smile", t(ty.panelTitle || "Pictogramme"), ty.panel(col.viz.opts, fctx)) : null,
           card("dv-side", "number", t("Chiffre \xE0 c\xF4t\xE9"), buildFields(SIDE_FIELDS, col.viz.side || (col.viz.side = newSide(col.viz.kind)), fctx, {}, h)),
-          ty.heights ? heightCard(ty) : null,
           F("format").length ? card("dv-format", "ruler-2", t("Dimensions"), gen(F("format"))) : null,
           card("dv-colors", "palette", t("Couleurs"), [h("button", { type: "button", class: "pp-btn", onclick: (e) => openPalette(e.currentTarget, palCtx) }, ico("palette"), h("span", { textContent: t("Couleurs du document") }))]),
           F("labels").length ? card("dv-labels", "letter-case", t("\xC9tiquettes"), gen(F("labels"))) : null,
@@ -7706,18 +7767,19 @@ ${short}`)])
       h(
         "div",
         { class: "ve-bar" },
-        h("strong", { textContent: "\xC9diteur de dataviz" }),
-        undoBtn2,
-        redoBtn2,
-        h("label", { class: "zoom" }, "Aper\xE7u \xE0 la largeur ", wSel),
-        h("label", { class: "zoom" }, "Zoom ", zSel),
-        h("span", { style: { flex: 1 } }),
-        h("button", { type: "button", textContent: "Annuler", onclick: () => close3(false) }),
-        h("button", { type: "button", class: "primary", textContent: "Terminer", onclick: () => close3(true) })
+        h("div", { class: "ve-bl" }, h("strong", { textContent: "\xC9diteur de dataviz" }), undoBtn2, redoBtn2),
+        tabs,
+        h(
+          "div",
+          { class: "ve-br" },
+          h("button", { type: "button", textContent: "Annuler", onclick: () => close3(false) }),
+          h("button", { type: "button", class: "primary", textContent: "Terminer", onclick: () => close3(true) })
+        )
       ),
       body
     );
-    body.append(form, h("div", { class: "ve-main" }, hint, stage2));
+    main.append(h("div", { class: "ve-viewbar" }, h("label", { class: "zoom" }, "Aper\xE7u \xE0 la largeur ", wSel), h("label", { class: "zoom" }, "Zoom ", zSel), hint), stage2, dataPane);
+    body.append(main, form);
     document.body.append(root);
     document.body.classList.add("ve-open");
     current2 = root;

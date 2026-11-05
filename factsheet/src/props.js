@@ -16,6 +16,9 @@ import { ICON_OPTIONS, customChoices } from './viz/icons.js';
 import { iconSelect } from './iconselect.js';
 
 const shut = new Set();   // cartes repliées (gardées d'une sélection à l'autre)
+/* Accordéon : une seule carte ouverte à la fois par sorte d'élément (la première au départ) ; l'état est gardé d'une sélection à l'autre */
+const accs = {}, FIRST = { header: 'hd-text', sec: 'sec-main', sub: 'sub-main', col: 'col-content' };
+const HMODE = { auto: 'Auto', ratio: 'Proportion', fixed: 'Fixe', fill: 'Remplir', match: 'Voisine' };
 
 export function buildProps(root, ctx) {
   const doc = ctx.getDoc(), path = ctx.getSel();
@@ -122,7 +125,9 @@ export function buildProps(root, ctx) {
   const switchBtn = (on, label, fn) => h('button', { type: 'button', role: 'switch', 'aria-checked': String(!!on), 'aria-label': label, class: 'pp-switch' + (on ? ' on' : ''), onclick: fn });
   const switchRow = (label, on, fn) => h('div', { class: 'pp-switchrow' }, h('span', {}, label, helpBtn(label)), switchBtn(on, label, struct(fn)));
   /** toggle : { on, set } — l'interrupteur de l'en-tête affiche ou masque l'élément (la carte se replie quand il est éteint) */
-  const card = (id, icon, name, nodes, toggle) => cardEl(id, icon, name, nodes, { shut, refresh: ctx.refreshProps, live: !toggle || toggle.on, toggle: toggle ? switchBtn(toggle.on, name, struct(toggle.set)) : null });
+  const card = (id, icon, name, nodes, toggle, sum) => cardEl(id, icon, name, nodes, { shut, refresh: ctx.refreshProps, live: !toggle || toggle.on, toggle: toggle ? switchBtn(toggle.on, name, struct(toggle.set)) : null, acc, sum });
+  const sumColor = c => !c || c === 'none' ? t('Aucun') : t(colorLabel(doc, c));
+  const sumBox = o => [o.fillColor && o.fillColor !== 'none' ? sumColor(o.fillColor) : null, o.stroke ? t('Contour') : null].filter(Boolean).join(' · ') || t('Aucun');
   const btn = (icon, label, fn, cls = '') => h('button', { type: 'button', class: 'pp-btn ' + cls, onclick: fn }, ico(icon), h('span', { textContent: label }));
   /* Fond (une couleur au choix, avec teintes) et contour (couleur au choix) : sections, sous-sections et colonnes */
   const boxControls = (obj, fillLabel = 'Fond') => [
@@ -130,9 +135,12 @@ export function buildProps(root, ctx) {
     switchRow(t('Contour'), obj.stroke, () => { obj.stroke = !obj.stroke; }),
     swatches('Hachures', obj, 'hatch', toneKeys(doc), true),
     obj.stroke ? swatches('Couleur du contour', obj, 'strokeColor', toneKeys(doc)) : null];
-  const title = (name, crumbs = []) => root.append(h('div', { class: 'pr-head' },
-    h('div', { class: 'crumbs' }, crumbs.flatMap(([l, p]) => [h('a', { textContent: l, onclick: () => ctx.select(p) }), ' › '])),
-    h('h2', { textContent: name })));
+  /* Tête collante : icône, fil d'Ariane, nom, type et actions d'élément (monter, dupliquer, supprimer…) toujours à portée */
+  const title = (name, crumbs = [], o = {}) => root.append(h('div', { class: 'pr-head' },
+    h('div', { class: 'pr-id' }, o.icon ? h('span', { class: 'pr-ic' }, ico(o.icon)) : null,
+      h('div', { class: 'pr-tx' }, crumbs.length ? h('div', { class: 'crumbs' }, crumbs.flatMap(([l, p], k) => [k ? ' › ' : '', h('a', { textContent: l, onclick: () => ctx.select(p) })])) : null,
+        h('h2', { textContent: name }), o.pill ? h('span', { class: 'pr-pill', textContent: o.pill }) : null)),
+    o.acts && o.acts.length ? h('div', { class: 'pr-acts' }, o.acts.map(([i, l, fn, cls]) => h('button', { type: 'button', class: 'pr-ib ' + (cls || ''), title: l, 'aria-label': l, onclick: fn }, ico(i)))) : null));
   /* Textes libres d'une colonne : plusieurs, posés où l'on veut (déplaçables à la souris dans l'aperçu) */
   const freeTexts = col => {
     const arr = col.texts || (col.texts = []);
@@ -149,30 +157,34 @@ export function buildProps(root, ctx) {
 
   const P = (path || '').split(':'), kind = P[0] || 'doc', si = +P[1], bi = +P[2], ci = +P[3];
   const sec = doc.sections[si], sub = sec && sec.subs[bi], col = sub && sub.cols[ci];
+  const acc = accs[kind] ||= { cur: null, first: FIRST[kind] };
   const ICONS = { text: 'text-size', image: 'photo', card: 'layout-cards', figure: 'number', viz: 'chart-bar' };
 
   if (kind === 'doc') {
     root.append(h('div', { class: 'pp-empty' }, ico('pointer'), h('p', { textContent: 'Sélectionnez un élément dans la structure (à gauche) ou sur la page pour modifier ses propriétés.' }),
       h('p', { class: 'hint', textContent: 'Les couleurs, le format des nombres et le nom du fichier sont dans le menu Édition.' })));
   } else if (kind === 'header') {
-    const H = doc.header; title('Header');
+    const H = doc.header; title('Header', [], { icon: 'layout-navbar', pill: t('En-tête') });
     root.append(card('hd-text', 'typography', t('Texte'), [text(H, 'overline', 'Surtitre'), text(H, 'title', 'Titre (taille fixe)'), text(H, 'subtitle', 'Sous-titre (optionnel — vide = masqué)')]),
-      card('hd-colors', 'palette', t('Couleurs'), [swatches('Couleur de fond', H, 'bg', toneKeys(doc)), swatches('Couleur du texte', H, 'fg', toneKeys(doc))]),
+      card('hd-colors', 'palette', t('Couleurs'), [swatches('Couleur de fond', H, 'bg', toneKeys(doc)), swatches('Couleur du texte', H, 'fg', toneKeys(doc))], null, sumColor(H.bg)),
       card('hd-image', 'photo', t('Image'), [imageLibrary(H)], { on: H.showImage, set: () => { H.showImage = !H.showImage; } }),
       card('hd-logo', 'certificate', t('Logo'), [logoPicker(H)], { on: H.showLogo, set: () => { H.showLogo = !H.showLogo; } }));
   } else if (kind === 'sec' && sec) {
-    title(sec.title || 'Section');
+    title(sec.title || 'Section', [], { icon: 'layout-rows', pill: sec.page === 'recto' ? t('Recto') : t('Verso'), acts: [
+      ['arrow-up', t('Monter'), struct(() => { stepSection(doc, si, -1); })], ['arrow-down', t('Descendre'), struct(() => { stepSection(doc, si, 1); })], ['trash', t('Supprimer'), () => ctx.remove(`sec:${si}`), 'danger']] });
     root.append(card('sec-main', 'layout-rows', t('Section'), [text(sec, 'title', 'Titre de section'), switchRow(t('Afficher le titre'), sec.showTitle !== false, () => { sec.showTitle = sec.showTitle === false; }),
         switchRow(t('Filet au-dessus de la section'), sec.secRule !== false, () => { sec.secRule = sec.secRule === false; }),
       switchRow(t('Filet entre les sous-sections'), sec.subRules !== false, () => { sec.subRules = sec.subRules === false; }),
       sec.subRules !== false ? swatches('Couleur du filet', { get ruleColor() { return sec.ruleColor || defaultRuleColor(sec); }, set ruleColor(v) { sec.ruleColor = v; } }, 'ruleColor', toneKeys(doc)) : null,
         select(sec, 'page', 'Page', { recto: 'Recto', verso: 'Verso' }, () => ctx.restructure())]),
-      card('sec-bg', 'color-swatch', t('Fond de la section'), [swatches('Fond', sec, 'bg', toneKeys(doc), true)]),
-      card('sec-frame', 'border-all', t('Cadre'), boxControls(sec, 'Fond du cadre')),
-      actions(btn('arrow-up', t('Monter'), struct(() => { stepSection(doc, si, -1); })), btn('arrow-down', t('Descendre'), struct(() => { stepSection(doc, si, 1); })),
-        btn('trash', t('Supprimer'), () => ctx.remove(`sec:${si}`), 'danger')));
+      card('sec-bg', 'color-swatch', t('Fond de la section'), [swatches('Fond', sec, 'bg', toneKeys(doc), true)], null, sumColor(sec.bg)),
+      card('sec-frame', 'border-all', t('Cadre'), boxControls(sec, 'Fond du cadre'), null, sumBox(sec)));
   } else if (kind === 'sub' && sub) {
-    title(sub.title || 'Sous-section', [[sec.title || 'Section', `sec:${si}`]]);
+    title(sub.title || 'Sous-section', [[sec.title || 'Section', `sec:${si}`]], { icon: 'columns', pill: sub.layout, acts: [
+      ['arrow-up', t('Monter'), struct(() => { const j = bi - 1; if (j >= 0) [sec.subs[bi], sec.subs[j]] = [sec.subs[j], sec.subs[bi]]; })],
+      ['arrow-down', t('Descendre'), struct(() => { const j = bi + 1; if (j < sec.subs.length) [sec.subs[bi], sec.subs[j]] = [sec.subs[j], sec.subs[bi]]; })],
+      ['copy', t('Dupliquer'), struct(() => { const c = JSON.parse(JSON.stringify(sub)); c.id = (sub.id || 'sub') + 'c' + Date.now() % 1e5; sec.subs.splice(bi + 1, 0, c); })],
+      ['trash', t('Supprimer'), () => ctx.remove(`sub:${si}:${bi}`), 'danger']] });
     const mv = (() => {
       const s = h('select', { onchange: e => { if (!e.target.value) return; const to = +e.target.value; ctx.moved(() => { const n = moveSub(doc, { si, bi }, { si: to, bi: null }); return `sub:${n.si}:${n.bi}`; }); } },
         h('option', { value: '', textContent: '—' }), doc.sections.map((x, i) => h('option', { value: i, textContent: `${x.title || t('Section')} (${x.page === 'recto' ? t('Recto') : t('Verso')})` })));
@@ -183,13 +195,13 @@ export function buildProps(root, ctx) {
           sub.layout = v; const n = GRID.layouts[v].spans.length; sub.cols = sub.cols.slice(0, n); while (sub.cols.length < n) sub.cols.push(newCol('text')); refreshAutoCards(sub, i => columnWidth(doc, si, bi, i)); ctx.restructure();
         } })),
         field('Déplacer vers la section', mv)]),
-      card('sub-box', 'border-all', t('Fond et contour'), boxControls(sub)),
-      actions(btn('arrow-up', t('Monter'), struct(() => { const j = bi - 1; if (j >= 0) [sec.subs[bi], sec.subs[j]] = [sec.subs[j], sec.subs[bi]]; })),
-        btn('arrow-down', t('Descendre'), struct(() => { const j = bi + 1; if (j < sec.subs.length) [sec.subs[bi], sec.subs[j]] = [sec.subs[j], sec.subs[bi]]; })),
-        btn('copy', t('Dupliquer'), struct(() => { const c = JSON.parse(JSON.stringify(sub)); c.id = (sub.id || 'sub') + 'c' + Date.now() % 1e5; sec.subs.splice(bi + 1, 0, c); })),
-        btn('trash', t('Supprimer'), () => ctx.remove(`sub:${si}:${bi}`), 'danger')));
+      card('sub-box', 'border-all', t('Fond et contour'), boxControls(sub), null, sumBox(sub)));
   } else if (kind === 'col' && col) {
-    title(`Colonne ${ci + 1}`, [[sec.title || 'Section', `sec:${si}`], [sub.title || 'Sous-section', `sub:${si}:${bi}`]]);
+    const nb = sub.cols.length, vt0 = col.type === 'viz' && col.viz && VIZ_TYPES[col.viz.kind];
+    const nudge = d => () => { const to = ci + d; if (to < 0 || to >= nb) return; ctx.moved(() => { swapCols(doc, { si, bi, ci }, { si, bi, ci: to }); return `col:${si}:${bi}:${to}`; }); };
+    title(`Colonne ${ci + 1}`, [[sec.title || 'Section', `sec:${si}`], [sub.title || 'Sous-section', `sub:${si}:${bi}`]], { icon: ICONS[col.type] || 'text-size', pill: t(COL_TYPES[col.type]) + (vt0 ? ' · ' + t(vt0.label) : ''), acts: [
+      ...(nb > 1 ? [ci > 0 ? ['arrow-left', t('Colonne précédente'), nudge(-1)] : null, ci < nb - 1 ? ['arrow-right', t('Colonne suivante'), nudge(1)] : null].filter(Boolean) : []),
+      ['trash', t('Supprimer la colonne'), () => ctx.remove(`col:${si}:${bi}:${ci}`), 'danger']] });
     const typeSel = field('Type de contenu', h('select', { onchange: e => { const keep = col.text, { valign, align, stroke, strokeColor, fillColor } = col; Object.assign(col, newCol(e.target.value), { valign, align, stroke, strokeColor, fillColor }); if (e.target.value === 'text' && keep) col.text = keep; if (e.target.value === 'card') { col.card = newCard(columnWidth(doc, si, bi, ci)); col.stroke = false; col.fillColor = 'none'; } ctx.restructure(); } },
       Object.entries(COL_TYPES).map(([v, l]) => h('option', { value: v, textContent: l, selected: col.type === v }))));
     let editor;
@@ -220,15 +232,15 @@ export function buildProps(root, ctx) {
       s.value = ''; return s;
     })());
     const vt = col.type === 'viz' && col.viz && VIZ_TYPES[col.viz.kind];
-    root.append(card('col-content', ICONS[col.type] || 'text-size', t('Contenu'), [typeSel, ...editor]),
-      card('col-free', 'text-size', t('Textes libres'), freeTexts(col)),
-      col.type === 'text' || col.type === 'card' ? card('col-side', 'number', t('Chiffre à côté'), buildFields(SIDE_FIELDS, col.side || (col.side = newColSide()), ctx, {}, h)) : null,
-      vt && vt.heights ? card('col-height', 'ruler-2', t('Hauteur'), heightNodes(vt, col.viz.opts, { ctx, width: columnWidth(doc, si, bi, ci) }))
+    root.append(card('col-content', ICONS[col.type] || 'text-size', t('Contenu'), [typeSel, ...editor], null, t(COL_TYPES[col.type]) + (vt ? ' · ' + t(vt.label) : '')),
+      vt && vt.heights ? card('col-height', 'ruler-2', t('Hauteur'), heightNodes(vt, col.viz.opts, { ctx, width: columnWidth(doc, si, bi, ci) }), null, t(HMODE[col.viz.opts.hmode] || 'Auto'))
         : col.type !== 'viz' ? card('col-height', 'ruler-2', t('Hauteur'), [field('Hauteur minimale (px, 0 = automatique)', h('input', { type: 'number', min: 0, max: 1000, step: 3, value: col.minH || 0, oninput: e => { col.minH = Math.max(0, +e.target.value || 0); ctx.changed(); } })),
-          h('p', { class: 'hint', textContent: t('Ou glisser la poignée sous la colonne dans l’aperçu : elle se cale sur la colonne voisine.') })]) : null,
+          h('p', { class: 'hint', textContent: t('Ou glisser la poignée sous la colonne dans l’aperçu : elle se cale sur la colonne voisine.') })], null, col.minH ? col.minH + ' px' : t('Auto')) : null,
       card('col-layout', 'layout-align-middle', t('Disposition'), [segmented('Alignement vertical dans la colonne', col, 'valign', VALIGNS, { top: t('Haut'), center: t('Centre'), bottom: t('Bas') }),
-        col.type === 'text' ? segmented('Alignement du texte', col, 'align', ALIGNS, { left: t('Gauche'), center: t('Centré'), right: t('Droite'), justify: t('Justifié') }) : null, swap]),
-      col.type !== 'card' ? card('col-box', 'border-all', t('Fond et contour'), boxControls(col)) : null,
-      actions(btn('trash', t('Supprimer la colonne'), () => ctx.remove(`col:${si}:${bi}:${ci}`), 'danger')));
+        col.type === 'text' ? segmented('Alignement du texte', col, 'align', ALIGNS, { left: t('Gauche'), center: t('Centré'), right: t('Droite'), justify: t('Justifié') }) : null, swap], null, t({ top: 'Haut', center: 'Centre', bottom: 'Bas' }[col.valign || 'top'])),
+      col.type !== 'card' ? card('col-box', 'border-all', t('Fond et contour'), boxControls(col), null, sumBox(col)) : null,
+      h('div', { class: 'pr-adv', textContent: 'Avancé' }),
+      card('col-free', 'text-size', t('Textes libres'), freeTexts(col), null, String((col.texts || []).length || t('Aucun'))),
+      col.type === 'text' || col.type === 'card' ? card('col-side', 'number', t('Chiffre à côté'), buildFields(SIDE_FIELDS, col.side || (col.side = newColSide()), ctx, {}, h)) : null);
   } else { title('Élément introuvable'); }
 }

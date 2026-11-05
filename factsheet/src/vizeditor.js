@@ -12,14 +12,14 @@ import { cardEl } from './cards.js';
 import { loadFonts } from './viz/util.js';
 import { startReorder } from './vizreorder.js';
 import { newSide, SIDE_FIELDS } from './viz/index.js';
-import { heightNodes } from './vizheight.js';
 import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
 import { t } from './i18n.js';
 
 let current = null;
 const shut = new Set();   // cartes repliées (gardées d'une ouverture à l'autre)
 let tab = 'data';
-shut.add('dv-type');      // la carte du type est repliée à la première ouverture          // onglet : 'data' (Données) ou 'viz' (Visualisation)
+shut.add('dv-type');      // la carte du type est repliée à la première ouverture ; `tab` : 'data' (Données) ou 'viz' (Visualisation)
+const acc = { cur: null, first: 'dv-style' };   // accordéon : une seule carte ouverte dans le panneau
 
 /* Rangement des champs d'un type dans les cartes de l'onglet Visualisation (un champ peut forcer `g: 'format' | 'labels' | 'style' | 'data'`) */
 const LABEL_KEYS = new Set(['legend', 'showValues', 'decimals', 'suffix', 'totalTpl', 'layout']);
@@ -60,10 +60,11 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
   sheet.append(holder);
   const scaler = h('div', { class: 've-scaler' }, sheet);
   const stage = h('div', { class: 've-stage' }, scaler);
+  const dataPane = h('div', { class: 've-data' }), miniHold = h('div', { class: 've-mini' });
   const form = h('aside', { class: 'panel ve-form' });
   const hint = h('div', { class: 've-hint' });
-  const body = h('div', { class: 've-body' });
-  const tabBtns = [['data', 'table', 'Données'], ['viz', 'adjustments', 'Visualisation']].map(([k, ic, l]) => h('button', { type: 'button', class: 've-tab', dataset: { tab: k }, onclick: () => { tab = k; buildForm(); } }, ico(ic), h('span', { textContent: t(l) })));
+  const body = h('div', { class: 've-body' }), main = h('div', { class: 've-main' });
+  const tabBtns = [['data', 'table', 'Données'], ['viz', 'adjustments', 'Visualisation']].map(([k, ic, l]) => h('button', { type: 'button', class: 've-tab', dataset: { tab: k }, onclick: () => { tab = k; buildForm(); draw(); } }, ico(ic), h('span', { textContent: t(l) })));
   const tabs = h('div', { class: 've-tabs', role: 'tablist' }, ...tabBtns);
   const syncTabs = hasData => { tabs.style.display = hasData ? '' : 'none'; tabBtns.forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); }); };
 
@@ -77,15 +78,25 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     holder.innerHTML = '';
     if (r && r.node) { holder.append(r.node); meta = r.meta || null; svgW = width; }
     hiliteSel();
+    if (miniHold.isConnected) drawMini();
     const t = VIZ_TYPES[col.viz.kind];
     hint.textContent = holder.querySelector('[data-reorder]') ? 'Glisser un élément pour changer son ordre : les autres se réajustent en gardant des écarts proportionnels.' : t && t.edit
       ? 'Cliquer un segment ou un libellé pour le sélectionner · glisser l’anneau pour le tourner · glisser un libellé (verticalement, ou de l’autre côté) · glisser le point blanc pour déplacer l’ancrage du trait'
-      : 'Les modifications du formulaire s’appliquent en direct.';
+      : '';
     const k = scale();
     sheet.style.width = width + 48 + 'px'; holder.style.width = width + 'px';
     scaler.style.transform = `scale(${k})`;
     stage.style.setProperty('--ve-h', '0px');
     requestAnimationFrame(() => { scaler.style.marginBottom = (sheet.offsetHeight * (k - 1)) + 'px'; scaler.style.marginRight = ((width + 48) * (k - 1)) + 'px'; });
+  }
+  /* Aperçu réduit du panneau de l'onglet Données : la dataviz à la largeur choisie, mise à l'échelle du panneau */
+  function drawMini() {
+    const r = renderVizFull(col.viz, width, { locale: doc.locale || 'en-GB', pal: paletteOf(doc.theme, doc.colors), fillH: availH });
+    miniHold.innerHTML = '';
+    if (!r || !r.node) return;
+    const k = Math.min(1, 270 / (width + 48)), box = h('div', { class: 'page viz-sheet ve-mini-sheet', style: { width: width + 48 + 'px', transform: `scale(${k})`, transformOrigin: '0 0', background: bg && bg !== 'none' ? `var(--c-${bg})` : '#fff' } }, h('div', { class: 'col col-viz', style: { width: width + 'px' } }, r.node));
+    miniHold.append(h('div', { class: 've-mini-box' }, box));
+    requestAnimationFrame(() => { miniHold.firstChild.style.height = Math.ceil(box.offsetHeight * k) + 'px'; });
   }
   /* Historique propre à l'éditeur : chaque changement de type (ou autre restructuration) est un pas à part, la frappe est regroupée sur 1 s */
   const hist = { s: [snapshot], i: 0, at: 0, burst: false };
@@ -111,7 +122,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     changed: () => { applyVars(root, cssVars(doc.theme, doc.colors)); draw(); ctx.changed(); },
     restructure: () => { applyVars(root, cssVars(doc.theme, doc.colors)); buildForm(); draw(); } };
   const refreshForm = () => buildForm();
-  const card = (id, icon, name, nodes) => cardEl(id, icon, name, nodes, { shut, refresh: refreshForm });
+  const card = (id, icon, name, nodes, sum) => cardEl(id, icon, name, nodes, { shut, refresh: refreshForm, acc, sum });
   /* Choix du type : sa propre carte repliable en tête de colonne, dont l'en-tête affiche le type courant (icône + nom) ;
      repliée par défaut et après chaque choix, pour ne pas alourdir la page */
   const typeCard = () => {
@@ -122,20 +133,18 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
       list.append(h('div', { class: 've-typefam', textContent: t(fl) }), ...items.map(([k, v]) => h('button', { type: 'button', role: 'option', class: 've-typeopt' + (col.viz.kind === k ? ' on' : ''), 'aria-selected': String(col.viz.kind === k),
         onclick: () => { shut.add('dv-type'); if (col.viz.kind !== k) { col.viz = switchKind(col.viz, k); ui.sel = -1; fctx.restructure(); } else buildForm(); } }, ico(v.icon || 'chart-bar'), h('span', { textContent: t(v.label) }))));
     }
-    const el = card('dv-type', cur.icon || 'chart-bar', `${t('Type')} · ${t(cur.label)}`, [list]);
+    const el = cardEl('dv-type', cur.icon || 'chart-bar', `${t('Type')} · ${t(cur.label)}`, [list], { shut, refresh: refreshForm });
     el.classList.add('ve-typecard'); return el;
   };
-  /* Carte « Hauteur » (nœuds partagés avec le panneau de propriétés : vizheight.js) */
-  const heightCard = ty => card('dv-height', 'ruler-2', t('Hauteur'), heightNodes(ty, col.viz.opts, { ctx: fctx, width, avail: { get: () => availH, set: v => { availH = v; draw(); } } }));
   function buildForm() {
     const top = form.scrollTop;
-    form.innerHTML = ''; form.append(typeCard(), tabs);
+    form.innerHTML = ''; dataPane.innerHTML = '';
     const ty = VIZ_TYPES[col.viz.kind], fields = ty.fields || [], F = g => fields.filter(f => groupOf(f) === g);
     const head = col.viz.head || (col.viz.head = { title: '', source: '' });
     const dataFields = F('data'), hasData = !!ty.data || dataFields.length > 0;
     if (!hasData) tab = 'viz';
     syncTabs(hasData);
-    body.classList.toggle('data', tab === 'data');
+    main.classList.toggle('is-data', tab === 'data');
     const gen = list => buildFields(list, col.viz.opts, fctx, paletteOptions(doc), h);
     if (tab === 'data') {
       const nodes = [];
@@ -144,13 +153,16 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
         else nodes.push(...gen([f]));
       }
       if (ty.data) nodes.push(gridEditor(recordsAdapter(ty.data, col.viz.opts, paletteOptions(doc)), fctx, { downloadName: col.viz.kind }), ty.dataHint ? h('p', { class: 'hint', textContent: t(ty.dataHint) }) : null);
-      form.append(card('dv-data', 'table', t('Données'), nodes));
+      dataPane.append(h('div', { class: 've-data-in' }, h('h3', {}, ico('table'), h('span', { textContent: t('Données') })), ...nodes.flat().filter(Boolean)));
+      form.append(h('div', { class: 've-sech', textContent: t('Aperçu') }), miniHold, h('button', { type: 'button', class: 'pp-btn', onclick: () => { tab = 'viz'; buildForm(); draw(); } }, ico('chart-line'), h('span', { textContent: t('Retour à l’aperçu') })));
+      drawMini();
     } else {
-      form.append(...[
+      const ids = ['dv-head', ty.panel && 'dv-picto', 'dv-side', F('format').length && 'dv-format', 'dv-colors', F('labels').length && 'dv-labels', (F('style').length || ty.actions) && 'dv-style'].filter(Boolean);
+      acc.first = ['dv-style', 'dv-labels', 'dv-colors'].find(x => ids.includes(x)); if (acc.cur && !ids.includes(acc.cur)) acc.cur = null;
+      form.append(typeCard(), ...[
         card('dv-head', 'typography', t('Titre et source'), buildFields([{ k: 'title', t: 'area', label: 'Titre de la dataviz (facultatif) — styles de paragraphe : titre 1, titre 2, chiffre clé…' }, { k: 'source', t: 'text', rich: true, label: 'Source (facultatif)' }], head, fctx, {}, h)),
         ty.panel ? card('dv-picto', 'mood-smile', t(ty.panelTitle || 'Pictogramme'), ty.panel(col.viz.opts, fctx)) : null,
         card('dv-side', 'number', t('Chiffre à côté'), buildFields(SIDE_FIELDS, col.viz.side || (col.viz.side = newSide(col.viz.kind)), fctx, {}, h)),
-        ty.heights ? heightCard(ty) : null,
         F('format').length ? card('dv-format', 'ruler-2', t('Dimensions'), gen(F('format'))) : null,
         card('dv-colors', 'palette', t('Couleurs'), [h('button', { type: 'button', class: 'pp-btn', onclick: e => openPalette(e.currentTarget, palCtx) }, ico('palette'), h('span', { textContent: t('Couleurs du document') }))]),
         F('labels').length ? card('dv-labels', 'letter-case', t('Étiquettes'), gen(F('labels'))) : null,
@@ -236,14 +248,14 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
   const undoBtn = h('button', { type: 'button', class: 've-hist', title: t('Annuler (Cmd/Ctrl + Z)'), 'aria-label': t('Annuler la dernière modification'), onclick: () => goHist(hist.i - 1) }, ico('arrow-back-up'));
   const redoBtn = h('button', { type: 'button', class: 've-hist', title: t('Rétablir (Cmd/Ctrl + Maj + Z)'), 'aria-label': t('Rétablir la modification annulée'), onclick: () => goHist(hist.i + 1) }, ico('arrow-forward-up'));
   syncHist();
+  /* Mise en page : barre (titre + historique | onglets | Annuler / Terminer), aperçu ou données à gauche, panneau de largeur fixe à droite dans les deux onglets */
   root.append(
-    h('div', { class: 've-bar' }, h('strong', { textContent: 'Éditeur de dataviz' }), undoBtn, redoBtn,
-      h('label', { class: 'zoom' }, 'Aperçu à la largeur ', wSel), h('label', { class: 'zoom' }, 'Zoom ', zSel),
-      h('span', { style: { flex: 1 } }),
-      h('button', { type: 'button', textContent: 'Annuler', onclick: () => close(false) }),
-      h('button', { type: 'button', class: 'primary', textContent: 'Terminer', onclick: () => close(true) })),
+    h('div', { class: 've-bar' }, h('div', { class: 've-bl' }, h('strong', { textContent: 'Éditeur de dataviz' }), undoBtn, redoBtn), tabs,
+      h('div', { class: 've-br' }, h('button', { type: 'button', textContent: 'Annuler', onclick: () => close(false) }),
+        h('button', { type: 'button', class: 'primary', textContent: 'Terminer', onclick: () => close(true) }))),
     body);
-  body.append(form, h('div', { class: 've-main' }, hint, stage));
+  main.append(h('div', { class: 've-viewbar' }, h('label', { class: 'zoom' }, 'Aperçu à la largeur ', wSel), h('label', { class: 'zoom' }, 'Zoom ', zSel), hint), stage, dataPane);
+  body.append(main, form);
   document.body.append(root); document.body.classList.add('ve-open'); current = root;
   new ResizeObserver(() => { if (zoom === 'fit') draw(); }).observe(stage);
   buildForm(); draw();

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.65.0 — 2026-11-05
+- Éditeur de dataviz : onglets Données / Visualisation dans la barre, panneau de droite de largeur unique, aperçu réduit dans Données ; la hauteur se règle désormais dans le panneau de la colonne uniquement
+- Panneau de propriétés : tête collante avec type et actions (monter, dupliquer, supprimer…), cartes en accordéon avec leur valeur en résumé, réglages rares sous « Avancé »
+
 ## 1.64.0 — 2026-11-05
 - Labo : deux nouveaux sujets de maquettes — « Éditeur dataviz » (onglets et panneaux à la façon de Flourish) et « Panneau colonne » (propriétés plus lisibles) ; audit UX en documentation, rien n'est encore branché dans l'éditeur
 
