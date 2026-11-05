@@ -2039,7 +2039,7 @@
     const [kind, id] = String(key || "picto:person").split(":");
     let vb = [0, 0, 24, 24], inner = null;
     const col = colorRef(color);
-    const svg = s("svg", { x, y, width: w, height: h2, viewBox: "0 0 24 24", preserveAspectRatio: "xMidYMid meet", style: { overflow: "hidden" } });
+    const svg = s("svg", { x, y, width: w, height: h2, viewBox: "0 0 24 24", preserveAspectRatio: "xMidYMid meet", style: { overflow: kind === "custom" ? "hidden" : "visible" } });
     if (kind === "icon") svg.append(s("path", { d: (ICONS[id] || ICONS.check).d, fill: "none", stroke: col, "stroke-width": 1.6, "stroke-linecap": "round", "stroke-linejoin": "round" }));
     else if (kind === "custom") {
       const c2 = customList(o).find((k) => k.id === id);
@@ -4457,7 +4457,7 @@
     const part = p >= 100 ? s("rect", { x, y: x, width: iw, height: hh, rx: r, fill: fill2 }) : s("path", { d: `M${x + rr} ${x}H${x + fw}V${x + hh}H${x + rr}A${rr} ${rr} 0 0 1 ${x} ${x + hh - rr}V${x + rr}A${rr} ${rr} 0 0 1 ${x + rr} ${x}Z`, fill: fill2 });
     return s(
       "svg",
-      { width: w, height: H, viewBox: `0 0 ${w} ${H}`, class: "fg-bar", style: { display: "block", marginTop: "9px" } },
+      { width: w, height: H, viewBox: `0 0 ${w} ${H}`, class: "fg-bar", style: { display: "block", marginTop: "9px", overflow: "visible" } },
       s("rect", { x, y: x, width: iw, height: hh, rx: r, fill: colorRef(o.barRest || "tint-blue") }),
       p > 0 ? part : null,
       s("rect", { x, y: x, width: iw, height: H - SW, rx: r, fill: "none", stroke: "var(--c-blue)", "stroke-width": SW })
@@ -4469,13 +4469,26 @@
     const gap = 18, items = [o, ...more], n = items.length, avail = (W || 9999) - gap * (n - 1), bodyPx = pxOf(TYPE.body.size);
     const minW = items.map((it) => Math.ceil(Math.max(0, ...String(stripMk(it.text || "")).split(/\s+/).map((wd) => mw(wd, 400, SANS, bodyPx))) + 2));
     let ws = items.map(() => avail / n);
-    for (let pass = 0; pass < 3; pass++) {
+    const custom3 = Array.isArray(o.widths) && o.widths.length === n && o.widths.every((f) => f > 0);
+    for (let pass = 0; pass < (custom3 ? 0 : 3); pass++) {
       const fixed = ws.map((w, i) => w < minW[i]), used = ws.reduce((a2, w, i) => a2 + (fixed[i] ? minW[i] : 0), 0), free = fixed.filter((f) => !f).length;
       ws = ws.map((w, i) => fixed[i] ? minW[i] : free ? Math.max(minW[i], (avail - used) / free) : w);
     }
+    if (custom3) {
+      const sum2 = o.widths.reduce((a2, b) => a2 + b, 0);
+      ws = o.widths.map((f) => avail * f / sum2);
+    }
     const base = pxOf(TYPE.figure.size) * (+o.scale || 1);
     const fsAll = Math.min(...items.map((it, i) => fitSize(stripMk(it.value), TYPE.figure.weight, SERIF, base, ws[i] - (it.icon && it.icon !== "none" ? TYPE.figure.lh + VIZ.iconGap : 0) - 1, 0.4)));
-    const row = el("div", { class: "fg-row", style: { gap: gap + "px" } }, ...items.map((it, i) => el("div", { class: "fg-cell", style: { width: ws[i] + "px" } }, oneFigure(it, ws[i], align, o, fsAll))));
+    const cells = items.map((it, i) => el("div", { class: "fg-cell", style: { width: ws[i] + "px" } }, oneFigure(it, ws[i], align, o, fsAll)));
+    let x = 0;
+    const splits = ws.slice(0, -1).map((w, i) => {
+      x += w;
+      const sp = el("div", { class: "fig-split", "data-split": i, style: { position: "absolute", top: "0", bottom: "0", left: x + "px", width: gap + "px" } });
+      x += gap;
+      return sp;
+    });
+    const row = el("div", { class: "fg-row", style: { gap: gap + "px", position: "relative" } }, ...cells, ...splits);
     if (!headText && !headIcon) return row;
     const ic = headIcon ? figureIcon(o.headIcon, 54, false) : null;
     return el(
@@ -5125,7 +5138,9 @@ ${short}`)])
     const side = (label, core) => composeSide(col.side, w, env, { pct: "", value: "", total: "", label }, core).node;
     if (col.type === "text") wrap.append(side(strip2(col.text), (ww) => ({ node: col.side && col.side.pos !== "none" ? h("div", { style: { width: ww + "px" } }, richText(col.text, col.align)) : richText(col.text, col.align) })));
     else if (col.type === "image") {
-      wrap.append(renderImage(col, w));
+      const ib = renderImage(col, w);
+      if (+col.minH > 0 && (col.imgMode || "ratio") === "ratio" && ib.classList && ib.classList.contains("img-box")) ib.style.height = col.minH + "px";
+      wrap.append(ib);
       if (col.caption && col.caption.trim()) wrap.append(h("div", { class: "cap", innerHTML: inline(col.caption) }));
     } else if (col.type === "card" && col.card) {
       wrap.append(side(strip2(col.card.content && col.card.content.title), (ww) => ({ node: renderCard(col.card, ww) })));
@@ -5148,7 +5163,7 @@ ${short}`)])
         const st = { position: "absolute", left: (+tx.x || 0) + "%", width: (+tx.w || 50) + "%", zIndex: 2 };
         if (tx.y == null) st.bottom = "0";
         else st.top = (+tx.y || 0) + "px";
-        wrap.append(h("div", { class: "col-text-free", style: st, dataset: { free: `${path}:${i}` } }, richText(tx.text, tx.align || "left")));
+        wrap.append(h("div", { class: "col-text-free", style: st, dataset: { free: `${path}:${i}` } }, richText(tx.text, tx.align || "left"), h("div", { class: "free-grip" })));
       });
       if (above.length) wrap.prepend(...above);
       if (below.length) wrap.append(...below);
@@ -8769,18 +8784,13 @@ ${short}`)])
     const n = e.target.closest("[data-sel]");
     ctx.select(n ? n.dataset.sel : null);
   });
-  stage.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0 || handOn()) return;
-    const sp = e.target.closest(".col-split");
-    if (!sp) return;
-    const subEl = sp.closest(".sub"), q = subEl && subEl.dataset.sel.split(":"), sb = q && doc.sections[+q[1]]?.subs[+q[2]];
-    if (!sb) return;
-    const i = +sp.dataset.split, cols = sp.parentElement, sc = subEl.closest(".page").getBoundingClientRect().width / PAGE.w;
-    const ws = [...cols.children].filter((c2) => c2.classList.contains("col")).map((c2) => c2.getBoundingClientRect().width / sc), sum2 = ws.reduce((a2, b) => a2 + b, 0) || 1, f0 = ws.map((w) => w / sum2), px = e.clientX;
+  function dragSplit(e, sp, cells, { min: min2 = 0.1, apply, end }) {
+    const i = +sp.dataset.split, sc = sp.closest(".page").getBoundingClientRect().width / PAGE.w;
+    const ws = cells.map((c2) => c2.getBoundingClientRect().width / sc), sum2 = ws.reduce((a2, b) => a2 + b, 0) || 1, f0 = ws.map((w) => w / sum2), px = e.clientX;
     let moved = false;
-    const MIN = 0.1;
     e.preventDefault();
     e.stopPropagation();
+    e.stopImmediatePropagation();
     hover.hide();
     document.body.style.cursor = "col-resize";
     const move = (ev) => {
@@ -8789,12 +8799,11 @@ ${short}`)])
       let b = before + f0[i] + (ev.clientX - px) / sc / sum2;
       const snap = Math.round(b * 12) / 12;
       if (Math.abs(b - snap) < 0.014) b = snap;
-      b = Math.max(before + MIN, Math.min(before + pair - MIN, b));
+      b = Math.max(before + min2, Math.min(before + pair - min2, b));
       const f = f0.slice();
       f[i] = b - before;
       f[i + 1] = before + pair - b;
-      sb.layout = "custom";
-      sb.widths = f.map((v) => Math.round(v * 1e3) / 1e3);
+      apply(f.map((v) => Math.round(v * 1e3) / 1e3));
       ctx.changed();
     };
     const up = () => {
@@ -8806,8 +8815,62 @@ ${short}`)])
         setTimeout(() => {
           suppressClick = false;
         }, 0);
-        const si = +q[1], bi = +q[2];
-        refreshAutoCards(sb, (k) => columnWidth(doc, si, bi, k));
+        end();
+        ctx.restructure();
+      }
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
+  stage.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || handOn()) return;
+    const sp = e.target.closest(".col-split");
+    if (!sp) return;
+    const subEl = sp.closest(".sub"), q = subEl && subEl.dataset.sel.split(":"), sb = q && doc.sections[+q[1]]?.subs[+q[2]];
+    if (!sb) return;
+    dragSplit(e, sp, [...sp.parentElement.children].filter((c2) => c2.classList.contains("col")), { apply: (f) => {
+      sb.layout = "custom";
+      sb.widths = f;
+    }, end: () => refreshAutoCards(sb, (k) => columnWidth(doc, +q[1], +q[2], k)) });
+  }, true);
+  stage.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || handOn()) return;
+    const sp = e.target.closest(".fig-split");
+    if (!sp) return;
+    const colEl = sp.closest(".col"), q = colEl && colEl.dataset.sel.split(":"), fg = q && doc.sections[+q[1]]?.subs[+q[2]]?.cols[+q[3]]?.figure;
+    if (!fg) return;
+    dragSplit(e, sp, [...sp.parentElement.children].filter((c2) => c2.classList.contains("fg-cell")), { min: 0.15, apply: (f) => {
+      fg.widths = f;
+    }, end: () => {
+    } });
+  }, true);
+  stage.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || handOn()) return;
+    const gp = e.target.closest(".free-grip");
+    if (!gp) return;
+    const n = gp.closest("[data-free]"), q = n.dataset.free.split(":"), idx = +q.pop(), tx = doc.sections[+q[1]]?.subs[+q[2]]?.cols[+q[3]]?.texts?.[idx], colEl = n.closest(".col");
+    if (!tx) return;
+    const sc = colEl.closest(".page").getBoundingClientRect().width / PAGE.w, colW = colEl.getBoundingClientRect().width / sc, w0 = +tx.w || 50, px = e.clientX;
+    let moved = false;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    hover.hide();
+    document.body.style.cursor = "ew-resize";
+    const move = (ev) => {
+      moved = true;
+      tx.w = Math.round(Math.max(10, Math.min(100 - (+tx.x || 0), w0 + (ev.clientX - px) / sc / colW * 100)));
+      ctx.changed();
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      document.body.style.cursor = "";
+      if (moved) {
+        suppressClick = true;
+        setTimeout(() => {
+          suppressClick = false;
+        }, 0);
         ctx.restructure();
       }
     };

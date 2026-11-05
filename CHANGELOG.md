@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.62.0 — 2026-11-05
+- Barres de progression des chiffres clés : le contour n'est plus rogné sur les bords
+- Plusieurs chiffres clés dans une colonne : poignée entre les chiffres pour régler leurs largeurs à la souris
+- Textes libres : poignée au bord droit pour régler la largeur ; une image au ratio fixe suit la hauteur réglée à la poignée de sa colonne
+
 ## 1.61.1 — 2026-11-05
 - Chiffre clé multiple : tous les chiffres d'une même rangée ont le même corps (le plus petit qui rentre) ; chaque cellule est au moins aussi large que son mot le plus long, donc plus de mot coupé au milieu (« intergovernment / al »)
 

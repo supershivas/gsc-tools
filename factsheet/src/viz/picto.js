@@ -45,7 +45,7 @@ export function iconNode(o, key, x, y, w, h, color) {
   const [kind, id] = String(key || 'picto:person').split(':');
   let vb = [0, 0, 24, 24], inner = null;
   const col = colorRef(color);
-  const svg = s('svg', { x, y, width: w, height: h, viewBox: '0 0 24 24', preserveAspectRatio: 'xMidYMid meet', style: { overflow: 'hidden' } });
+  const svg = s('svg', { x, y, width: w, height: h, viewBox: '0 0 24 24', preserveAspectRatio: 'xMidYMid meet', style: { overflow: kind === 'custom' ? 'hidden' : 'visible' } });
   if (kind === 'icon') svg.append(s('path', { d: (ICONS[id] || ICONS.check).d, fill: 'none', stroke: col, 'stroke-width': 1.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
   else if (kind === 'custom') {
     const c = customList(o).find(k => k.id === id);

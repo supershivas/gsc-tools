@@ -115,7 +115,9 @@ function renderCol(col, w, path, env) {
   const side = (label, core) => composeSide(col.side, w, env, { pct: '', value: '', total: '', label }, core).node;
   if (col.type === 'text') wrap.append(side(strip(col.text), ww => ({ node: col.side && col.side.pos !== 'none' ? h('div', { style: { width: ww + 'px' } }, richText(col.text, col.align)) : richText(col.text, col.align) })));
   else if (col.type === 'image') {
-    wrap.append(renderImage(col, w));
+    const ib = renderImage(col, w);   // une image au ratio fixe suit la hauteur réglée à la poignée de la colonne
+    if (+col.minH > 0 && (col.imgMode || 'ratio') === 'ratio' && ib.classList && ib.classList.contains('img-box')) ib.style.height = col.minH + 'px';
+    wrap.append(ib);
     if (col.caption && col.caption.trim()) wrap.append(h('div', { class: 'cap', innerHTML: inline(col.caption) }));
   } else if (col.type === 'card' && col.card) {
     wrap.append(side(strip(col.card.content && col.card.content.title), ww => ({ node: renderCard(col.card, ww) })));
@@ -139,7 +141,7 @@ function renderCol(col, w, path, env) {
       wrap.style.position = 'relative';
       const st = { position: 'absolute', left: (+tx.x || 0) + '%', width: (+tx.w || 50) + '%', zIndex: 2 };
       if (tx.y == null) st.bottom = '0'; else st.top = (+tx.y || 0) + 'px';
-      wrap.append(h('div', { class: 'col-text-free', style: st, dataset: { free: `${path}:${i}` } }, richText(tx.text, tx.align || 'left')));
+      wrap.append(h('div', { class: 'col-text-free', style: st, dataset: { free: `${path}:${i}` } }, richText(tx.text, tx.align || 'left'), h('div', { class: 'free-grip' })));
     });
     if (above.length) wrap.prepend(...above);
     if (below.length) wrap.append(...below);

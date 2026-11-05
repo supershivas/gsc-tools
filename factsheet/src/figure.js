@@ -40,7 +40,7 @@ function progressBar(pct, W, o) {
   const hh = H - SW, rr = Math.min(r, fw / 2), fill = colorRef(o.barColor || 'yellow');
   const part = p >= 100 ? s('rect', { x, y: x, width: iw, height: hh, rx: r, fill })
     : s('path', { d: `M${x + rr} ${x}H${x + fw}V${x + hh}H${x + rr}A${rr} ${rr} 0 0 1 ${x} ${x + hh - rr}V${x + rr}A${rr} ${rr} 0 0 1 ${x + rr} ${x}Z`, fill });   // sans clipPath : l'export PDF ne le lit pas
-  return s('svg', { width: w, height: H, viewBox: `0 0 ${w} ${H}`, class: 'fg-bar', style: { display: 'block', marginTop: '9px' } },
+  return s('svg', { width: w, height: H, viewBox: `0 0 ${w} ${H}`, class: 'fg-bar', style: { display: 'block', marginTop: '9px', overflow: 'visible' } },
     s('rect', { x, y: x, width: iw, height: hh, rx: r, fill: colorRef(o.barRest || 'tint-blue') }),
     p > 0 ? part : null,
     s('rect', { x, y: x, width: iw, height: H - SW, rx: r, fill: 'none', stroke: 'var(--c-blue)', 'stroke-width': SW }));
@@ -54,14 +54,18 @@ export function renderFigure(o, W, align) {
   /* largeur de chaque cellule : égale, mais jamais plus étroite que son mot le plus long (le texte ne se coupe pas en plein mot) */
   const minW = items.map(it => Math.ceil(Math.max(0, ...String(stripMk(it.text || '')).split(/\s+/).map(wd => mw(wd, 400, SANS, bodyPx))) + 2));
   let ws = items.map(() => avail / n);
-  for (let pass = 0; pass < 3; pass++) {
+  const custom = Array.isArray(o.widths) && o.widths.length === n && o.widths.every(f => f > 0);   // largeurs réglées à la poignée entre deux chiffres (o.widths : fractions)
+  for (let pass = 0; pass < (custom ? 0 : 3); pass++) {
     const fixed = ws.map((w, i) => w < minW[i]), used = ws.reduce((a, w, i) => a + (fixed[i] ? minW[i] : 0), 0), free = fixed.filter(f => !f).length;
     ws = ws.map((w, i) => (fixed[i] ? minW[i] : free ? Math.max(minW[i], (avail - used) / free) : w));
   }
+  if (custom) { const sum = o.widths.reduce((a, b) => a + b, 0); ws = o.widths.map(f => avail * f / sum); }
   /* un seul corps pour tous les chiffres : le plus petit de ceux qui rentrent dans leur cellule */
   const base = pxOf(TYPE.figure.size) * (+o.scale || 1);
   const fsAll = Math.min(...items.map((it, i) => fitSize(stripMk(it.value), TYPE.figure.weight, SERIF, base, ws[i] - (it.icon && it.icon !== 'none' ? TYPE.figure.lh + VIZ.iconGap : 0) - 1, 0.4)));
-  const row = el('div', { class: 'fg-row', style: { gap: gap + 'px' } }, ...items.map((it, i) => el('div', { class: 'fg-cell', style: { width: ws[i] + 'px' } }, oneFigure(it, ws[i], align, o, fsAll))));
+  const cells = items.map((it, i) => el('div', { class: 'fg-cell', style: { width: ws[i] + 'px' } }, oneFigure(it, ws[i], align, o, fsAll)));
+  let x = 0; const splits = ws.slice(0, -1).map((w, i) => { x += w; const sp = el('div', { class: 'fig-split', 'data-split': i, style: { position: 'absolute', top: '0', bottom: '0', left: x + 'px', width: gap + 'px' } }); x += gap; return sp; });
+  const row = el('div', { class: 'fg-row', style: { gap: gap + 'px', position: 'relative' } }, ...cells, ...splits);   // poignées vides entre les chiffres : glisser règle leurs largeurs (main.js)
   if (!headText && !headIcon) return row;
   const ic = headIcon ? figureIcon(o.headIcon, 54, false) : null;
   return el('div', { class: 'fg-all' },
