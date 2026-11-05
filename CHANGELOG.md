@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.62.3 — 2026-11-05
+- Aperçu 3D : la rotation autour de la feuille est de nouveau libre ; seule l'inclinaison de haut en bas reste limitée (≈ ±23°)
+
 ## 1.62.2 — 2026-11-05
 - Aperçu 3D : la rotation est limitée à ±69° et l'inclinaison à ±23° : la feuille ne se retourne plus, le texte reste toujours lisible (le bouton « Retourner » montre le verso)
 
