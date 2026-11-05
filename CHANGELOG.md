@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.63.0 — 2026-11-05
+- Enregistrement et exports : les fichiers sont nommés titre_AAMMJJ.extension (JSON, PDF CMJN, PDF d'impression, PNG de l'aperçu 3D)
+
 ## 1.62.4 — 2026-11-05
 - Aperçu et export : plus aucun SVG ne rogne son contenu (cercles de la liste à icônes, cases, barres…) : un trait posé sur le bord n'est plus coupé d'un demi-pixel au zoom
 

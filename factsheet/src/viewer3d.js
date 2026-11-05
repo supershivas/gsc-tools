@@ -180,7 +180,7 @@ function open(opts) {
     renderer.setPixelRatio(pr); renderer.render(scene, camera);
     out.toBlob(blob => {
       if (!blob) return;
-      const a = el('a', { href: URL.createObjectURL(blob), download: (L.filename || 'factsheet') + (withBg ? '' : '-transparent') + '-3d.png' }); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      const a = el('a', { href: URL.createObjectURL(blob), download: (typeof L.filename === 'function' ? L.filename(withBg ? '' : '-transparent') : (L.filename || 'factsheet')) + '.png' }); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     }, 'image/png');
   }
   function flip() { if (mode !== 'single') return; flipped = !flipped; flipFrom = sheetA.rotation.y; flipTo = flipped ? Math.PI : 0; flipT = 0; }

@@ -9240,11 +9240,16 @@ ${short}`)])
     undoSnap = null;
     ctx.restructure();
   };
+  var stamp = () => {
+    const d = /* @__PURE__ */ new Date();
+    return String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0");
+  };
+  var fileStem = (suffix = "") => (doc.name || "factsheet").replace(/[\\/:*?"<>|]+/g, "_") + suffix + "_" + stamp();
   var file = h("input", { type: "file", accept: ".json,application/json", hidden: true });
   document.body.append(file);
   var saveProject = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 2)], { type: "application/json" }));
-    const a2 = h("a", { href: url, download: (doc.name || "factsheet").replace(/[\\/:*?"<>|]+/g, "_") + ".json" });
+    const a2 = h("a", { href: url, download: fileStem() + ".json" });
     document.body.append(a2);
     a2.click();
     a2.remove();
@@ -9456,7 +9461,7 @@ ${short}`)])
         noWebgl: t("WebGL indisponible."),
         png: t("Exporter en PNG"),
         pngT: t("PNG transparent"),
-        filename: doc.name || "factsheet"
+        filename: (suffix) => fileStem(suffix)
       },
       load: () => rasterizeDocument(doc, 2)
     });
@@ -9487,7 +9492,7 @@ ${short}`)])
     try {
       if (!window.FSPDF) await loadBundle("pdfexport.js");
       const bytes = await window.FSPDF.build(doc, exportMode);
-      const name = (doc.name || "factsheet") + (exportMode === "net" ? "" : "-" + exportMode) + "-cmjn.pdf";
+      const name = fileStem(exportMode === "net" ? "" : "-" + exportMode) + ".pdf";
       const a2 = h("a", { href: URL.createObjectURL(new Blob([bytes], { type: "application/pdf" })), download: name });
       document.body.append(a2);
       a2.click();
@@ -9505,7 +9510,7 @@ ${short}`)])
   document.getElementById("exportGo").addEventListener("click", async () => {
     dlg.close();
     const prev = document.title;
-    document.title = (doc.name || "factsheet") + (exportMode === "net" ? "" : "-" + exportMode);
+    document.title = fileStem(exportMode === "net" ? "" : "-" + exportMode);
     await preparePrint(doc, exportMode);
     const done = () => {
       cleanupPrint();

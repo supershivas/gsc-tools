@@ -535,11 +535,14 @@ const newBlank = () => {
   if (!confirm(t('Créer une factsheet vierge ? Le document actuel sera remplacé : enregistrez-le d’abord (.json) si besoin.'))) return;
   doc = blankDoc(); selected = null; undoSnap = null; ctx.restructure();
 };
+/** Nom de fichier à l'enregistrement et à l'export : titre_AAMMJJ (l'extension est ajoutée par l'appelant) */
+const stamp = () => { const d = new Date(); return String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0'); };
+const fileStem = (suffix = '') => (doc.name || 'factsheet').replace(/[\\/:*?"<>|]+/g, '_') + suffix + '_' + stamp();
 const file = h('input', { type: 'file', accept: '.json,application/json', hidden: true });
 document.body.append(file);
 const saveProject = () => {
   const url = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' }));
-  const a = h('a', { href: url, download: (doc.name || 'factsheet').replace(/[\\/:*?"<>|]+/g, '_') + '.json' });
+  const a = h('a', { href: url, download: fileStem() + '.json' });
   document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
 };
 file.addEventListener('change', async () => {
@@ -656,7 +659,7 @@ async function open3d() {
   try { viewer = await loadViewer(); } catch (e) { alert(t('Impossible de générer l’aperçu 3D dans ce navigateur.')); return; }
   viewer.open({
     labels: { title: t('Aperçu 3D du document'), loading: t('Préparation de l’aperçu…'), flip: t('Retourner'), spread: t('Deux pages'), single: t('Une feuille'),
-      reset: t('Recentrer'), close: t('Fermer'), copy: t('Copier l’erreur'), hint: t('Glisser : tourner la feuille · clic droit ou Maj : la déplacer · molette : zoomer'), error: t('Impossible de générer l’aperçu 3D dans ce navigateur.'), noWebgl: t('WebGL indisponible.'), png: t('Exporter en PNG'), pngT: t('PNG transparent'), filename: doc.name || 'factsheet' },
+      reset: t('Recentrer'), close: t('Fermer'), copy: t('Copier l’erreur'), hint: t('Glisser : tourner la feuille · clic droit ou Maj : la déplacer · molette : zoomer'), error: t('Impossible de générer l’aperçu 3D dans ce navigateur.'), noWebgl: t('WebGL indisponible.'), png: t('Exporter en PNG'), pngT: t('PNG transparent'), filename: suffix => fileStem(suffix) },
     load: () => rasterizeDocument(doc, 2),
   });
 }
@@ -684,7 +687,7 @@ document.getElementById('exportCmyk').addEventListener('click', async e => {
   try {
     if (!window.FSPDF) await loadBundle('pdfexport.js');
     const bytes = await window.FSPDF.build(doc, exportMode);
-    const name = (doc.name || 'factsheet') + (exportMode === 'net' ? '' : '-' + exportMode) + '-cmjn.pdf';
+    const name = fileStem(exportMode === 'net' ? '' : '-' + exportMode) + '.pdf';
     const a = h('a', { href: URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' })), download: name }); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     dlg.close();
   } catch (err) { console.error(err); alert(t('Impossible de générer le PDF CMJN.') + ' ' + (err && err.message || '')); }
@@ -692,7 +695,7 @@ document.getElementById('exportCmyk').addEventListener('click', async e => {
 });
 document.getElementById('exportGo').addEventListener('click', async () => {
   dlg.close();
-  const prev = document.title; document.title = (doc.name || 'factsheet') + (exportMode === 'net' ? '' : '-' + exportMode);
+  const prev = document.title; document.title = fileStem(exportMode === 'net' ? '' : '-' + exportMode);
   await preparePrint(doc, exportMode);
   const done = () => { cleanupPrint(); document.title = prev; window.removeEventListener('afterprint', done); };
   window.addEventListener('afterprint', done);
