@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.57.2 — 2026-11-05
+- Aperçu 3D : quand une page ne peut pas être dessinée, l'erreur nomme maintenant les éléments fautifs (image de l'en-tête, logo, image d'une colonne avec son nom de fichier, ou colonne) et la taille de la page
+
 ## 1.57.1 — 2026-11-05
 - Aperçu 3D : l'erreur affiche maintenant sa cause précise (et la console du navigateur aussi) ; le dessin des pages réessaie une fois, ce qui peut régler certains cas sous Firefox
 

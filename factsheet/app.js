@@ -7889,6 +7889,31 @@ ${short}`)])
       }
     }));
   }
+  var pageSvg = (vars, css, body) => `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE.w}" height="${PAGE.h}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="${vars}"><style>${css.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</style>${body}</div></foreignObject></svg>`;
+  var loads = (svg) => loadImage("data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg)).then(() => true, () => false);
+  function describe(node, doc2) {
+    const q = node.closest("[data-sel]"), path = q ? q.dataset.sel : "", H = doc2.header || {};
+    const src = node.getAttribute && node.getAttribute("src") || "";
+    const file2 = /^data:/.test(src) ? `image int\xE9gr\xE9e ${(src.match(/^data:([^;,]+)/) || [])[1] || ""}, ${Math.round(src.length / 1024)} Ko` : decodeURIComponent(src.split("/").pop() || "");
+    if (path === "header") {
+      if (node.closest(".hd-logo, [class*=logo]")) return `logo \xAB ${H.logoVariant || ""} \xBB de l\u2019en-t\xEAte (${file2})`;
+      const im = (H.images || []).find((i) => i.id === H.imageId) || (H.images || [])[0];
+      return `image de l\u2019en-t\xEAte \xAB ${im ? im.name : file2} \xBB (${file2})`;
+    }
+    const m2 = path.match(/^col:(\d+):(\d+):(\d+)$/);
+    return m2 ? `colonne ${+m2[1] + 1}\xB7${+m2[2] + 1}\xB7${+m2[3] + 1}${node.tagName === "IMG" ? ` (image \xAB ${file2} \xBB)` : ""}` : path || node.tagName.toLowerCase();
+  }
+  async function diagnose(pageEl, vars, css, doc2) {
+    const one = (el2) => pageSvg(vars, css, new XMLSerializer().serializeToString(el2));
+    const bad = [];
+    for (const im of pageEl.querySelectorAll("img")) {
+      if (!await loads(one(im))) bad.push(describe(im, doc2));
+    }
+    if (!bad.length) for (const c2 of pageEl.querySelectorAll('[data-sel^="col:"], [data-sel="header"]')) {
+      if (!await loads(one(c2))) bad.push(describe(c2, doc2));
+    }
+    return bad.length ? "\xE9l\xE9ment(s) fautif(s) : " + bad.join(" ; ") : "aucun \xE9l\xE9ment seul n\u2019est en cause (page trop lourde ou combinaison)";
+  }
   async function rasterizeDocument(doc2, scale = 2) {
     await loadFonts();
     const css = await documentCss();
@@ -7903,8 +7928,13 @@ ${short}`)])
       for (const p of result.pages) {
         const vars = Object.entries(cssVars(doc2.theme, doc2.colors)).map(([k, v]) => `${k}:${v}`).join(";").replace(/&/g, "&amp;").replace(/"/g, "&quot;");
         const body = new XMLSerializer().serializeToString(p.el);
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE.w}" height="${PAGE.h}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="${vars}"><style>${css.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</style>${body}</div></foreignObject></svg>`;
-        const im = await loadImage("data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg));
+        const svg = pageSvg(vars, css, body);
+        let im;
+        try {
+          im = await loadImage("data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg));
+        } catch (e) {
+          throw new Error(`${e.message} \u2014 ${await diagnose(p.el, vars, css, doc2)} (${Math.round(svg.length / 1024)} Ko)`);
+        }
         if (im.decode) {
           try {
             await im.decode();
@@ -8148,7 +8178,7 @@ ${short}`)])
     }
     return null;
   };
-  function describe(prevStr, nextStr) {
+  function describe2(prevStr, nextStr) {
     if (prevStr == null) return t("Ouverture du document");
     let d;
     try {
@@ -8192,12 +8222,12 @@ ${short}`)])
     const now = Date.now();
     if (burst && HIST.burst && HIST.i === HIST.stack.length - 1 && HIST.i > 0 && now - HIST.at < 1e3) {
       HIST.stack[HIST.i] = sn;
-      HIST.meta[HIST.i] = { label: describe(HIST.stack[HIST.i - 1], sn), at: HIST.meta[HIST.i].at };
+      HIST.meta[HIST.i] = { label: describe2(HIST.stack[HIST.i - 1], sn), at: HIST.meta[HIST.i].at };
     } else {
       HIST.stack.length = HIST.i + 1;
       HIST.meta.length = HIST.i + 1;
       HIST.stack.push(sn);
-      HIST.meta.push({ label: describe(HIST.stack[HIST.i], sn), at: now });
+      HIST.meta.push({ label: describe2(HIST.stack[HIST.i], sn), at: now });
       if (HIST.stack.length > HIST.max) {
         HIST.stack.shift();
         HIST.meta.shift();

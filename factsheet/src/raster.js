@@ -35,6 +35,34 @@ async function inlineImages(root) {
   }));
 }
 
+
+const pageSvg = (vars, css, body) => `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE.w}" height="${PAGE.h}"><foreignObject width="100%" height="100%">`
+  + `<div xmlns="http://www.w3.org/1999/xhtml" style="${vars}"><style>${css.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</style>${body}</div></foreignObject></svg>`;
+const loads = svg => loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)).then(() => true, () => false);
+
+/** Nom lisible d'un élément du document : image (fichier, bibliothèque de l'en-tête, logo) ou colonne */
+function describe(node, doc) {
+  const q = node.closest('[data-sel]'), path = q ? q.dataset.sel : '', H = doc.header || {};
+  const src = node.getAttribute && node.getAttribute('src') || '';
+  const file = /^data:/.test(src) ? `image intégrée ${(src.match(/^data:([^;,]+)/) || [])[1] || ''}, ${Math.round(src.length / 1024)} Ko` : decodeURIComponent(src.split('/').pop() || '');
+  if (path === 'header') {
+    if (node.closest('.hd-logo, [class*=logo]')) return `logo « ${(H.logoVariant || '')} » de l’en-tête (${file})`;
+    const im = (H.images || []).find(i => i.id === H.imageId) || (H.images || [])[0];
+    return `image de l’en-tête « ${im ? im.name : file} » (${file})`;
+  }
+  const m = path.match(/^col:(\d+):(\d+):(\d+)$/);
+  return m ? `colonne ${+m[1] + 1}·${+m[2] + 1}·${+m[3] + 1}${node.tagName === 'IMG' ? ` (image « ${file} »)` : ''}` : (path || node.tagName.toLowerCase());
+}
+
+/** L'image SVG de la page n'a pas pu être lue : on teste chaque image, puis chaque colonne, séparément, pour trouver la fautive */
+async function diagnose(pageEl, vars, css, doc) {
+  const one = el => pageSvg(vars, css, new XMLSerializer().serializeToString(el));
+  const bad = [];
+  for (const im of pageEl.querySelectorAll('img')) { if (!(await loads(one(im)))) bad.push(describe(im, doc)); }
+  if (!bad.length) for (const c of pageEl.querySelectorAll('[data-sel^="col:"], [data-sel="header"]')) { if (!(await loads(one(c)))) bad.push(describe(c, doc)); }
+  return bad.length ? 'élément(s) fautif(s) : ' + bad.join(' ; ') : 'aucun élément seul n’est en cause (page trop lourde ou combinaison)';
+}
+
 /** → [{ key, canvas }] pour le recto et le verso, à `scale` × la taille A4 en px CSS */
 export async function rasterizeDocument(doc, scale = 2) {
   await loadFonts();
@@ -50,9 +78,10 @@ export async function rasterizeDocument(doc, scale = 2) {
     for (const p of result.pages) {
       const vars = Object.entries(cssVars(doc.theme, doc.colors)).map(([k, v]) => `${k}:${v}`).join(';').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
       const body = new XMLSerializer().serializeToString(p.el);
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE.w}" height="${PAGE.h}"><foreignObject width="100%" height="100%">`
-        + `<div xmlns="http://www.w3.org/1999/xhtml" style="${vars}"><style>${css.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</style>${body}</div></foreignObject></svg>`;
-      const im = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
+      const svg = pageSvg(vars, css, body);
+      let im;
+      try { im = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)); }
+      catch (e) { throw new Error(`${e.message} — ${await diagnose(p.el, vars, css, doc)} (${Math.round(svg.length / 1024)} Ko)`); }
       if (im.decode) { try { await im.decode(); } catch (e) { /* Firefox : decode() peut refuser une image SVG déjà chargée */ } }
       const canvas = document.createElement('canvas');
       canvas.width = PAGE.w * scale; canvas.height = PAGE.h * scale;
