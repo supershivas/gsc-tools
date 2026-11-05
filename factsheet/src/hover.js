@@ -92,7 +92,7 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
       const sub = doc.sections[it.si].subs[it.bi], col = sub.cols[it.ci];
       const grip = h('button', { type: 'button', class: 'mini grip-btn', title: 'Glisser le contenu sur une autre colonne pour l’échanger', onpointerdown: e => { e.preventDefault(); ctx.startColDrag(e, { si: it.si, bi: it.bi, ci: it.ci }); } }, ico('grip-vertical'));
       const plus = sub.cols.length === 1 ? btn(ico('plus'), 'Ajouter une colonne', () => { sub.layout = '1-1'; sub.cols.push(newCol('text')); refreshAutoCards(sub, i => columnWidth(getDoc(), it.si, it.bi, i)); }) : null;
-      g.push(grp('Colonne', grip, del(it.path), plus, col.type === 'viz' ? btn('Dataviz…', 'Ouvrir l’éditeur de dataviz', () => ctx.editViz({ col, sub, ci: it.ci })) : null));
+      g.push(grp('Colonne', grip, del(it.path), plus, col.type === 'viz' ? btn('Dataviz…', 'Ouvrir l’éditeur de dataviz', () => ctx.editViz({ col, sub, ci: it.ci }), 'primary') : null));
     } else if (it.kind === 'sub') {
       const sec = doc.sections[it.si];
       const mv = d => () => { const j = it.bi + d; if (j >= 0 && j < sec.subs.length) [sec.subs[it.bi], sec.subs[j]] = [sec.subs[j], sec.subs[it.bi]]; };

@@ -8013,7 +8013,7 @@ ${short}`)])
           sub.cols.push(newCol("text"));
           refreshAutoCards(sub, (i) => columnWidth(getDoc(), it.si, it.bi, i));
         }) : null;
-        g.push(grp("Colonne", grip2, del(it.path), plus, col.type === "viz" ? btn("Dataviz\u2026", "Ouvrir l\u2019\xE9diteur de dataviz", () => ctx2.editViz({ col, sub, ci: it.ci })) : null));
+        g.push(grp("Colonne", grip2, del(it.path), plus, col.type === "viz" ? btn("Dataviz\u2026", "Ouvrir l\u2019\xE9diteur de dataviz", () => ctx2.editViz({ col, sub, ci: it.ci }), "primary") : null));
       } else if (it.kind === "sub") {
         const sec = doc2.sections[it.si];
         const mv = (d) => () => {

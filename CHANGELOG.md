@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.65.1 — 2026-11-05
+- Barre de la colonne : le bouton « Dataviz… » est en rouge
+
 ## 1.65.0 — 2026-11-05
 - Éditeur de dataviz : onglets Données / Visualisation dans la barre, panneau de droite de largeur unique, aperçu réduit dans Données ; la hauteur se règle désormais dans le panneau de la colonne uniquement
 - Panneau de propriétés : tête collante avec type et actions (monter, dupliquer, supprimer…), cartes en accordéon avec leur valeur en résumé, réglages rares sous « Avancé »
