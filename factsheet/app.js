@@ -7877,7 +7877,7 @@ ${short}`)])
     return new Promise((res, rej) => {
       const im = new Image();
       im.onload = () => res(im);
-      im.onerror = () => rej(new Error("raster"));
+      im.onerror = () => rej(new Error("image SVG illisible par le navigateur"));
       im.src = src;
     });
   }
@@ -7905,10 +7905,22 @@ ${short}`)])
         const body = new XMLSerializer().serializeToString(p.el);
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE.w}" height="${PAGE.h}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="${vars}"><style>${css.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</style>${body}</div></foreignObject></svg>`;
         const im = await loadImage("data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg));
+        if (im.decode) {
+          try {
+            await im.decode();
+          } catch (e) {
+          }
+        }
         const canvas = document.createElement("canvas");
         canvas.width = PAGE.w * scale;
         canvas.height = PAGE.h * scale;
-        canvas.getContext("2d").drawImage(im, 0, 0, canvas.width, canvas.height);
+        const g = canvas.getContext("2d");
+        try {
+          g.drawImage(im, 0, 0, canvas.width, canvas.height);
+        } catch (e) {
+          await new Promise((r) => setTimeout(r, 150));
+          g.drawImage(im, 0, 0, canvas.width, canvas.height);
+        }
         out.push({ key: p.key, canvas });
       }
       return out;

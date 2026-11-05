@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.57.1 — 2026-11-05
+- Aperçu 3D : l'erreur affiche maintenant sa cause précise (et la console du navigateur aussi) ; le dessin des pages réessaie une fois, ce qui peut régler certains cas sous Firefox
+
 ## 1.57.0 — 2026-11-04
 - Textes libres : plusieurs par colonne, placés où l'on veut (glisser dans l'aperçu, ou X / Y / largeur dans les propriétés), en texte riche ; remplace le texte libre « au-dessus / en dessous / à côté »
 - Styles de paragraphe : ajout de « Chiffre clé » et « Chiffre clé (petit) » (même typographie que les chiffres clés)

@@ -235,7 +235,7 @@ function open(opts) {
   Promise.resolve().then(opts.load).then(pages => {
     if (closed) return;
     try { init(pages); msg.remove(); } catch (e) { msg.textContent = L.noWebgl; }
-  }).catch(() => { if (!closed) msg.textContent = L.error; });
+  }).catch(e => { console.error('Aperçu 3D', e); if (!closed) msg.textContent = L.error + (e && e.message ? ' (' + e.message + ')' : ''); });
   return { close };
 }
 
