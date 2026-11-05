@@ -194,7 +194,7 @@ const pathOk = p => { if (!p) return true; const q = p.split(':'), sec = doc.sec
 const parentOf = p => { const q = p.split(':'); return q[0] === 'col' ? `sub:${q[1]}:${q[2]}` : q[0] === 'sub' ? `sec:${q[1]}` : null; };
 function fixSelection() { while (selected && !pathOk(selected)) selected = parentOf(selected); }
 function drawTree() { const top = treeEl.scrollTop; buildTree(treeEl, ctx); treeEl.scrollTop = top; }
-function drawProps() { const top = propsEl.scrollTop; buildProps(propsEl, ctx); propsEl.scrollTop = top; }
+function drawProps() { const top = propsEl.scrollTop; buildProps(propsEl, ctx); propsEl.scrollTop = top; syncSpacingCtl(); }
 
 const ctx = {
   getDoc: () => doc, getSel: () => selected, collapsed,

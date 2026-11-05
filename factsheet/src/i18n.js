@@ -13,6 +13,7 @@ export const getLang = () => lang;
 
 /* français → anglais */
 const EN = {
+  'Titre du header': 'Header title', 'Sous-titre du header': 'Header subtitle', 'Titre de la dataviz': 'Dataviz title', 'Source de la dataviz': 'Dataviz source', 'Hauteur minimale de la colonne (px)': 'Column minimum height (px)', 'Mise en forme': 'Formatting', 'Renseigné': 'Filled in', 'Rechercher un réglage': 'Search for a setting', 'Espacement': 'Spacing', 'Format des nombres': 'Number format', 'Document': 'Document', 'Nom du fichier': 'File name', 'Couleurs du document': 'Document colours',
   /* panneau d'élément (tête collante, accordéon) et éditeur de dataviz */
   'Avancé': 'Advanced', 'En-tête': 'Header', 'Colonne précédente': 'Previous column', 'Colonne suivante': 'Next column', 'Aucun': 'None', 'Auto': 'Auto', 'Proportion': 'Ratio', 'Remplir': 'Fill', 'Voisine': 'Neighbour', 'Retour à l’aperçu': 'Back to the preview', 'Aperçu': 'Preview',
   /* page */

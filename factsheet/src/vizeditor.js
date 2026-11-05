@@ -5,10 +5,11 @@
      le rendu pose des `data-hit="kind:index"` sur les éléments saisissables. */
 import { h, ico } from './render.js';
 import { openPalette } from './palette.js';
-import { buildFields, paletteOptions } from './editor.js';
+import { buildFields, paletteOptions, richEditor } from './editor.js';
 import { colWidth, subColWidth, cssVars, applyVars, paletteOf } from './tokens.js';
 import { VIZ_TYPES, VIZ_FAMILIES, switchKind, renderVizFull } from './viz/index.js';
-import { cardEl } from './cards.js';
+import { cardEl, searchBox, applyFilter } from './cards.js';
+import { helpBtn } from './help.js';
 import { loadFonts } from './viz/util.js';
 import { startReorder } from './vizreorder.js';
 import { newSide, SIDE_FIELDS } from './viz/index.js';
@@ -19,7 +20,8 @@ let current = null;
 const shut = new Set();   // cartes repliées (gardées d'une ouverture à l'autre)
 let tab = 'data';
 shut.add('dv-type');      // la carte du type est repliée à la première ouverture ; `tab` : 'data' (Données) ou 'viz' (Visualisation)
-const acc = { cur: null, first: 'dv-style' };   // accordéon : une seule carte ouverte dans le panneau
+const acc = { cur: null, first: 'dv-style' }, search = { q: '', focus: false };
+const MARKUP = /\*\*|~~|__|\^\^|,,|(^|\n)#{1,5} /;   // accordéon : une seule carte ouverte dans le panneau
 
 /* Rangement des champs d'un type dans les cartes de l'onglet Visualisation (un champ peut forcer `g: 'format' | 'labels' | 'style' | 'data'`) */
 const LABEL_KEYS = new Set(['legend', 'showValues', 'decimals', 'suffix', 'totalTpl', 'layout']);
@@ -122,7 +124,16 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     changed: () => { applyVars(root, cssVars(doc.theme, doc.colors)); draw(); ctx.changed(); },
     restructure: () => { applyVars(root, cssVars(doc.theme, doc.colors)); buildForm(); draw(); } };
   const refreshForm = () => buildForm();
-  const card = (id, icon, name, nodes, sum) => cardEl(id, icon, name, nodes, { shut, refresh: refreshForm, acc, sum });
+  const card = (id, icon, name, nodes, sum) => cardEl(id, icon, name, nodes, { shut, refresh: refreshForm, acc, sum, q: search.q });
+  /* Titre et source : un champ simple par défaut (une ligne) ; l'éditeur riche (gras, styles de paragraphe…) s'ouvre avec le bouton, ou d'office si le texte est déjà mis en forme */
+  const softField = (obj, k, label, opts) => {
+    const box = h('div', { class: 'f' }), val = () => obj[k] || '';
+    let rich = MARKUP.test(val()) || val().includes('\n');
+    const draw = () => box.replaceChildren(
+      h('div', { class: 'hint pp-fh' }, label, helpBtn(label), h('span', { class: 'pp-sp' }), h('button', { type: 'button', class: 'mini' + (rich ? ' on' : ''), title: t('Mise en forme'), 'aria-label': t('Mise en forme'), 'aria-pressed': String(rich), onclick: () => { rich = !rich; draw(); } }, ico('typography'))),
+      rich ? richEditor(val(), v => { obj[k] = v; fctx.changed(); }, opts) : h('input', { type: 'text', value: val(), oninput: e => { obj[k] = e.target.value; fctx.changed(); } }));
+    draw(); return box;
+  };
   /* Choix du type : sa propre carte repliable en tête de colonne, dont l'en-tête affiche le type courant (icône + nom) ;
      repliée par défaut et après chaque choix, pour ne pas alourdir la page */
   const typeCard = () => {
@@ -159,8 +170,8 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     } else {
       const ids = ['dv-head', ty.panel && 'dv-picto', 'dv-side', F('format').length && 'dv-format', 'dv-colors', F('labels').length && 'dv-labels', (F('style').length || ty.actions) && 'dv-style'].filter(Boolean);
       acc.first = ['dv-style', 'dv-labels', 'dv-colors'].find(x => ids.includes(x)); if (acc.cur && !ids.includes(acc.cur)) acc.cur = null;
-      form.append(typeCard(), ...[
-        card('dv-head', 'typography', t('Titre et source'), buildFields([{ k: 'title', t: 'area', label: 'Titre de la dataviz (facultatif) — styles de paragraphe : titre 1, titre 2, chiffre clé…' }, { k: 'source', t: 'text', rich: true, label: 'Source (facultatif)' }], head, fctx, {}, h)),
+      form.append(searchBox(search, refreshForm), typeCard(), ...[
+        card('dv-head', 'typography', t('Titre et source'), [softField(head, 'title', 'Titre de la dataviz', {}), softField(head, 'source', 'Source de la dataviz', { bullets: false })], null, [head.title, head.source].filter(Boolean).length ? t('Renseigné') : t('Aucun')),
         ty.panel ? card('dv-picto', 'mood-smile', t(ty.panelTitle || 'Pictogramme'), ty.panel(col.viz.opts, fctx)) : null,
         card('dv-side', 'number', t('Chiffre à côté'), buildFields(SIDE_FIELDS, col.viz.side || (col.viz.side = newSide(col.viz.kind)), fctx, {}, h)),
         F('format').length ? card('dv-format', 'ruler-2', t('Dimensions'), gen(F('format'))) : null,
@@ -170,6 +181,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
           ty.actions ? h('div', { class: 'pp-actions' }, ty.actions.map(a => h('button', { type: 'button', class: 'pp-btn', textContent: a.label, title: a.title || '', onclick: () => { a.run(col.viz.opts); ui.sel = -1; fctx.restructure(); } }))) : null,
           ...gen(F('style'))]) : null].filter(Boolean));
     }
+    applyFilter(form, search);
     form.scrollTop = top;
   }
   const focusItem = path => {

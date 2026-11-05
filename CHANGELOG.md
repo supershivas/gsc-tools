@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.66.0 — 2026-11-05
+- Panneaux : recherche de réglage, panneau « Document » quand rien n'est sélectionné, choix de type avec icônes, Page et Espacement en boutons, « Fond de la section » et « Cadre » fusionnés, libellés plus courts avec aide « ? »
+- Éditeur de dataviz : aperçu centré, titre et source en champs simples (mise en forme à la demande), onglet et type en neutre : le rouge reste aux actions
+
 ## 1.65.1 — 2026-11-05
 - Barre de la colonne : le bouton « Dataviz… » est en rouge
 

@@ -1,9 +1,10 @@
 /* Colonne de droite : propriétés de l'élément sélectionné (document, header, section, sous-section, colonne). */
 import { h, ico, headerImage, columnWidth, defaultRuleColor } from './render.js';
 import { t } from './i18n.js';
-import { GRID, customLayoutOf, THEMES, paletteKeys, toneKeys, colorLabel, cssVars, applyVars } from './tokens.js';
+import { GRID, DENSITIES, customLayoutOf, THEMES, paletteKeys, toneKeys, colorLabel, cssVars, applyVars } from './tokens.js';
 import { openPalette } from './palette.js';
-import { cardEl } from './cards.js';
+import { cardEl, searchBox, applyFilter } from './cards.js';
+import { richSelect } from './colorselect.js';
 import { helpBtn } from './help.js';
 import { layoutSelect } from './layoutselect.js';
 import { heightNodes } from './vizheight.js';
@@ -17,7 +18,8 @@ import { iconSelect } from './iconselect.js';
 
 const shut = new Set();   // cartes repliées (gardées d'une sélection à l'autre)
 /* Accordéon : une seule carte ouverte à la fois par sorte d'élément (la première au départ) ; l'état est gardé d'une sélection à l'autre */
-const accs = {}, FIRST = { header: 'hd-text', sec: 'sec-main', sub: 'sub-main', col: 'col-content' };
+const search = { q: '', focus: false };   // recherche de réglage (gardée d'une sélection à l'autre)
+const accs = {}, FIRST = { doc: 'doc-main', header: 'hd-text', sec: 'sec-main', sub: 'sub-main', col: 'col-content' };
 const HMODE = { auto: 'Auto', ratio: 'Proportion', fixed: 'Fixe', fill: 'Remplir', match: 'Voisine' };
 
 export function buildProps(root, ctx) {
@@ -99,6 +101,11 @@ export function buildProps(root, ctx) {
       h('div', { class: 'imggrid' }, H.images.map(tile),
         h('button', { type: 'button', class: 'imgtile-add', onclick: () => { const n = newHeaderImage(H.images.length + 1); H.images.push(n); H.imageId = n.id; ctx.restructure(); } }, ico('plus'), h('span', { textContent: 'Ajouter une image' }))));
   };
+  /* Choix entre 2 ou 3 valeurs courtes : boutons texte (une liste déroulante est disproportionnée) */
+  const pair = (label, obj, k, choices, onSet) => h('div', { class: 'f' }, h('div', { class: 'hint' }, label, helpBtn(label)),
+    h('div', { class: 'seg seg-text' }, Object.entries(choices).map(([v, l]) => h('button', { type: 'button', class: v === (obj[k] || Object.keys(choices)[0]) ? 'on' : '', 'aria-pressed': String(v === (obj[k] || Object.keys(choices)[0])), onclick: () => { obj[k] = v; onSet ? onSet() : ctx.changed(); }, textContent: l }))));
+  /* Libellé + contrôle sans <label> (un bouton dans un <label> serait déclenché par un clic sur le texte) */
+  const fieldDiv = (label, node) => h('div', { class: 'f' }, h('div', { class: 'hint' }, label, helpBtn(label)), node);
   /* Choix d'alignement : boutons à icônes (une valeur parmi plusieurs) */
   const segmented = (label, obj, k, icons, names) => h('div', { class: 'f' }, h('div', { class: 'hint', textContent: label }),
     h('div', { class: 'seg' }, Object.entries(icons).map(([v, ic]) => h('button', { type: 'button', class: v === (obj[k] || Object.keys(icons)[0]) ? 'on' : '', title: names[v], 'aria-label': names[v], 'aria-pressed': String(v === (obj[k] || Object.keys(icons)[0])), onclick: () => { obj[k] = v; ctx.restructure(); } }, ico(ic)))));
@@ -125,7 +132,7 @@ export function buildProps(root, ctx) {
   const switchBtn = (on, label, fn) => h('button', { type: 'button', role: 'switch', 'aria-checked': String(!!on), 'aria-label': label, class: 'pp-switch' + (on ? ' on' : ''), onclick: fn });
   const switchRow = (label, on, fn) => h('div', { class: 'pp-switchrow' }, h('span', {}, label, helpBtn(label)), switchBtn(on, label, struct(fn)));
   /** toggle : { on, set } — l'interrupteur de l'en-tête affiche ou masque l'élément (la carte se replie quand il est éteint) */
-  const card = (id, icon, name, nodes, toggle, sum) => cardEl(id, icon, name, nodes, { shut, refresh: ctx.refreshProps, live: !toggle || toggle.on, toggle: toggle ? switchBtn(toggle.on, name, struct(toggle.set)) : null, acc, sum });
+  const card = (id, icon, name, nodes, toggle, sum) => cardEl(id, icon, name, nodes, { shut, refresh: ctx.refreshProps, live: !toggle || toggle.on, toggle: toggle ? switchBtn(toggle.on, name, struct(toggle.set)) : null, acc, sum, q: search.q });
   const sumColor = c => !c || c === 'none' ? t('Aucun') : t(colorLabel(doc, c));
   const sumBox = o => [o.fillColor && o.fillColor !== 'none' ? sumColor(o.fillColor) : null, o.stroke ? t('Contour') : null].filter(Boolean).join(' · ') || t('Aucun');
   const btn = (icon, label, fn, cls = '') => h('button', { type: 'button', class: 'pp-btn ' + cls, onclick: fn }, ico(icon), h('span', { textContent: label }));
@@ -161,11 +168,16 @@ export function buildProps(root, ctx) {
   const ICONS = { text: 'text-size', image: 'photo', card: 'layout-cards', figure: 'number', viz: 'chart-bar' };
 
   if (kind === 'doc') {
-    root.append(h('div', { class: 'pp-empty' }, ico('pointer'), h('p', { textContent: 'Sélectionnez un élément dans la structure (à gauche) ou sur la page pour modifier ses propriétés.' }),
-      h('p', { class: 'hint', textContent: 'Les couleurs, le format des nombres et le nom du fichier sont dans le menu Édition.' })));
+    title(doc.name || 'Document', [], { icon: 'file-text', pill: t('Document') });
+    root.append(card('doc-main', 'file-text', t('Document'), [
+        field('Nom du fichier', h('input', { type: 'text', value: doc.name || '', oninput: e => { doc.name = e.target.value; ctx.changed(); } })),
+        pair('Espacement', doc, 'density', Object.fromEntries(Object.entries(DENSITIES).map(([k, d]) => [k, t(d.label)])), struct(() => {})),
+        field('Format des nombres', (() => { const s = h('select', { onchange: e => { doc.locale = e.target.value; ctx.restructure(); } }, Object.entries(LOCALES).map(([v, l]) => h('option', { value: v, textContent: l }))); s.value = doc.locale || 'en-GB'; return s; })()),
+        btn('palette', t('Couleurs du document'), e => openPalette(e.currentTarget, ctx))], null, doc.name || ''),
+      h('p', { class: 'hint', textContent: t('Sélectionnez un élément dans la structure (à gauche) ou sur la page pour modifier ses propriétés.') }));
   } else if (kind === 'header') {
     const H = doc.header; title('Header', [], { icon: 'layout-navbar', pill: t('En-tête') });
-    root.append(card('hd-text', 'typography', t('Texte'), [text(H, 'overline', 'Surtitre'), text(H, 'title', 'Titre (taille fixe)'), text(H, 'subtitle', 'Sous-titre (optionnel — vide = masqué)')]),
+    root.append(card('hd-text', 'typography', t('Texte'), [text(H, 'overline', 'Surtitre'), text(H, 'title', 'Titre du header'), text(H, 'subtitle', 'Sous-titre du header')]),
       card('hd-colors', 'palette', t('Couleurs'), [swatches('Couleur de fond', H, 'bg', toneKeys(doc)), swatches('Couleur du texte', H, 'fg', toneKeys(doc))], null, sumColor(H.bg)),
       card('hd-image', 'photo', t('Image'), [imageLibrary(H)], { on: H.showImage, set: () => { H.showImage = !H.showImage; } }),
       card('hd-logo', 'certificate', t('Logo'), [logoPicker(H)], { on: H.showLogo, set: () => { H.showLogo = !H.showLogo; } }));
@@ -176,9 +188,8 @@ export function buildProps(root, ctx) {
         switchRow(t('Filet au-dessus de la section'), sec.secRule !== false, () => { sec.secRule = sec.secRule === false; }),
       switchRow(t('Filet entre les sous-sections'), sec.subRules !== false, () => { sec.subRules = sec.subRules === false; }),
       sec.subRules !== false ? swatches('Couleur du filet', { get ruleColor() { return sec.ruleColor || defaultRuleColor(sec); }, set ruleColor(v) { sec.ruleColor = v; } }, 'ruleColor', toneKeys(doc)) : null,
-        select(sec, 'page', 'Page', { recto: 'Recto', verso: 'Verso' }, () => ctx.restructure())]),
-      card('sec-bg', 'color-swatch', t('Fond de la section'), [swatches('Fond', sec, 'bg', toneKeys(doc), true)], null, sumColor(sec.bg)),
-      card('sec-frame', 'border-all', t('Cadre'), boxControls(sec, 'Fond du cadre'), null, sumBox(sec)));
+        pair('Page', sec, 'page', { recto: t('Recto'), verso: t('Verso') }, () => ctx.restructure())]),
+      card('sec-bg', 'color-swatch', t('Fond et contour'), [swatches('Fond', sec, 'bg', toneKeys(doc), true), ...boxControls(sec, 'Fond du cadre')], null, [sumColor(sec.bg), sumBox(sec)].filter(x => x !== t('Aucun')).join(' · ') || t('Aucun')));
   } else if (kind === 'sub' && sub) {
     title(sub.title || 'Sous-section', [[sec.title || 'Section', `sec:${si}`]], { icon: 'columns', pill: sub.layout, acts: [
       ['arrow-up', t('Monter'), struct(() => { const j = bi - 1; if (j >= 0) [sec.subs[bi], sec.subs[j]] = [sec.subs[j], sec.subs[bi]]; })],
@@ -202,8 +213,9 @@ export function buildProps(root, ctx) {
     title(`Colonne ${ci + 1}`, [[sec.title || 'Section', `sec:${si}`], [sub.title || 'Sous-section', `sub:${si}:${bi}`]], { icon: ICONS[col.type] || 'text-size', pill: t(COL_TYPES[col.type]) + (vt0 ? ' · ' + t(vt0.label) : ''), acts: [
       ...(nb > 1 ? [ci > 0 ? ['arrow-left', t('Colonne précédente'), nudge(-1)] : null, ci < nb - 1 ? ['arrow-right', t('Colonne suivante'), nudge(1)] : null].filter(Boolean) : []),
       ['trash', t('Supprimer la colonne'), () => ctx.remove(`col:${si}:${bi}:${ci}`), 'danger']] });
-    const typeSel = field('Type de contenu', h('select', { onchange: e => { const keep = col.text, { valign, align, stroke, strokeColor, fillColor } = col; Object.assign(col, newCol(e.target.value), { valign, align, stroke, strokeColor, fillColor }); if (e.target.value === 'text' && keep) col.text = keep; if (e.target.value === 'card') { col.card = newCard(columnWidth(doc, si, bi, ci)); col.stroke = false; col.fillColor = 'none'; } ctx.restructure(); } },
-      Object.entries(COL_TYPES).map(([v, l]) => h('option', { value: v, textContent: l, selected: col.type === v }))));
+    const typeSel = fieldDiv('Type de contenu', richSelect({ value: col.type, options: COL_TYPES, text: true, lead: k => ico(ICONS[k] || 'text-size'), onChange: v => {
+      const keep = col.text, { valign, align, stroke, strokeColor, fillColor } = col; Object.assign(col, newCol(v), { valign, align, stroke, strokeColor, fillColor });
+      if (v === 'text' && keep) col.text = keep; if (v === 'card') { col.card = newCard(columnWidth(doc, si, bi, ci)); col.stroke = false; col.fillColor = 'none'; } ctx.restructure(); } }));
     let editor;
     if (col.type === 'text') editor = [h('div', { class: 'f' }, h('div', { class: 'hint', textContent: 'Texte' }), richEditor(col.text, v => { col.text = v; ctx.changed(); }))];
     else if (col.type === 'image') {
@@ -220,9 +232,9 @@ export function buildProps(root, ctx) {
     else if (col.type === 'figure') { if (!col.figure) col.figure = FIGURE_DEFAULTS(); editor = buildFields(FIGURE_FIELDS, col.figure, ctx, palOpts, h); }
     else {
       if (!col.viz) col.viz = newViz('bars');
-      const kindSel = h('select', { onchange: e => { col.viz = switchKind(col.viz, e.target.value); ctx.restructure(); } },
-        Object.entries(VIZ_FAMILIES).map(([fk, fl]) => h('optgroup', { label: t(fl) }, Object.entries(VIZ_TYPES).filter(([, v]) => v.family === fk).map(([k, v]) => h('option', { value: k, textContent: t(v.label), selected: col.viz.kind === k })))));
-      editor = [field('Type de dataviz', kindSel),
+      const kinds = {}; Object.keys(VIZ_FAMILIES).forEach(fk => Object.entries(VIZ_TYPES).filter(([, v]) => v.family === fk).forEach(([k, v]) => { kinds[k] = v.label; }));
+      const kindSel = richSelect({ value: col.viz.kind, options: kinds, text: true, lead: k => ico((VIZ_TYPES[k] || {}).icon || 'chart-bar'), onChange: v => { col.viz = switchKind(col.viz, v); ctx.restructure(); } });
+      editor = [fieldDiv('Type de dataviz', kindSel),
         h('button', { type: 'button', class: 'primary', style: { width: '100%' }, onclick: () => ctx.editViz({ col, sub, ci }) }, ico('pencil'), ' Ouvrir l’éditeur de dataviz'),
         h('p', { class: 'hint', textContent: 'Tous les réglages de la dataviz (type, données, couleurs, options) se font dans l’éditeur.' })];
     }
@@ -234,7 +246,7 @@ export function buildProps(root, ctx) {
     const vt = col.type === 'viz' && col.viz && VIZ_TYPES[col.viz.kind];
     root.append(card('col-content', ICONS[col.type] || 'text-size', t('Contenu'), [typeSel, ...editor], null, t(COL_TYPES[col.type]) + (vt ? ' · ' + t(vt.label) : '')),
       vt && vt.heights ? card('col-height', 'ruler-2', t('Hauteur'), heightNodes(vt, col.viz.opts, { ctx, width: columnWidth(doc, si, bi, ci) }), null, t(HMODE[col.viz.opts.hmode] || 'Auto'))
-        : col.type !== 'viz' ? card('col-height', 'ruler-2', t('Hauteur'), [field('Hauteur minimale (px, 0 = automatique)', h('input', { type: 'number', min: 0, max: 1000, step: 3, value: col.minH || 0, oninput: e => { col.minH = Math.max(0, +e.target.value || 0); ctx.changed(); } })),
+        : col.type !== 'viz' ? card('col-height', 'ruler-2', t('Hauteur'), [field('Hauteur minimale de la colonne (px)', h('input', { type: 'number', min: 0, max: 1000, step: 3, value: col.minH || 0, oninput: e => { col.minH = Math.max(0, +e.target.value || 0); ctx.changed(); } })),
           h('p', { class: 'hint', textContent: t('Ou glisser la poignée sous la colonne dans l’aperçu : elle se cale sur la colonne voisine.') })], null, col.minH ? col.minH + ' px' : t('Auto')) : null,
       card('col-layout', 'layout-align-middle', t('Disposition'), [segmented('Alignement vertical dans la colonne', col, 'valign', VALIGNS, { top: t('Haut'), center: t('Centre'), bottom: t('Bas') }),
         col.type === 'text' ? segmented('Alignement du texte', col, 'align', ALIGNS, { left: t('Gauche'), center: t('Centré'), right: t('Droite'), justify: t('Justifié') }) : null, swap], null, t({ top: 'Haut', center: 'Centre', bottom: 'Bas' }[col.valign || 'top'])),
@@ -243,4 +255,7 @@ export function buildProps(root, ctx) {
       card('col-free', 'text-size', t('Textes libres'), freeTexts(col), null, String((col.texts || []).length || t('Aucun'))),
       col.type === 'text' || col.type === 'card' ? card('col-side', 'number', t('Chiffre à côté'), buildFields(SIDE_FIELDS, col.side || (col.side = newColSide()), ctx, {}, h)) : null);
   } else { title('Élément introuvable'); }
+  const sb = searchBox(search, ctx.refreshProps), hd = root.querySelector('.pr-head');
+  if (hd) hd.after(sb); else root.prepend(sb);
+  applyFilter(root, search);
 }

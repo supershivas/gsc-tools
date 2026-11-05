@@ -1,7 +1,8 @@
 {
-  "version": "1.65.1",
+  "version": "1.66.0",
   "date": "2026-11-05",
   "changes": [
-    "Barre de la colonne : le bouton « Dataviz… » est en rouge"
+    "Panneaux : recherche de réglage, panneau « Document » quand rien n'est sélectionné, choix de type avec icônes, Page et Espacement en boutons, « Fond de la section » et « Cadre » fusionnés, libellés plus courts avec aide « ? »",
+    "Éditeur de dataviz : aperçu centré, titre et source en champs simples (mise en forme à la demande), onglet et type en neutre : le rouge reste aux actions"
   ]
 }

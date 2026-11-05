@@ -7,8 +7,13 @@ import { t } from './i18n.js';
 export const HELP = {
   /* header */
   'Surtitre': 'Petite ligne en capitales au-dessus du titre, suivie d’un filet. Entrée = retour à la ligne.',
-  'Titre (taille fixe)': 'Le titre du header a une taille fixe (30 px). Un avertissement apparaît si le texte déborde du bandeau.',
-  'Sous-titre (optionnel — vide = masqué)': 'Deux lignes tiennent dans le header ; au-delà, un avertissement s’affiche. Vide = masqué.',
+  'Titre du header': 'Le titre du header a une taille fixe (30 px). Un avertissement apparaît si le texte déborde du bandeau.',
+  'Sous-titre du header': 'Optionnel : vide, il est masqué. Deux lignes tiennent dans le header ; au-delà, un avertissement s’affiche.',
+  'Titre de la dataviz': 'Facultatif, au-dessus du graphique. Une ligne = un paragraphe ; le bouton « Mise en forme » donne les styles (titre 1, titre 2, chiffre clé…).',
+  'Source de la dataviz': 'Facultatif, sous le graphique.',
+  'Hauteur minimale de la colonne (px)': '0 = automatique : la hauteur suit le contenu. Se règle aussi avec la poignée sous la colonne dans l’aperçu.',
+  'Nom du fichier': 'Nom utilisé pour les fichiers enregistrés et exportés (titre_AAMMJJ.extension).',
+  'Espacement': 'Écarts entre sections, sous-sections et colonnes : serré (75 %), actuel, large (125 %).',
   'Afficher l’image': 'Image de 132 px de haut à gauche du header, choisie dans la bibliothèque.',
   'Afficher le logo': 'Logo à droite du header ; quatre versions de même taille sont disponibles.',
   /* section et sous-section */

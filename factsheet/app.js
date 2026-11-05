@@ -294,6 +294,19 @@
   }
   var getLang = () => lang;
   var EN = {
+    "Titre du header": "Header title",
+    "Sous-titre du header": "Header subtitle",
+    "Titre de la dataviz": "Dataviz title",
+    "Source de la dataviz": "Dataviz source",
+    "Hauteur minimale de la colonne (px)": "Column minimum height (px)",
+    "Mise en forme": "Formatting",
+    "Renseign\xE9": "Filled in",
+    "Rechercher un r\xE9glage": "Search for a setting",
+    "Espacement": "Spacing",
+    "Format des nombres": "Number format",
+    "Document": "Document",
+    "Nom du fichier": "File name",
+    "Couleurs du document": "Document colours",
     /* panneau d'élément (tête collante, accordéon) et éditeur de dataviz */
     "Avanc\xE9": "Advanced",
     "En-t\xEAte": "Header",
@@ -5796,8 +5809,13 @@ ${short}`)])
   var HELP = {
     /* header */
     "Surtitre": "Petite ligne en capitales au-dessus du titre, suivie d\u2019un filet. Entr\xE9e = retour \xE0 la ligne.",
-    "Titre (taille fixe)": "Le titre du header a une taille fixe (30 px). Un avertissement appara\xEEt si le texte d\xE9borde du bandeau.",
-    "Sous-titre (optionnel \u2014 vide = masqu\xE9)": "Deux lignes tiennent dans le header ; au-del\xE0, un avertissement s\u2019affiche. Vide = masqu\xE9.",
+    "Titre du header": "Le titre du header a une taille fixe (30 px). Un avertissement appara\xEEt si le texte d\xE9borde du bandeau.",
+    "Sous-titre du header": "Optionnel : vide, il est masqu\xE9. Deux lignes tiennent dans le header ; au-del\xE0, un avertissement s\u2019affiche.",
+    "Titre de la dataviz": "Facultatif, au-dessus du graphique. Une ligne = un paragraphe ; le bouton \xAB Mise en forme \xBB donne les styles (titre 1, titre 2, chiffre cl\xE9\u2026).",
+    "Source de la dataviz": "Facultatif, sous le graphique.",
+    "Hauteur minimale de la colonne (px)": "0 = automatique : la hauteur suit le contenu. Se r\xE8gle aussi avec la poign\xE9e sous la colonne dans l\u2019aper\xE7u.",
+    "Nom du fichier": "Nom utilis\xE9 pour les fichiers enregistr\xE9s et export\xE9s (titre_AAMMJJ.extension).",
+    "Espacement": "\xC9carts entre sections, sous-sections et colonnes : serr\xE9 (75 %), actuel, large (125 %).",
     "Afficher l\u2019image": "Image de 132 px de haut \xE0 gauche du header, choisie dans la biblioth\xE8que.",
     "Afficher le logo": "Logo \xE0 droite du header ; quatre versions de m\xEAme taille sont disponibles.",
     /* section et sous-section */
@@ -5880,8 +5898,41 @@ ${short}`)])
   }
 
   // src/cards.js
-  function cardEl(id, icon, name, nodes, { shut: shut3, refresh, toggle = null, live = true, acc: acc2 = null, sum: sum2 = "" }) {
-    const open3 = acc2 ? (acc2.cur ?? acc2.first) === id : !shut3.has(id), show2 = open3 && live;
+  function searchBox(st, refresh) {
+    const inp = h("input", { type: "search", class: "pp-q", placeholder: t("Rechercher un r\xE9glage"), "aria-label": t("Rechercher un r\xE9glage"), value: st.q, oninput: (e) => {
+      st.q = e.target.value;
+      st.focus = true;
+      refresh();
+    } });
+    return h("label", { class: "pp-search" }, ico("search"), inp);
+  }
+  function applyFilter(root, st) {
+    const inp = root.querySelector(".pp-q");
+    if (st.focus && inp) {
+      inp.focus();
+      inp.setSelectionRange(inp.value.length, inp.value.length);
+      st.focus = false;
+    }
+    const n = st.q.trim().toLowerCase();
+    if (!n) return;
+    setTimeout(() => {
+      root.querySelectorAll(".pr-adv").forEach((x) => {
+        x.style.display = "none";
+      });
+      root.querySelectorAll(".pp-card").forEach((card) => {
+        const name = ((card.querySelector(".pp-card-h b") || {}).textContent || "").toLowerCase(), body = card.querySelector(".pp-body");
+        let any = name.includes(n);
+        if (body && !any) [...body.children].forEach((ch) => {
+          const hit = ch.textContent.toLowerCase().includes(n);
+          ch.style.display = hit ? "" : "none";
+          any = any || hit;
+        });
+        card.style.display = any ? "" : "none";
+      });
+    }, 0);
+  }
+  function cardEl(id, icon, name, nodes, { shut: shut3, refresh, toggle = null, live = true, acc: acc2 = null, sum: sum2 = "", q = "" }) {
+    const open3 = q ? true : acc2 ? (acc2.cur ?? acc2.first) === id : !shut3.has(id), show2 = open3 && (live || !!q);
     const flip = () => {
       if (acc2) acc2.cur = open3 ? "" : id;
       else {
@@ -6399,8 +6450,9 @@ ${short}`)])
 
   // src/props.js
   var shut = /* @__PURE__ */ new Set();
+  var search = { q: "", focus: false };
   var accs = {};
-  var FIRST = { header: "hd-text", sec: "sec-main", sub: "sub-main", col: "col-content" };
+  var FIRST = { doc: "doc-main", header: "hd-text", sec: "sec-main", sub: "sub-main", col: "col-content" };
   var HMODE = { auto: "Auto", ratio: "Proportion", fixed: "Fixe", fill: "Remplir", match: "Voisine" };
   function buildProps(root, ctx2) {
     const doc2 = ctx2.getDoc(), path = ctx2.getSel();
@@ -6589,6 +6641,16 @@ ${short}`)])
         )
       );
     };
+    const pair = (label, obj, k, choices, onSet) => h(
+      "div",
+      { class: "f" },
+      h("div", { class: "hint" }, label, helpBtn(label)),
+      h("div", { class: "seg seg-text" }, Object.entries(choices).map(([v, l]) => h("button", { type: "button", class: v === (obj[k] || Object.keys(choices)[0]) ? "on" : "", "aria-pressed": String(v === (obj[k] || Object.keys(choices)[0])), onclick: () => {
+        obj[k] = v;
+        onSet ? onSet() : ctx2.changed();
+      }, textContent: l })))
+    );
+    const fieldDiv = (label, node) => h("div", { class: "f" }, h("div", { class: "hint" }, label, helpBtn(label)), node);
     const segmented = (label, obj, k, icons, names) => h(
       "div",
       { class: "f" },
@@ -6650,7 +6712,7 @@ ${short}`)])
     };
     const switchBtn = (on, label, fn) => h("button", { type: "button", role: "switch", "aria-checked": String(!!on), "aria-label": label, class: "pp-switch" + (on ? " on" : ""), onclick: fn });
     const switchRow = (label, on, fn) => h("div", { class: "pp-switchrow" }, h("span", {}, label, helpBtn(label)), switchBtn(on, label, struct(fn)));
-    const card = (id, icon, name, nodes, toggle, sum2) => cardEl(id, icon, name, nodes, { shut, refresh: ctx2.refreshProps, live: !toggle || toggle.on, toggle: toggle ? switchBtn(toggle.on, name, struct(toggle.set)) : null, acc: acc2, sum: sum2 });
+    const card = (id, icon, name, nodes, toggle, sum2) => cardEl(id, icon, name, nodes, { shut, refresh: ctx2.refreshProps, live: !toggle || toggle.on, toggle: toggle ? switchBtn(toggle.on, name, struct(toggle.set)) : null, acc: acc2, sum: sum2, q: search.q });
     const sumColor = (c2) => !c2 || c2 === "none" ? t("Aucun") : t(colorLabel(doc2, c2));
     const sumBox = (o) => [o.fillColor && o.fillColor !== "none" ? sumColor(o.fillColor) : null, o.stroke ? t("Contour") : null].filter(Boolean).join(" \xB7 ") || t("Aucun");
     const btn = (icon, label, fn, cls = "") => h("button", { type: "button", class: "pp-btn " + cls, onclick: fn }, ico(icon), h("span", { textContent: label }));
@@ -6721,18 +6783,32 @@ ${short}`)])
     const acc2 = accs[kind] ||= { cur: null, first: FIRST[kind] };
     const ICONS2 = { text: "text-size", image: "photo", card: "layout-cards", figure: "number", viz: "chart-bar" };
     if (kind === "doc") {
-      root.append(h(
-        "div",
-        { class: "pp-empty" },
-        ico("pointer"),
-        h("p", { textContent: "S\xE9lectionnez un \xE9l\xE9ment dans la structure (\xE0 gauche) ou sur la page pour modifier ses propri\xE9t\xE9s." }),
-        h("p", { class: "hint", textContent: "Les couleurs, le format des nombres et le nom du fichier sont dans le menu \xC9dition." })
-      ));
+      title(doc2.name || "Document", [], { icon: "file-text", pill: t("Document") });
+      root.append(
+        card("doc-main", "file-text", t("Document"), [
+          field("Nom du fichier", h("input", { type: "text", value: doc2.name || "", oninput: (e) => {
+            doc2.name = e.target.value;
+            ctx2.changed();
+          } })),
+          pair("Espacement", doc2, "density", Object.fromEntries(Object.entries(DENSITIES).map(([k, d]) => [k, t(d.label)])), struct(() => {
+          })),
+          field("Format des nombres", (() => {
+            const s2 = h("select", { onchange: (e) => {
+              doc2.locale = e.target.value;
+              ctx2.restructure();
+            } }, Object.entries(LOCALES).map(([v, l]) => h("option", { value: v, textContent: l })));
+            s2.value = doc2.locale || "en-GB";
+            return s2;
+          })()),
+          btn("palette", t("Couleurs du document"), (e) => openPalette(e.currentTarget, ctx2))
+        ], null, doc2.name || ""),
+        h("p", { class: "hint", textContent: t("S\xE9lectionnez un \xE9l\xE9ment dans la structure (\xE0 gauche) ou sur la page pour modifier ses propri\xE9t\xE9s.") })
+      );
     } else if (kind === "header") {
       const H = doc2.header;
       title("Header", [], { icon: "layout-navbar", pill: t("En-t\xEAte") });
       root.append(
-        card("hd-text", "typography", t("Texte"), [text(H, "overline", "Surtitre"), text(H, "title", "Titre (taille fixe)"), text(H, "subtitle", "Sous-titre (optionnel \u2014 vide = masqu\xE9)")]),
+        card("hd-text", "typography", t("Texte"), [text(H, "overline", "Surtitre"), text(H, "title", "Titre du header"), text(H, "subtitle", "Sous-titre du header")]),
         card("hd-colors", "palette", t("Couleurs"), [swatches("Couleur de fond", H, "bg", toneKeys(doc2)), swatches("Couleur du texte", H, "fg", toneKeys(doc2))], null, sumColor(H.bg)),
         card("hd-image", "photo", t("Image"), [imageLibrary(H)], { on: H.showImage, set: () => {
           H.showImage = !H.showImage;
@@ -6768,10 +6844,9 @@ ${short}`)])
           }, set ruleColor(v) {
             sec.ruleColor = v;
           } }, "ruleColor", toneKeys(doc2)) : null,
-          select(sec, "page", "Page", { recto: "Recto", verso: "Verso" }, () => ctx2.restructure())
+          pair("Page", sec, "page", { recto: t("Recto"), verso: t("Verso") }, () => ctx2.restructure())
         ]),
-        card("sec-bg", "color-swatch", t("Fond de la section"), [swatches("Fond", sec, "bg", toneKeys(doc2), true)], null, sumColor(sec.bg)),
-        card("sec-frame", "border-all", t("Cadre"), boxControls(sec, "Fond du cadre"), null, sumBox(sec))
+        card("sec-bg", "color-swatch", t("Fond et contour"), [swatches("Fond", sec, "bg", toneKeys(doc2), true), ...boxControls(sec, "Fond du cadre")], null, [sumColor(sec.bg), sumBox(sec)].filter((x) => x !== t("Aucun")).join(" \xB7 ") || t("Aucun"))
       );
     } else if (kind === "sub" && sub) {
       title(sub.title || "Sous-section", [[sec.title || "Section", `sec:${si}`]], { icon: "columns", pill: sub.layout, acts: [
@@ -6839,21 +6914,17 @@ ${short}`)])
         ...nb > 1 ? [ci > 0 ? ["arrow-left", t("Colonne pr\xE9c\xE9dente"), nudge(-1)] : null, ci < nb - 1 ? ["arrow-right", t("Colonne suivante"), nudge(1)] : null].filter(Boolean) : [],
         ["trash", t("Supprimer la colonne"), () => ctx2.remove(`col:${si}:${bi}:${ci}`), "danger"]
       ] });
-      const typeSel = field("Type de contenu", h(
-        "select",
-        { onchange: (e) => {
-          const keep = col.text, { valign, align, stroke, strokeColor, fillColor } = col;
-          Object.assign(col, newCol(e.target.value), { valign, align, stroke, strokeColor, fillColor });
-          if (e.target.value === "text" && keep) col.text = keep;
-          if (e.target.value === "card") {
-            col.card = newCard(columnWidth(doc2, si, bi, ci));
-            col.stroke = false;
-            col.fillColor = "none";
-          }
-          ctx2.restructure();
-        } },
-        Object.entries(COL_TYPES).map(([v, l]) => h("option", { value: v, textContent: l, selected: col.type === v }))
-      ));
+      const typeSel = fieldDiv("Type de contenu", richSelect({ value: col.type, options: COL_TYPES, text: true, lead: (k) => ico(ICONS2[k] || "text-size"), onChange: (v) => {
+        const keep = col.text, { valign, align, stroke, strokeColor, fillColor } = col;
+        Object.assign(col, newCol(v), { valign, align, stroke, strokeColor, fillColor });
+        if (v === "text" && keep) col.text = keep;
+        if (v === "card") {
+          col.card = newCard(columnWidth(doc2, si, bi, ci));
+          col.stroke = false;
+          col.fillColor = "none";
+        }
+        ctx2.restructure();
+      } }));
       let editor;
       if (col.type === "text") editor = [h("div", { class: "f" }, h("div", { class: "hint", textContent: "Texte" }), richEditor(col.text, (v) => {
         col.text = v;
@@ -6888,16 +6959,16 @@ ${short}`)])
         editor = buildFields(FIGURE_FIELDS, col.figure, ctx2, palOpts, h);
       } else {
         if (!col.viz) col.viz = newViz("bars");
-        const kindSel = h(
-          "select",
-          { onchange: (e) => {
-            col.viz = switchKind(col.viz, e.target.value);
-            ctx2.restructure();
-          } },
-          Object.entries(VIZ_FAMILIES).map(([fk, fl]) => h("optgroup", { label: t(fl) }, Object.entries(VIZ_TYPES).filter(([, v]) => v.family === fk).map(([k, v]) => h("option", { value: k, textContent: t(v.label), selected: col.viz.kind === k }))))
-        );
+        const kinds = {};
+        Object.keys(VIZ_FAMILIES).forEach((fk) => Object.entries(VIZ_TYPES).filter(([, v]) => v.family === fk).forEach(([k, v]) => {
+          kinds[k] = v.label;
+        }));
+        const kindSel = richSelect({ value: col.viz.kind, options: kinds, text: true, lead: (k) => ico((VIZ_TYPES[k] || {}).icon || "chart-bar"), onChange: (v) => {
+          col.viz = switchKind(col.viz, v);
+          ctx2.restructure();
+        } });
         editor = [
-          field("Type de dataviz", kindSel),
+          fieldDiv("Type de dataviz", kindSel),
           h("button", { type: "button", class: "primary", style: { width: "100%" }, onclick: () => ctx2.editViz({ col, sub, ci }) }, ico("pencil"), " Ouvrir l\u2019\xE9diteur de dataviz"),
           h("p", { class: "hint", textContent: "Tous les r\xE9glages de la dataviz (type, donn\xE9es, couleurs, options) se font dans l\u2019\xE9diteur." })
         ];
@@ -6923,7 +6994,7 @@ ${short}`)])
       root.append(
         card("col-content", ICONS2[col.type] || "text-size", t("Contenu"), [typeSel, ...editor], null, t(COL_TYPES[col.type]) + (vt ? " \xB7 " + t(vt.label) : "")),
         vt && vt.heights ? card("col-height", "ruler-2", t("Hauteur"), heightNodes(vt, col.viz.opts, { ctx: ctx2, width: columnWidth(doc2, si, bi, ci) }), null, t(HMODE[col.viz.opts.hmode] || "Auto")) : col.type !== "viz" ? card("col-height", "ruler-2", t("Hauteur"), [
-          field("Hauteur minimale (px, 0 = automatique)", h("input", { type: "number", min: 0, max: 1e3, step: 3, value: col.minH || 0, oninput: (e) => {
+          field("Hauteur minimale de la colonne (px)", h("input", { type: "number", min: 0, max: 1e3, step: 3, value: col.minH || 0, oninput: (e) => {
             col.minH = Math.max(0, +e.target.value || 0);
             ctx2.changed();
           } })),
@@ -6942,6 +7013,10 @@ ${short}`)])
     } else {
       title("\xC9l\xE9ment introuvable");
     }
+    const sb = searchBox(search, ctx2.refreshProps), hd = root.querySelector(".pr-head");
+    if (hd) hd.after(sb);
+    else root.prepend(sb);
+    applyFilter(root, search);
   }
 
   // src/vizreorder.js
@@ -7349,6 +7424,8 @@ ${short}`)])
   var tab = "data";
   shut2.add("dv-type");
   var acc = { cur: null, first: "dv-style" };
+  var search2 = { q: "", focus: false };
+  var MARKUP = /\*\*|~~|__|\^\^|,,|(^|\n)#{1,5} /;
   var LABEL_KEYS = /* @__PURE__ */ new Set(["legend", "showValues", "decimals", "suffix", "totalTpl", "layout"]);
   var SERIES_COLORS2 = ["sky", "yellow", "blue", "slate", "grey"];
   var availH = 360;
@@ -7522,7 +7599,26 @@ ${short}`)])
       }
     };
     const refreshForm = () => buildForm();
-    const card = (id, icon, name, nodes, sum2) => cardEl(id, icon, name, nodes, { shut: shut2, refresh: refreshForm, acc, sum: sum2 });
+    const card = (id, icon, name, nodes, sum2) => cardEl(id, icon, name, nodes, { shut: shut2, refresh: refreshForm, acc, sum: sum2, q: search2.q });
+    const softField = (obj, k, label, opts) => {
+      const box = h("div", { class: "f" }), val = () => obj[k] || "";
+      let rich = MARKUP.test(val()) || val().includes("\n");
+      const draw2 = () => box.replaceChildren(
+        h("div", { class: "hint pp-fh" }, label, helpBtn(label), h("span", { class: "pp-sp" }), h("button", { type: "button", class: "mini" + (rich ? " on" : ""), title: t("Mise en forme"), "aria-label": t("Mise en forme"), "aria-pressed": String(rich), onclick: () => {
+          rich = !rich;
+          draw2();
+        } }, ico("typography"))),
+        rich ? richEditor(val(), (v) => {
+          obj[k] = v;
+          fctx.changed();
+        }, opts) : h("input", { type: "text", value: val(), oninput: (e) => {
+          obj[k] = e.target.value;
+          fctx.changed();
+        } })
+      );
+      draw2();
+      return box;
+    };
     const typeCard = () => {
       const cur = VIZ_TYPES[col.viz.kind], list = h("div", { class: "ve-typelist", role: "listbox" });
       for (const [fk, fl] of Object.entries(VIZ_FAMILIES)) {
@@ -7576,8 +7672,8 @@ ${short}`)])
         const ids = ["dv-head", ty.panel && "dv-picto", "dv-side", F("format").length && "dv-format", "dv-colors", F("labels").length && "dv-labels", (F("style").length || ty.actions) && "dv-style"].filter(Boolean);
         acc.first = ["dv-style", "dv-labels", "dv-colors"].find((x) => ids.includes(x));
         if (acc.cur && !ids.includes(acc.cur)) acc.cur = null;
-        form.append(typeCard(), ...[
-          card("dv-head", "typography", t("Titre et source"), buildFields([{ k: "title", t: "area", label: "Titre de la dataviz (facultatif) \u2014 styles de paragraphe : titre 1, titre 2, chiffre cl\xE9\u2026" }, { k: "source", t: "text", rich: true, label: "Source (facultatif)" }], head, fctx, {}, h)),
+        form.append(searchBox(search2, refreshForm), typeCard(), ...[
+          card("dv-head", "typography", t("Titre et source"), [softField(head, "title", "Titre de la dataviz", {}), softField(head, "source", "Source de la dataviz", { bullets: false })], null, [head.title, head.source].filter(Boolean).length ? t("Renseign\xE9") : t("Aucun")),
           ty.panel ? card("dv-picto", "mood-smile", t(ty.panelTitle || "Pictogramme"), ty.panel(col.viz.opts, fctx)) : null,
           card("dv-side", "number", t("Chiffre \xE0 c\xF4t\xE9"), buildFields(SIDE_FIELDS, col.viz.side || (col.viz.side = newSide(col.viz.kind)), fctx, {}, h)),
           F("format").length ? card("dv-format", "ruler-2", t("Dimensions"), gen(F("format"))) : null,
@@ -7593,6 +7689,7 @@ ${short}`)])
           ]) : null
         ].filter(Boolean));
       }
+      applyFilter(form, search2);
       form.scrollTop = top;
     }
     const focusItem = (path) => {
@@ -8676,6 +8773,7 @@ ${short}`)])
     const top = propsEl.scrollTop;
     buildProps(propsEl, ctx);
     propsEl.scrollTop = top;
+    syncSpacingCtl();
   }
   var ctx = {
     getDoc: () => doc,
