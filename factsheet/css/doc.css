@@ -131,3 +131,5 @@ sup,sub{font-size:.7em;line-height:0}
 .stage .col-split{cursor:col-resize;z-index:3}.stage .col-split:hover::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:#F28C28;border-radius:2px}
 .stage .fig-split{cursor:col-resize;z-index:3}.stage .fig-split:hover::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:#F28C28;border-radius:2px}
 .free-grip{position:absolute;right:-4px;top:0;bottom:0;width:8px}.stage .free-grip{cursor:ew-resize}.stage .free-grip:hover{background:#F28C28;opacity:.6;border-radius:2px}
+/* un SVG ne rogne jamais son contenu : un trait posé sur le bord (cercle, barre, case) serait coupé d'un demi-pixel au zoom (les icônes importées gardent leur rognage en ligne) */
+.page svg,.viz-sheet svg{overflow:visible}

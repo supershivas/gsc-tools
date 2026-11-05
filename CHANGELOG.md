@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.62.4 — 2026-11-05
+- Aperçu et export : plus aucun SVG ne rogne son contenu (cercles de la liste à icônes, cases, barres…) : un trait posé sur le bord n'est plus coupé d'un demi-pixel au zoom
+
 ## 1.62.3 — 2026-11-05
 - Aperçu 3D : la rotation autour de la feuille est de nouveau libre ; seule l'inclinaison de haut en bas reste limitée (≈ ±23°)
 
