@@ -275,6 +275,19 @@ stage.addEventListener('click', e => {
   ctx.select(n ? n.dataset.sel : null);
 });
 
+/* Séparation entre un contenu et son chiffre à côté : glisser la poignée (entre les deux) change leurs largeurs en direct */
+stage.addEventListener('pointerdown', e => {
+  if (e.button !== 0 || handOn()) return;
+  const sp = e.target.closest('.side-split'); if (!sp) return;
+  const colEl = sp.closest('.col'), q = colEl && colEl.dataset.sel.split(':'), col = q && doc.sections[+q[1]]?.subs[+q[2]]?.cols[+q[3]];
+  const sd = col && (col.type === 'viz' ? col.viz && col.viz.side : col.side); if (!sd) return;
+  const sc = colEl.closest('.page').getBoundingClientRect().width / PAGE.w, W = sp.parentElement.getBoundingClientRect().width / sc, s0 = +sd.share || 60, dir = sd.pos === 'left' ? -1 : 1, px = e.clientX; let moved = false;
+  e.preventDefault(); e.stopPropagation(); hover.hide(); document.body.style.cursor = 'col-resize';
+  const move = ev => { moved = true; sd.share = Math.round(Math.max(25, Math.min(80, s0 + dir * (ev.clientX - px) / sc / W * 100))); ctx.changed(); };
+  const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); document.body.style.cursor = ''; if (moved) { suppressClick = true; setTimeout(() => { suppressClick = false; }, 0); ctx.restructure(); } };
+  window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+}, true);
+
 /* Textes libres d'une colonne : glisser = les placer où l'on veut dans la colonne (x en % de la largeur, y en px) */
 stage.addEventListener('pointerdown', e => {
   if (e.button !== 0 || handOn()) return;

@@ -206,3 +206,6 @@ export function reorderHit(env, key, i, axis, x, y, w, h) {
 export const inlineMk = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/__(.+?)__/g, '<u>$1</u>').replace(/~~(.+?)~~/g, '<i>$1</i>').replace(/\^\^(.+?)\^\^/g, '<sup>$1</sup>').replace(/,,(.+?),,/g, '<sub>$1</sub>').replace(/\u2028/g, '<br>');
 /** Le même texte sans balisage (mesures, libellés de la structure) */
 export const stripMk = t => String(t ?? '').replace(/\u2028/g, ' ').replace(/\*\*|__|~~|\^\^|,,/g, '');
+
+/** Couleur d'un élément d'une dataviz à séries : la surcharge de la ligne (`rows[i].colors[j]`, pour mettre un élément en valeur) sinon la couleur de la série */
+export const elColor = (r, j, sr) => (r && r.colors && r.colors[j]) || (sr && sr.color);

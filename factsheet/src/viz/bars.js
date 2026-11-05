@@ -1,7 +1,7 @@
 /* Barres verticales : une série, groupées, jumelées (barre arrière décalée, comme sur les captures) ou empilées. */
 import { VIZ, TYPE } from '../tokens.js';
 import { iconNode, iconImportPanel } from './picto.js';
-import { reorderHit, heightOf, s, SW, colorRef, pxOf, fmt, SANS, SERIF, round3, textLines, drawLines, drawLegend, numVal, fitText, mw } from './util.js';
+import { reorderHit, heightOf, s, SW, colorRef, pxOf, fmt, SANS, SERIF, round3, textLines, drawLines, drawLegend, numVal, fitText, mw, elColor } from './util.js';
 
 const barPath = (x, y, w, h, r) => {
   r = Math.max(0, Math.min(r, w / 2, h));
@@ -83,16 +83,16 @@ export default {
       svg.append(drawLines(tl.map(l => ({ ...l, runs: l.runs.map(r => ({ ...r, b: false })) })), tx, top + TYPE.callout.lh, TYPE.caption.lh, capPx));
     }
 
-    const bar = (x, y, h, color, round, j) => s('path', { 'data-color': env.ui ? `series.${j}.color` : null, d: round ? barPath(x, y, bw, Math.max(h, 0.0001), VIZ.barRadius) : `M${x},${y}h${bw}v${h}h${-bw}Z`, fill: colorRef(color), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round' });
+    const bar = (x, y, h, color, round, j, i) => s('path', { 'data-color': env.ui ? `rows.${i}.colors.${j}` : null, 'data-color-base': env.ui ? `series.${j}.color` : null, d: round ? barPath(x, y, bw, Math.max(h, 0.0001), VIZ.barRadius) : `M${x},${y}h${bw}v${h}h${-bw}Z`, fill: colorRef(color), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round' });
     rows.forEach((r, i) => {
       if (stacked) {
         let acc = 0;
         series.forEach((sr, j) => {
           const v = numVal(r, j); if (!v) return;
           const y0 = yOf(acc + v), h = yOf(acc) - y0; acc += v;
-          svg.append(bar(barX[i][j], y0, h, sr.color, j === series.length - 1 || acc >= total(r), j));
+          svg.append(bar(barX[i][j], y0, h, elColor(r, j, sr), j === series.length - 1 || acc >= total(r), j, i));
         });
-      } else series.forEach((sr, j) => { const y = yOf(numVal(r, j)); svg.append(bar(barX[i][j], y, baseY - y, sr.color, true, j)); });
+      } else series.forEach((sr, j) => { const y = yOf(numVal(r, j)); svg.append(bar(barX[i][j], y, baseY - y, elColor(r, j, sr), true, j, i)); });
     });
     /* texte dans les barres : valeur en haut, libellé au pied, nom de série à la verticale au milieu — seulement si ça rentre */
     const inValue = new Set();

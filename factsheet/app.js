@@ -392,6 +392,11 @@
     "Annuler": "Cancel",
     "Exporter": "Export",
     "Terminer": "Done",
+    "Importer une ic\xF4ne ou une image\u2026": "Import an icon or an image\u2026",
+    "Image illisible ou trop lourde.": "Unreadable or too large image.",
+    "Ic\xF4nes et images import\xE9es (SVG, PNG, JPEG\u2026) : disponibles dans chaque choix d\u2019ic\xF4ne du document, par exemple comme drapeau sous une barre. Les retirer les retire partout.": "Imported icons and images (SVG, PNG, JPEG\u2026): available in every icon choice of the document, for example as a flag under a bar. Removing one removes it everywhere.",
+    "Toute la s\xE9rie": "Whole series",
+    "Couleur de la s\xE9rie": "Series colour",
     "M\xE9dias import\xE9s\u2026": "Imported media\u2026",
     "M\xE9dias import\xE9s": "Imported media",
     "Aucun m\xE9dia import\xE9.": "No imported media.",
@@ -1511,6 +1516,7 @@
   }
   var inlineMk = (t2) => String(t2 ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/__(.+?)__/g, "<u>$1</u>").replace(/~~(.+?)~~/g, "<i>$1</i>").replace(/\^\^(.+?)\^\^/g, "<sup>$1</sup>").replace(/,,(.+?),,/g, "<sub>$1</sub>").replace(/\u2028/g, "<br>");
   var stripMk = (t2) => String(t2 ?? "").replace(/\u2028/g, " ").replace(/\*\*|__|~~|\^\^|,,/g, "");
+  var elColor = (r, j, sr) => r && r.colors && r.colors[j] || sr && sr.color;
 
   // src/viz/donut.js
   var BODY = pxOf(TYPE.body.size);
@@ -1967,7 +1973,7 @@
   }
   function iconSelect({ root, refresh, ...o }) {
     const footer = ({ close: close3, pick }) => {
-      const inp = el("input", { type: "file", accept: ".svg,image/svg+xml", hidden: true, onchange: async () => {
+      const inp = el("input", { type: "file", accept: ".svg,image/svg+xml,image/png,image/jpeg,image/webp,image/gif", hidden: true, onchange: async () => {
         const f = inp.files[0];
         inp.value = "";
         if (!f) return;
@@ -1977,7 +1983,7 @@
         pick("custom:" + c2.id);
         if (refresh) refresh();
       } });
-      return el("div", { class: "cs-foot" }, el("button", { type: "button", class: "cs-opt", onclick: () => inp.click() }, el("i", { class: "ti ti-upload" }), el("span", { textContent: t("Importer un SVG\u2026") })), inp);
+      return el("div", { class: "cs-foot" }, el("button", { type: "button", class: "cs-opt", onclick: () => inp.click() }, el("i", { class: "ti ti-upload" }), el("span", { textContent: t("Importer une ic\xF4ne ou une image\u2026") })), inp);
     };
     return richSelect({ ...o, footer, lead: (k) => iconGlyph(k, root) });
   }
@@ -2026,7 +2032,10 @@
     if (kind === "icon") svg.append(s("path", { d: (ICONS[id] || ICONS.check).d, fill: "none", stroke: col, "stroke-width": 1.6, "stroke-linecap": "round", "stroke-linejoin": "round" }));
     else if (kind === "custom") {
       const c2 = customList(o).find((k) => k.id === id);
-      if (c2) {
+      if (c2 && c2.img) {
+        svg.setAttribute("viewBox", c2.vb.join(" "));
+        svg.append(s("image", { href: c2.img, x: 0, y: 0, width: c2.vb[2], height: c2.vb[3], preserveAspectRatio: "xMidYMid meet" }));
+      } else if (c2) {
         svg.setAttribute("viewBox", c2.vb.join(" "));
         svg.setAttribute("fill", col);
         const tmp = new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${c2.markup}</svg>`, "image/svg+xml").documentElement;
@@ -2061,23 +2070,44 @@
   }
   async function importSvgFile(file2) {
     try {
-      const c2 = sanitizeSvg(await file2.text(), file2.name);
+      let c2;
+      if (/^image\/(png|jpe?g|webp|gif)$/i.test(file2.type) || /\.(png|jpe?g|webp|gif)$/i.test(file2.name)) c2 = await rasterIcon(file2);
+      else c2 = sanitizeSvg(await file2.text(), file2.name);
       iconLib.list.push(c2);
       return c2;
     } catch (e) {
-      alert(t("SVG illisible ou trop lourd."));
+      alert(t("Image illisible ou trop lourde."));
       return null;
+    }
+  }
+  async function rasterIcon(file2) {
+    const url = URL.createObjectURL(file2);
+    try {
+      const im = await new Promise((res, rej) => {
+        const i = new Image();
+        i.onload = () => res(i);
+        i.onerror = rej;
+        i.src = url;
+      });
+      const k = Math.min(1, 256 / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.max(1, Math.round(im.naturalWidth * k)), h2 = Math.max(1, Math.round(im.naturalHeight * k));
+      const cv = document.createElement("canvas");
+      cv.width = w;
+      cv.height = h2;
+      cv.getContext("2d").drawImage(im, 0, 0, w, h2);
+      return { id: "c" + Math.random().toString(36).slice(2, 8), name: file2.name.replace(/\.\w+$/, "").slice(0, 40), vb: [0, 0, w, h2], img: cv.toDataURL("image/png") };
+    } finally {
+      URL.revokeObjectURL(url);
     }
   }
   function importParts(o, ctx2, hint) {
     const ico2 = (n) => el("i", { class: "ti ti-" + n });
-    const inp = el("input", { type: "file", accept: ".svg,image/svg+xml", hidden: true, onchange: async () => {
+    const inp = el("input", { type: "file", accept: ".svg,image/svg+xml,image/png,image/jpeg,image/webp,image/gif", hidden: true, onchange: async () => {
       const f = inp.files[0];
       inp.value = "";
       if (f && await importSvgFile(f)) ctx2.restructure();
     } });
     return [
-      el("button", { type: "button", class: "pp-btn", onclick: () => inp.click() }, ico2("upload"), el("span", { textContent: t("Importer un SVG\u2026") })),
+      el("button", { type: "button", class: "pp-btn", onclick: () => inp.click() }, ico2("upload"), el("span", { textContent: t("Importer une ic\xF4ne ou une image\u2026") })),
       inp,
       el("label", { class: "row" }, el("input", { type: "checkbox", checked: o.recolor !== false, onchange: (e) => {
         o.recolor = e.target.checked;
@@ -2320,7 +2350,7 @@
         svg.append(s("text", { x: tx, y: top + TYPE.callout.lh / 2 + 0.33 * cv.size, "font-size": cv.size, "font-weight": TYPE.callout.weight }, cv.text));
         svg.append(drawLines(tl.map((l) => ({ ...l, runs: l.runs.map((r) => ({ ...r, b: false })) })), tx, top + TYPE.callout.lh, TYPE.caption.lh, capPx));
       }
-      const bar = (x, y, h2, color, round, j) => s("path", { "data-color": env.ui ? `series.${j}.color` : null, d: round ? barPath(x, y, bw, Math.max(h2, 1e-4), VIZ.barRadius) : `M${x},${y}h${bw}v${h2}h${-bw}Z`, fill: colorRef(color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" });
+      const bar = (x, y, h2, color, round, j, i) => s("path", { "data-color": env.ui ? `rows.${i}.colors.${j}` : null, "data-color-base": env.ui ? `series.${j}.color` : null, d: round ? barPath(x, y, bw, Math.max(h2, 1e-4), VIZ.barRadius) : `M${x},${y}h${bw}v${h2}h${-bw}Z`, fill: colorRef(color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" });
       rows.forEach((r, i) => {
         if (stacked) {
           let acc = 0;
@@ -2329,11 +2359,11 @@
             if (!v) return;
             const y0 = yOf(acc + v), h2 = yOf(acc) - y0;
             acc += v;
-            svg.append(bar(barX[i][j], y0, h2, sr.color, j === series.length - 1 || acc >= total(r), j));
+            svg.append(bar(barX[i][j], y0, h2, elColor(r, j, sr), j === series.length - 1 || acc >= total(r), j, i));
           });
         } else series.forEach((sr, j) => {
           const y = yOf(numVal(r, j));
-          svg.append(bar(barX[i][j], y, baseY - y, sr.color, true, j));
+          svg.append(bar(barX[i][j], y, baseY - y, elColor(r, j, sr), true, j, i));
         });
       });
       const inValue = /* @__PURE__ */ new Set();
@@ -2483,14 +2513,21 @@
       { k: "showValues", t: "bool", label: "Afficher les valeurs" },
       { k: "decimals", t: "number", label: "D\xE9cimales des valeurs", min: 0, max: 4 },
       { k: "suffix", t: "text", label: "Unit\xE9 apr\xE8s la valeur (%, M\u20AC\u2026)" },
-      { t: "table", k: "rows", series: "series", maxSeries: 4, label: "Donn\xE9es" }
+      { t: "table", k: "rows", series: "series", maxSeries: 4, label: "Donn\xE9es", icons: true },
+      { t: "node", g: "data", build: (root, ctx2) => {
+        const n = document.createElement("div");
+        n.className = "f";
+        n.append(...iconImportPanel(root, ctx2));
+        return n;
+      } }
     ],
     render(o, W, env) {
       const legIn = o.legendPos === "inside" || o.legendIn;
       const series = o.series || [], rows = o.rows || [], k = Math.max(1, series.length);
       const stacked = o.style === "stacked";
       const capPx = pxOf(TYPE.caption.size), numPx = pxOf(TYPE.captionNum.size), suffix = o.suffix || "";
-      const labW = o.labelIn ? 0 : Math.min(W * 0.4, Math.max(0, ...rows.map((r) => mw(r.label || "", TYPE.caption.weight, SANS, capPx))) + VIZ.iconGap);
+      const icW = rows.some((r) => r.icon && r.icon !== "none") ? 24 + VIZ.iconGap : 0;
+      const labW = (o.labelIn ? 0 : Math.min(W * 0.4, Math.max(0, ...rows.map((r) => mw(r.label || "", TYPE.caption.weight, SANS, capPx))) + VIZ.iconGap)) + icW;
       const total = (r) => series.reduce((a2, _, j) => a2 + numVal(r, j), 0);
       const valW = o.showValues && !o.valuesIn ? mw(fmt(1e3, env.locale, o.decimals) + suffix, 700, '"Source Serif 4", serif', numPx) + VIZ.barGap * 2 : 0;
       const x0 = labW, span = Math.max(30, W - labW - valW);
@@ -2530,9 +2567,10 @@
       };
       rows.forEach((r, i) => {
         const y = i * (rh + rGap);
+        if (r.icon && r.icon !== "none") svg.append(iconNode(o, r.icon, 0, y + rh / 2 - 12, 24, 24, "blue"));
         if (!o.labelIn) {
-          const f = fitText(r.label || "", TYPE.caption.weight, SANS, capPx, labW - VIZ.iconGap, 0.7);
-          svg.append(s("text", { x: 0, y: y + rh / 2 + 0.33 * f.size, "font-size": f.size, "font-weight": TYPE.caption.weight }, f.text));
+          const f = fitText(r.label || "", TYPE.caption.weight, SANS, capPx, labW - icW - VIZ.iconGap, 0.7);
+          svg.append(s("text", { x: icW, y: y + rh / 2 + 0.33 * f.size, "font-size": f.size, "font-weight": TYPE.caption.weight }, f.text));
         }
         let end = x0, inside = false;
         if (stacked) {
@@ -2543,14 +2581,14 @@
             const xa = x0 + acc / max2 * span, w = v / max2 * span;
             acc += v;
             end = xa + w;
-            svg.append(s("path", { "data-color": env.ui ? `series.${j}.color` : null, d: acc >= total(r) ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`, fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" }));
+            svg.append(s("path", { "data-color": env.ui ? `rows.${i}.colors.${j}` : null, "data-color-base": env.ui ? `series.${j}.color` : null, d: acc >= total(r) ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`, fill: colorRef(elColor(r, j, sr)), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" }));
             if ((legIn || o.labelIn && !r.label) && sr.name && w > mw(sr.name, TYPE.caption.weight, SANS, capPx) + VIZ.iconGap * 2) svg.append(s("text", { x: xa + w / 2, y: y + bh / 2 + 0.33 * capPx, "text-anchor": "middle", "font-size": capPx, "font-weight": TYPE.caption.weight }, sr.name));
           });
           inside = decor(y, end - x0, o.labelIn ? r.label : "", o.showValues ? fmt(total(r), env.locale, o.decimals) + suffix : "");
         } else series.forEach((sr, j) => {
           const w = numVal(r, j) / max2 * span, yy = y + j * (bh + sGap);
           end = Math.max(end, x0 + w);
-          svg.append(s("path", { "data-color": env.ui ? `series.${j}.color` : null, d: hPath(x0, yy, Math.max(w, 1e-4), bh, VIZ.barRadius), fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" }));
+          svg.append(s("path", { "data-color": env.ui ? `rows.${i}.colors.${j}` : null, "data-color-base": env.ui ? `series.${j}.color` : null, d: hPath(x0, yy, Math.max(w, 1e-4), bh, VIZ.barRadius), fill: colorRef(elColor(r, j, sr)), stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round" }));
           const ins = decor(yy, w, [j === 0 && o.labelIn ? r.label : "", legIn || o.labelIn && !r.label ? sr.name : ""].filter(Boolean).join(" \xB7 "), o.showValues ? fmt(numVal(r, j), env.locale, o.decimals) + suffix : "");
           if (o.showValues && !ins) svg.append(s("text", { x: x0 + w + VIZ.barGap * 1.5, y: yy + bh / 2 + 0.33 * numPx, "font-size": numPx, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, fmt(numVal(r, j), env.locale, o.decimals) + suffix));
         });
@@ -2608,7 +2646,7 @@
         svg.append(s("path", { d, fill: "none", stroke: "currentColor", "stroke-width": SW, "stroke-linejoin": "round", "stroke-linecap": "round" }));
       });
       series.forEach((sr, j) => rows.forEach((r, i) => {
-        svg.append(s("circle", { "data-color": env.ui ? `series.${j}.color` : null, cx: xOf(i), cy: yOf(numVal(r, j)), r: VIZ.pointR, fill: colorRef(sr.color), stroke: "currentColor", "stroke-width": SW }));
+        svg.append(s("circle", { "data-color": env.ui ? `rows.${i}.colors.${j}` : null, "data-color-base": env.ui ? `series.${j}.color` : null, cx: xOf(i), cy: yOf(numVal(r, j)), r: VIZ.pointR, fill: colorRef(elColor(r, j, sr)), stroke: "currentColor", "stroke-width": SW }));
         if (o.showValues) {
           const f = fitText(fmt(numVal(r, j), env.locale, o.decimals) + suffix, 700, SERIF, numPx, slot - 2, 0.5);
           svg.append(s("text", { x: xOf(i), y: yOf(numVal(r, j)) - VIZ.pointR - 3, "text-anchor": "middle", "font-size": f.size, "font-weight": 700, style: { fontFamily: "var(--t-captionNum-family)" } }, f.text));
@@ -4519,8 +4557,9 @@
     const align = { center: "center", bottom: "flex-end" }[sd.align] || "flex-start";
     const box = el(
       "div",
-      { class: "viz-side", style: { display: "flex", width: W + "px", gap: GAPF + "px", alignItems: align, flexDirection: sd.pos === "left" ? "row-reverse" : "row" } },
+      { class: "viz-side", style: { display: "flex", width: W + "px", alignItems: align, flexDirection: sd.pos === "left" ? "row-reverse" : "row" } },
       el("div", { style: { width: wv + "px", flex: "none" } }, r.node),
+      el("div", { class: "side-split", style: { width: GAPF + "px", flex: "none", alignSelf: "stretch" } }),
       el("div", { style: { width: wf + "px", flex: "none" } }, fig)
     );
     return { ...r, node: box };
@@ -7228,23 +7267,47 @@ ${short}`)])
   var SERIES_COLORS2 = ["sky", "yellow", "blue", "slate", "grey"];
   var availH = 360;
   var groupOf = (f) => f.g || (f.t === "table" || f.t === "list" ? "data" : f.k === "ratio" ? "ratio" : LABEL_KEYS.has(f.k) ? "labels" : "style");
-  function openColorPop(host, x, y, cur, options, onPick) {
+  function openColorPop(host, x, y, cur, options, { series, onPick, onReset }) {
     document.querySelectorAll(".cpop").forEach((n) => n.remove());
+    let whole = false;
     const away = (e) => {
       if (!pop2.contains(e.target)) close3();
     }, close3 = () => {
       pop2.remove();
       document.removeEventListener("pointerdown", away, true);
     };
-    const pop2 = h("div", { class: "cpop", role: "listbox" }, Object.entries(options).map(([k, l]) => h("button", { type: "button", role: "option", class: "cpop-sw" + (k === cur ? " on" : ""), title: l, "aria-label": l, onclick: () => {
+    const foot = series ? [
+      h("button", { type: "button", class: "cpop-act", onclick: (e) => {
+        whole = !whole;
+        e.currentTarget.classList.toggle("on", whole);
+      } }, ico("layers-subtract"), h("span", { textContent: t("Toute la s\xE9rie") })),
+      h("button", { type: "button", class: "cpop-act", onclick: () => {
+        close3();
+        onReset();
+      } }, ico("arrow-back-up"), h("span", { textContent: t("Couleur de la s\xE9rie") }))
+    ] : [];
+    const pop2 = h("div", { class: "cpop", role: "listbox" }, ...Object.entries(options).map(([k, l]) => h("button", { type: "button", role: "option", class: "cpop-sw" + (k === cur ? " on" : ""), title: l, "aria-label": l, onclick: () => {
       close3();
-      onPick(k);
-    } }, h("i", { class: "cs-dot", style: { background: `var(--c-${k})` } }))));
+      onPick(k, whole);
+    } }, h("i", { class: "cs-dot", style: { background: `var(--c-${k})` } }))), ...foot);
     host.append(pop2);
     const r = pop2.getBoundingClientRect();
     Object.assign(pop2.style, { left: Math.max(8, Math.min(window.innerWidth - r.width - 8, x + 8)) + "px", top: Math.max(8, Math.min(window.innerHeight - r.height - 8, y + 8)) + "px" });
     setTimeout(() => document.addEventListener("pointerdown", away, true), 0);
   }
+  var getPath = (o, p) => p.reduce((q, k) => q == null ? q : q[k], o);
+  var setPath = (o, p, v) => {
+    let q = o;
+    p.slice(0, -1).forEach((k, i) => {
+      if (q[k] == null) q[k] = /^\d+$/.test(p[i + 1]) && p[i] !== "colors" ? [] : {};
+      q = q[k];
+    });
+    q[p[p.length - 1]] = v;
+  };
+  var delPath = (o, p) => {
+    const q = getPath(o, p.slice(0, -1));
+    if (q) delete q[p[p.length - 1]];
+  };
   function openVizEditor({ col, sub, ci, bg, width: colW, ctx: ctx2 }) {
     if (current2) return;
     const doc2 = ctx2.getDoc();
@@ -7287,6 +7350,7 @@ ${short}`)])
         meta = r.meta || null;
         svgW = width;
       }
+      hiliteSel();
       const t2 = VIZ_TYPES[col.viz.kind];
       hint.textContent = holder.querySelector("[data-reorder]") ? "Glisser un \xE9l\xE9ment pour changer son ordre : les autres se r\xE9ajustent en gardant des \xE9carts proportionnels." : t2 && t2.edit ? "Cliquer un segment ou un libell\xE9 pour le s\xE9lectionner \xB7 glisser l\u2019anneau pour le tourner \xB7 glisser un libell\xE9 (verticalement, ou de l\u2019autre c\xF4t\xE9) \xB7 glisser le point blanc pour d\xE9placer l\u2019ancrage du trait" : "Les modifications du formulaire s\u2019appliquent en direct.";
       const k = scale();
@@ -7448,15 +7512,55 @@ ${short}`)])
       return { x: (e.clientX - r.left) / k, y: (e.clientY - r.top) / k };
     };
     let suppressClick2 = false, dragMoved = false, down0 = null;
+    const bases = /* @__PURE__ */ new Map();
+    const selEls = /* @__PURE__ */ new Set();
+    const hiliteSel = () => holder.querySelectorAll("[data-color]").forEach((n) => {
+      if (selEls.has(n.getAttribute("data-color"))) {
+        n.setAttribute("stroke", "#F28C28");
+        n.setAttribute("stroke-width", 2.4);
+      }
+    });
     const colorAt = (ev) => {
       const n = document.elementsFromPoint(ev.clientX, ev.clientY).find((x) => x.getAttribute && x.getAttribute("data-color"));
-      if (!n) return;
-      const path = n.getAttribute("data-color").split("."), last = path[path.length - 1], parent = () => path.slice(0, -1).reduce((o, k) => o && o[k], col.viz.opts);
-      const cur = parent() && parent()[last];
-      openColorPop(root, ev.clientX, ev.clientY, cur, paletteOptions(doc2), (key) => {
-        const p = parent();
-        if (p) {
-          p[last] = key;
+      if (!n) {
+        if (selEls.size) {
+          selEls.clear();
+          draw();
+        }
+        return;
+      }
+      const path = n.getAttribute("data-color"), base = n.getAttribute("data-color-base");
+      if (ev.shiftKey || ev.metaKey || ev.ctrlKey) {
+        if (selEls.has(path)) selEls.delete(path);
+        else selEls.add(path);
+      } else {
+        selEls.clear();
+        selEls.add(path);
+      }
+      bases.set(path, base);
+      draw();
+      if (!selEls.size) return;
+      const o = col.viz.opts, first = [...selEls][0].split(".");
+      const cur = getPath(o, first) || bases.get([...selEls][0]) && getPath(o, bases.get([...selEls][0]).split("."));
+      openColorPop(root, ev.clientX, ev.clientY, cur, paletteOptions(doc2), {
+        series: [...selEls].some((p) => bases.get(p)),
+        onPick: (key, whole) => {
+          selEls.forEach((p) => {
+            const b = bases.get(p);
+            if (whole && b) {
+              setPath(o, b.split("."), key);
+              const j = p.split(".").pop();
+              (o.rows || []).forEach((r) => {
+                if (r.colors) delete r.colors[j];
+              });
+            } else setPath(o, p.split("."), key);
+          });
+          fctx.restructure();
+        },
+        onReset: () => {
+          selEls.forEach((p) => {
+            if (bases.get(p)) delPath(o, p.split("."));
+          });
           fctx.restructure();
         }
       });
@@ -7588,7 +7692,7 @@ ${short}`)])
   // src/media.js
   function openMedia(ctx2) {
     const dlg2 = h("dialog", { class: "media-dlg" });
-    const inp = h("input", { type: "file", accept: ".svg,image/svg+xml", multiple: true, hidden: true, onchange: async () => {
+    const inp = h("input", { type: "file", accept: ".svg,image/svg+xml,image/png,image/jpeg,image/webp,image/gif", multiple: true, hidden: true, onchange: async () => {
       const files = [...inp.files];
       inp.value = "";
       for (const f of files) await importSvgFile(f);
@@ -7613,12 +7717,12 @@ ${short}`)])
       ));
       dlg2.replaceChildren(
         h("h3", { textContent: t("M\xE9dias import\xE9s") }),
-        h("p", { class: "hint", textContent: t("Ic\xF4nes SVG import\xE9es : disponibles dans chaque choix d\u2019ic\xF4ne du document. Les retirer les retire partout.") }),
+        h("p", { class: "hint", textContent: t("Ic\xF4nes et images import\xE9es (SVG, PNG, JPEG\u2026) : disponibles dans chaque choix d\u2019ic\xF4ne du document, par exemple comme drapeau sous une barre. Les retirer les retire partout.") }),
         ...rows.length ? rows : [h("p", { class: "hint", textContent: t("Aucun m\xE9dia import\xE9.") })],
         h(
           "div",
           { class: "row", style: { justifyContent: "space-between", marginTop: "12px" } },
-          h("button", { type: "button", class: "pp-btn", onclick: () => inp.click() }, ico("upload"), h("span", { textContent: t("Importer un SVG\u2026") })),
+          h("button", { type: "button", class: "pp-btn", onclick: () => inp.click() }, ico("upload"), h("span", { textContent: t("Importer une ic\xF4ne ou une image\u2026") })),
           inp,
           h("button", { type: "button", class: "primary", textContent: t("Fermer"), onclick: () => dlg2.close() })
         )
@@ -8638,6 +8742,39 @@ ${short}`)])
     const n = e.target.closest("[data-sel]");
     ctx.select(n ? n.dataset.sel : null);
   });
+  stage.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || handOn()) return;
+    const sp = e.target.closest(".side-split");
+    if (!sp) return;
+    const colEl = sp.closest(".col"), q = colEl && colEl.dataset.sel.split(":"), col = q && doc.sections[+q[1]]?.subs[+q[2]]?.cols[+q[3]];
+    const sd = col && (col.type === "viz" ? col.viz && col.viz.side : col.side);
+    if (!sd) return;
+    const sc = colEl.closest(".page").getBoundingClientRect().width / PAGE.w, W = sp.parentElement.getBoundingClientRect().width / sc, s0 = +sd.share || 60, dir = sd.pos === "left" ? -1 : 1, px = e.clientX;
+    let moved = false;
+    e.preventDefault();
+    e.stopPropagation();
+    hover.hide();
+    document.body.style.cursor = "col-resize";
+    const move = (ev) => {
+      moved = true;
+      sd.share = Math.round(Math.max(25, Math.min(80, s0 + dir * (ev.clientX - px) / sc / W * 100)));
+      ctx.changed();
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      document.body.style.cursor = "";
+      if (moved) {
+        suppressClick = true;
+        setTimeout(() => {
+          suppressClick = false;
+        }, 0);
+        ctx.restructure();
+      }
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }, true);
   stage.addEventListener("pointerdown", (e) => {
     if (e.button !== 0 || handOn()) return;
     const n = e.target.closest("[data-free]");

@@ -25,10 +25,10 @@ export function iconGlyph(key, root, size = 20) {
 /** options : { clé → libellé } ; root : options de la dataviz (pour les icônes importées) */
 export function iconSelect({ root, refresh, ...o }) {
   const footer = ({ close, pick }) => {   // « Importer un SVG… » au bas de la liste : partout où l'on choisit une icône
-    const inp = el('input', { type: 'file', accept: '.svg,image/svg+xml', hidden: true, onchange: async () => {
+    const inp = el('input', { type: 'file', accept: '.svg,image/svg+xml,image/png,image/jpeg,image/webp,image/gif', hidden: true, onchange: async () => {
       const f = inp.files[0]; inp.value = ''; if (!f) return; const c = await importSvgFile(f); if (!c) return;
       o.options['custom:' + c.id] = `${t('Importé')} · ${c.name}`; pick('custom:' + c.id); if (refresh) refresh(); } });
-    return el('div', { class: 'cs-foot' }, el('button', { type: 'button', class: 'cs-opt', onclick: () => inp.click() }, el('i', { class: 'ti ti-upload' }), el('span', { textContent: t('Importer un SVG…') })), inp);
+    return el('div', { class: 'cs-foot' }, el('button', { type: 'button', class: 'cs-opt', onclick: () => inp.click() }, el('i', { class: 'ti ti-upload' }), el('span', { textContent: t('Importer une icône ou une image…') })), inp);
   };
   return richSelect({ ...o, footer, lead: k => iconGlyph(k, root) });
 }

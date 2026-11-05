@@ -1,6 +1,6 @@
 /* Courbes : trait 0,5 pt (design system), points remplis de la couleur de la série et cerclés 0,5 pt. */
 import { VIZ, TYPE } from '../tokens.js';
-import { reorderHit, heightOf, s, SW, colorRef, pxOf, fmt, round3, drawLegend, numVal, fitText, SANS, SERIF } from './util.js';
+import { reorderHit, heightOf, s, SW, colorRef, pxOf, fmt, round3, drawLegend, numVal, fitText, SANS, SERIF, elColor } from './util.js';
 import { t } from '../i18n.js';
 
 export default {
@@ -38,7 +38,7 @@ export default {
       svg.append(s('path', { d, fill: 'none', stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
     });
     series.forEach((sr, j) => rows.forEach((r, i) => {
-      svg.append(s('circle', { 'data-color': env.ui ? `series.${j}.color` : null, cx: xOf(i), cy: yOf(numVal(r, j)), r: VIZ.pointR, fill: colorRef(sr.color), stroke: 'currentColor', 'stroke-width': SW }));
+      svg.append(s('circle', { 'data-color': env.ui ? `rows.${i}.colors.${j}` : null, 'data-color-base': env.ui ? `series.${j}.color` : null, cx: xOf(i), cy: yOf(numVal(r, j)), r: VIZ.pointR, fill: colorRef(elColor(r, j, sr)), stroke: 'currentColor', 'stroke-width': SW }));
       if (o.showValues) { const f = fitText(fmt(numVal(r, j), env.locale, o.decimals) + suffix, 700, SERIF, numPx, slot - 2, 0.5); svg.append(s('text', { x: xOf(i), y: yOf(numVal(r, j)) - VIZ.pointR - 3, 'text-anchor': 'middle', 'font-size': f.size, 'font-weight': 700, style: { fontFamily: 'var(--t-captionNum-family)' } }, f.text)); }
     }));
     rows.forEach((r, i) => { const f = fitText(r.label || '', TYPE.caption.weight, SANS, capPx, slot - 3, 0.6); svg.append(s('text', { x: xOf(i), y: baseY + VIZ.catH / 2 + 0.33 * f.size + 1, 'text-anchor': 'middle', 'font-size': f.size, 'font-weight': TYPE.caption.weight }, f.text)); });

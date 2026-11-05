@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.60.0 — 2026-11-05
+- Éditeur de dataviz : un clic change la couleur de l'élément seul (une barre, un point) pour le mettre en valeur ; Maj ou Cmd + clic pour en choisir plusieurs ; « Toute la série » et « Couleur de la série » pour revenir en arrière
+- Chiffre à côté : la séparation entre le contenu et le chiffre se glisse dans l'aperçu, et redimensionne les deux blocs en direct
+- Images comme étiquettes : PNG, JPEG, WebP ou GIF (drapeaux…) importables comme les icônes SVG, sous les barres verticales et à gauche des barres horizontales ; exportées aussi dans le PDF CMJN
+
 ## 1.59.0 — 2026-11-05
 - Éditeur de dataviz : un clic sur une barre, un segment d'anneau, un point de courbe ou une case de waffle ouvre le choix de sa couleur
 - Éditeur de dataviz : en réordonnant à la souris, l'élément pris suit le pointeur avec une ombre portée et le reste se réarrange en temps réel

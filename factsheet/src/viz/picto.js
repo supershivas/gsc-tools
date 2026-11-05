@@ -49,7 +49,8 @@ export function iconNode(o, key, x, y, w, h, color) {
   if (kind === 'icon') svg.append(s('path', { d: (ICONS[id] || ICONS.check).d, fill: 'none', stroke: col, 'stroke-width': 1.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
   else if (kind === 'custom') {
     const c = customList(o).find(k => k.id === id);
-    if (c) {
+    if (c && c.img) { svg.setAttribute('viewBox', c.vb.join(' ')); svg.append(s('image', { href: c.img, x: 0, y: 0, width: c.vb[2], height: c.vb[3], preserveAspectRatio: 'xMidYMid meet' })); }
+    else if (c) {
       svg.setAttribute('viewBox', c.vb.join(' ')); svg.setAttribute('fill', col);
       const tmp = new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${c.markup}</svg>`, 'image/svg+xml').documentElement;
       if (o.recolor !== false) tmp.querySelectorAll('*').forEach(n => { const f = n.getAttribute('fill'), st = n.getAttribute('stroke'); if (f && f !== 'none') n.removeAttribute('fill'); if (st && st !== 'none') n.setAttribute('stroke', col); n.removeAttribute('style'); });
@@ -73,13 +74,28 @@ function partial(o, key, x, y, w, h, color, frac, dir) {
 
 /** Importe un fichier SVG dans la bibliothèque du document (nettoyé, stocké dans doc.customIcons) ; renvoie l'icône ou null */
 export async function importSvgFile(file) {
-  try { const c = sanitizeSvg(await file.text(), file.name); iconLib.list.push(c); return c; } catch (e) { alert(t('SVG illisible ou trop lourd.')); return null; }
+  try {
+    let c;
+    if (/^image\/(png|jpe?g|webp|gif)$/i.test(file.type) || /\.(png|jpe?g|webp|gif)$/i.test(file.name)) c = await rasterIcon(file);   // image (drapeau…) : réduite à 256 px, stockée en data URL
+    else c = sanitizeSvg(await file.text(), file.name);
+    iconLib.list.push(c); return c;
+  } catch (e) { alert(t('Image illisible ou trop lourde.')); return null; }
+}
+/** Image PNG / JPEG… → icône de la bibliothèque : { id, name, vb, img } */
+async function rasterIcon(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const k = Math.min(1, 256 / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.max(1, Math.round(im.naturalWidth * k)), h = Math.max(1, Math.round(im.naturalHeight * k));
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.getContext('2d').drawImage(im, 0, 0, w, h);
+    return { id: 'c' + Math.random().toString(36).slice(2, 8), name: file.name.replace(/\.\w+$/, '').slice(0, 40), vb: [0, 0, w, h], img: cv.toDataURL('image/png') };
+  } finally { URL.revokeObjectURL(url); }
 }
 /** Bouton d'import + liste des icônes importées (retrait) + recoloration : commun à tous les types */
 function importParts(o, ctx, hint) {
   const ico = n => el('i', { class: 'ti ti-' + n });
-  const inp = el('input', { type: 'file', accept: '.svg,image/svg+xml', hidden: true, onchange: async () => { const f = inp.files[0]; inp.value = ''; if (f && await importSvgFile(f)) ctx.restructure(); } });
-  return [el('button', { type: 'button', class: 'pp-btn', onclick: () => inp.click() }, ico('upload'), el('span', { textContent: t('Importer un SVG…') })), inp,
+  const inp = el('input', { type: 'file', accept: '.svg,image/svg+xml,image/png,image/jpeg,image/webp,image/gif', hidden: true, onchange: async () => { const f = inp.files[0]; inp.value = ''; if (f && await importSvgFile(f)) ctx.restructure(); } });
+  return [el('button', { type: 'button', class: 'pp-btn', onclick: () => inp.click() }, ico('upload'), el('span', { textContent: t('Importer une icône ou une image…') })), inp,
     el('label', { class: 'row' }, el('input', { type: 'checkbox', checked: o.recolor !== false, onchange: e => { o.recolor = e.target.checked; ctx.changed(); } }), t('Recolorer le SVG importé avec la couleur choisie')),
     hint ? el('p', { class: 'hint', textContent: t(hint) }) : null].filter(Boolean);
 }

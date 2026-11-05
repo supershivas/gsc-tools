@@ -27,16 +27,23 @@ const SERIES_COLORS = ['sky', 'yellow', 'blue', 'slate', 'grey'];
 let availH = 360;   // place disponible simulée dans l'aperçu (mode « Remplir »)
 const groupOf = f => f.g || (f.t === 'table' || f.t === 'list' ? 'data' : f.k === 'ratio' ? 'ratio' : LABEL_KEYS.has(f.k) ? 'labels' : 'style');
 
-/** Petite fenêtre de choix de couleur à l'endroit du clic (pastilles de la palette du document) */
-function openColorPop(host, x, y, cur, options, onPick) {
+/** Petite fenêtre de choix de couleur à l'endroit du clic : pastilles de la palette du document ; « toute la série » (au lieu du seul élément) et « couleur de la série » (retire la surcharge) */
+function openColorPop(host, x, y, cur, options, { series, onPick, onReset }) {
   document.querySelectorAll('.cpop').forEach(n => n.remove());
+  let whole = false;
   const away = e => { if (!pop.contains(e.target)) close(); }, close = () => { pop.remove(); document.removeEventListener('pointerdown', away, true); };
-  const pop = h('div', { class: 'cpop', role: 'listbox' }, Object.entries(options).map(([k, l]) => h('button', { type: 'button', role: 'option', class: 'cpop-sw' + (k === cur ? ' on' : ''), title: l, 'aria-label': l, onclick: () => { close(); onPick(k); } }, h('i', { class: 'cs-dot', style: { background: `var(--c-${k})` } }))));
+  const foot = series ? [h('button', { type: 'button', class: 'cpop-act', onclick: e => { whole = !whole; e.currentTarget.classList.toggle('on', whole); } }, ico('layers-subtract'), h('span', { textContent: t('Toute la série') })),
+    h('button', { type: 'button', class: 'cpop-act', onclick: () => { close(); onReset(); } }, ico('arrow-back-up'), h('span', { textContent: t('Couleur de la série') }))] : [];
+  const pop = h('div', { class: 'cpop', role: 'listbox' }, ...Object.entries(options).map(([k, l]) => h('button', { type: 'button', role: 'option', class: 'cpop-sw' + (k === cur ? ' on' : ''), title: l, 'aria-label': l, onclick: () => { close(); onPick(k, whole); } }, h('i', { class: 'cs-dot', style: { background: `var(--c-${k})` } }))), ...foot);
   host.append(pop);
   const r = pop.getBoundingClientRect();
   Object.assign(pop.style, { left: Math.max(8, Math.min(window.innerWidth - r.width - 8, x + 8)) + 'px', top: Math.max(8, Math.min(window.innerHeight - r.height - 8, y + 8)) + 'px' });
   setTimeout(() => document.addEventListener('pointerdown', away, true), 0);
 }
+
+const getPath = (o, p) => p.reduce((q, k) => (q == null ? q : q[k]), o);
+const setPath = (o, p, v) => { let q = o; p.slice(0, -1).forEach((k, i) => { if (q[k] == null) q[k] = /^\d+$/.test(p[i + 1]) && p[i] !== 'colors' ? [] : {}; q = q[k]; }); q[p[p.length - 1]] = v; };
+const delPath = (o, p) => { const q = getPath(o, p.slice(0, -1)); if (q) delete q[p[p.length - 1]]; };
 
 export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
   if (current) return;
@@ -69,6 +76,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     const r = renderVizFull(col.viz, width, { locale: doc.locale || 'en-GB', ui, pal: paletteOf(doc.theme, doc.colors), fillH: availH });
     holder.innerHTML = '';
     if (r && r.node) { holder.append(r.node); meta = r.meta || null; svgW = width; }
+    hiliteSel();
     const t = VIZ_TYPES[col.viz.kind];
     hint.textContent = holder.querySelector('[data-reorder]') ? 'Glisser un élément pour changer son ordre : les autres se réajustent en gardant des écarts proportionnels.' : t && t.edit
       ? 'Cliquer un segment ou un libellé pour le sélectionner · glisser l’anneau pour le tourner · glisser un libellé (verticalement, ou de l’autre côté) · glisser le point blanc pour déplacer l’ancrage du trait'
@@ -167,12 +175,27 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     return { x: (e.clientX - r.left) / k, y: (e.clientY - r.top) / k };
   };
   /* Clic sur un élément (barre, segment, point…) : choisir sa couleur. Un glissement (réordonner, tourner) n'ouvre rien. */
-  let suppressClick = false, dragMoved = false, down0 = null;
+  let suppressClick = false, dragMoved = false, down0 = null; const bases = new Map();
+  const selEls = new Set();   // éléments choisis (chemins `data-color`) : Maj ou Cmd + clic pour en ajouter
+  const hiliteSel = () => holder.querySelectorAll('[data-color]').forEach(n => { if (selEls.has(n.getAttribute('data-color'))) { n.setAttribute('stroke', '#F28C28'); n.setAttribute('stroke-width', 2.4); } });
   const colorAt = ev => {
-    const n = document.elementsFromPoint(ev.clientX, ev.clientY).find(x => x.getAttribute && x.getAttribute('data-color')); if (!n) return;
-    const path = n.getAttribute('data-color').split('.'), last = path[path.length - 1], parent = () => path.slice(0, -1).reduce((o, k) => o && o[k], col.viz.opts);
-    const cur = parent() && parent()[last];
-    openColorPop(root, ev.clientX, ev.clientY, cur, paletteOptions(doc), key => { const p = parent(); if (p) { p[last] = key; fctx.restructure(); } });
+    const n = document.elementsFromPoint(ev.clientX, ev.clientY).find(x => x.getAttribute && x.getAttribute('data-color'));
+    if (!n) { if (selEls.size) { selEls.clear(); draw(); } return; }
+    const path = n.getAttribute('data-color'), base = n.getAttribute('data-color-base');
+    if (ev.shiftKey || ev.metaKey || ev.ctrlKey) { if (selEls.has(path)) selEls.delete(path); else selEls.add(path); } else { selEls.clear(); selEls.add(path); }
+    bases.set(path, base); draw();
+    if (!selEls.size) return;
+    const o = col.viz.opts, first = [...selEls][0].split('.');
+    const cur = getPath(o, first) || (bases.get([...selEls][0]) && getPath(o, bases.get([...selEls][0]).split('.')));
+    openColorPop(root, ev.clientX, ev.clientY, cur, paletteOptions(doc), { series: [...selEls].some(p => bases.get(p)),
+      onPick: (key, whole) => {
+        selEls.forEach(p => {
+          const b = bases.get(p);
+          if (whole && b) { setPath(o, b.split('.'), key); const j = p.split('.').pop(); (o.rows || []).forEach(r => { if (r.colors) delete r.colors[j]; }); } else setPath(o, p.split('.'), key);
+        });
+        fctx.restructure();
+      },
+      onReset: () => { selEls.forEach(p => { if (bases.get(p)) delPath(o, p.split('.')); }); fctx.restructure(); } });
   };
   stage.addEventListener('click', e => { if (suppressClick) { suppressClick = false; return; } colorAt(e); });
   stage.addEventListener('pointerdown', e => {

@@ -131,6 +131,8 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
   try {
     const result = renderDocument(doc); result.pages.forEach(p => stage.append(p.el)); measure(result);
     const imgs = [...stage.querySelectorAll('img')]; await Promise.all(imgs.map(i => (i.decode ? i.decode().catch(() => {}) : null)));
+    const svgImg = new Map();   // <image> d'un SVG (drapeaux, images importées) : chargées avant le parcours
+    await Promise.all([...stage.querySelectorAll('svg image')].map(async n => { const im = new Image(); im.src = n.getAttribute('href') || ''; try { await im.decode(); } catch (e) { /* illisible : ignorée */ } svgImg.set(n, im); }));
 
     const pdf = await PDFDocument.create(); pdf.registerFontkit(fontkit);
     pdf.setTitle(doc.name || 'factsheet'); pdf.setProducer('GSC tools — Factsheet creator (PDF CMJN)'); pdf.setCreator('GSC tools');
@@ -240,6 +242,7 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
           if (cs.overflowX !== 'visible' && w && h) { clipTo(rectPath(0, 0, w, h), mul(N, [1, 0, 0, 1, x, y])); pushed++; }
           for (const c of el.children) svgNode(c, Q, alpha);
         } else if (tag === 'g' || tag === 'a') { for (const c of el.children) svgNode(c, N, alpha); }
+        else if (tag === 'image') { const im = svgImg.get(el); if (im && im.naturalWidth) drawImg(el, { objectFit: 'contain', objectPosition: '50% 50%', opacity: String(alpha) }, { img: im, rect: el.getBoundingClientRect() }); }
         else if (tag === 'text') { for (const n of el.querySelectorAll('*')) void n; const sc = el.getScreenCTM ? (el.getScreenCTM() || { a: 1 }).a : 1; walkText(el, sc, true); }
         else {
           const path = shapePath(el);
@@ -261,8 +264,8 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
       };
 
       /* ----- images ----- */
-      const drawImg = (el, cs) => {
-        const r = el.getBoundingClientRect(); if (r.width < 0.5 || r.height < 0.5 || !el.naturalWidth) return;
+      const drawImg = (el0, cs, ov) => {
+        const el = ov ? ov.img : el0, r = ov ? ov.rect : el0.getBoundingClientRect(); if (r.width < 0.5 || r.height < 0.5 || !el.naturalWidth) return;
         const fit = cs.objectFit || 'fill', cw = Math.max(1, Math.min(4000, Math.round(r.width * SCALE))), ch = Math.max(1, Math.min(4000, Math.round(r.height * SCALE)));
         const key = `${el.currentSrc}|${cw}|${ch}|${fit}|${cs.objectPosition}`;
         let ref = imgCache.get(key);

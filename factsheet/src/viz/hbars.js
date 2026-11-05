@@ -1,6 +1,7 @@
 /* Barres horizontales : libellés à gauche, valeur au bout de la barre. Groupées ou empilées. */
 import { VIZ, TYPE } from '../tokens.js';
-import { reorderHit, heightOf, s, SW, colorRef, pxOf, fmt, mw, SANS, SERIF, drawLegend, numVal, fitText } from './util.js';
+import { reorderHit, heightOf, s, SW, colorRef, pxOf, fmt, mw, SANS, SERIF, drawLegend, numVal, fitText, elColor } from './util.js';
+import { iconNode, iconImportPanel } from './picto.js';
 import { t } from '../i18n.js';
 
 const hPath = (x, y, w, h, r) => { r = Math.max(0, Math.min(r, h / 2, w)); return `M${x},${y}H${x + w - r}A${r},${r} 0 0 1 ${x + w},${y + r}V${y + h - r}A${r},${r} 0 0 1 ${x + w - r},${y + h}H${x}Z`; };
@@ -27,14 +28,16 @@ export default {
     { k: 'showValues', t: 'bool', label: 'Afficher les valeurs' },
     { k: 'decimals', t: 'number', label: 'Décimales des valeurs', min: 0, max: 4 },
     { k: 'suffix', t: 'text', label: 'Unité après la valeur (%, M€…)' },
-    { t: 'table', k: 'rows', series: 'series', maxSeries: 4, label: 'Données' },
+    { t: 'table', k: 'rows', series: 'series', maxSeries: 4, label: 'Données', icons: true },
+    { t: 'node', g: 'data', build: (root, ctx) => { const n = document.createElement('div'); n.className = 'f'; n.append(...iconImportPanel(root, ctx)); return n; } },
   ],
   render(o, W, env) {
     const legIn = o.legendPos === 'inside' || o.legendIn;   // noms des séries écrits dans les barres (legendIn : ancien réglage)
     const series = o.series || [], rows = o.rows || [], k = Math.max(1, series.length);
     const stacked = o.style === 'stacked';
     const capPx = pxOf(TYPE.caption.size), numPx = pxOf(TYPE.captionNum.size), suffix = o.suffix || '';
-    const labW = o.labelIn ? 0 : Math.min(W * 0.4, Math.max(0, ...rows.map(r => mw(r.label || '', TYPE.caption.weight, SANS, capPx))) + VIZ.iconGap);
+    const icW = rows.some(r => r.icon && r.icon !== 'none') ? 24 + VIZ.iconGap : 0;   // icône ou image (drapeau…) à gauche du libellé
+    const labW = (o.labelIn ? 0 : Math.min(W * 0.4, Math.max(0, ...rows.map(r => mw(r.label || '', TYPE.caption.weight, SANS, capPx))) + VIZ.iconGap)) + icW;
     const total = r => series.reduce((a, _, j) => a + numVal(r, j), 0);
     const valW = o.showValues && !o.valuesIn ? mw(fmt(1000, env.locale, o.decimals) + suffix, 700, '"Source Serif 4", serif', numPx) + VIZ.barGap * 2 : 0;
     const x0 = labW, span = Math.max(30, W - labW - valW);
@@ -66,20 +69,21 @@ export default {
     };
     rows.forEach((r, i) => {
       const y = i * (rh + rGap);
-      if (!o.labelIn) { const f = fitText(r.label || '', TYPE.caption.weight, SANS, capPx, labW - VIZ.iconGap, 0.7); svg.append(s('text', { x: 0, y: y + rh / 2 + 0.33 * f.size, 'font-size': f.size, 'font-weight': TYPE.caption.weight }, f.text)); }
+      if (r.icon && r.icon !== 'none') svg.append(iconNode(o, r.icon, 0, y + rh / 2 - 12, 24, 24, 'blue'));
+      if (!o.labelIn) { const f = fitText(r.label || '', TYPE.caption.weight, SANS, capPx, labW - icW - VIZ.iconGap, 0.7); svg.append(s('text', { x: icW, y: y + rh / 2 + 0.33 * f.size, 'font-size': f.size, 'font-weight': TYPE.caption.weight }, f.text)); }
       let end = x0, inside = false;
       if (stacked) {
         let acc = 0;
         series.forEach((sr, j) => {
           const v = numVal(r, j); if (!v) return;
           const xa = x0 + acc / max * span, w = v / max * span; acc += v; end = xa + w;
-          svg.append(s('path', { 'data-color': env.ui ? `series.${j}.color` : null, d: acc >= total(r) ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`, fill: colorRef(sr.color), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round' }));
+          svg.append(s('path', { 'data-color': env.ui ? `rows.${i}.colors.${j}` : null, 'data-color-base': env.ui ? `series.${j}.color` : null, d: acc >= total(r) ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`, fill: colorRef(elColor(r, j, sr)), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round' }));
           if ((legIn || (o.labelIn && !r.label)) && sr.name && w > mw(sr.name, TYPE.caption.weight, SANS, capPx) + VIZ.iconGap * 2) svg.append(s('text', { x: xa + w / 2, y: y + bh / 2 + 0.33 * capPx, 'text-anchor': 'middle', 'font-size': capPx, 'font-weight': TYPE.caption.weight }, sr.name));
         });
         inside = decor(y, end - x0, o.labelIn ? r.label : '', o.showValues ? fmt(total(r), env.locale, o.decimals) + suffix : '');
       } else series.forEach((sr, j) => {
         const w = numVal(r, j) / max * span, yy = y + j * (bh + sGap); end = Math.max(end, x0 + w);
-        svg.append(s('path', { 'data-color': env.ui ? `series.${j}.color` : null, d: hPath(x0, yy, Math.max(w, 0.0001), bh, VIZ.barRadius), fill: colorRef(sr.color), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round' }));
+        svg.append(s('path', { 'data-color': env.ui ? `rows.${i}.colors.${j}` : null, 'data-color-base': env.ui ? `series.${j}.color` : null, d: hPath(x0, yy, Math.max(w, 0.0001), bh, VIZ.barRadius), fill: colorRef(elColor(r, j, sr)), stroke: 'currentColor', 'stroke-width': SW, 'stroke-linejoin': 'round' }));
         const ins = decor(yy, w, [j === 0 && o.labelIn ? r.label : '', (legIn || (o.labelIn && !r.label)) ? sr.name : ''].filter(Boolean).join(' · '), o.showValues ? fmt(numVal(r, j), env.locale, o.decimals) + suffix : '');
         if (o.showValues && !ins) svg.append(s('text', { x: x0 + w + VIZ.barGap * 1.5, y: yy + bh / 2 + 0.33 * numPx, 'font-size': numPx, 'font-weight': 700, style: { fontFamily: 'var(--t-captionNum-family)' } }, fmt(numVal(r, j), env.locale, o.decimals) + suffix));
       });
