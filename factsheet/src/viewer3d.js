@@ -96,6 +96,7 @@ function open(opts) {
   let scene, camera, sheetA, sheetB, shA, shB, wall, pivot, textures = [];
   let mode = 'single', flipped = false, flipFrom = 0, flipTo = 0, flipT = 1, interacted = false, spin = 0;
   /* l'objet : cible (pointeur) et valeur lissée (suit avec un léger retard) ; la souplesse de la feuille est un ressort alimenté par la vitesse */
+  const YAW_MAX = 1.2, PITCH_MAX = 0.4;   // ≈ ±69° de rotation, ≈ ±23° d'inclinaison
   const tgt = { yaw: 0, pitch: 0, x: 0, y: 0, dist: 800 }, cur = { yaw: 0, pitch: 0, x: 0, y: 0, dist: 800 }, flex = { b: 0, bv: 0, p: 0, pv: 0, t: 0, tv: 0 };
   const DIR = new Vector3(0.2, 0.13, 0.97).normalize();
 
@@ -152,7 +153,7 @@ function open(opts) {
       if (!drag) return;
       const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
       if (drag.pan) { tgt.x += dx * upp(); tgt.y -= dy * upp(); }
-      else { tgt.yaw += dx * 0.0085; tgt.pitch = Math.max(-1.2, Math.min(1.2, tgt.pitch + dy * 0.0065)); }
+      else { tgt.yaw = Math.max(-YAW_MAX, Math.min(YAW_MAX, tgt.yaw + dx * 0.0085)); tgt.pitch = Math.max(-PITCH_MAX, Math.min(PITCH_MAX, tgt.pitch + dy * 0.0065)); }   // la feuille ne se retourne jamais : texte toujours lisible
     });
     const up = () => { drag = null; };
     cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);

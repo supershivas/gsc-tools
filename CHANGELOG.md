@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.62.2 — 2026-11-05
+- Aperçu 3D : la rotation est limitée à ±69° et l'inclinaison à ±23° : la feuille ne se retourne plus, le texte reste toujours lisible (le bouton « Retourner » montre le verso)
+
 ## 1.62.1 — 2026-11-05
 - Poignée de hauteur d'une colonne avec contour : posée sur le trait, et plus au bas du contenu
 - Barres verticales : plus de bande vide sous les barres quand aucun libellé n'est saisi (le contenu se centre vraiment)
