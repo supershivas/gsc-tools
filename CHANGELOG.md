@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.62.1 — 2026-11-05
+- Poignée de hauteur d'une colonne avec contour : posée sur le trait, et plus au bas du contenu
+- Barres verticales : plus de bande vide sous les barres quand aucun libellé n'est saisi (le contenu se centre vraiment)
+
 ## 1.62.0 — 2026-11-05
 - Barres de progression des chiffres clés : le contour n'est plus rogné sur les bords
 - Plusieurs chiffres clés dans une colonne : poignée entre les chiffres pour régler leurs largeurs à la souris

@@ -29,7 +29,7 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
   const vizOf = it => { const col = getDoc().sections[it.si].subs[it.bi].cols[it.ci]; return col.type === 'viz' && col.viz && (VIZ_TYPES[col.viz.kind] || {}).heights ? col : null; };
   const colOf = it => getDoc().sections[it.si].subs[it.bi].cols[it.ci];
   const placeGrip = it => {
-    const el = document.querySelector(`[data-sel="${it.path}"]`), nd = el && (vizOf(it) ? el.firstElementChild : el); if (!nd) { grip.style.display = 'none'; return; }
+    const el = document.querySelector(`[data-sel="${it.path}"]`), nd = el && (vizOf(it) && !el.classList.contains('stroked') ? el.firstElementChild : el); if (!nd) { grip.style.display = 'none'; return; }   // colonne avec contour : la poignée est sur le trait
     const r = nd.getBoundingClientRect(); Object.assign(grip.style, { display: 'flex', left: r.left + r.width / 2 - 18 + 'px', top: r.bottom - 8 + 'px' }); grip._at = it;
   };
   grip.addEventListener('dblclick', () => {

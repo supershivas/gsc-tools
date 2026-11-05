@@ -1,9 +1,8 @@
 {
-  "version": "1.62.0",
+  "version": "1.62.1",
   "date": "2026-11-04",
   "changes": [
-    "Barres de progression des chiffres clés : le contour n'est plus rogné sur les bords",
-    "Plusieurs chiffres clés dans une colonne : poignée entre les chiffres pour régler leurs largeurs à la souris",
-    "Textes libres : poignée au bord droit pour régler la largeur ; une image au ratio fixe suit la hauteur réglée à la poignée de sa colonne"
+    "Poignée de hauteur d'une colonne avec contour : posée sur le trait, et plus au bas du contenu",
+    "Barres verticales : plus de bande vide sous les barres quand aucun libellé n'est saisi (le contenu se centre vraiment)"
   ]
 }

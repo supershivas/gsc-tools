@@ -2309,7 +2309,7 @@
       const H = Math.max(120, heightOf(o, W, env, null));
       const co = o.callout && o.callout.on && rows.length > 1 ? o.callout : null;
       const x1 = W - (co ? VIZ.calloutW : 0);
-      const hasIcons = rows.some((r) => r.icon && r.icon !== "none"), iconSz = 33, catH = (o.labelIn ? 6 : VIZ.catH) + (hasIcons ? iconSz + 6 : 0);
+      const hasIcons = rows.some((r) => r.icon && r.icon !== "none"), iconSz = 33, catH = (o.labelIn || !rows.some((r) => String(r.label || "").trim()) ? 6 : VIZ.catH) + (hasIcons ? iconSz + 6 : 0);
       const baseY = H - (o.legend && !legIn ? VIZ.legendGap + VIZ.legendH : 0) - catH, plotTop = VIZ.plotTop, plotH = baseY - plotTop;
       const total = (r) => series.reduce((a2, _, j) => a2 + numVal(r, j), 0);
       const metric = (r) => stacked ? total(r) : numVal(r, 0);
@@ -7811,7 +7811,7 @@ ${short}`)])
     };
     const colOf = (it) => getDoc().sections[it.si].subs[it.bi].cols[it.ci];
     const placeGrip = (it) => {
-      const el2 = document.querySelector(`[data-sel="${it.path}"]`), nd = el2 && (vizOf(it) ? el2.firstElementChild : el2);
+      const el2 = document.querySelector(`[data-sel="${it.path}"]`), nd = el2 && (vizOf(it) && !el2.classList.contains("stroked") ? el2.firstElementChild : el2);
       if (!nd) {
         grip.style.display = "none";
         return;
