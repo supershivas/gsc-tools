@@ -1,6 +1,6 @@
 /* Chiffre clé : type de contenu à part (pas une dataviz). Grand chiffre en Source Serif 4, éventuellement précédé d'une icône,
    texte en dessous. Le contour éventuel est celui de la colonne (voir render.js). */
-import { el, s, SW, SERIF, pxOf, fitSize, inlineMk, stripMk, colorRef } from './viz/util.js';
+import { el, s, SW, SERIF, SANS, pxOf, fitSize, inlineMk, stripMk, colorRef, mw } from './viz/util.js';
 import { ICONS, ICON_OPTIONS, customChoices } from './viz/icons.js';
 import { iconNode } from './viz/picto.js';
 import { TYPE, VIZ } from './tokens.js';
@@ -50,18 +50,28 @@ function progressBar(pct, W, o) {
 export function renderFigure(o, W, align) {
   const more = Array.isArray(o.more) ? o.more : [], headText = String(o.headText || '').trim(), headIcon = o.headIcon && o.headIcon !== 'none';
   if (!more.length && !headText && !headIcon && !(+o.bar > 0)) return oneFigure(o, W, align, o);
-  const gap = 18, n = 1 + more.length, w = ((W || 9999) - gap * (n - 1)) / n;
-  const row = el('div', { class: 'fg-row', style: { gap: gap + 'px' } }, ...[o, ...more].map(it => el('div', { class: 'fg-cell', style: { width: w + 'px' } }, oneFigure(it, w, align, o))));
+  const gap = 18, items = [o, ...more], n = items.length, avail = (W || 9999) - gap * (n - 1), bodyPx = pxOf(TYPE.body.size);
+  /* largeur de chaque cellule : égale, mais jamais plus étroite que son mot le plus long (le texte ne se coupe pas en plein mot) */
+  const minW = items.map(it => Math.ceil(Math.max(0, ...String(stripMk(it.text || '')).split(/\s+/).map(wd => mw(wd, 400, SANS, bodyPx))) + 2));
+  let ws = items.map(() => avail / n);
+  for (let pass = 0; pass < 3; pass++) {
+    const fixed = ws.map((w, i) => w < minW[i]), used = ws.reduce((a, w, i) => a + (fixed[i] ? minW[i] : 0), 0), free = fixed.filter(f => !f).length;
+    ws = ws.map((w, i) => (fixed[i] ? minW[i] : free ? Math.max(minW[i], (avail - used) / free) : w));
+  }
+  /* un seul corps pour tous les chiffres : le plus petit de ceux qui rentrent dans leur cellule */
+  const base = pxOf(TYPE.figure.size) * (+o.scale || 1);
+  const fsAll = Math.min(...items.map((it, i) => fitSize(stripMk(it.value), TYPE.figure.weight, SERIF, base, ws[i] - (it.icon && it.icon !== 'none' ? TYPE.figure.lh + VIZ.iconGap : 0) - 1, 0.4)));
+  const row = el('div', { class: 'fg-row', style: { gap: gap + 'px' } }, ...items.map((it, i) => el('div', { class: 'fg-cell', style: { width: ws[i] + 'px' } }, oneFigure(it, ws[i], align, o, fsAll))));
   if (!headText && !headIcon) return row;
   const ic = headIcon ? figureIcon(o.headIcon, 54, false) : null;
   return el('div', { class: 'fg-all' },
     el('div', { class: 'fg-over' }, ic, headText ? el('span', { textContent: headText.toUpperCase() }) : null), row);
 }
 
-function oneFigure(o, W, align, g) {
+function oneFigure(o, W, align, g, fsAll) {
   const base0 = pxOf(TYPE.figure.size), base = base0 * (+o.scale || 1), lh = TYPE.figure.lh, icon = o.icon && o.icon !== 'none' ? figureIcon(o.icon, lh, o.iconStyle === 'circle') : null;
   const avail = (W || 9999) - (icon ? lh + VIZ.iconGap : 0) - 1;
-  const fs = fitSize(stripMk(o.value), TYPE.figure.weight, SERIF, base, avail, 0.4);
+  const fs = fsAll != null ? Math.min(fsAll, fitSize(stripMk(o.value), TYPE.figure.weight, SERIF, base, avail, 0.4)) : fitSize(stripMk(o.value), TYPE.figure.weight, SERIF, base, avail, 0.4);
   const jc = { center: 'center', right: 'flex-end' }[align] || 'flex-start';
   const head = el('div', { class: 'fg-head', style: { justifyContent: jc } }, icon,
     el('div', { class: 'vf-value', innerHTML: inlineMk(o.value), style: fs !== base0 ? { fontSize: fs + 'px', lineHeight: 1.1, whiteSpace: 'nowrap' } : {} }));

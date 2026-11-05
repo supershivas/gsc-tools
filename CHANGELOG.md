@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.61.1 — 2026-11-05
+- Chiffre clé multiple : tous les chiffres d'une même rangée ont le même corps (le plus petit qui rentre) ; chaque cellule est au moins aussi large que son mot le plus long, donc plus de mot coupé au milieu (« intergovernment / al »)
+
 ## 1.61.0 — 2026-11-05
 - Largeur des colonnes : une poignée entre chaque paire de colonnes (survol orange) se glisse dans l'aperçu pour régler leurs largeurs en direct, avec collage aux douzièmes (1/2, 1/3, 1/4…) ; le menu « Colonnes » de la sous-section indique alors « Personnalisé »
 
