@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.57.3 — 2026-11-05
+- Aperçu 3D : en cas d'erreur, le diagnostic descend dans la colonne fautive et nomme l'élément précis (balise, classe, début du texte)
+
 ## 1.57.2 — 2026-11-05
 - Aperçu 3D : quand une page ne peut pas être dessinée, l'erreur nomme maintenant les éléments fautifs (image de l'en-tête, logo, image d'une colonne avec son nom de fichier, ou colonne) et la taille de la page
 

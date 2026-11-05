@@ -7910,9 +7910,32 @@ ${short}`)])
       if (!await loads(one(im))) bad.push(describe(im, doc2));
     }
     if (!bad.length) for (const c2 of pageEl.querySelectorAll('[data-sel^="col:"], [data-sel="header"]')) {
-      if (!await loads(one(c2))) bad.push(describe(c2, doc2));
+      if (!await loads(one(c2))) {
+        const deep = await deepFault(c2, one);
+        bad.push(describe(c2, doc2) + (deep ? " \u2192 " + deep : ""));
+      }
     }
     return bad.length ? "\xE9l\xE9ment(s) fautif(s) : " + bad.join(" ; ") : "aucun \xE9l\xE9ment seul n\u2019est en cause (page trop lourde ou combinaison)";
+  }
+  async function deepFault(el2, one) {
+    let budget = 50;
+    const short = (n) => {
+      const t2 = (n.textContent || "").replace(/\s+/g, " ").trim().slice(0, 40), cls = n.getAttribute && n.getAttribute("class") || "";
+      return `<${n.tagName.toLowerCase()}${cls ? "." + cls.split(" ")[0] : ""}>${t2 ? " \xAB " + t2 + " \xBB" : ""}`;
+    };
+    const walk2 = async (n) => {
+      const bad = [];
+      for (const c2 of n.children) {
+        if (budget-- <= 0) break;
+        if (!await loads(one(c2))) bad.push(c2);
+      }
+      if (!bad.length) return [short(n)];
+      const out = [];
+      for (const c2 of bad) out.push(...await walk2(c2));
+      return out;
+    };
+    const r = await walk2(el2);
+    return r.slice(0, 4).join(" ; ");
   }
   async function rasterizeDocument(doc2, scale = 2) {
     await loadFonts();

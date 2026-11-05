@@ -59,8 +59,22 @@ async function diagnose(pageEl, vars, css, doc) {
   const one = el => pageSvg(vars, css, new XMLSerializer().serializeToString(el));
   const bad = [];
   for (const im of pageEl.querySelectorAll('img')) { if (!(await loads(one(im)))) bad.push(describe(im, doc)); }
-  if (!bad.length) for (const c of pageEl.querySelectorAll('[data-sel^="col:"], [data-sel="header"]')) { if (!(await loads(one(c)))) bad.push(describe(c, doc)); }
+  if (!bad.length) for (const c of pageEl.querySelectorAll('[data-sel^="col:"], [data-sel="header"]')) { if (!(await loads(one(c)))) { const deep = await deepFault(c, one); bad.push(describe(c, doc) + (deep ? ' → ' + deep : '')); } }
   return bad.length ? 'élément(s) fautif(s) : ' + bad.join(' ; ') : 'aucun élément seul n’est en cause (page trop lourde ou combinaison)';
+}
+
+
+/** Descend dans un élément fautif jusqu'à l'élément le plus petit qui fait échouer le chargement ; le décrit (balise, classe, début du texte) */
+async function deepFault(el, one) {
+  let budget = 50;
+  const short = n => { const t = (n.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40), cls = (n.getAttribute && n.getAttribute('class')) || ''; return `<${n.tagName.toLowerCase()}${cls ? '.' + cls.split(' ')[0] : ''}>${t ? ' « ' + t + ' »' : ''}`; };
+  const walk = async n => {
+    const bad = [];
+    for (const c of n.children) { if (budget-- <= 0) break; if (!(await loads(one(c)))) bad.push(c); }
+    if (!bad.length) return [short(n)];
+    const out = []; for (const c of bad) out.push(...await walk(c)); return out;
+  };
+  const r = await walk(el); return r.slice(0, 4).join(' ; ');
 }
 
 /** → [{ key, canvas }] pour le recto et le verso, à `scale` × la taille A4 en px CSS */
