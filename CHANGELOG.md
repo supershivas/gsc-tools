@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.64.0 — 2026-11-05
+- Labo : deux nouveaux sujets de maquettes — « Éditeur dataviz » (onglets et panneaux à la façon de Flourish) et « Panneau colonne » (propriétés plus lisibles) ; audit UX en documentation, rien n'est encore branché dans l'éditeur
+
 ## 1.63.0 — 2026-11-05
 - Enregistrement et exports : les fichiers sont nommés titre_AAMMJJ.extension (JSON, PDF CMJN, PDF d'impression, PNG de l'aperçu 3D)
 

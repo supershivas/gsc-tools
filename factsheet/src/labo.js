@@ -11,6 +11,7 @@ import { renderFigure, FIGURE_DEFAULTS } from './figure.js';
 import { ICON_OPTIONS } from './viz/icons.js';
 import { renderPanel, panelOpts } from './labo-panel.js';
 import { renderSelect, selectOpts } from './labo-select.js';
+import { renderEditor, editorOpts, renderColumn, columnOpts } from './labo-ux.js';
 import { VIZ_TYPES, renderVizFull } from './viz/index.js';
 import { buildFields, paletteOptions } from './editor.js';
 import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
@@ -79,6 +80,17 @@ const TOPICS = [
     { title: 'Souffle', style: 'swell', desc: 'Le cadre gonfle de 1,2 % puis se rétracte, en boucle lente : donne du volume sans changer de couleur.', opts: selectOpts() },
     { title: 'Halo', kept: 'cadre de sélection de l’aperçu', style: 'halo', desc: 'Une onde orange très douce part du cadre toutes les 2,2 s.', opts: selectOpts() },
     { title: 'Pointillés', style: 'ants', desc: 'Le contour est en pointillés qui défilent lentement (1,8 s) : on voit tout de suite quel élément est actif.', opts: selectOpts() },
+  ] },
+  { id: 'editeur', icon: 'layout-sidebar-right', label: 'Éditeur dataviz', panel: true, controls: [], render: (o, W, v, redraw) => renderEditor(o, v, redraw), variants: [
+    { title: 'Actuel', base: true, style: 'a', desc: 'Onglets dans le panneau, sous le choix du type. Le panneau fait 360 px dans Visualisation et 48 % de l’écran dans Données : en changeant d’onglet, tout bouge (largeur, aperçu, position des contrôles).', opts: editorOpts() },
+    { title: 'Panneau de largeur fixe', style: 'b', desc: 'Même panneau de 340 px dans les deux onglets, à gauche. Données : le tableau prend toute la place, import et colonnes à représenter dans le panneau, aperçu miniature en bas. Visualisation : l’aperçu en grand.', opts: editorOpts() },
+    { title: 'Façon Flourish, panneau à droite', style: 'c', desc: 'Onglets « Aperçu | Données » au centre de la barre, panneau de 320 px à droite dans les deux onglets (comme les propriétés de l’éditeur). Le type est en tête du panneau, les sections en liste repliable à une seule ouverte.', opts: editorOpts() },
+    { title: 'Façon Flourish, panneau à gauche', style: 'd', desc: 'Comme C, panneau à gauche : proche de l’éditeur actuel, mais en rupture avec les propriétés de l’app (à droite).', opts: editorOpts() },
+  ] },
+  { id: 'colonne', icon: 'adjustments-horizontal', label: 'Panneau colonne', panel: true, controls: [], render: (o, W, v, redraw) => renderColumn(o, v, redraw), variants: [
+    { title: 'Actuel', base: true, style: 'a', desc: 'Panneau de droite pour une colonne dataviz : cinq cartes dépliées, dont quatre presque vides ; la suppression est tout en bas.', opts: columnOpts() },
+    { title: 'Essentiel d’abord', style: 'b', desc: 'Tête collante (nom, type, actions d’élément), cartes repliées avec leur valeur en résumé, une seule ouverte à la fois, le rare dans « Avancé ».', opts: columnOpts() },
+    { title: 'Onglets', style: 'c', desc: 'Même tête collante, puis trois onglets (Contenu, Mise en page, Style) : plus de défilement, un clic pour changer de sujet.', opts: columnOpts() },
   ] },
 ];
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
