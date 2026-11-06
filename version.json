@@ -1,7 +1,7 @@
 {
-  "version": "1.66.1",
-  "date": "2026-11-05",
+  "version": "1.67.0",
+  "date": "2026-11-06",
   "changes": [
-    "Éditeur de dataviz : en mode « Ajuster », l'aperçu tient en entier dans la fenêtre (largeur et hauteur), centré, sans barre de défilement ; le nom du type n'est plus coupé dans le panneau"
+    "Labo : six nouveaux sujets pour le texte (styles dont « Source », police et taille, options avancées, listes numérotées, barre de texte, pistes à ajouter), à comparer avant de choisir ; rien n'est encore branché dans l'éditeur"
   ]
 }

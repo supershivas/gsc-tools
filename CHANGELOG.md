@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.67.0 — 2026-11-06
+- Labo : six nouveaux sujets pour le texte (styles dont « Source » 8/9 pt italique, police et taille, options avancées derrière une icône burger, listes numérotées, barre de texte compacte ou volante, pistes de styles et d'options à ajouter) ; rien n'est encore branché dans l'éditeur
+
 ## 1.66.1 — 2026-11-05
 - Éditeur de dataviz : en mode « Ajuster », l'aperçu tient en entier dans la fenêtre (largeur et hauteur), centré, sans barre de défilement ; le nom du type n'est plus coupé dans le panneau
 

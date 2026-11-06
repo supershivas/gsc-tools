@@ -12,6 +12,7 @@ import { ICON_OPTIONS } from './viz/icons.js';
 import { renderPanel, panelOpts } from './labo-panel.js';
 import { renderSelect, selectOpts } from './labo-select.js';
 import { renderEditor, editorOpts, renderColumn, columnOpts } from './labo-ux.js';
+import * as TX from './labo-text.js';
 import { VIZ_TYPES, renderVizFull } from './viz/index.js';
 import { buildFields, paletteOptions } from './editor.js';
 import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
@@ -91,6 +92,36 @@ const TOPICS = [
     { title: 'Ancien', old: true, style: 'a', desc: 'Panneau de droite pour une colonne dataviz : cinq cartes dépliées, dont quatre presque vides ; la suppression est tout en bas.', opts: columnOpts() },
     { title: 'Essentiel d’abord', kept: 'panneau de propriétés', style: 'b', desc: 'Tête collante (nom, type, actions d’élément), cartes repliées avec leur valeur en résumé, une seule ouverte à la fois, le rare dans « Avancé ».', opts: columnOpts() },
     { title: 'Onglets', style: 'c', desc: 'Même tête collante, puis trois onglets (Contenu, Mise en page, Style) : plus de défilement, un clic pour changer de sujet.', opts: columnOpts() },
+  ] },
+  { id: 'styles', icon: 'typography', label: 'Styles de texte', group: 'Texte', panel: true, controls: [], render: (o, W, v, redraw) => TX.renderStyles(o, v, redraw), variants: [
+    { title: 'Six styles', base: true, style: 'a', desc: 'Aujourd’hui : Texte, Titre 1, Titre 2, Légende, Chiffre clé et Chiffre clé (petit), dans une liste déroulante. Pas de style « Source » : la légende est droite, en 600.', opts: TX.stylesOptsOld() },
+    { title: 'Catalogue en menu', style: 'b', desc: 'Sept styles de plus (Chapeau, Texte gras, Texte petit, Citation, Étiquette, Source 8/9 pt italique, Note), regroupés par famille dans un menu où chaque style s’écrit dans sa typographie.', opts: TX.stylesOpts() },
+    { title: 'Galerie de vignettes', style: 'c', desc: 'Le même catalogue en grille de vignettes « Aa » avec la taille et l’interlignage sous le nom : tout se compare d’un coup d’œil.', opts: TX.stylesOpts() },
+  ] },
+  { id: 'police', icon: 'letter-case', label: 'Police et taille', group: 'Texte', panel: true, controls: [], render: (o, W, v, redraw) => TX.renderFont(o, v, redraw), variants: [
+    { title: 'Deux listes', style: 'a', desc: 'Police (Source Sans 3 / Source Serif 4) et taille (échelle du document) dans deux listes déroulantes d’une carte du panneau.', opts: TX.fontOpts() },
+    { title: 'Barre au-dessus de la page', style: 'b', desc: 'Police en deux boutons « Aa » et taille par pas − / + sur l’échelle typographique, dans une barre au-dessus de la page : rien à dérouler dans le panneau.', opts: TX.fontOpts() },
+    { title: 'Aperçu et échelle', style: 'c', desc: 'Deux grandes tuiles « Aa » pour la police, une rangée de tailles dont les chiffres grossissent, plus une taille libre ; l’interlignage suit tout seul (130 %, grille de 3 px).', opts: TX.fontOpts() },
+  ] },
+  { id: 'avance', icon: 'menu-2', label: 'Options avancées', group: 'Texte', panel: true, controls: [], render: (o, W, v, redraw) => TX.renderAdv(o, v, redraw), variants: [
+    { title: 'Burger sur le bloc', style: 'a', desc: 'Une icône burger à l’angle du paragraphe sélectionné ouvre, juste à côté du texte, interlignage, tracking, kerning, alignement, césure, retrait et espaces.', opts: TX.advOpts() },
+    { title: 'Burger dans la carte', style: 'b', desc: 'L’icône est dans l’en-tête de la carte « Texte » du panneau ; elle déplie une zone « Avancé » en deux colonnes sous la saisie.', opts: TX.advOpts() },
+    { title: 'Burger dans la barre', style: 'c', desc: 'Dernier bouton de la barre de mise en forme ; ouvre un panneau flottant qui recouvre le panneau, avec « tout remettre comme le style ».', opts: TX.advOpts() },
+  ] },
+  { id: 'listes', icon: 'list-numbers', label: 'Listes', group: 'Texte', panel: true, controls: [], render: (o, W, v, redraw) => TX.renderList(o, v, redraw), variants: [
+    { title: 'Deux boutons', style: 'a', desc: 'Puces et liste numérotée en deux boutons à bascule dans la barre : un seul aspect par type.', opts: TX.listOpts() },
+    { title: 'Bouton et menu de repères', style: 'b', desc: 'Un bouton « liste » avec une flèche qui ouvre dix repères en aperçu : disque, tiret, carré, 1. 1) 01 a. A. i.', opts: TX.listOpts() },
+    { title: 'Carte « Liste »', style: 'c', desc: 'Une carte du panneau : type, repère, numéro de départ, retrait, espace entre éléments et repère coloré, avec aperçu en direct.', opts: TX.listOpts() },
+  ] },
+  { id: 'barre', icon: 'layout-navbar', label: 'Barre de texte', group: 'Texte', panel: true, controls: [], render: (o, W, v, redraw) => TX.renderBar(o, v, redraw), variants: [
+    { title: 'Actuelle', old: true, style: 'a', desc: 'Style, cinq boutons de mise en forme, liste, zone de saisie et ligne d’aide : la hauteur de référence.', opts: TX.barOpts() },
+    { title: 'Compacte', style: 'b', desc: 'Une seule ligne (exposant et indice rangés sous « … »), burger des options avancées, aide en infobulle, saisie plus serrée : la hauteur est mesurée en direct.', opts: TX.barOpts() },
+    { title: 'Barre volante', style: 'c', desc: 'Plus de barre dans le panneau : elle apparaît au-dessus de la sélection, dans la page. Le panneau ne garde que la saisie : le plus économe.', opts: TX.barOpts() },
+  ] },
+  { id: 'pistes', icon: 'bulb', label: 'Pistes à ajouter', group: 'Texte', panel: true, controls: [], render: (o, W, v, redraw) => TX.renderIdeas(o, v, redraw), variants: [
+    { title: 'Paragraphe', style: 'a', desc: 'Justifié et césure, retrait, citation à filet, lettrine, filets, deux colonnes de texte : à retenir ou non.', opts: TX.ideasOpts() },
+    { title: 'Caractères', style: 'b', desc: 'Couleur, surlignage, capitales, barré, chiffres tabulaires, ligatures, liens, ordinaux.', opts: TX.ideasOpts() },
+    { title: 'Document', style: 'c', desc: 'Typographie française automatique, veuves et orphelines, styles modifiables partout, ajustement au cadre, notes, recherche, compteur.', opts: TX.ideasOpts() },
   ] },
 ];
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
