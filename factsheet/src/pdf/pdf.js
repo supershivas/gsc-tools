@@ -194,6 +194,34 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
         const size = parseFloat(cs.fontSize) * scale, col = parseCss(isSvg ? cs.fill : cs.color); if (!col || col.a === 0 || size <= 0) return;
         const upper = cs.textTransform === 'uppercase', ls = parseFloat(cs.letterSpacing) || 0, under = /underline/.test(cs.textDecorationLine), strike = /line-through/.test(cs.textDecorationLine), caps = cs.fontVariantCaps === 'small-caps';
         const data = node.data, re = /\S+/g; let w;
+        /* Texte SVG : positions par l'API SVG (getStartPositionOfChar / getSubStringLength), pas par Range.getClientRects(), que les navigateurs
+           (Safari, Firefox) renvoient vides ou faux dans un <text> : seul le 1er mot d'un libellé sortait. Les espaces d'un <text> sont réduits comme en SVG. */
+        if (isSvg && el.getStartPositionOfChar && el.getScreenCTM) {
+          const ctm = el.getScreenCTM();
+          if (ctm) {
+            const map = new Map(); let n = 0, prevSp = true, found = false;   // indice d'un caractère de `node` → indice adressable du <text>
+            const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+            for (let t; (t = tw.nextNode());) for (let i = 0; i < t.data.length; i++) {
+              const sp = /[ \t\r\n]/.test(t.data[i]);
+              if (sp && prevSp) { if (t === node) map.set(i, -1); continue; }
+              if (t === node) { map.set(i, n); found = true; }
+              n++; prevSp = sp;
+            }
+            if (found) {
+              let ok = true; const jobs = [];
+              while ((w = re.exec(data))) {
+                const a = map.get(w.index); if (a == null || a < 0) continue;
+                try {
+                  const p0 = el.getStartPositionOfChar(a), len = el.getSubStringLength(a, w[0].length);
+                  const pt = new DOMPoint(p0.x, p0.y).matrixTransform(ctm);
+                  jobs.push({ text: upper ? w[0].toUpperCase() : w[0], x: pt.x - P.left, top: 0, h: 0, by: pt.y - P.top, w: len * ctm.a, serif, italic, weight, size, bsize: size, col, under, strike });
+                } catch (e) { ok = false; break; }
+              }
+              if (ok) { textJobs.push(...jobs); return; }
+            }
+          }
+          re.lastIndex = 0;
+        }
         while ((w = re.exec(data))) {
           const range = document.createRange(); range.setStart(node, w.index); range.setEnd(node, w.index + w[0].length);
           const rects = [...range.getClientRects()].filter(r => r.width > 0.01 || r.height > 0);
@@ -226,7 +254,7 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
         for (const j of textJobs) {
           const f = await fontFor(j.serif ? 'serif' : 'sans', j.weight, j.italic), t = [...j.text].filter(ch => f.chars.has(ch.codePointAt(0))).join('');
           if (!t) continue;
-          const bs = j.bsize || j.size, baseline = j.top + (j.h - (f.asc + f.desc) * bs) / 2 + f.asc * bs, [x, y] = toPt(j.x, baseline), c = resolve(j.col.rgb);
+          const bs = j.bsize || j.size, baseline = j.by != null ? j.by : j.top + (j.h - (f.asc + f.desc) * bs) / 2 + f.asc * bs, [x, y] = toPt(j.x, baseline), c = resolve(j.col.rgb);
           flush();
           page.drawText(t, { x, y, size: j.size * KY, font: f.embedded, color: cmykColor(...c), opacity: j.col.a < 1 ? j.col.a : undefined });
           if (j.strike) { const [sx, sy] = toPt(j.x, baseline - j.size * 0.3), [ex] = toPt(j.x + j.w, 0); push(pushGraphicsState()); setStroke(c); push(setLineWidth(j.size * 0.06 * KY)); push(moveTo(sx, sy), lineTo(ex, sy), stroke(), popGraphicsState()); }

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.69.2 — 2026-11-06
+- Export PDF : les textes des graphiques (légendes, axes, libellés) sont placés avec l'API SVG, pour que tous les mots sortent quel que soit le navigateur
+
 ## 1.69.1 — 2026-11-06
 - Export PDF : les liens du texte sont cliquables
 
