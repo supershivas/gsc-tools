@@ -306,3 +306,22 @@ body.labo { height: 100dvh; display: flex; flex-direction: column; overflow: hid
 
 .tx-mi { flex-direction: column; align-items: flex-start; gap: 1px; } .tx-mi .tx-mp { flex: none; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tx-mi .tx-new { margin-left: 0; }
+
+/* ---------- Sujet « Panneau texte » ---------- */
+.tp { align-items: flex-start; }
+.tp-panel { flex: none; width: 320px; max-height: 700px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-md); background: #fff; }
+.tp-head { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #fff; border-bottom: 1px solid var(--line); }
+.tp-ic { display: inline-flex; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: var(--radius-md); background: var(--bg); } .tp-cr { font-size: 11px; color: var(--accent); }
+.tp-pill { margin-left: 8px; padding: 1px 8px; border-radius: 10px; background: var(--bg); font-size: 11px; color: var(--mute); }
+.tp-search { display: flex; align-items: center; gap: 8px; margin: 10px 14px 0; height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); color: var(--mute); font-size: 13px; }
+.tp-body { padding: 10px 14px 18px; } .tp-body .tx-card { margin-bottom: 8px; }
+.tp-acc { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 46px; padding: 0 12px; border: 0; background: var(--bg); font: inherit; cursor: pointer; color: var(--ink); text-align: left; }
+.tp-acc b { font-weight: 600; font-size: 14px; white-space: nowrap; } .tp-sum { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--mute); }
+.tp-acc .tx-new { margin-left: 0; }
+.tp-adv { margin: 14px 0 8px; font: 11px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+.tp-tabs { display: flex; gap: 4px; margin-bottom: 10px; border-bottom: 1px solid var(--line); } .tp-tabs button { flex: 1; height: 38px; border: 0; border-bottom: 2px solid transparent; background: transparent; font: 500 13px var(--font-sans); cursor: pointer; color: var(--mute); }
+.tp-tabs button.on { border-bottom-color: var(--ink); color: var(--ink); }
+.tx-seg.wide { display: flex; align-self: stretch; } .tx-seg.wide button { flex: 1; min-width: 0; padding: 0 4px; }
+.tp-side { flex: 1; min-width: 0; max-width: 520px; } .tp-count { margin: 8px 0; font: 600 14px var(--font-mono); }
+.tp .tx-card .pp-body { padding: 10px 12px 12px; }
+.tx-seg.wide button { font-size: 12px; }

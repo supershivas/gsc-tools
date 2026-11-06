@@ -154,7 +154,7 @@ export function buildProps(root, ctx) {
     const num = (label, tx, k, min, max) => field(label, h('input', { type: 'number', min, max, step: 1, value: tx[k] ?? 0, oninput: e => { tx[k] = +e.target.value || 0; ctx.changed(); } }));
     const items = arr.map((tx, i) => h('div', { class: 'col-card' },
       h('div', { class: 'chd' }, h('span', { textContent: `#${i + 1}` }), h('button', { type: 'button', class: 'mini danger', title: t('Supprimer'), onclick: () => { arr.splice(i, 1); ctx.restructure(); } }, ico('x'))),
-      richEditor(tx.text || '', v => { tx.text = v; ctx.changed(); }),
+      richEditor(tx.text || '', v => { tx.text = v; ctx.changed(); }, { gallery: true, adv: tx, advChange: () => ctx.changed() }),
       field('Placement', (() => { const sl = h('select', { onchange: e => { tx.mode = e.target.value; ctx.restructure(); } }, [['free', 'Libre (glisser dans l’aperçu)'], ['above', 'Au-dessus du contenu'], ['below', 'En dessous du contenu']].map(([v, l]) => h('option', { value: v, textContent: t(l) }))); sl.value = tx.mode || 'free'; return sl; })()),
       (tx.mode || 'free') === 'free' ? h('div', { class: 'row' }, num('X (% de la colonne)', tx, 'x', 0, 100), num('Largeur (%)', tx, 'w', 10, 100), tx.y == null ? null : num('Y (px)', tx, 'y', 0, 2000)) : null));
     return [...items, h('button', { type: 'button', class: 'pp-btn', onclick: () => { arr.push({ x: 0, y: arr.length * 30, w: 50, text: 'Texte libre' }); ctx.restructure(); } }, ico('plus'), h('span', { textContent: t('Ajouter un texte') })),
@@ -217,7 +217,7 @@ export function buildProps(root, ctx) {
       const keep = col.text, { valign, align, stroke, strokeColor, fillColor } = col; Object.assign(col, newCol(v), { valign, align, stroke, strokeColor, fillColor });
       if (v === 'text' && keep) col.text = keep; if (v === 'card') { col.card = newCard(columnWidth(doc, si, bi, ci)); col.stroke = false; col.fillColor = 'none'; } ctx.restructure(); } }));
     let editor;
-    if (col.type === 'text') editor = [h('div', { class: 'f' }, h('div', { class: 'hint', textContent: 'Texte' }), richEditor(col.text, v => { col.text = v; ctx.changed(); }))];
+    if (col.type === 'text') editor = [h('div', { class: 'f' }, h('div', { class: 'hint', textContent: 'Texte' }), richEditor(col.text, v => { col.text = v; ctx.changed(); }, { gallery: true, adv: col, advChange: () => ctx.changed() }))];
     else if (col.type === 'image') {
       const mode = col.imgMode || 'ratio';
       editor = [imgPicker('Image', () => col.src, v => { col.src = v; col.natural = null; }, 1600),

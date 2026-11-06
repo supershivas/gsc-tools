@@ -13,6 +13,7 @@ import { renderPanel, panelOpts } from './labo-panel.js';
 import { renderSelect, selectOpts } from './labo-select.js';
 import { renderEditor, editorOpts, renderColumn, columnOpts } from './labo-ux.js';
 import * as TX from './labo-text.js';
+import { renderTextPanel, panelTextOpts } from './labo-textpanel.js';
 import { VIZ_TYPES, renderVizFull } from './viz/index.js';
 import { buildFields, paletteOptions } from './editor.js';
 import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
@@ -96,7 +97,7 @@ const TOPICS = [
   { id: 'styles', icon: 'typography', label: 'Styles de texte', group: 'Texte', panel: true, controls: [], render: (o, W, v, redraw) => TX.renderStyles(o, v, redraw), variants: [
     { title: 'Six styles', base: true, style: 'a', desc: 'Aujourd’hui : Texte, Titre 1, Titre 2, Légende, Chiffre clé et Chiffre clé (petit), dans une liste déroulante. Pas de style « Source » : la légende est droite, en 600.', opts: TX.stylesOptsOld() },
     { title: 'Catalogue en menu', style: 'b', desc: 'Sept styles de plus (Chapeau, Texte gras, Texte petit, Citation, Étiquette, Source 8/9 pt italique, Note), regroupés par famille dans un menu où chaque style s’écrit dans sa typographie.', opts: TX.stylesOpts() },
-    { title: 'Galerie de vignettes', style: 'c', desc: 'Le même catalogue en grille de vignettes « Aa » avec la taille et l’interlignage sous le nom : tout se compare d’un coup d’œil.', opts: TX.stylesOpts() },
+    { title: 'Galerie de vignettes', kept: 'carte Texte du panneau', style: 'c', desc: 'Le même catalogue en grille de vignettes « Aa » avec la taille et l’interlignage sous le nom : tout se compare d’un coup d’œil.', opts: TX.stylesOpts() },
   ] },
   { id: 'police', icon: 'letter-case', label: 'Police et taille', group: 'Texte', panel: true, controls: [], render: (o, W, v, redraw) => TX.renderFont(o, v, redraw), variants: [
     { title: 'Deux listes', style: 'a', desc: 'Police (Source Sans 3 / Source Serif 4) et taille (échelle du document) dans deux listes déroulantes d’une carte du panneau.', opts: TX.fontOpts() },
@@ -106,7 +107,7 @@ const TOPICS = [
   { id: 'avance', icon: 'menu-2', label: 'Options avancées', group: 'Texte', panel: true, controls: [], render: (o, W, v, redraw) => TX.renderAdv(o, v, redraw), variants: [
     { title: 'Burger sur le bloc', style: 'a', desc: 'Une icône burger à l’angle du paragraphe sélectionné ouvre, juste à côté du texte, interlignage, tracking, kerning, alignement, césure, retrait et espaces.', opts: TX.advOpts() },
     { title: 'Burger dans la carte', style: 'b', desc: 'L’icône est dans l’en-tête de la carte « Texte » du panneau ; elle déplie une zone « Avancé » en deux colonnes sous la saisie.', opts: TX.advOpts() },
-    { title: 'Burger dans la barre', style: 'c', desc: 'Dernier bouton de la barre de mise en forme ; ouvre un panneau flottant qui recouvre le panneau, avec « tout remettre comme le style ».', opts: TX.advOpts() },
+    { title: 'Burger dans la barre', kept: 'éditeur de texte', style: 'c', desc: 'Dernier bouton de la barre de mise en forme ; ouvre un panneau flottant qui recouvre le panneau, avec « tout remettre comme le style ».', opts: TX.advOpts() },
   ] },
   { id: 'listes', icon: 'list-numbers', label: 'Listes', group: 'Texte', panel: true, controls: [], render: (o, W, v, redraw) => TX.renderList(o, v, redraw), variants: [
     { title: 'Deux boutons', style: 'a', desc: 'Puces et liste numérotée en deux boutons à bascule dans la barre : un seul aspect par type.', opts: TX.listOpts() },
@@ -117,6 +118,11 @@ const TOPICS = [
     { title: 'Actuelle', old: true, style: 'a', desc: 'Style, cinq boutons de mise en forme, liste, zone de saisie et ligne d’aide : la hauteur de référence.', opts: TX.barOpts() },
     { title: 'Compacte', style: 'b', desc: 'Une seule ligne (exposant et indice rangés sous « … »), burger des options avancées, aide en infobulle, saisie plus serrée : la hauteur est mesurée en direct.', opts: TX.barOpts() },
     { title: 'Barre volante', style: 'c', desc: 'Plus de barre dans le panneau : elle apparaît au-dessus de la sélection, dans la page. Le panneau ne garde que la saisie : le plus économe.', opts: TX.barOpts() },
+  ] },
+  { id: 'paneltexte', icon: 'layout-sidebar-right', label: 'Panneau texte', group: 'Texte', panel: true, controls: [], render: (o, W, v, redraw) => renderTextPanel(o, v, redraw), variants: [
+    { title: 'Cartes à la suite', style: 'a', desc: 'Les cartes d’aujourd’hui plus Police, Liste et Paragraphe, à la suite, une seule ouverte à la fois : tout est à un clic, la liste s’allonge.', opts: panelTextOpts() },
+    { title: 'Trois onglets', style: 'b', desc: 'Contenu (saisie, styles, burger), Texte (police, liste, paragraphe) et Bloc (hauteur, disposition, cadre, textes libres, chiffre à côté) : trois à quatre cartes par onglet.', opts: panelTextOpts() },
+    { title: 'Carte Texte à sous-onglets', style: 'c', desc: 'Une carte « Texte » (Saisie, Police, Liste, Paragraphe) et une carte « Bloc » qui regroupe hauteur, disposition et cadre ; le rare sous « Avancé ».', opts: panelTextOpts() },
   ] },
   { id: 'pistes', icon: 'bulb', label: 'Pistes à ajouter', group: 'Texte', panel: true, controls: [], render: (o, W, v, redraw) => TX.renderIdeas(o, v, redraw), variants: [
     { title: 'Paragraphe', style: 'a', desc: 'Justifié et césure, retrait, citation à filet, lettrine, filets, deux colonnes de texte : à retenir ou non.', opts: TX.ideasOpts() },

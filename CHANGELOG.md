@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.68.0 — 2026-11-06
+- Texte : sept nouveaux styles de paragraphe (Chapeau, Texte gras, Texte petit, Citation, Étiquette, Source 8/9 pt italique, Note), choisis dans une galerie à l'intérieur de la carte
+- Texte : icône burger dans la barre de l'éditeur (interlignage, tracking, kerning, retrait, espaces avant/après d'un bloc)
+- Labo : nouveau sujet « Panneau texte » pour comparer le rangement des cartes liées au texte
+
 ## 1.67.0 — 2026-11-06
 - Labo : six nouveaux sujets pour le texte (styles dont « Source » 8/9 pt italique, police et taille, options avancées derrière une icône burger, listes numérotées, barre de texte compacte ou volante, pistes de styles et d'options à ajouter) ; rien n'est encore branché dans l'éditeur
 

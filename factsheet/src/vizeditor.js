@@ -4,6 +4,7 @@
    - interactions à la souris si le type exporte `edit.start(hit, opts, meta, api, pt)` ;
      le rendu pose des `data-hit="kind:index"` sur les éléments saisissables. */
 import { h, ico } from './render.js';
+import { HAS_PREFIX } from './textstyles.js';
 import { openPalette } from './palette.js';
 import { buildFields, paletteOptions, richEditor } from './editor.js';
 import { colWidth, subColWidth, cssVars, applyVars, paletteOf } from './tokens.js';
@@ -21,7 +22,7 @@ const shut = new Set();   // cartes repliées (gardées d'une ouverture à l'aut
 let tab = 'data';
 shut.add('dv-type');      // la carte du type est repliée à la première ouverture ; `tab` : 'data' (Données) ou 'viz' (Visualisation)
 const acc = { cur: null, first: 'dv-style' }, search = { q: '', focus: false };
-const MARKUP = /\*\*|~~|__|\^\^|,,|(^|\n)#{1,5} /;   // accordéon : une seule carte ouverte dans le panneau
+const MARKUP = new RegExp('\\*\\*|~~|__|\\^\\^|,,|' + HAS_PREFIX.source);   // accordéon : une seule carte ouverte dans le panneau
 
 /* Rangement des champs d'un type dans les cartes de l'onglet Visualisation (un champ peut forcer `g: 'format' | 'labels' | 'style' | 'data'`) */
 const LABEL_KEYS = new Set(['legend', 'showValues', 'decimals', 'suffix', 'totalTpl', 'layout']);

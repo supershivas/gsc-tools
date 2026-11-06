@@ -5,6 +5,7 @@ import { IMAGE_RATIOS } from './state.js';
 import { renderViz, composeSide } from './viz/index.js';
 import { inlineMk, s } from './viz/util.js';
 import { iconLib } from './viz/icons.js';
+import { parseLine, PREFIX_RE, applyAdv } from './textstyles.js';
 import { renderFigure } from './figure.js';
 import { renderCard } from './card.js';
 
@@ -28,19 +29,20 @@ const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&
 export const inline = inlineMk;
 
 /** Texte à balisage léger → éléments <p> / <ul> */
-export function richText(text, align) {
-  const root = h('div', { class: 'rich', style: align && align !== 'left' ? { textAlign: align } : {} });
+export function richText(text, align, adv) {
+  const al = (adv && adv.align) || align;
+  const root = h('div', { class: 'rich', style: al && al !== 'left' ? { textAlign: al } : {} });
   let ul = null;
   for (const raw of String(text || '').replace(/\r\n?/g, '\n').split('\n')) {
     const line = raw.trim();
     if (!line) { ul = null; continue; }
-    const hm = line.match(/^(#{1,5})\s+(.*)$/);   // style de paragraphe : # Titre 1, ## Titre 2, ### Légende
-    if (hm) { ul = null; root.append(h('p', { class: 'p-' + ['h1', 'h2', 'cap', 'fig', 'figsm'][hm[1].length - 1], innerHTML: inline(hm[2]) })); continue; }
+    const hm = parseLine(line);   // style de paragraphe : # Titre 1 … ##### Chiffre clé (petit), @source, @citation…
+    if (hm.key) { ul = null; root.append(applyAdv(h('p', { class: 'p-' + hm.key, innerHTML: inline(hm.text) }), adv)); continue; }
     const m = line.match(/^[-•]\s+(.*)$/);
     if (m) {
       if (!ul) { ul = h('ul'); root.append(ul); }
-      ul.append(h('li', { innerHTML: inline(m[1]) }));
-    } else { ul = null; root.append(h('p', { innerHTML: inline(line) })); }
+      ul.append(applyAdv(h('li', { innerHTML: inline(m[1]) }), adv));
+    } else { ul = null; root.append(applyAdv(h('p', { innerHTML: inline(line) }), adv)); }
   }
   return root;
 }
@@ -111,9 +113,9 @@ function renderCol(col, w, path, env) {
   const al = { top: 'start', center: 'center', bottom: 'end' }[col.valign] || 'start';
   if (isBox(col) && col.type !== 'card') { strokeStyle(wrap)(col); wrap.style.justifyContent = { start: 'flex-start', center: 'center', end: 'flex-end' }[al]; w = insetW(w); }
   else wrap.style.alignSelf = al;
-  const strip = x => String(x || '').replace(/\*\*|__|~~|\^\^|,,/g, '').replace(/^(#{1,5}|[-•])\s+/gm, '').split('\n').find(l => l.trim()) || '';
+  const strip = x => String(x || '').replace(/\*\*|__|~~|\^\^|,,/g, '').replace(PREFIX_RE, '').split('\n').find(l => l.trim()) || '';
   const side = (label, core) => composeSide(col.side, w, env, { pct: '', value: '', total: '', label }, core).node;
-  if (col.type === 'text') wrap.append(side(strip(col.text), ww => ({ node: col.side && col.side.pos !== 'none' ? h('div', { style: { width: ww + 'px' } }, richText(col.text, col.align)) : richText(col.text, col.align) })));
+  if (col.type === 'text') wrap.append(side(strip(col.text), ww => ({ node: col.side && col.side.pos !== 'none' ? h('div', { style: { width: ww + 'px' } }, richText(col.text, col.align, col.adv)) : richText(col.text, col.align, col.adv) })));
   else if (col.type === 'image') {
     const ib = renderImage(col, w);   // une image au ratio fixe suit la hauteur réglée à la poignée de la colonne
     if (+col.minH > 0 && (col.imgMode || 'ratio') === 'ratio' && ib.classList && ib.classList.contains('img-box')) ib.style.height = col.minH + 'px';
@@ -135,13 +137,13 @@ function renderCol(col, w, path, env) {
     col.texts.forEach((tx, i) => {
       if (!String(tx.text || '').trim()) return;
       if (tx.mode === 'above' || tx.mode === 'below') {
-        (tx.mode === 'above' ? above : below).push(h('div', { class: 'col-text-flow', style: { marginTop: tx.mode === 'below' ? '9px' : '0', marginBottom: tx.mode === 'above' ? '9px' : '0' } }, richText(tx.text, tx.align || 'left')));
+        (tx.mode === 'above' ? above : below).push(h('div', { class: 'col-text-flow', style: { marginTop: tx.mode === 'below' ? '9px' : '0', marginBottom: tx.mode === 'above' ? '9px' : '0' } }, richText(tx.text, tx.align || 'left', tx.adv)));
         return;
       }
       wrap.style.position = 'relative';
       const st = { position: 'absolute', left: (+tx.x || 0) + '%', width: (+tx.w || 50) + '%', zIndex: 2 };
       if (tx.y == null) st.bottom = '0'; else st.top = (+tx.y || 0) + 'px';
-      wrap.append(h('div', { class: 'col-text-free', style: st, dataset: { free: `${path}:${i}` } }, richText(tx.text, tx.align || 'left'), h('div', { class: 'free-grip' })));
+      wrap.append(h('div', { class: 'col-text-free', style: st, dataset: { free: `${path}:${i}` } }, richText(tx.text, tx.align || 'left', tx.adv), h('div', { class: 'free-grip' })));
     });
     if (above.length) wrap.prepend(...above);
     if (below.length) wrap.append(...below);

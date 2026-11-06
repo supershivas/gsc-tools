@@ -2,6 +2,7 @@
    Pour en ajouter un : créer le fichier, l'importer ici. L'éditeur construit son formulaire depuis `fields` (+ `data` pour l'onglet Données).
    Champs : `g` range un champ dans une carte de l'onglet Visualisation (format, labels, style) ou dans l'onglet Données (data). */
 import donut from './donut.js';
+import { parseLine } from '../textstyles.js';
 import bars from './bars.js';
 import iconlist from './iconlist.js';
 import hbars from './hbars.js';
@@ -54,8 +55,8 @@ function withHead(viz, node) {
   if ((hd.title || '').trim()) {   // titre : une ligne = un paragraphe, préfixes # à ##### = titre 1, titre 2, légende, chiffre clé, chiffre clé (petit)
     const T = el('div', { class: 'viz-title' });
     String(hd.title).replace(/\r\n?/g, '\n').split('\n').filter(l => l.trim()).forEach(l => {
-      const m = l.trim().match(/^(#{1,5})\s+(.*)$/);
-      T.append(el('div', { class: m ? 'p-' + ['h1', 'h2', 'cap', 'fig', 'figsm'][m[1].length - 1] : '', innerHTML: inlineMk(m ? m[2] : l.trim()) }));
+      const m = parseLine(l.trim());
+      T.append(el('div', { class: m.key ? 'p-' + m.key : '', innerHTML: inlineMk(m.text) }));
     });
     wrap.append(T);
   }

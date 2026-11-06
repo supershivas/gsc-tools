@@ -113,6 +113,15 @@
 
 sup,sub{font-size:.7em;line-height:0}
 
+/* styles de paragraphe ajoutés (voir textstyles.js) */
+.rich .p-lead,.viz-title .p-lead{font-family:var(--t-lead-family);font-size:var(--t-lead-size);line-height:var(--t-lead-lh);font-weight:var(--t-lead-weight)}
+.rich .p-bold,.viz-title .p-bold{font-family:var(--t-bodyBold-family);font-size:var(--t-bodyBold-size);line-height:var(--t-bodyBold-lh);font-weight:var(--t-bodyBold-weight)}
+.rich .p-small,.viz-title .p-small{font-family:var(--t-small-family);font-size:var(--t-small-size);line-height:var(--t-small-lh);font-weight:var(--t-small-weight)}
+.rich .p-quote,.viz-title .p-quote{font-family:var(--t-quote-family);font-size:var(--t-quote-size);line-height:var(--t-quote-lh);font-weight:var(--t-quote-weight);font-style:italic;border-left:2px solid var(--c-blue);padding-left:var(--s3)}
+.rich .p-label,.viz-title .p-label{font-family:var(--t-label-family);font-size:var(--t-label-size);line-height:var(--t-label-lh);font-weight:var(--t-label-weight);text-transform:uppercase;letter-spacing:.08em}
+.rich .p-source,.viz-title .p-source{font-family:var(--t-source-family);font-size:var(--t-source-size);line-height:var(--t-source-lh);font-weight:var(--t-source-weight);font-style:italic}
+.rich .p-note,.viz-title .p-note{font-family:var(--t-note-family);font-size:var(--t-note-size);line-height:var(--t-note-lh);font-weight:var(--t-note-weight)}
+
 .rich .p-h1{font-size:var(--t-section-size);line-height:var(--t-section-lh);font-weight:var(--t-section-weight)}
 .rich .p-h2{font-size:var(--t-subsection-size);line-height:var(--t-subsection-lh);font-weight:var(--t-subsection-weight)}
 .rich .p-cap{font-size:var(--t-caption-size);line-height:var(--t-caption-lh);font-weight:var(--t-caption-weight)}

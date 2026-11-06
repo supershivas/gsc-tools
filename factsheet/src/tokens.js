@@ -122,6 +122,12 @@ export const TYPE = {
   caption:    { family: 'sans',  size: 8,  weight: 600, lh: u(5)  },   // axes, légendes de dataviz
   captionNum: { family: 'serif', size: 8,  weight: 700, lh: u(5)  },   // valeurs chiffrées des graphiques
   callout:    { family: 'sans',  size: 16, weight: 700, lh: u(7)  },   // « +64 % » à côté d'un graphique
+  lead:       { family: 'serif', size: 14, weight: 400, lh: u(8)  },   // chapeau
+  small:      { family: 'sans',  size: 10, weight: 400, lh: u(5)  },
+  quote:      { family: 'sans',  size: 14, weight: 400, lh: u(8)  },   // citation (italique, filet à gauche)
+  label:      { family: 'sans',  size: 8,  weight: 700, lh: u(5)  },   // étiquette en capitales
+  source:     { family: 'sans',  size: 8,  weight: 400, lh: u(4)  },   // source : 8 pt, interlignage 9 pt (12 px), italique
+  note:       { family: 'sans',  size: 8,  weight: 400, lh: u(4)  },
 };
 
 /* ---------- Traits ---------- */

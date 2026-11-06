@@ -4,6 +4,9 @@ import { t } from './i18n.js';
 import { helpBtn } from './help.js';
 import { colorSelect } from './colorselect.js';
 import { iconSelect } from './iconselect.js';
+import { PSTYLES, GROUPS, HASH_KEYS, parseLine, prefixOf, styleOf, specOf, hasAdv } from './textstyles.js';
+import { advPanel } from './textadv.js';
+import { FONT, TYPE } from './tokens.js';
 import { GRID, THEMES, paletteKeys, sectionBgs, colorLabel } from './tokens.js';
 import { COL_TYPES, IMAGE_RATIOS, LOCALES, newCol, newSub, newSection, uid, moveSection, stepSection } from './state.js';
 import { VIZ_TYPES, VIZ_OPTIONS, newViz } from './viz/index.js';
@@ -64,8 +67,8 @@ const mkToHtml = t => {
   const lines = String(t || '').replace(/\r\n?/g, '\n').split('\n').filter(l => l.trim());
   let html = '', ul = false;
   for (const l of lines) {
-    const hd = l.trim().match(/^(#{1,5})\s+(.*)$/);
-    if (hd) { if (ul) { html += '</ul>'; ul = false; } html += `<h${hd[1].length}>${inline(hd[2])}</h${hd[1].length}>`; continue; }
+    const hd = parseLine(l.trim());
+    if (hd.key) { if (ul) { html += '</ul>'; ul = false; } const P = styleOf(hd.key); html += P.hash ? `<h${P.hash}>${inline(hd.text)}</h${P.hash}>` : `<div data-st="${P.k}">${inline(hd.text)}</div>`; continue; }
     const m = l.trim().match(/^[-•]\s+(.*)$/);
     if (m && !ul) { html += '<ul>'; ul = true; } else if (!m && ul) { html += '</ul>'; ul = false; }
     html += m ? `<li>${inline(m[1])}</li>` : `<div>${inline(l.trim())}</div>`;
@@ -90,6 +93,7 @@ function htmlToMk(root) {
     if (tag === 'SUB') s.sub = true;
     if (tag === 'U' || /underline/.test(n.style.textDecoration)) s.u = true;
     if (tag === 'UL' || tag === 'OL') { for (const c of n.childNodes) walk(c, s, true); return; }
+    if (tag === 'DIV' && n.dataset.st) { if (cur.length) flush(bullet); for (const c of n.childNodes) walk(c, s, bullet); flush(bullet, prefixOf(n.dataset.st)); return; }
     if (/^H[1-5]$/.test(tag)) { if (cur.length) flush(bullet); for (const c of n.childNodes) walk(c, s, bullet); flush(bullet, '#'.repeat(+tag[1]) + ' '); return; }
     const block = tag === 'LI' || tag === 'DIV' || tag === 'P';
     if (block && cur.length) flush(bullet);
@@ -101,24 +105,67 @@ function htmlToMk(root) {
   flush(false);
   return lines.join('\n');
 }
+let galleryOpen = false;   // la galerie de styles reste ouverte d'un éditeur à l'autre (le temps de la session)
 export function richEditor(value, onChange, opts = {}) {
   const ed = h('div', { class: 're', contentEditable: 'true', spellcheck: 'true', innerHTML: mkToHtml(value) });
+  const full = opts.bullets !== false;
   const cmd = c => () => { ed.focus(); document.execCommand(c); onChange(htmlToMk(ed)); sync(); };
   const mk = (label, title, c, style) => { const b = h('button', { type: 'button', class: 'mini', textContent: label, title, style, dataset: { cmd: c }, onmousedown: e => e.preventDefault(), onclick: cmd(c) }); return b; };
-  const bar = h('div', { class: 'row fmt' }, mk('B', 'Gras', 'bold', { fontWeight: 800 }), mk('I', 'Italique', 'italic', { fontStyle: 'italic' }), mk('U', 'Souligné', 'underline', { textDecoration: 'underline' }), mk('x²', 'Exposant', 'superscript'), mk('x₂', 'Indice', 'subscript'), opts.bullets === false ? null : (() => { const b = mk('', 'Liste à puces', 'insertUnorderedList'); b.append(ico('list')); return b; })());
-  const styleSel = opts.bullets === false ? null : h('select', { class: 're-style', title: t('Style de paragraphe'), 'aria-label': t('Style de paragraphe'),
-    onmousedown: () => { const sl = window.getSelection(); if (sl.rangeCount && ed.contains(sl.anchorNode)) saved = sl.getRangeAt(0).cloneRange(); },
-    onchange: e => { const v = e.target.value; ed.focus(); if (saved) { const sl = window.getSelection(); sl.removeAllRanges(); sl.addRange(saved); } document.execCommand('formatBlock', false, v); onChange(htmlToMk(ed)); sync(); } },
-    [['DIV', 'Texte'], ['H1', 'Titre 1'], ['H2', 'Titre 2'], ['H3', 'Légende'], ['H4', 'Chiffre clé'], ['H5', 'Chiffre clé (petit)']].map(([v, l]) => h('option', { value: v, textContent: t(l) })));
   let saved = null;
-  const sync = () => { bar.querySelectorAll('[data-cmd]').forEach(b => { let on = false; try { on = document.queryCommandState(b.dataset.cmd); } catch (e) {} b.classList.toggle('on', on); });
-    if (styleSel) { let v = ''; try { v = String(document.queryCommandValue('formatBlock') || '').toUpperCase().replace(/[<>]/g, ''); } catch (e) {} styleSel.value = /^H[1-5]$/.test(v) ? v : 'DIV'; } };
+  const keep = () => { const sl = window.getSelection(); if (sl.rangeCount && ed.contains(sl.anchorNode)) saved = sl.getRangeAt(0).cloneRange(); };
+  const restore = () => { ed.focus(); if (saved) { const sl = window.getSelection(); sl.removeAllRanges(); sl.addRange(saved); } };
+  /* style d'un ou plusieurs paragraphes : titres 1–5 par formatBlock (H1–H5), les autres par data-st sur une <div> */
+  const applyStyle = key => {
+    restore();
+    const P = styleOf(key);
+    document.execCommand('formatBlock', false, P.hash ? 'H' + P.hash : 'DIV');
+    const sl = window.getSelection(), r = sl.rangeCount && sl.getRangeAt(0);
+    if (r) [...ed.children].filter(c => r.intersectsNode(c)).forEach(c => { if (P.hash || P.k === 'body') delete c.dataset.st; else if (c.tagName === 'DIV') c.dataset.st = P.k; });
+    keep(); onChange(htmlToMk(ed)); sync();
+  };
+  const currentStyle = () => {
+    const sl = window.getSelection(); let n = sl.rangeCount ? sl.anchorNode : null;
+    if (!n || !ed.contains(n)) return 'body';
+    while (n && n.parentNode !== ed) n = n.parentNode;
+    if (!n || n === ed || n.nodeType !== 1) return 'body';
+    if (/^H[1-5]$/.test(n.tagName)) return HASH_KEYS[+n.tagName[1] - 1];
+    return (n.dataset && n.dataset.st) || 'body';
+  };
+  const bar = h('div', { class: 'row fmt' }, mk('B', 'Gras', 'bold', { fontWeight: 800 }), mk('I', 'Italique', 'italic', { fontStyle: 'italic' }), mk('U', 'Souligné', 'underline', { textDecoration: 'underline' }), mk('x²', 'Exposant', 'superscript'), mk('x₂', 'Indice', 'subscript'), full ? (() => { const b = mk('', 'Liste à puces', 'insertUnorderedList'); b.append(ico('list')); return b; })() : null);
+  /* sans galerie : une liste déroulante groupée ; avec galerie : un bouton qui l'ouvre dans la carte */
+  const styleSel = full && !opts.gallery ? h('select', { class: 're-style', title: t('Style de paragraphe'), 'aria-label': t('Style de paragraphe'), onmousedown: keep, onchange: e => applyStyle(e.target.value) },
+    GROUPS.map(g => h('optgroup', { label: t(g) }, PSTYLES.filter(p => p.g === g).map(p => h('option', { value: p.k, textContent: t(p.n) }))))) : null;
+  let gal = null, galBtn = null, pop = null, burger = null;
+  const tile = p => { const ty = TYPE[p.type]; return h('button', { type: 'button', class: 're-tile', dataset: { k: p.k }, title: `${t(p.n)} — ${specOf(p.k)}`, onmousedown: e => { e.preventDefault(); keep(); }, onclick: () => applyStyle(p.k) },
+    h('span', { class: 're-aa', style: { fontFamily: FONT[ty.family], fontWeight: ty.weight, fontStyle: p.italic ? 'italic' : 'normal', textTransform: p.upper ? 'uppercase' : 'none' }, textContent: p.upper ? 'AB' : 'Aa' }),
+    h('span', { class: 're-tt' }, h('b', { textContent: t(p.n) }), h('i', { textContent: specOf(p.k) }))); };
+  if (full && opts.gallery) {
+    galBtn = h('button', { type: 'button', class: 're-gbtn', 'aria-expanded': String(galleryOpen), title: t('Styles de paragraphe'), onmousedown: e => { e.preventDefault(); keep(); }, onclick: () => { galleryOpen = !galleryOpen; gal.hidden = !galleryOpen; galBtn.setAttribute('aria-expanded', String(galleryOpen)); } },
+      h('span', { class: 're-gname' }), ico('chevron-down'));
+    gal = h('div', { class: 're-gal', hidden: !galleryOpen }, GROUPS.flatMap(g => [h('div', { class: 're-gg', textContent: t(g) }), ...PSTYLES.filter(p => p.g === g).map(tile)]));
+    bar.prepend(galBtn);
+  }
+  /* burger : options avancées du bloc (interlignage, tracking, kerning…) */
+  if (opts.adv) {
+    const rerender = () => { const n = advPanel(opts.adv, () => { burger.classList.toggle('dot', hasAdv(opts.adv)); opts.advChange && opts.advChange(); }, rerender); pop.replaceWith(n); pop = n; };
+    pop = advPanel(opts.adv, () => { burger.classList.toggle('dot', hasAdv(opts.adv)); opts.advChange && opts.advChange(); }, rerender); pop.hidden = true;
+    burger = h('button', { type: 'button', class: 'mini re-burger' + (hasAdv(opts.adv) ? ' dot' : ''), title: t('Options avancées'), 'aria-label': t('Options avancées'), 'aria-expanded': 'false', onmousedown: e => e.preventDefault(),
+      onclick: () => { pop.hidden = !pop.hidden; burger.setAttribute('aria-expanded', String(!pop.hidden)); burger.classList.toggle('on', !pop.hidden); } }, ico('menu-2'));
+    bar.append(burger);
+  }
+  const sync = () => {
+    bar.querySelectorAll('[data-cmd]').forEach(b => { let on = false; try { on = document.queryCommandState(b.dataset.cmd); } catch (e) {} b.classList.toggle('on', on); });
+    const k = currentStyle();
+    if (styleSel) styleSel.value = k;
+    if (galBtn) { galBtn.querySelector('.re-gname').textContent = t(styleOf(k).n); gal.querySelectorAll('.re-tile').forEach(b => b.classList.toggle('on', b.dataset.k === k)); }
+  };
   ed.addEventListener('input', () => onChange(htmlToMk(ed)));
   ed.addEventListener('keyup', sync); ed.addEventListener('mouseup', sync); ed.addEventListener('focus', sync);
-  ed.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain').replace(/\u000B/g, '\u2028').replace(/[\u0000-\u0008\u000C\u000E-\u001F]/g, '')); });
+  ed.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain').replace(/\u000B/g, ' ').replace(/[\u0000-\u0008\u000C\u000E-\u001F]/g, '')); });
   if (styleSel) bar.prepend(styleSel);
-  if (opts.bullets === false) ed.classList.add('re-line');
-  return h('div', { class: 're-wrap' }, bar, ed, opts.bullets === false ? null : h('div', { class: 'hint', textContent: t('Entrée = nouveau paragraphe · Maj + Entrée = retour à la ligne') }));
+  if (!full) ed.classList.add('re-line');
+  if (galBtn) sync();
+  return h('div', { class: 're-wrap' }, bar, gal, pop, ed, full ? h('div', { class: 'hint', textContent: t('Entrée = nouveau paragraphe · Maj + Entrée = retour à la ligne') }) : null);
 }
 
 export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {

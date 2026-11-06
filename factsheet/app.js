@@ -134,8 +134,18 @@
     // axes, légendes de dataviz
     captionNum: { family: "serif", size: 8, weight: 700, lh: u(5) },
     // valeurs chiffrées des graphiques
-    callout: { family: "sans", size: 16, weight: 700, lh: u(7) }
+    callout: { family: "sans", size: 16, weight: 700, lh: u(7) },
     // « +64 % » à côté d'un graphique
+    lead: { family: "serif", size: 14, weight: 400, lh: u(8) },
+    // chapeau
+    small: { family: "sans", size: 10, weight: 400, lh: u(5) },
+    quote: { family: "sans", size: 14, weight: 400, lh: u(8) },
+    // citation (italique, filet à gauche)
+    label: { family: "sans", size: 8, weight: 700, lh: u(5) },
+    // étiquette en capitales
+    source: { family: "sans", size: 8, weight: 400, lh: u(4) },
+    // source : 8 pt, interlignage 9 pt (12 px), italique
+    note: { family: "sans", size: 8, weight: 400, lh: u(4) }
   };
   var STROKE = {
     pt: 0.5,
@@ -1137,7 +1147,41 @@
     "Glisser : tourner la feuille \xB7 clic droit ou Maj : la d\xE9placer \xB7 molette : zoomer": "Drag: turn the sheet \xB7 right click or Shift: move it \xB7 wheel: zoom",
     "Pr\xE9paration de l\u2019aper\xE7u\u2026": "Preparing the preview\u2026",
     "Impossible de g\xE9n\xE9rer l\u2019aper\xE7u 3D dans ce navigateur.": "The 3D preview could not be generated in this browser.",
-    "WebGL indisponible.": "WebGL unavailable."
+    "WebGL indisponible.": "WebGL unavailable.",
+    "Chapeau": "Lead",
+    "Texte gras": "Bold text",
+    "Texte petit": "Small text",
+    "Citation": "Quote",
+    "\xC9tiquette": "Label",
+    "Source": "Source",
+    "Note": "Note",
+    "Titres": "Headings",
+    "Annotations": "Annotations",
+    "Chiffres": "Figures",
+    "Styles de paragraphe": "Paragraph styles",
+    "Options avanc\xE9es": "Advanced options",
+    "Interlignage": "Line spacing",
+    "Interlignage du style": "Style line spacing",
+    "Tracking (espacement des lettres)": "Tracking (letter spacing)",
+    "Kerning": "Kerning",
+    "Automatique": "Automatic",
+    "D\xE9sactiv\xE9": "Off",
+    "Alignement": "Alignment",
+    "Auto": "Auto",
+    "Comme la colonne": "Like the column",
+    "\xC0 gauche": "Left",
+    "Centr\xE9": "Centred",
+    "\xC0 droite": "Right",
+    "Justifi\xE9": "Justified",
+    "Retrait de premi\xE8re ligne": "First-line indent",
+    "Avant": "Before",
+    "Apr\xE8s": "After",
+    "Tout remettre comme le style": "Reset to the style",
+    "Valeur du style": "Style value",
+    "Revenir \xE0 la valeur du style": "Back to the style value",
+    "sur la grille de 3 px": "on the 3 px grid",
+    "hors de la grille de 3 px": "off the 3 px grid",
+    "1000 \u2030 = 1 em": "1000 \u2030 = 1 em"
   };
   var DICT = { en: EN };
   var PATTERNS = [
@@ -1885,6 +1929,58 @@
       return { node: svg, meta: { ...metaBase, cx, cy, H, around: true, labelW, items: items.map((it) => ({ i: idxOf(it.p.g), top: it.top, h: it.h, x: it.x, P: it.P, autoSide: it.autoSide })) } };
     }
   };
+
+  // src/textstyles.js
+  var PSTYLES = [
+    { k: "h1", n: "Titre 1", g: "Titres", hash: 1, type: "section" },
+    { k: "h2", n: "Titre 2", g: "Titres", hash: 2, type: "subsection" },
+    { k: "lead", n: "Chapeau", g: "Titres", type: "lead" },
+    { k: "body", n: "Texte", g: "Texte", type: "body" },
+    { k: "bold", n: "Texte gras", g: "Texte", type: "bodyBold" },
+    { k: "small", n: "Texte petit", g: "Texte", type: "small" },
+    { k: "quote", n: "Citation", g: "Texte", type: "quote", italic: true },
+    { k: "cap", n: "L\xE9gende", g: "Annotations", hash: 3, type: "caption" },
+    { k: "label", n: "\xC9tiquette", g: "Annotations", type: "label", upper: true },
+    { k: "source", n: "Source", g: "Annotations", type: "source", italic: true },
+    { k: "note", n: "Note", g: "Annotations", type: "note" },
+    { k: "fig", n: "Chiffre cl\xE9", g: "Chiffres", hash: 4, type: "figure" },
+    { k: "figsm", n: "Chiffre cl\xE9 (petit)", g: "Chiffres", hash: 5, type: "figureSm" }
+  ];
+  var GROUPS = ["Titres", "Texte", "Annotations", "Chiffres"];
+  var HASH_KEYS = ["h1", "h2", "cap", "fig", "figsm"];
+  var NAMED = PSTYLES.filter((p) => !p.hash && p.k !== "body").map((p) => p.k);
+  var styleOf = (k) => PSTYLES.find((p) => p.k === k) || PSTYLES.find((p) => p.k === "body");
+  var NAMED_RE = new RegExp(`^@(${NAMED.join("|")})\\s+(.*)$`);
+  var PREFIX_RE = new RegExp(`^(#{1,5}|@(?:${NAMED.join("|")})|[-\u2022])\\s+`, "gm");
+  var HAS_PREFIX = new RegExp(`(^|\\n)(#{1,5}|@(?:${NAMED.join("|")})) `);
+  function parseLine(line) {
+    let m2 = line.match(/^(#{1,5})\s+(.*)$/);
+    if (m2) return { key: HASH_KEYS[m2[1].length - 1], text: m2[2] };
+    m2 = line.match(NAMED_RE);
+    if (m2) return { key: m2[1], text: m2[2] };
+    return { key: null, text: line };
+  }
+  var prefixOf = (k) => {
+    const p = styleOf(k);
+    return p.k === "body" ? "" : p.hash ? "#".repeat(p.hash) + " " : "@" + p.k + " ";
+  };
+  var fmt2 = (n) => String(+(+n).toFixed(2)).replace(".", ",");
+  function specOf(k) {
+    const p = styleOf(k), ty = TYPE[p.type];
+    return `${ty.size} / ${fmt2(ty.lh * 0.75)} pt${p.italic ? " \xB7 italique" : ""}${p.upper ? " \xB7 capitales" : ""}${ty.family === "serif" ? " \xB7 serif" : ""}`;
+  }
+  function applyAdv(el2, adv) {
+    if (!adv) return el2;
+    const s2 = el2.style;
+    if (adv.lh > 0) s2.lineHeight = adv.lh + "px";
+    if (adv.ls) s2.letterSpacing = adv.ls / 1e3 + "em";
+    if (adv.kern === "none") s2.fontKerning = "none";
+    if (adv.indent > 0) s2.textIndent = adv.indent + "px";
+    if (adv.before > 0) s2.marginTop = adv.before + "px";
+    if (adv.after > 0) s2.marginBottom = adv.after + "px";
+    return el2;
+  }
+  var hasAdv = (o) => !!(o && o.adv && Object.values(o.adv).some((v) => v != null && v !== "" && v !== 0));
 
   // src/viz/icons.js
   var ICONS = {
@@ -4575,8 +4671,8 @@
     if ((hd.title || "").trim()) {
       const T = el("div", { class: "viz-title" });
       String(hd.title).replace(/\r\n?/g, "\n").split("\n").filter((l) => l.trim()).forEach((l) => {
-        const m2 = l.trim().match(/^(#{1,5})\s+(.*)$/);
-        T.append(el("div", { class: m2 ? "p-" + ["h1", "h2", "cap", "fig", "figsm"][m2[1].length - 1] : "", innerHTML: inlineMk(m2 ? m2[2] : l.trim()) }));
+        const m2 = parseLine(l.trim());
+        T.append(el("div", { class: m2.key ? "p-" + m2.key : "", innerHTML: inlineMk(m2.text) }));
       });
       wrap.append(T);
     }
@@ -5057,8 +5153,9 @@ ${short}`)])
     return e;
   }
   var inline = inlineMk;
-  function richText(text, align) {
-    const root = h("div", { class: "rich", style: align && align !== "left" ? { textAlign: align } : {} });
+  function richText(text, align, adv) {
+    const al = adv && adv.align || align;
+    const root = h("div", { class: "rich", style: al && al !== "left" ? { textAlign: al } : {} });
     let ul = null;
     for (const raw of String(text || "").replace(/\r\n?/g, "\n").split("\n")) {
       const line = raw.trim();
@@ -5066,10 +5163,10 @@ ${short}`)])
         ul = null;
         continue;
       }
-      const hm = line.match(/^(#{1,5})\s+(.*)$/);
-      if (hm) {
+      const hm = parseLine(line);
+      if (hm.key) {
         ul = null;
-        root.append(h("p", { class: "p-" + ["h1", "h2", "cap", "fig", "figsm"][hm[1].length - 1], innerHTML: inline(hm[2]) }));
+        root.append(applyAdv(h("p", { class: "p-" + hm.key, innerHTML: inline(hm.text) }), adv));
         continue;
       }
       const m2 = line.match(/^[-•]\s+(.*)$/);
@@ -5078,10 +5175,10 @@ ${short}`)])
           ul = h("ul");
           root.append(ul);
         }
-        ul.append(h("li", { innerHTML: inline(m2[1]) }));
+        ul.append(applyAdv(h("li", { innerHTML: inline(m2[1]) }), adv));
       } else {
         ul = null;
-        root.append(h("p", { innerHTML: inline(line) }));
+        root.append(applyAdv(h("p", { innerHTML: inline(line) }), adv));
       }
     }
     return root;
@@ -5159,9 +5256,9 @@ ${short}`)])
       wrap.style.justifyContent = { start: "flex-start", center: "center", end: "flex-end" }[al];
       w = insetW(w);
     } else wrap.style.alignSelf = al;
-    const strip2 = (x) => String(x || "").replace(/\*\*|__|~~|\^\^|,,/g, "").replace(/^(#{1,5}|[-•])\s+/gm, "").split("\n").find((l) => l.trim()) || "";
+    const strip2 = (x) => String(x || "").replace(/\*\*|__|~~|\^\^|,,/g, "").replace(PREFIX_RE, "").split("\n").find((l) => l.trim()) || "";
     const side = (label, core) => composeSide(col.side, w, env, { pct: "", value: "", total: "", label }, core).node;
-    if (col.type === "text") wrap.append(side(strip2(col.text), (ww) => ({ node: col.side && col.side.pos !== "none" ? h("div", { style: { width: ww + "px" } }, richText(col.text, col.align)) : richText(col.text, col.align) })));
+    if (col.type === "text") wrap.append(side(strip2(col.text), (ww) => ({ node: col.side && col.side.pos !== "none" ? h("div", { style: { width: ww + "px" } }, richText(col.text, col.align, col.adv)) : richText(col.text, col.align, col.adv) })));
     else if (col.type === "image") {
       const ib = renderImage(col, w);
       if (+col.minH > 0 && (col.imgMode || "ratio") === "ratio" && ib.classList && ib.classList.contains("img-box")) ib.style.height = col.minH + "px";
@@ -5181,14 +5278,14 @@ ${short}`)])
       col.texts.forEach((tx, i) => {
         if (!String(tx.text || "").trim()) return;
         if (tx.mode === "above" || tx.mode === "below") {
-          (tx.mode === "above" ? above : below).push(h("div", { class: "col-text-flow", style: { marginTop: tx.mode === "below" ? "9px" : "0", marginBottom: tx.mode === "above" ? "9px" : "0" } }, richText(tx.text, tx.align || "left")));
+          (tx.mode === "above" ? above : below).push(h("div", { class: "col-text-flow", style: { marginTop: tx.mode === "below" ? "9px" : "0", marginBottom: tx.mode === "above" ? "9px" : "0" } }, richText(tx.text, tx.align || "left", tx.adv)));
           return;
         }
         wrap.style.position = "relative";
         const st = { position: "absolute", left: (+tx.x || 0) + "%", width: (+tx.w || 50) + "%", zIndex: 2 };
         if (tx.y == null) st.bottom = "0";
         else st.top = (+tx.y || 0) + "px";
-        wrap.append(h("div", { class: "col-text-free", style: st, dataset: { free: `${path}:${i}` } }, richText(tx.text, tx.align || "left"), h("div", { class: "free-grip" })));
+        wrap.append(h("div", { class: "col-text-free", style: st, dataset: { free: `${path}:${i}` } }, richText(tx.text, tx.align || "left", tx.adv), h("div", { class: "free-grip" })));
       });
       if (above.length) wrap.prepend(...above);
       if (below.length) wrap.append(...below);
@@ -5731,7 +5828,7 @@ ${short}`)])
   }
 
   // src/tree.js
-  var strip = (t2) => String(t2 || "").replace(/\*\*|__|~~|\^\^|,,/g, "").replace(/^(#{1,5}|[-•])\s+/gm, "").replace(/\s+/g, " ").trim();
+  var strip = (t2) => String(t2 || "").replace(/\*\*|__|~~|\^\^|,,/g, "").replace(PREFIX_RE, "").replace(/\s+/g, " ").trim();
   var ICON = { text: "text-size", image: "photo", figure: "number", card: "layout-cards", viz: "chart-bar" };
   function colLabel(col) {
     if (col.type === "text") return strip(col.text).slice(0, 34) || "Texte vide";
@@ -6024,6 +6121,68 @@ ${short}`)])
     return btn;
   }
 
+  // src/textadv.js
+  var fmt3 = (n) => String(+(+n).toFixed(2)).replace(".", ",");
+  var PX = 4 / 3;
+  function advPanel(obj, changed, rerender) {
+    const adv = () => obj.adv ||= {};
+    const set = (k, v) => {
+      const a2 = adv();
+      if (v == null || v === "" || v === 0) delete a2[k];
+      else a2[k] = v;
+      changed();
+    };
+    const slider = (label, k, min2, max2, step, get, put, show2, note) => {
+      const out = h("output", { textContent: show2(get()) });
+      const r = h("input", { type: "range", min: min2, max: max2, step, value: get(), "aria-label": t(label), oninput: () => {
+        put(+r.value);
+        out.textContent = show2(+r.value);
+      } });
+      const rs = h("button", { type: "button", class: "ra-rs", title: t("Valeur du style"), "aria-label": t("Revenir \xE0 la valeur du style"), onclick: () => {
+        put(null);
+        r.value = get();
+        out.textContent = show2(get());
+      } }, ico("restore"));
+      return h("div", { class: "ra-sl" }, h("div", { class: "ra-l" }, h("span", { textContent: t(label) }), h("span", { class: "pp-sp" }), out, rs), r, note ? h("div", { class: "ra-note", textContent: t(note) }) : null);
+    };
+    const seg = (items, cur, pick) => h("div", { class: "ra-seg" }, items.map(([v, l, tip2]) => h("button", { type: "button", class: v === cur ? "on" : "", title: t(tip2 || l), "aria-label": t(tip2 || l), onclick: () => {
+      pick(v);
+      rerender && rerender();
+    } }, l.startsWith("ti-") ? ico(l.slice(3)) : t(l))));
+    const lhAuto = 21;
+    const lhNote = h("div", { class: "ra-note" });
+    const lhUpd = () => {
+      const px = adv().lh;
+      lhNote.textContent = px ? `= ${fmt3(px)} px \xB7 ${Math.abs(px / 3 - Math.round(px / 3)) < 0.02 ? t("sur la grille de 3 px") : t("hors de la grille de 3 px")}` : t("Interlignage du style");
+    };
+    const lh = slider("Interlignage", "lh", 6, 40, 0.25, () => adv().lh ? adv().lh / PX : lhAuto / PX, (v) => {
+      set("lh", v == null ? null : Math.round(v * PX * 100) / 100);
+      lhUpd();
+    }, (v) => fmt3(v) + " pt");
+    lh.append(lhNote);
+    lhUpd();
+    const modes = h(
+      "div",
+      { class: "ra-body" },
+      lh,
+      slider("Tracking (espacement des lettres)", "ls", -50, 300, 5, () => adv().ls || 0, (v) => set("ls", v), (v) => (v > 0 ? "+" : "") + v + " \u2030", "1000 \u2030 = 1 em"),
+      h("div", { class: "ra-f" }, h("div", { class: "ra-l", textContent: t("Kerning") }), seg([["auto", "Automatique"], ["none", "D\xE9sactiv\xE9"]], adv().kern || "auto", (v) => set("kern", v === "auto" ? null : v))),
+      slider("Retrait de premi\xE8re ligne", "indent", 0, 36, 3, () => adv().indent || 0, (v) => set("indent", v), (v) => v + " px"),
+      h(
+        "div",
+        { class: "ra-two" },
+        slider("Avant", "before", 0, 36, 3, () => adv().before || 0, (v) => set("before", v), (v) => v + " px"),
+        slider("Apr\xE8s", "after", 0, 36, 3, () => adv().after || 0, (v) => set("after", v), (v) => v + " px")
+      ),
+      h("button", { type: "button", class: "pp-btn", onclick: () => {
+        delete obj.adv;
+        changed();
+        rerender && rerender();
+      } }, ico("restore"), h("span", { textContent: t("Tout remettre comme le style") }))
+    );
+    return h("div", { class: "ra-pop", role: "group", "aria-label": t("Options avanc\xE9es") }, h("div", { class: "ra-h" }, ico("menu-2"), h("b", { textContent: t("Options avanc\xE9es") })), modes);
+  }
+
   // src/editor.js
   function readImage(file2, max2 = 1600) {
     return new Promise((res, rej) => {
@@ -6084,13 +6243,14 @@ ${short}`)])
     const lines = String(t2 || "").replace(/\r\n?/g, "\n").split("\n").filter((l) => l.trim());
     let html = "", ul = false;
     for (const l of lines) {
-      const hd = l.trim().match(/^(#{1,5})\s+(.*)$/);
-      if (hd) {
+      const hd = parseLine(l.trim());
+      if (hd.key) {
         if (ul) {
           html += "</ul>";
           ul = false;
         }
-        html += `<h${hd[1].length}>${inline(hd[2])}</h${hd[1].length}>`;
+        const P = styleOf(hd.key);
+        html += P.hash ? `<h${P.hash}>${inline(hd.text)}</h${P.hash}>` : `<div data-st="${P.k}">${inline(hd.text)}</div>`;
         continue;
       }
       const m2 = l.trim().match(/^[-•]\s+(.*)$/);
@@ -6151,6 +6311,12 @@ ${short}`)])
         for (const c2 of n.childNodes) walk2(c2, s2, true);
         return;
       }
+      if (tag === "DIV" && n.dataset.st) {
+        if (cur.length) flush2(bullet);
+        for (const c2 of n.childNodes) walk2(c2, s2, bullet);
+        flush2(bullet, prefixOf(n.dataset.st));
+        return;
+      }
       if (/^H[1-5]$/.test(tag)) {
         if (cur.length) flush2(bullet);
         for (const c2 of n.childNodes) walk2(c2, s2, bullet);
@@ -6167,8 +6333,10 @@ ${short}`)])
     flush2(false);
     return lines.join("\n");
   }
+  var galleryOpen = false;
   function richEditor(value2, onChange, opts = {}) {
     const ed = h("div", { class: "re", contentEditable: "true", spellcheck: "true", innerHTML: mkToHtml(value2) });
+    const full = opts.bullets !== false;
     const cmd = (c2) => () => {
       ed.focus();
       document.execCommand(c2);
@@ -6179,37 +6347,110 @@ ${short}`)])
       const b = h("button", { type: "button", class: "mini", textContent: label, title, style, dataset: { cmd: c2 }, onmousedown: (e) => e.preventDefault(), onclick: cmd(c2) });
       return b;
     };
-    const bar = h("div", { class: "row fmt" }, mk("B", "Gras", "bold", { fontWeight: 800 }), mk("I", "Italique", "italic", { fontStyle: "italic" }), mk("U", "Soulign\xE9", "underline", { textDecoration: "underline" }), mk("x\xB2", "Exposant", "superscript"), mk("x\u2082", "Indice", "subscript"), opts.bullets === false ? null : (() => {
+    let saved = null;
+    const keep = () => {
+      const sl = window.getSelection();
+      if (sl.rangeCount && ed.contains(sl.anchorNode)) saved = sl.getRangeAt(0).cloneRange();
+    };
+    const restore2 = () => {
+      ed.focus();
+      if (saved) {
+        const sl = window.getSelection();
+        sl.removeAllRanges();
+        sl.addRange(saved);
+      }
+    };
+    const applyStyle = (key) => {
+      restore2();
+      const P = styleOf(key);
+      document.execCommand("formatBlock", false, P.hash ? "H" + P.hash : "DIV");
+      const sl = window.getSelection(), r = sl.rangeCount && sl.getRangeAt(0);
+      if (r) [...ed.children].filter((c2) => r.intersectsNode(c2)).forEach((c2) => {
+        if (P.hash || P.k === "body") delete c2.dataset.st;
+        else if (c2.tagName === "DIV") c2.dataset.st = P.k;
+      });
+      keep();
+      onChange(htmlToMk(ed));
+      sync();
+    };
+    const currentStyle = () => {
+      const sl = window.getSelection();
+      let n = sl.rangeCount ? sl.anchorNode : null;
+      if (!n || !ed.contains(n)) return "body";
+      while (n && n.parentNode !== ed) n = n.parentNode;
+      if (!n || n === ed || n.nodeType !== 1) return "body";
+      if (/^H[1-5]$/.test(n.tagName)) return HASH_KEYS[+n.tagName[1] - 1];
+      return n.dataset && n.dataset.st || "body";
+    };
+    const bar = h("div", { class: "row fmt" }, mk("B", "Gras", "bold", { fontWeight: 800 }), mk("I", "Italique", "italic", { fontStyle: "italic" }), mk("U", "Soulign\xE9", "underline", { textDecoration: "underline" }), mk("x\xB2", "Exposant", "superscript"), mk("x\u2082", "Indice", "subscript"), full ? (() => {
       const b = mk("", "Liste \xE0 puces", "insertUnorderedList");
       b.append(ico("list"));
       return b;
-    })());
-    const styleSel = opts.bullets === false ? null : h(
+    })() : null);
+    const styleSel = full && !opts.gallery ? h(
       "select",
-      {
-        class: "re-style",
-        title: t("Style de paragraphe"),
-        "aria-label": t("Style de paragraphe"),
-        onmousedown: () => {
-          const sl = window.getSelection();
-          if (sl.rangeCount && ed.contains(sl.anchorNode)) saved = sl.getRangeAt(0).cloneRange();
-        },
-        onchange: (e) => {
-          const v = e.target.value;
-          ed.focus();
-          if (saved) {
-            const sl = window.getSelection();
-            sl.removeAllRanges();
-            sl.addRange(saved);
-          }
-          document.execCommand("formatBlock", false, v);
-          onChange(htmlToMk(ed));
-          sync();
+      { class: "re-style", title: t("Style de paragraphe"), "aria-label": t("Style de paragraphe"), onmousedown: keep, onchange: (e) => applyStyle(e.target.value) },
+      GROUPS.map((g) => h("optgroup", { label: t(g) }, PSTYLES.filter((p) => p.g === g).map((p) => h("option", { value: p.k, textContent: t(p.n) }))))
+    ) : null;
+    let gal = null, galBtn = null, pop2 = null, burger = null;
+    const tile = (p) => {
+      const ty = TYPE[p.type];
+      return h(
+        "button",
+        { type: "button", class: "re-tile", dataset: { k: p.k }, title: `${t(p.n)} \u2014 ${specOf(p.k)}`, onmousedown: (e) => {
+          e.preventDefault();
+          keep();
+        }, onclick: () => applyStyle(p.k) },
+        h("span", { class: "re-aa", style: { fontFamily: FONT[ty.family], fontWeight: ty.weight, fontStyle: p.italic ? "italic" : "normal", textTransform: p.upper ? "uppercase" : "none" }, textContent: p.upper ? "AB" : "Aa" }),
+        h("span", { class: "re-tt" }, h("b", { textContent: t(p.n) }), h("i", { textContent: specOf(p.k) }))
+      );
+    };
+    if (full && opts.gallery) {
+      galBtn = h(
+        "button",
+        { type: "button", class: "re-gbtn", "aria-expanded": String(galleryOpen), title: t("Styles de paragraphe"), onmousedown: (e) => {
+          e.preventDefault();
+          keep();
+        }, onclick: () => {
+          galleryOpen = !galleryOpen;
+          gal.hidden = !galleryOpen;
+          galBtn.setAttribute("aria-expanded", String(galleryOpen));
+        } },
+        h("span", { class: "re-gname" }),
+        ico("chevron-down")
+      );
+      gal = h("div", { class: "re-gal", hidden: !galleryOpen }, GROUPS.flatMap((g) => [h("div", { class: "re-gg", textContent: t(g) }), ...PSTYLES.filter((p) => p.g === g).map(tile)]));
+      bar.prepend(galBtn);
+    }
+    if (opts.adv) {
+      const rerender = () => {
+        const n = advPanel(opts.adv, () => {
+          burger.classList.toggle("dot", hasAdv(opts.adv));
+          opts.advChange && opts.advChange();
+        }, rerender);
+        pop2.replaceWith(n);
+        pop2 = n;
+      };
+      pop2 = advPanel(opts.adv, () => {
+        burger.classList.toggle("dot", hasAdv(opts.adv));
+        opts.advChange && opts.advChange();
+      }, rerender);
+      pop2.hidden = true;
+      burger = h("button", {
+        type: "button",
+        class: "mini re-burger" + (hasAdv(opts.adv) ? " dot" : ""),
+        title: t("Options avanc\xE9es"),
+        "aria-label": t("Options avanc\xE9es"),
+        "aria-expanded": "false",
+        onmousedown: (e) => e.preventDefault(),
+        onclick: () => {
+          pop2.hidden = !pop2.hidden;
+          burger.setAttribute("aria-expanded", String(!pop2.hidden));
+          burger.classList.toggle("on", !pop2.hidden);
         }
-      },
-      [["DIV", "Texte"], ["H1", "Titre 1"], ["H2", "Titre 2"], ["H3", "L\xE9gende"], ["H4", "Chiffre cl\xE9"], ["H5", "Chiffre cl\xE9 (petit)"]].map(([v, l]) => h("option", { value: v, textContent: t(l) }))
-    );
-    let saved = null;
+      }, ico("menu-2"));
+      bar.append(burger);
+    }
     const sync = () => {
       bar.querySelectorAll("[data-cmd]").forEach((b) => {
         let on = false;
@@ -6219,13 +6460,11 @@ ${short}`)])
         }
         b.classList.toggle("on", on);
       });
-      if (styleSel) {
-        let v = "";
-        try {
-          v = String(document.queryCommandValue("formatBlock") || "").toUpperCase().replace(/[<>]/g, "");
-        } catch (e) {
-        }
-        styleSel.value = /^H[1-5]$/.test(v) ? v : "DIV";
+      const k = currentStyle();
+      if (styleSel) styleSel.value = k;
+      if (galBtn) {
+        galBtn.querySelector(".re-gname").textContent = t(styleOf(k).n);
+        gal.querySelectorAll(".re-tile").forEach((b) => b.classList.toggle("on", b.dataset.k === k));
       }
     };
     ed.addEventListener("input", () => onChange(htmlToMk(ed)));
@@ -6237,8 +6476,9 @@ ${short}`)])
       document.execCommand("insertText", false, (e.clipboardData || window.clipboardData).getData("text/plain").replace(/\u000B/g, "\u2028").replace(/[\u0000-\u0008\u000C\u000E-\u001F]/g, ""));
     });
     if (styleSel) bar.prepend(styleSel);
-    if (opts.bullets === false) ed.classList.add("re-line");
-    return h("div", { class: "re-wrap" }, bar, ed, opts.bullets === false ? null : h("div", { class: "hint", textContent: t("Entr\xE9e = nouveau paragraphe \xB7 Maj + Entr\xE9e = retour \xE0 la ligne") }));
+    if (!full) ed.classList.add("re-line");
+    if (galBtn) sync();
+    return h("div", { class: "re-wrap" }, bar, gal, pop2, ed, full ? h("div", { class: "hint", textContent: t("Entr\xE9e = nouveau paragraphe \xB7 Maj + Entr\xE9e = retour \xE0 la ligne") }) : null);
   }
   function buildFields(spec, obj, ctx2, palOpts, h2, root = obj) {
     const out = [];
@@ -6757,7 +6997,7 @@ ${short}`)])
         richEditor(tx.text || "", (v) => {
           tx.text = v;
           ctx2.changed();
-        }),
+        }, { gallery: true, adv: tx, advChange: () => ctx2.changed() }),
         field("Placement", (() => {
           const sl = h("select", { onchange: (e) => {
             tx.mode = e.target.value;
@@ -6929,7 +7169,7 @@ ${short}`)])
       if (col.type === "text") editor = [h("div", { class: "f" }, h("div", { class: "hint", textContent: "Texte" }), richEditor(col.text, (v) => {
         col.text = v;
         ctx2.changed();
-      }))];
+      }, { gallery: true, adv: col, advChange: () => ctx2.changed() }))];
       else if (col.type === "image") {
         const mode = col.imgMode || "ratio";
         editor = [
@@ -7425,7 +7665,7 @@ ${short}`)])
   shut2.add("dv-type");
   var acc = { cur: null, first: "dv-style" };
   var search2 = { q: "", focus: false };
-  var MARKUP = /\*\*|~~|__|\^\^|,,|(^|\n)#{1,5} /;
+  var MARKUP = new RegExp("\\*\\*|~~|__|\\^\\^|,,|" + HAS_PREFIX.source);
   var LABEL_KEYS = /* @__PURE__ */ new Set(["legend", "showValues", "decimals", "suffix", "totalTpl", "layout"]);
   var SERIES_COLORS2 = ["sky", "yellow", "blue", "slate", "grey"];
   var availH = 360;

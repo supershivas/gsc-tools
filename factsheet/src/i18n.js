@@ -221,6 +221,11 @@ const EN = {
   'Aperçu 3D du document': '3D document preview', 'Fermer': 'Close', 'Recto / verso': 'Front / back', 'Retourner': 'Flip', 'Deux pages': 'Both pages', 'Une feuille': 'One sheet', 'Recentrer': 'Reset view',
   'Glisser : tourner la feuille · clic droit ou Maj : la déplacer · molette : zoomer': 'Drag: turn the sheet · right click or Shift: move it · wheel: zoom', 'Préparation de l’aperçu…': 'Preparing the preview…',
   'Impossible de générer l’aperçu 3D dans ce navigateur.': 'The 3D preview could not be generated in this browser.', 'WebGL indisponible.': 'WebGL unavailable.',
+  'Chapeau': 'Lead', 'Texte gras': 'Bold text', 'Texte petit': 'Small text', 'Citation': 'Quote', 'Étiquette': 'Label', 'Source': 'Source', 'Note': 'Note', 'Titres': 'Headings', 'Annotations': 'Annotations', 'Chiffres': 'Figures',
+  'Styles de paragraphe': 'Paragraph styles', 'Options avancées': 'Advanced options', 'Interlignage': 'Line spacing', 'Interlignage du style': 'Style line spacing', 'Tracking (espacement des lettres)': 'Tracking (letter spacing)', 'Kerning': 'Kerning',
+  'Automatique': 'Automatic', 'Désactivé': 'Off', 'Alignement': 'Alignment', 'Auto': 'Auto', 'Comme la colonne': 'Like the column', 'À gauche': 'Left', 'Centré': 'Centred', 'À droite': 'Right', 'Justifié': 'Justified',
+  'Retrait de première ligne': 'First-line indent', 'Avant': 'Before', 'Après': 'After', 'Tout remettre comme le style': 'Reset to the style', 'Valeur du style': 'Style value', 'Revenir à la valeur du style': 'Back to the style value',
+  'sur la grille de 3 px': 'on the 3 px grid', 'hors de la grille de 3 px': 'off the 3 px grid', '1000 ‰ = 1 em': '1000 ‰ = 1 em',
 };
 const DICT = { en: EN };
 
