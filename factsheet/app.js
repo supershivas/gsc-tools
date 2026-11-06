@@ -1181,7 +1181,37 @@
     "Revenir \xE0 la valeur du style": "Back to the style value",
     "sur la grille de 3 px": "on the 3 px grid",
     "hors de la grille de 3 px": "off the 3 px grid",
-    "1000 \u2030 = 1 em": "1000 \u2030 = 1 em"
+    "1000 \u2030 = 1 em": "1000 \u2030 = 1 em",
+    "Liste num\xE9rot\xE9e": "Numbered list",
+    "Plus de mise en forme": "More formatting",
+    "Couleur du texte": "Text colour",
+    "Surlignage": "Highlight",
+    "Barr\xE9": "Strikethrough",
+    "Petites capitales": "Small caps",
+    "Capitales": "Capitals",
+    "Lien": "Link",
+    "Appel de note (le texte de la note suit entre accolades)": "Footnote call (the note text follows in braces)",
+    "Adresse du lien (https://\u2026) \u2014 vide pour retirer": "Link address (https://\u2026) \u2014 empty to remove",
+    "caract\xE8res": "characters",
+    "mots": "words",
+    "Police et taille": "Font and size",
+    "Police": "Font",
+    "Taille du texte courant": "Body text size",
+    "Selon le style": "From the style",
+    "Style": "Style",
+    "La taille s\u2019applique au texte courant et aux listes ; les styles de paragraphe (titres, source\u2026) gardent leur corps. L\u2019interlignage suit (130 %, grille de 3 px) sauf r\xE9glage dans l\u2019ic\xF4ne burger.": "The size applies to body text and lists; paragraph styles (headings, source\u2026) keep their own size. Line spacing follows (130 %, 3 px grid) unless set in the burger icon.",
+    "Paragraphe": "Paragraph",
+    "C\xE9sure automatique": "Automatic hyphenation",
+    "Texte sur deux colonnes": "Two-column text",
+    "Filet au-dessus": "Rule above",
+    "Filet en dessous": "Rule below",
+    "Chiffres tabulaires": "Tabular figures",
+    "Aucun": "None",
+    "Justifi\xE9 : \xAB Disposition \xBB. Interlignage, tracking, kerning, retrait et espaces : ic\xF4ne burger de la barre de texte.": "Justified: \u201CLayout\u201D. Line spacing, tracking, kerning, indent and spacing: burger icon in the text bar.",
+    "Typographie fran\xE7aise": "French typography",
+    "Ordinaux et fractions": "Ordinals and fractions",
+    "Texte ajust\xE9 (veuves, orphelines)": "Balanced text (widows, orphans)",
+    "Typographie fran\xE7aise : espaces ins\xE9cables avant ; : ! ? % et dans les guillemets. Ordinaux : 1er, 2e en exposant, \xBD. Texte ajust\xE9 : pas de mot seul en derni\xE8re ligne, titres \xE9quilibr\xE9s.": "French typography: non-breaking spaces before ; : ! ? % and inside guillemets. Ordinals: 1st, 2nd as superscript, \xBD. Balanced text: no single word on the last line, balanced headings."
   };
   var DICT = { en: EN };
   var PATTERNS = [
@@ -1594,8 +1624,39 @@
     if (!env || !env.ui) return null;
     return s("rect", { x, y, width: Math.max(1, w), height: Math.max(1, h2), fill: "rgba(0,0,0,0)", "data-reorder": `${key}:${i}`, "data-axis": axis, style: { cursor: "grab" } });
   }
-  var inlineMk = (t2) => String(t2 ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/__(.+?)__/g, "<u>$1</u>").replace(/~~(.+?)~~/g, "<i>$1</i>").replace(/\^\^(.+?)\^\^/g, "<sup>$1</sup>").replace(/,,(.+?),,/g, "<sub>$1</sub>").replace(/\u2028/g, "<br>");
-  var stripMk = (t2) => String(t2 ?? "").replace(/\u2028/g, " ").replace(/\*\*|__|~~|\^\^|,,/g, "");
+  var TYPO = { fr: false, ord: false };
+  var setTypo = (o) => {
+    TYPO.fr = !!(o && o.frTypo);
+    TYPO.ord = !!(o && o.ordinals);
+  };
+  var typo = (t2) => {
+    if (TYPO.fr) t2 = t2.replace(/([^\s;!?:])[ \u00A0\u202F]*([;!?])(?=\s|$|[»)\]*_~])/g, "$1\u202F$2").replace(/([^\s;!?:/])[ \u00A0\u202F]*:(?=\s|$)/g, "$1\xA0:").replace(/«[ \u00A0\u202F]*/g, "\xAB\xA0").replace(/[ \u00A0\u202F]*»/g, "\xA0\xBB").replace(/(\d)[ \u00A0\u202F]*([%€])/g, "$1\xA0$2");
+    if (TYPO.ord) t2 = t2.replace(/\b(\d+)(er|re|e|ers|res|es)(?=[\s.,;:)\u00A0\u202F*_~]|$)/g, "$1^^$2^^").replace(/(?<![\d/.])([13])\/([24])(?![\d/])/g, (m2, a2, b) => ({ "1/2": "\xBD", "1/4": "\xBC", "3/4": "\xBE" })[m2] || m2);
+    return t2;
+  };
+  var SAFE_URL = /^(https?:\/\/|mailto:)/i;
+  var inlineMk = (t2, edit) => {
+    let x = typo(String(t2 ?? "")).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    for (let i = 0; i < 5; i++) {
+      const y = x.replace(/\{c:([\w-]+)\|([^{}]*)\}/g, '<span data-f="c:$1" style="color:var(--c-$1)">$2</span>').replace(/\{h:([\w-]+)\|([^{}]*)\}/g, '<span data-f="h:$1" style="background:var(--c-$1)">$2</span>').replace(/\{s\|([^{}]*)\}/g, "<s>$1</s>").replace(/\{up\|([^{}]*)\}/g, '<span data-f="up" style="text-transform:uppercase">$1</span>').replace(/\{sc\|([^{}]*)\}/g, '<span data-f="sc" style="font-variant-caps:small-caps">$1</span>').replace(/\{a:([^|{}]*)\|([^{}]*)\}/g, (m2, url, txt) => {
+        const u2 = url.replace(/&amp;/g, "&");
+        return SAFE_URL.test(u2) ? `<${edit ? "span" : 'a href="' + url.replace(/"/g, "&quot;") + '"'} class="lnk" data-f="a:${url.replace(/"/g, "&quot;")}">${txt}</${edit ? "span" : "a"}>` : txt;
+      });
+      if (y === x) break;
+      x = y;
+    }
+    return x.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/__(.+?)__/g, "<u>$1</u>").replace(/~~(.+?)~~/g, "<i>$1</i>").replace(/\^\^(.+?)\^\^/g, "<sup>$1</sup>").replace(/,,(.+?),,/g, "<sub>$1</sub>").replace(/\u2028/g, "<br>");
+  };
+  var stripInline = (t2) => {
+    let x = String(t2 ?? "").replace(/\{n\|[^{}]*\}/g, "");
+    for (let i = 0; i < 5; i++) {
+      const y = x.replace(/\{(?:c|h|a):[^|{}]*\|([^{}]*)\}/g, "$1").replace(/\{(?:s|sc|up)\|([^{}]*)\}/g, "$1");
+      if (y === x) break;
+      x = y;
+    }
+    return x;
+  };
+  var stripMk = (t2) => stripInline(String(t2 ?? "")).replace(/\u2028/g, " ").replace(/\*\*|__|~~|\^\^|,,/g, "");
   var elColor = (r, j, sr) => r && r.colors && r.colors[j] || sr && sr.color;
 
   // src/viz/donut.js
@@ -1969,9 +2030,14 @@
     const p = styleOf(k), ty = TYPE[p.type];
     return `${ty.size} / ${fmt2(ty.lh * 0.75)} pt${p.italic ? " \xB7 italique" : ""}${p.upper ? " \xB7 capitales" : ""}${ty.family === "serif" ? " \xB7 serif" : ""}`;
   }
-  function applyAdv(el2, adv) {
+  function applyAdv(el2, adv, plain) {
     if (!adv) return el2;
     const s2 = el2.style;
+    if (adv.f) s2.fontFamily = FONT[adv.f];
+    if (plain && adv.s > 0) {
+      s2.fontSize = adv.s + "pt";
+      if (!(adv.lh > 0)) s2.lineHeight = Math.ceil(adv.s * 4 / 3 * 1.3 / 3) * 3 + "px";
+    }
     if (adv.lh > 0) s2.lineHeight = adv.lh + "px";
     if (adv.ls) s2.letterSpacing = adv.ls / 1e3 + "em";
     if (adv.kern === "none") s2.fontKerning = "none";
@@ -1980,7 +2046,28 @@
     if (adv.after > 0) s2.marginBottom = adv.after + "px";
     return el2;
   }
-  var hasAdv = (o) => !!(o && o.adv && Object.values(o.adv).some((v) => v != null && v !== "" && v !== 0));
+  function blockStyle(adv, root) {
+    if (!adv) return;
+    const s2 = root.style;
+    if (adv.cols > 1) {
+      s2.columnCount = adv.cols;
+      s2.columnGap = "var(--gap-columns)";
+    }
+    if (adv.hyph) {
+      s2.hyphens = "auto";
+      root.setAttribute("lang", "fr");
+    }
+    if (adv.ruleTop) {
+      s2.borderTop = "var(--stroke) solid var(--c-blue)";
+      s2.paddingTop = "var(--s2)";
+    }
+    if (adv.ruleBottom) {
+      s2.borderBottom = "var(--stroke) solid var(--c-blue)";
+      s2.paddingBottom = "var(--s2)";
+    }
+    if (adv.tabnum) s2.fontVariantNumeric = "tabular-nums";
+  }
+  var hasAdv = (o) => !!(o && o.adv && Object.values(o.adv).some((v) => v != null && v !== "" && v !== 0 && v !== false));
 
   // src/viz/icons.js
   var ICONS = {
@@ -5156,31 +5243,47 @@ ${short}`)])
   function richText(text, align, adv) {
     const al = adv && adv.align || align;
     const root = h("div", { class: "rich", style: al && al !== "left" ? { textAlign: al } : {} });
-    let ul = null;
+    blockStyle(adv, root);
+    let ul = null, ol = null, num2 = 0;
+    const notes = [];
+    const note = (t2) => String(t2).replace(/\{n\|([^{}]*)\}/g, (m2, body) => {
+      notes.push(body);
+      return `^^${notes.length}^^`;
+    });
     for (const raw of String(text || "").replace(/\r\n?/g, "\n").split("\n")) {
       const line = raw.trim();
       if (!line) {
-        ul = null;
+        ul = ol = null;
         continue;
       }
       const hm = parseLine(line);
       if (hm.key) {
-        ul = null;
-        root.append(applyAdv(h("p", { class: "p-" + hm.key, innerHTML: inline(hm.text) }), adv));
+        ul = ol = null;
+        root.append(applyAdv(h("p", { class: "p-" + hm.key, innerHTML: inline(note(hm.text)) }), adv, false));
         continue;
       }
-      const m2 = line.match(/^[-•]\s+(.*)$/);
+      const m2 = line.match(/^[-•]\s+(.*)$/), n = line.match(/^(\d{1,2})\.\s+(.*)$/);
       if (m2) {
+        ol = null;
         if (!ul) {
           ul = h("ul");
           root.append(ul);
         }
-        ul.append(applyAdv(h("li", { innerHTML: inline(m2[1]) }), adv));
-      } else {
+        ul.append(applyAdv(h("li", { innerHTML: inline(note(m2[1])) }), adv, true));
+      } else if (n) {
         ul = null;
-        root.append(applyAdv(h("p", { innerHTML: inline(line) }), adv));
+        if (!ol) {
+          ol = h("ol");
+          root.append(ol);
+          num2 = +n[1] || 1;
+        }
+        ol.append(applyAdv(h("li", {}, h("span", { class: "mk", textContent: num2++ + "." }), h("span", { class: "lt", innerHTML: inline(note(n[2])) })), adv, true));
+      } else {
+        ul = ol = null;
+        root.append(applyAdv(h("p", { innerHTML: inline(note(line)) }), adv, true));
       }
     }
+    notes.forEach((body, i) => root.append(h("p", { class: "p-note rich-note", innerHTML: inline(`^^${i + 1}^^ ${body}`) })));
     return root;
   }
   var headerImage = (H) => (H.images || []).find((i) => i.id === H.imageId) || (H.images || [])[0] || null;
@@ -5256,7 +5359,7 @@ ${short}`)])
       wrap.style.justifyContent = { start: "flex-start", center: "center", end: "flex-end" }[al];
       w = insetW(w);
     } else wrap.style.alignSelf = al;
-    const strip2 = (x) => String(x || "").replace(/\*\*|__|~~|\^\^|,,/g, "").replace(PREFIX_RE, "").split("\n").find((l) => l.trim()) || "";
+    const strip2 = (x) => stripInline(x).replace(/\*\*|__|~~|\^\^|,,/g, "").replace(PREFIX_RE, "").split("\n").find((l) => l.trim()) || "";
     const side = (label, core) => composeSide(col.side, w, env, { pct: "", value: "", total: "", label }, core).node;
     if (col.type === "text") wrap.append(side(strip2(col.text), (ww) => ({ node: col.side && col.side.pos !== "none" ? h("div", { style: { width: ww + "px" } }, richText(col.text, col.align, col.adv)) : richText(col.text, col.align, col.adv) })));
     else if (col.type === "image") {
@@ -5357,12 +5460,13 @@ ${short}`)])
   function renderDocument(doc2) {
     iconLib.list = doc2.customIcons || (doc2.customIcons = []);
     setDensity(doc2.density);
+    setTypo(doc2);
     const vars = cssVars(doc2.theme, doc2.colors);
     const env = { locale: doc2.locale || "en-GB", pal: paletteOf(doc2.theme, doc2.colors), fills: [], page: "" };
     const pages = [];
     for (const key of ["recto", "verso"]) {
       env.page = key;
-      const page = h("div", { class: `page page-${key}`, dataset: { page: key } });
+      const page = h("div", { class: `page page-${key}${doc2.wrapFix ? " wrapfix" : ""}`, dataset: { page: key } });
       applyVars(page, vars);
       const top = key === "recto" ? HEADER.h : 0;
       if (key === "recto") page.append(renderHeader(doc2));
@@ -5828,7 +5932,7 @@ ${short}`)])
   }
 
   // src/tree.js
-  var strip = (t2) => String(t2 || "").replace(/\*\*|__|~~|\^\^|,,/g, "").replace(PREFIX_RE, "").replace(/\s+/g, " ").trim();
+  var strip = (t2) => stripInline(t2).replace(/\*\*|__|~~|\^\^|,,/g, "").replace(PREFIX_RE, "").replace(/\s+/g, " ").trim();
   var ICON = { text: "text-size", image: "photo", figure: "number", card: "layout-cards", viz: "chart-bar" };
   function colLabel(col) {
     if (col.type === "text") return strip(col.text).slice(0, 34) || "Texte vide";
@@ -6241,38 +6345,43 @@ ${short}`)])
   }
   var mkToHtml = (t2) => {
     const lines = String(t2 || "").replace(/\r\n?/g, "\n").split("\n").filter((l) => l.trim());
-    let html = "", ul = false;
+    let html = "", list = "";
+    const close3 = () => {
+      if (list) {
+        html += `</${list}>`;
+        list = "";
+      }
+    };
     for (const l of lines) {
       const hd = parseLine(l.trim());
       if (hd.key) {
-        if (ul) {
-          html += "</ul>";
-          ul = false;
-        }
+        close3();
         const P = styleOf(hd.key);
-        html += P.hash ? `<h${P.hash}>${inline(hd.text)}</h${P.hash}>` : `<div data-st="${P.k}">${inline(hd.text)}</div>`;
+        html += P.hash ? `<h${P.hash}>${inline(hd.text, true)}</h${P.hash}>` : `<div data-st="${P.k}">${inline(hd.text, true)}</div>`;
         continue;
       }
-      const m2 = l.trim().match(/^[-•]\s+(.*)$/);
-      if (m2 && !ul) {
-        html += "<ul>";
-        ul = true;
-      } else if (!m2 && ul) {
-        html += "</ul>";
-        ul = false;
+      const m2 = l.trim().match(/^[-•]\s+(.*)$/), n = l.trim().match(/^(\d{1,2})\.\s+(.*)$/), kind = m2 ? "ul" : n ? "ol" : "";
+      if (kind !== list) {
+        close3();
+        if (kind) {
+          html += `<${kind}>`;
+          list = kind;
+        }
       }
-      html += m2 ? `<li>${inline(m2[1])}</li>` : `<div>${inline(l.trim())}</div>`;
+      html += kind ? `<li>${inline((m2 || n)[kind === "ul" ? 1 : 2], true)}</li>` : `<div>${inline(l.trim(), true)}</div>`;
     }
-    return html + (ul ? "</ul>" : "") || "<div><br></div>";
+    close3();
+    return html || "<div><br></div>";
   };
   function htmlToMk(root) {
     const lines = [];
     let cur = [];
+    const keyOf = (r) => [r.b, r.i, r.u, r.sup, r.sub, r.s, r.c, r.h, r.up, r.sc, r.a].join("|");
     const emit = () => {
       const runs = [];
       for (const r of cur) {
         const l = runs[runs.length - 1];
-        if (l && l.b === r.b && l.i === r.i && l.u === r.u && l.sup === r.sup && l.sub === r.sub) l.t += r.t;
+        if (l && keyOf(l) === keyOf(r)) l.t += r.t;
         else runs.push({ ...r });
       }
       return runs.filter((r) => r.t !== "").map((r) => {
@@ -6283,17 +6392,23 @@ ${short}`)])
         if (r.i) t2 = `~~${t2}~~`;
         if (r.b) t2 = `**${t2}**`;
         if (r.u) t2 = `__${t2}__`;
+        if (r.s) t2 = `{s|${t2}}`;
+        if (r.up) t2 = `{up|${t2}}`;
+        if (r.sc) t2 = `{sc|${t2}}`;
+        if (r.a) t2 = `{a:${r.a}|${t2}}`;
+        if (r.h) t2 = `{h:${r.h}|${t2}}`;
+        if (r.c) t2 = `{c:${r.c}|${t2}}`;
         return t2;
       }).join("");
     };
     const flush2 = (bullet, pre = "") => {
       const t2 = emit().trim();
       cur = [];
-      if (t2) lines.push((bullet ? "- " : pre) + t2);
+      if (t2) lines.push((typeof bullet === "string" ? bullet : bullet ? "- " : pre) + t2);
     };
     const walk2 = (n, st, bullet) => {
       if (n.nodeType === 3) {
-        cur.push({ t: n.nodeValue.replace(/[ \n]/g, " "), ...st });
+        cur.push({ t: n.nodeValue.replace(/[ \n]/g, " "), ...st });
         return;
       }
       if (n.nodeType !== 1) return;
@@ -6307,8 +6422,20 @@ ${short}`)])
       if (tag === "SUP") s2.sup = true;
       if (tag === "SUB") s2.sub = true;
       if (tag === "U" || /underline/.test(n.style.textDecoration)) s2.u = true;
-      if (tag === "UL" || tag === "OL") {
+      if (tag === "S" || tag === "STRIKE" || tag === "DEL" || /line-through/.test(n.style.textDecoration)) s2.s = true;
+      const f = tag === "SPAN" && n.dataset.f;
+      if (f) {
+        const [k, ...v] = f.split(":"), val = v.join(":");
+        if (k === "c" || k === "h" || k === "a") s2[k] = val;
+        else if (k === "up" || k === "sc") s2[k] = true;
+      }
+      if (tag === "UL") {
         for (const c2 of n.childNodes) walk2(c2, s2, true);
+        return;
+      }
+      if (tag === "OL") {
+        let k = 0;
+        for (const c2 of n.childNodes) walk2(c2, s2, c2.tagName === "LI" ? `${++k}. ` : true);
         return;
       }
       if (tag === "DIV" && n.dataset.st) {
@@ -6329,11 +6456,16 @@ ${short}`)])
       for (const c2 of n.childNodes) walk2(c2, s2, b2);
       if (block) flush2(b2);
     };
-    for (const c2 of root.childNodes) walk2(c2, { b: false, i: false, u: false, sup: false, sub: false }, false);
+    for (const c2 of root.childNodes) walk2(c2, { b: false, i: false, u: false, sup: false, sub: false, s: false, c: "", h: "", up: false, sc: false, a: "" }, false);
     flush2(false);
     return lines.join("\n");
   }
+  var fmtStyle = (f) => {
+    const [k, ...v] = f.split(":"), val = v.join(":");
+    return k === "c" ? { color: `var(--c-${val})` } : k === "h" ? { background: `var(--c-${val})` } : k === "up" ? { textTransform: "uppercase" } : k === "sc" ? { fontVariantCaps: "small-caps" } : {};
+  };
   var galleryOpen = false;
+  var moreOpen = false;
   function richEditor(value2, onChange, opts = {}) {
     const ed = h("div", { class: "re", contentEditable: "true", spellcheck: "true", innerHTML: mkToHtml(value2) });
     const full = opts.bullets !== false;
@@ -6451,23 +6583,130 @@ ${short}`)])
       }, ico("menu-2"));
       bar.append(burger);
     }
+    let inl = null, pal = null, moreBtn = null, palMode = "", count2 = null;
+    const textNodes = (r) => {
+      const out = [], w = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT);
+      let n;
+      while (n = w.nextNode()) if (r.intersectsNode(n) && n.nodeValue) out.push(n);
+      return out;
+    };
+    const unwrap = (type, r) => {
+      [...ed.querySelectorAll("span[data-f]")].filter((e) => (e.dataset.f === type || e.dataset.f.startsWith(type + ":")) && r.intersectsNode(e)).forEach((e) => e.replaceWith(...e.childNodes));
+    };
+    const wrapSel = (type, val, toggle) => {
+      restore2();
+      const sl = window.getSelection();
+      if (!sl.rangeCount || sl.isCollapsed) return;
+      const r = sl.getRangeAt(0), had = [...ed.querySelectorAll("span[data-f]")].some((e) => (e.dataset.f === type || e.dataset.f.startsWith(type + ":")) && r.intersectsNode(e));
+      const nodes = textNodes(r).map((n) => ({ n, a: n === r.startContainer ? r.startOffset : 0, b: n === r.endContainer ? r.endOffset : n.nodeValue.length }));
+      unwrap(type, r);
+      if (!(toggle && had) && val !== null) {
+        const f = val ? `${type}:${val}` : type;
+        let first = null, last = null;
+        for (const { n, a: a2, b } of nodes) {
+          if (!n.parentNode || a2 >= b) continue;
+          const mid = n.splitText(a2);
+          mid.splitText(b - a2);
+          const sp = h("span", { dataset: { f }, class: type === "a" ? "lnk" : "", style: fmtStyle(f) });
+          mid.replaceWith(sp);
+          sp.append(mid);
+          first ||= sp;
+          last = sp;
+        }
+        if (first) {
+          const nr = document.createRange();
+          nr.setStartBefore(first);
+          nr.setEndAfter(last);
+          sl.removeAllRanges();
+          sl.addRange(nr);
+          keep();
+        }
+      }
+      ed.normalize();
+      onChange(htmlToMk(ed));
+      sync();
+    };
+    if (full) {
+      const ob = mk("", t("Liste num\xE9rot\xE9e"), "insertOrderedList");
+      ob.append(ico("list-numbers"));
+      bar.insertBefore(ob, bar.querySelector("[data-cmd=insertUnorderedList]").nextSibling);
+      const ib = (icon, title, fn, cmd2) => h("button", { type: "button", class: "mini", title: t(title), "aria-label": t(title), dataset: cmd2 ? { cmd: cmd2 } : {}, onmousedown: (e) => {
+        e.preventDefault();
+        keep();
+      }, onclick: fn }, typeof icon === "string" && icon.startsWith("ti-") ? ico(icon.slice(3)) : icon);
+      const showPal = (mode) => {
+        palMode = palMode === mode ? "" : mode;
+        pal.hidden = !palMode;
+        pal.dataset.mode = palMode;
+      };
+      const swatch = (k, label) => h("button", { type: "button", class: "re-sw" + (k ? "" : " none"), title: label, "aria-label": label, style: k ? { background: `var(--c-${k})` } : {}, onmousedown: (e) => {
+        e.preventDefault();
+        keep();
+      }, onclick: () => {
+        wrapSel(palMode, k || null);
+        pal.hidden = true;
+        palMode = "";
+      } }, k ? null : ico("x"));
+      pal = h("div", { class: "re-pal", hidden: true }, swatch("", t("Aucune")), (opts.palette || ["blue", "sky", "yellow", "slate", "grey", "white"]).map((k) => swatch(k, k)));
+      inl = h(
+        "div",
+        { class: "row fmt re-more", hidden: !moreOpen },
+        ib("ti-palette", "Couleur du texte", () => showPal("c")),
+        ib("ti-highlight", "Surlignage", () => showPal("h")),
+        ib("ti-strikethrough", "Barr\xE9", cmd("strikeThrough"), "strikeThrough"),
+        ib(h("span", { class: "re-sc", textContent: "A\u1D00" }), "Petites capitales", () => wrapSel("sc", "", true)),
+        ib(h("span", { textContent: "AA" }), "Capitales", () => wrapSel("up", "", true)),
+        ib("ti-link", "Lien", () => {
+          restore2();
+          const cur = (window.getSelection().anchorNode || {}).parentElement;
+          const have = cur && cur.closest && cur.closest('span[data-f^="a:"]');
+          const url = window.prompt(t("Adresse du lien (https://\u2026) \u2014 vide pour retirer"), have ? have.dataset.f.slice(2) : "https://");
+          if (url === null) return;
+          wrapSel("a", /^(https?:\/\/|mailto:)\S+/i.test(url.trim()) && url.trim() !== "https://" ? url.trim() : null);
+        }),
+        ib("ti-asterisk", "Appel de note (le texte de la note suit entre accolades)", () => {
+          restore2();
+          document.execCommand("insertText", false, "{n|}");
+          const sl = window.getSelection();
+          if (sl.modify) sl.modify("move", "backward", "character");
+          onChange(htmlToMk(ed));
+        })
+      );
+      moreBtn = h("button", { type: "button", class: "mini", title: t("Plus de mise en forme"), "aria-label": t("Plus de mise en forme"), "aria-expanded": String(moreOpen), onmousedown: (e) => e.preventDefault(), onclick: () => {
+        moreOpen = !moreOpen;
+        inl.hidden = !moreOpen;
+        moreBtn.setAttribute("aria-expanded", String(moreOpen));
+        moreBtn.classList.toggle("on", moreOpen);
+      } }, ico("dots"));
+      moreBtn.classList.toggle("on", moreOpen);
+      bar.append(moreBtn);
+      if (burger) bar.append(burger);
+      count2 = h("span", { class: "re-count" });
+    }
     const sync = () => {
-      bar.querySelectorAll("[data-cmd]").forEach((b) => {
+      [bar, inl].filter(Boolean).forEach((r) => r.querySelectorAll("[data-cmd]").forEach((b) => {
         let on = false;
         try {
           on = document.queryCommandState(b.dataset.cmd);
         } catch (e) {
         }
         b.classList.toggle("on", on);
-      });
+      }));
       const k = currentStyle();
       if (styleSel) styleSel.value = k;
+      if (count2) {
+        const tx = (ed.innerText || "").replace(/\u2028/g, " ").trim();
+        count2.textContent = `${tx.length} ${t("caract\xE8res")} \xB7 ${tx ? tx.split(/\s+/).length : 0} ${t("mots")}`;
+      }
       if (galBtn) {
         galBtn.querySelector(".re-gname").textContent = t(styleOf(k).n);
         gal.querySelectorAll(".re-tile").forEach((b) => b.classList.toggle("on", b.dataset.k === k));
       }
     };
-    ed.addEventListener("input", () => onChange(htmlToMk(ed)));
+    ed.addEventListener("input", () => {
+      onChange(htmlToMk(ed));
+      sync();
+    });
     ed.addEventListener("keyup", sync);
     ed.addEventListener("mouseup", sync);
     ed.addEventListener("focus", sync);
@@ -6477,8 +6716,8 @@ ${short}`)])
     });
     if (styleSel) bar.prepend(styleSel);
     if (!full) ed.classList.add("re-line");
-    if (galBtn) sync();
-    return h("div", { class: "re-wrap" }, bar, gal, pop2, ed, full ? h("div", { class: "hint", textContent: t("Entr\xE9e = nouveau paragraphe \xB7 Maj + Entr\xE9e = retour \xE0 la ligne") }) : null);
+    if (galBtn || count2) sync();
+    return h("div", { class: "re-wrap" }, bar, inl, pal, gal, pop2, ed, full ? h("div", { class: "hint" }, t("Entr\xE9e = nouveau paragraphe \xB7 Maj + Entr\xE9e = retour \xE0 la ligne"), " \xB7 ", count2) : null);
   }
   function buildFields(spec, obj, ctx2, palOpts, h2, root = obj) {
     const out = [];
@@ -6997,7 +7236,7 @@ ${short}`)])
         richEditor(tx.text || "", (v) => {
           tx.text = v;
           ctx2.changed();
-        }, { gallery: true, adv: tx, advChange: () => ctx2.changed() }),
+        }, { gallery: true, adv: tx, advChange: () => ctx2.changed(), palette: toneKeys(doc2) }),
         field("Placement", (() => {
           const sl = h("select", { onchange: (e) => {
             tx.mode = e.target.value;
@@ -7017,6 +7256,50 @@ ${short}`)])
         h("p", { class: "hint", textContent: t("Glisser un texte \xAB libre \xBB dans l\u2019aper\xE7u pour le placer o\xF9 l\u2019on veut dans la colonne ; \xAB au-dessus \xBB ou \xAB en dessous \xBB le met dans le flux, avant ou apr\xE8s le contenu.") })
       ];
     };
+    const advClean = (a2) => {
+      for (const k of Object.keys(a2)) if (a2[k] == null || a2[k] === "" || a2[k] === false || a2[k] === 0) delete a2[k];
+    };
+    const fontCard = (col2) => {
+      const a2 = col2.adv || (col2.adv = {});
+      const fam = h("select", { onchange: (e) => {
+        if (e.target.value) a2.f = e.target.value;
+        else delete a2.f;
+        ctx2.changed();
+      } }, [["", "Source Sans 3"], ["serif", "Source Serif 4"]].map(([v, l]) => h("option", { value: v, textContent: l, selected: (a2.f || "") === v })));
+      const sz = h("select", { onchange: (e) => {
+        if (+e.target.value) a2.s = +e.target.value;
+        else delete a2.s;
+        ctx2.changed();
+      } }, [["", t("Selon le style")], ...[8, 9, 10, 11, 12, 14, 16, 18, 21, 24, 30].map((n) => [String(n), n + " pt"])].map(([v, l]) => h("option", { value: v, textContent: l, selected: String(a2.s || "") === v })));
+      return card(
+        "col-font",
+        "letter-case",
+        t("Police et taille"),
+        [
+          field("Police", fam),
+          field("Taille du texte courant", sz),
+          h("p", { class: "hint", textContent: t("La taille s\u2019applique au texte courant et aux listes ; les styles de paragraphe (titres, source\u2026) gardent leur corps. L\u2019interlignage suit (130 %, grille de 3 px) sauf r\xE9glage dans l\u2019ic\xF4ne burger.") })
+        ],
+        null,
+        `${a2.f === "serif" ? "Serif" : "Sans"} \xB7 ${a2.s ? a2.s + " pt" : t("Style")}`
+      );
+    };
+    const paraCard = (col2) => {
+      const a2 = col2.adv || (col2.adv = {});
+      const row = (label, k, on) => switchRow(label, on, () => {
+        a2[k] = k === "cols" ? a2.cols > 1 ? 0 : 2 : !a2[k];
+        advClean(a2);
+      });
+      const n = ["hyph", "cols", "ruleTop", "ruleBottom", "tabnum"].filter((k) => a2[k]).length;
+      return card("col-para", "align-justified", t("Paragraphe"), [
+        row("C\xE9sure automatique", "hyph", !!a2.hyph),
+        row("Texte sur deux colonnes", "cols", a2.cols > 1),
+        row("Filet au-dessus", "ruleTop", !!a2.ruleTop),
+        row("Filet en dessous", "ruleBottom", !!a2.ruleBottom),
+        row("Chiffres tabulaires", "tabnum", !!a2.tabnum),
+        h("p", { class: "hint", textContent: t("Justifi\xE9 : \xAB Disposition \xBB. Interlignage, tracking, kerning, retrait et espaces : ic\xF4ne burger de la barre de texte.") })
+      ], null, n ? String(n) : t("Aucun"));
+    };
     const actions = (...b) => h("div", { class: "pp-actions" }, ...b);
     const P = (path || "").split(":"), kind = P[0] || "doc", si = +P[1], bi = +P[2], ci = +P[3];
     const sec = doc2.sections[si], sub = sec && sec.subs[bi], col = sub && sub.cols[ci];
@@ -7032,6 +7315,16 @@ ${short}`)])
           } })),
           pair("Espacement", doc2, "density", Object.fromEntries(Object.entries(DENSITIES).map(([k, d]) => [k, t(d.label)])), struct(() => {
           })),
+          switchRow("Typographie fran\xE7aise", !!doc2.frTypo, () => {
+            doc2.frTypo = !doc2.frTypo;
+          }),
+          switchRow("Ordinaux et fractions", !!doc2.ordinals, () => {
+            doc2.ordinals = !doc2.ordinals;
+          }),
+          switchRow("Texte ajust\xE9 (veuves, orphelines)", !!doc2.wrapFix, () => {
+            doc2.wrapFix = !doc2.wrapFix;
+          }),
+          h("p", { class: "hint", textContent: t("Typographie fran\xE7aise : espaces ins\xE9cables avant ; : ! ? % et dans les guillemets. Ordinaux : 1er, 2e en exposant, \xBD. Texte ajust\xE9 : pas de mot seul en derni\xE8re ligne, titres \xE9quilibr\xE9s.") }),
           field("Format des nombres", (() => {
             const s2 = h("select", { onchange: (e) => {
               doc2.locale = e.target.value;
@@ -7169,7 +7462,7 @@ ${short}`)])
       if (col.type === "text") editor = [h("div", { class: "f" }, h("div", { class: "hint", textContent: "Texte" }), richEditor(col.text, (v) => {
         col.text = v;
         ctx2.changed();
-      }, { gallery: true, adv: col, advChange: () => ctx2.changed() }))];
+      }, { gallery: true, adv: col, advChange: () => ctx2.changed(), palette: toneKeys(doc2) }))];
       else if (col.type === "image") {
         const mode = col.imgMode || "ratio";
         editor = [
@@ -7233,6 +7526,8 @@ ${short}`)])
       const vt = col.type === "viz" && col.viz && VIZ_TYPES[col.viz.kind];
       root.append(
         card("col-content", ICONS2[col.type] || "text-size", t("Contenu"), [typeSel, ...editor], null, t(COL_TYPES[col.type]) + (vt ? " \xB7 " + t(vt.label) : "")),
+        col.type === "text" ? fontCard(col) : null,
+        col.type === "text" ? paraCard(col) : null,
         vt && vt.heights ? card("col-height", "ruler-2", t("Hauteur"), heightNodes(vt, col.viz.opts, { ctx: ctx2, width: columnWidth(doc2, si, bi, ci) }), null, t(HMODE[col.viz.opts.hmode] || "Auto")) : col.type !== "viz" ? card("col-height", "ruler-2", t("Hauteur"), [
           field("Hauteur minimale de la colonne (px)", h("input", { type: "number", min: 0, max: 1e3, step: 3, value: col.minH || 0, oninput: (e) => {
             col.minH = Math.max(0, +e.target.value || 0);

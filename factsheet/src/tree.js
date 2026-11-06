@@ -3,11 +3,12 @@
    pendant que la structure et la page se réorganisent en direct (moteur commun dans main.js, `ctx.startTreeDrag`). */
 import { h, ico } from './render.js';
 import { PREFIX_RE } from './textstyles.js';
+import { stripInline } from './viz/util.js';
 import { cssVars, applyVars } from './tokens.js';
 import { newSection, newSub } from './state.js';
 import { VIZ_TYPES } from './viz/index.js';
 
-const strip = t => String(t || '').replace(/\*\*|__|~~|\^\^|,,/g, '').replace(PREFIX_RE, '').replace(/\s+/g, ' ').trim();
+const strip = t => stripInline(t).replace(/\*\*|__|~~|\^\^|,,/g, '').replace(PREFIX_RE, '').replace(/\s+/g, ' ').trim();
 const ICON = { text: 'text-size', image: 'photo', figure: 'number', card: 'layout-cards', viz: 'chart-bar' };
 
 function colLabel(col) {

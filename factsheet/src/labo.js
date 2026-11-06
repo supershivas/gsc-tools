@@ -100,7 +100,7 @@ const TOPICS = [
     { title: 'Galerie de vignettes', kept: 'carte Texte du panneau', style: 'c', desc: 'Le même catalogue en grille de vignettes « Aa » avec la taille et l’interlignage sous le nom : tout se compare d’un coup d’œil.', opts: TX.stylesOpts() },
   ] },
   { id: 'police', icon: 'letter-case', label: 'Police et taille', group: 'Texte', panel: true, controls: [], render: (o, W, v, redraw) => TX.renderFont(o, v, redraw), variants: [
-    { title: 'Deux listes', style: 'a', desc: 'Police (Source Sans 3 / Source Serif 4) et taille (échelle du document) dans deux listes déroulantes d’une carte du panneau.', opts: TX.fontOpts() },
+    { title: 'Deux listes', kept: 'carte Police et taille', style: 'a', desc: 'Police (Source Sans 3 / Source Serif 4) et taille (échelle du document) dans deux listes déroulantes d’une carte du panneau.', opts: TX.fontOpts() },
     { title: 'Barre au-dessus de la page', style: 'b', desc: 'Police en deux boutons « Aa » et taille par pas − / + sur l’échelle typographique, dans une barre au-dessus de la page : rien à dérouler dans le panneau.', opts: TX.fontOpts() },
     { title: 'Aperçu et échelle', style: 'c', desc: 'Deux grandes tuiles « Aa » pour la police, une rangée de tailles dont les chiffres grossissent, plus une taille libre ; l’interlignage suit tout seul (130 %, grille de 3 px).', opts: TX.fontOpts() },
   ] },
@@ -110,7 +110,7 @@ const TOPICS = [
     { title: 'Burger dans la barre', kept: 'éditeur de texte', style: 'c', desc: 'Dernier bouton de la barre de mise en forme ; ouvre un panneau flottant qui recouvre le panneau, avec « tout remettre comme le style ».', opts: TX.advOpts() },
   ] },
   { id: 'listes', icon: 'list-numbers', label: 'Listes', group: 'Texte', panel: true, controls: [], render: (o, W, v, redraw) => TX.renderList(o, v, redraw), variants: [
-    { title: 'Deux boutons', style: 'a', desc: 'Puces et liste numérotée en deux boutons à bascule dans la barre : un seul aspect par type.', opts: TX.listOpts() },
+    { title: 'Deux boutons', kept: 'barre de texte', style: 'a', desc: 'Puces et liste numérotée en deux boutons à bascule dans la barre : un seul aspect par type.', opts: TX.listOpts() },
     { title: 'Bouton et menu de repères', style: 'b', desc: 'Un bouton « liste » avec une flèche qui ouvre dix repères en aperçu : disque, tiret, carré, 1. 1) 01 a. A. i.', opts: TX.listOpts() },
     { title: 'Carte « Liste »', style: 'c', desc: 'Une carte du panneau : type, repère, numéro de départ, retrait, espace entre éléments et repère coloré, avec aperçu en direct.', opts: TX.listOpts() },
   ] },
@@ -120,7 +120,7 @@ const TOPICS = [
     { title: 'Barre volante', style: 'c', desc: 'Plus de barre dans le panneau : elle apparaît au-dessus de la sélection, dans la page. Le panneau ne garde que la saisie : le plus économe.', opts: TX.barOpts() },
   ] },
   { id: 'paneltexte', icon: 'layout-sidebar-right', label: 'Panneau texte', group: 'Texte', panel: true, controls: [], render: (o, W, v, redraw) => renderTextPanel(o, v, redraw), variants: [
-    { title: 'Cartes à la suite', style: 'a', desc: 'Les cartes d’aujourd’hui plus Police, Liste et Paragraphe, à la suite, une seule ouverte à la fois : tout est à un clic, la liste s’allonge.', opts: panelTextOpts() },
+    { title: 'Cartes à la suite', kept: 'panneau d’une colonne texte', style: 'a', desc: 'Les cartes d’aujourd’hui plus Police, Liste et Paragraphe, à la suite, une seule ouverte à la fois : tout est à un clic, la liste s’allonge.', opts: panelTextOpts() },
     { title: 'Trois onglets', style: 'b', desc: 'Contenu (saisie, styles, burger), Texte (police, liste, paragraphe) et Bloc (hauteur, disposition, cadre, textes libres, chiffre à côté) : trois à quatre cartes par onglet.', opts: panelTextOpts() },
     { title: 'Carte Texte à sous-onglets', style: 'c', desc: 'Une carte « Texte » (Saisie, Police, Liste, Paragraphe) et une carte « Bloc » qui regroupe hauteur, disposition et cadre ; le rare sous « Avancé ».', opts: panelTextOpts() },
   ] },

@@ -226,6 +226,14 @@ const EN = {
   'Automatique': 'Automatic', 'Désactivé': 'Off', 'Alignement': 'Alignment', 'Auto': 'Auto', 'Comme la colonne': 'Like the column', 'À gauche': 'Left', 'Centré': 'Centred', 'À droite': 'Right', 'Justifié': 'Justified',
   'Retrait de première ligne': 'First-line indent', 'Avant': 'Before', 'Après': 'After', 'Tout remettre comme le style': 'Reset to the style', 'Valeur du style': 'Style value', 'Revenir à la valeur du style': 'Back to the style value',
   'sur la grille de 3 px': 'on the 3 px grid', 'hors de la grille de 3 px': 'off the 3 px grid', '1000 ‰ = 1 em': '1000 ‰ = 1 em',
+  'Liste numérotée': 'Numbered list', 'Plus de mise en forme': 'More formatting', 'Couleur du texte': 'Text colour', 'Surlignage': 'Highlight', 'Barré': 'Strikethrough', 'Petites capitales': 'Small caps', 'Capitales': 'Capitals', 'Lien': 'Link',
+  'Appel de note (le texte de la note suit entre accolades)': 'Footnote call (the note text follows in braces)', 'Adresse du lien (https://…) — vide pour retirer': 'Link address (https://…) — empty to remove', 'caractères': 'characters', 'mots': 'words',
+  'Police et taille': 'Font and size', 'Police': 'Font', 'Taille du texte courant': 'Body text size', 'Selon le style': 'From the style', 'Style': 'Style',
+  'La taille s’applique au texte courant et aux listes ; les styles de paragraphe (titres, source…) gardent leur corps. L’interlignage suit (130 %, grille de 3 px) sauf réglage dans l’icône burger.': 'The size applies to body text and lists; paragraph styles (headings, source…) keep their own size. Line spacing follows (130 %, 3 px grid) unless set in the burger icon.',
+  'Paragraphe': 'Paragraph', 'Césure automatique': 'Automatic hyphenation', 'Texte sur deux colonnes': 'Two-column text', 'Filet au-dessus': 'Rule above', 'Filet en dessous': 'Rule below', 'Chiffres tabulaires': 'Tabular figures', 'Aucun': 'None',
+  'Justifié : « Disposition ». Interlignage, tracking, kerning, retrait et espaces : icône burger de la barre de texte.': 'Justified: “Layout”. Line spacing, tracking, kerning, indent and spacing: burger icon in the text bar.',
+  'Typographie française': 'French typography', 'Ordinaux et fractions': 'Ordinals and fractions', 'Texte ajusté (veuves, orphelines)': 'Balanced text (widows, orphans)',
+  'Typographie française : espaces insécables avant ; : ! ? % et dans les guillemets. Ordinaux : 1er, 2e en exposant, ½. Texte ajusté : pas de mot seul en dernière ligne, titres équilibrés.': 'French typography: non-breaking spaces before ; : ! ? % and inside guillemets. Ordinals: 1st, 2nd as superscript, ½. Balanced text: no single word on the last line, balanced headings.',
 };
 const DICT = { en: EN };
 

@@ -113,6 +113,18 @@
 
 sup,sub{font-size:.7em;line-height:0}
 
+/* listes numérotées (repère en vrai élément), liens, barré, texte ajusté (veuves et orphelines : réglage du document) */
+.rich ol{margin:0;padding:0;list-style:none}
+.rich ol li{display:flex;gap:var(--s2)}
+.rich ol .mk{flex:none;min-width:var(--s4);font-weight:700}
+.rich ol .lt{min-width:0}
+.rich p + ol,.rich ol + p,.rich ul + ol,.rich ol + ul{margin-top:var(--gap-paragraph)}
+.rich .rich-note{margin-top:var(--gap-paragraph)}
+.lnk{color:var(--c-blue);text-decoration:underline;text-decoration-thickness:var(--stroke);text-underline-offset:2px}
+s{text-decoration:line-through;text-decoration-thickness:var(--stroke)}
+.page.wrapfix .rich p,.page.wrapfix .rich .lt,.page.wrapfix .rich li{text-wrap:pretty}
+.page.wrapfix .hd-title,.page.wrapfix .sec-title,.page.wrapfix .sub-title,.page.wrapfix .rich .p-h1,.page.wrapfix .rich .p-h2,.page.wrapfix .viz-title div{text-wrap:balance}
+
 /* styles de paragraphe ajoutés (voir textstyles.js) */
 .rich .p-lead,.viz-title .p-lead{font-family:var(--t-lead-family);font-size:var(--t-lead-size);line-height:var(--t-lead-lh);font-weight:var(--t-lead-weight)}
 .rich .p-bold,.viz-title .p-bold{font-family:var(--t-bodyBold-family);font-size:var(--t-bodyBold-size);line-height:var(--t-bodyBold-lh);font-weight:var(--t-bodyBold-weight)}

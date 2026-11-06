@@ -2,7 +2,7 @@
    Stockage d'une ligne : « # » à « ##### » = Titre 1, Titre 2, Légende, Chiffre clé, Chiffre clé (petit) (historique) ;
    « @clé » = les autres styles (chapeau, gras, petit, citation, étiquette, source, note). Les classes CSS sont `p-<clé>` (doc.css).
    Réglages avancés d'un bloc : `obj.adv = { lh (px), ls (‰ em), kern ('none'), indent (px), before, after (px), align }`. */
-import { TYPE } from './tokens.js';
+import { TYPE, FONT } from './tokens.js';
 
 export const PSTYLES = [
   { k: 'h1',     n: 'Titre 1',             g: 'Titres',      hash: 1, type: 'section' },
@@ -43,10 +43,13 @@ export function specOf(k) {
   return `${ty.size} / ${fmt(ty.lh * 0.75)} pt${p.italic ? ' · italique' : ''}${p.upper ? ' · capitales' : ''}${ty.family === 'serif' ? ' · serif' : ''}`;
 }
 
-/** Applique les réglages avancés d'un bloc à un paragraphe ou un élément de liste */
-export function applyAdv(el, adv) {
+/** Applique les réglages avancés d'un bloc à un paragraphe ou un élément de liste. `plain` : texte courant (sans style de paragraphe),
+    seul concerné par la taille choisie dans « Police et taille » (les styles gardent leur corps). */
+export function applyAdv(el, adv, plain) {
   if (!adv) return el;
   const s = el.style;
+  if (adv.f) s.fontFamily = FONT[adv.f];
+  if (plain && adv.s > 0) { s.fontSize = adv.s + 'pt'; if (!(adv.lh > 0)) s.lineHeight = Math.ceil(adv.s * 4 / 3 * 1.3 / 3) * 3 + 'px'; }
   if (adv.lh > 0) s.lineHeight = adv.lh + 'px';
   if (adv.ls) s.letterSpacing = adv.ls / 1000 + 'em';
   if (adv.kern === 'none') s.fontKerning = 'none';
@@ -55,4 +58,14 @@ export function applyAdv(el, adv) {
   if (adv.after > 0) s.marginBottom = adv.after + 'px';
   return el;
 }
-export const hasAdv = o => !!(o && o.adv && Object.values(o.adv).some(v => v != null && v !== '' && v !== 0));
+/** Réglages du bloc entier (carte « Paragraphe ») : colonnes, césure, filets, chiffres tabulaires */
+export function blockStyle(adv, root) {
+  if (!adv) return;
+  const s = root.style;
+  if (adv.cols > 1) { s.columnCount = adv.cols; s.columnGap = 'var(--gap-columns)'; }
+  if (adv.hyph) { s.hyphens = 'auto'; root.setAttribute('lang', 'fr'); }
+  if (adv.ruleTop) { s.borderTop = 'var(--stroke) solid var(--c-blue)'; s.paddingTop = 'var(--s2)'; }
+  if (adv.ruleBottom) { s.borderBottom = 'var(--stroke) solid var(--c-blue)'; s.paddingBottom = 'var(--s2)'; }
+  if (adv.tabnum) s.fontVariantNumeric = 'tabular-nums';
+}
+export const hasAdv = o => !!(o && o.adv && Object.values(o.adv).some(v => v != null && v !== '' && v !== 0 && v !== false));

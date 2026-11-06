@@ -3,9 +3,9 @@
 import { PAGE, GRID, HEADER, GAP, cssVars, applyVars, colWidth, subColWidth, insetW, setDensity, paletteOf } from './tokens.js';
 import { IMAGE_RATIOS } from './state.js';
 import { renderViz, composeSide } from './viz/index.js';
-import { inlineMk, s } from './viz/util.js';
+import { inlineMk, s, setTypo, stripInline } from './viz/util.js';
 import { iconLib } from './viz/icons.js';
-import { parseLine, PREFIX_RE, applyAdv } from './textstyles.js';
+import { parseLine, PREFIX_RE, applyAdv, blockStyle } from './textstyles.js';
 import { renderFigure } from './figure.js';
 import { renderCard } from './card.js';
 
@@ -32,18 +32,24 @@ export const inline = inlineMk;
 export function richText(text, align, adv) {
   const al = (adv && adv.align) || align;
   const root = h('div', { class: 'rich', style: al && al !== 'left' ? { textAlign: al } : {} });
-  let ul = null;
+  blockStyle(adv, root);
+  let ul = null, ol = null, num = 0; const notes = [];
+  const note = t => String(t).replace(/\{n\|([^{}]*)\}/g, (m, body) => { notes.push(body); return `^^${notes.length}^^`; });   // appel de note : exposant, la note suit le bloc
   for (const raw of String(text || '').replace(/\r\n?/g, '\n').split('\n')) {
     const line = raw.trim();
-    if (!line) { ul = null; continue; }
+    if (!line) { ul = ol = null; continue; }
     const hm = parseLine(line);   // style de paragraphe : # Titre 1 … ##### Chiffre clé (petit), @source, @citation…
-    if (hm.key) { ul = null; root.append(applyAdv(h('p', { class: 'p-' + hm.key, innerHTML: inline(hm.text) }), adv)); continue; }
-    const m = line.match(/^[-•]\s+(.*)$/);
+    if (hm.key) { ul = ol = null; root.append(applyAdv(h('p', { class: 'p-' + hm.key, innerHTML: inline(note(hm.text)) }), adv, false)); continue; }
+    const m = line.match(/^[-•]\s+(.*)$/), n = line.match(/^(\d{1,2})\.\s+(.*)$/);
     if (m) {
-      if (!ul) { ul = h('ul'); root.append(ul); }
-      ul.append(applyAdv(h('li', { innerHTML: inline(m[1]) }), adv));
-    } else { ul = null; root.append(applyAdv(h('p', { innerHTML: inline(line) }), adv)); }
+      ol = null; if (!ul) { ul = h('ul'); root.append(ul); }
+      ul.append(applyAdv(h('li', { innerHTML: inline(note(m[1])) }), adv, true));
+    } else if (n) {   // liste numérotée : repère en vrai élément (l'export PDF lit le texte, pas les pseudo-éléments)
+      ul = null; if (!ol) { ol = h('ol'); root.append(ol); num = +n[1] || 1; }
+      ol.append(applyAdv(h('li', {}, h('span', { class: 'mk', textContent: num++ + '.' }), h('span', { class: 'lt', innerHTML: inline(note(n[2])) })), adv, true));
+    } else { ul = ol = null; root.append(applyAdv(h('p', { innerHTML: inline(note(line)) }), adv, true)); }
   }
+  notes.forEach((body, i) => root.append(h('p', { class: 'p-note rich-note', innerHTML: inline(`^^${i + 1}^^ ${body}`) })));
   return root;
 }
 
@@ -113,7 +119,7 @@ function renderCol(col, w, path, env) {
   const al = { top: 'start', center: 'center', bottom: 'end' }[col.valign] || 'start';
   if (isBox(col) && col.type !== 'card') { strokeStyle(wrap)(col); wrap.style.justifyContent = { start: 'flex-start', center: 'center', end: 'flex-end' }[al]; w = insetW(w); }
   else wrap.style.alignSelf = al;
-  const strip = x => String(x || '').replace(/\*\*|__|~~|\^\^|,,/g, '').replace(PREFIX_RE, '').split('\n').find(l => l.trim()) || '';
+  const strip = x => stripInline(x).replace(/\*\*|__|~~|\^\^|,,/g, '').replace(PREFIX_RE, '').split('\n').find(l => l.trim()) || '';
   const side = (label, core) => composeSide(col.side, w, env, { pct: '', value: '', total: '', label }, core).node;
   if (col.type === 'text') wrap.append(side(strip(col.text), ww => ({ node: col.side && col.side.pos !== 'none' ? h('div', { style: { width: ww + 'px' } }, richText(col.text, col.align, col.adv)) : richText(col.text, col.align, col.adv) })));
   else if (col.type === 'image') {
@@ -220,13 +226,13 @@ function renderSection(sec, si, env, pos) {
 /** → { pages: [{el, key, content, top, max, used, overflow}], warnings: [] } */
 export function renderDocument(doc) {
   iconLib.list = doc.customIcons || (doc.customIcons = []);   // icônes SVG importées, communes à tout le document
-  setDensity(doc.density);
+  setDensity(doc.density); setTypo(doc);
   const vars = cssVars(doc.theme, doc.colors);
   const env = { locale: doc.locale || 'en-GB', pal: paletteOf(doc.theme, doc.colors), fills: [], page: '' };
   const pages = [];
   for (const key of ['recto', 'verso']) {
     env.page = key;
-    const page = h('div', { class: `page page-${key}`, dataset: { page: key } });
+    const page = h('div', { class: `page page-${key}${doc.wrapFix ? ' wrapfix' : ''}`, dataset: { page: key } });
     applyVars(page, vars);
     const top = key === 'recto' ? HEADER.h : 0;
     if (key === 'recto') page.append(renderHeader(doc));

@@ -202,10 +202,37 @@ export function reorderHit(env, key, i, axis, x, y, w, h) {
   return s('rect', { x, y, width: Math.max(1, w), height: Math.max(1, h), fill: 'rgba(0,0,0,0)', 'data-reorder': `${key}:${i}`, 'data-axis': axis, style: { cursor: 'grab' } });
 }
 
-/** Balisage léger → HTML sûr : **gras**, ~~italique~~, __souligné__ (les retours à la ligne sont gardés par `white-space: pre-line`) */
-export const inlineMk = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/__(.+?)__/g, '<u>$1</u>').replace(/~~(.+?)~~/g, '<i>$1</i>').replace(/\^\^(.+?)\^\^/g, '<sup>$1</sup>').replace(/,,(.+?),,/g, '<sub>$1</sub>').replace(/\u2028/g, '<br>');
+/* Typographie automatique (réglages du document, posés avant chaque rendu par renderDocument) :
+   fr = espaces insécables avant ; : ! ? % € et dans les guillemets « » ; ord = 1er, 2e en exposant et ½ ¼ ¾ */
+export const TYPO = { fr: false, ord: false };
+export const setTypo = o => { TYPO.fr = !!(o && o.frTypo); TYPO.ord = !!(o && o.ordinals); };
+const typo = t => {
+  if (TYPO.fr) t = t.replace(/([^\s;!?:])[ \u00A0\u202F]*([;!?])(?=\s|$|[»)\]*_~])/g, '$1\u202F$2').replace(/([^\s;!?:/])[ \u00A0\u202F]*:(?=\s|$)/g, '$1\u00A0:')
+    .replace(/«[ \u00A0\u202F]*/g, '«\u00A0').replace(/[ \u00A0\u202F]*»/g, '\u00A0»').replace(/(\d)[ \u00A0\u202F]*([%€])/g, '$1\u00A0$2');
+  if (TYPO.ord) t = t.replace(/\b(\d+)(er|re|e|ers|res|es)(?=[\s.,;:)\u00A0\u202F*_~]|$)/g, '$1^^$2^^').replace(/(?<![\d/.])([13])\/([24])(?![\d/])/g, (m, a, b) => ({ '1/2': '½', '1/4': '¼', '3/4': '¾' }[m] || m));
+  return t;
+};
+const SAFE_URL = /^(https?:\/\/|mailto:)/i;
+/** Balisage léger → HTML sûr : **gras**, ~~italique~~, __souligné__, ^^exposant^^, ,,indice,, et les accolades {c:clé|couleur} {h:clé|surlignage}
+    {s|barré} {up|capitales} {sc|petites capitales} {a:adresse|lien}. `edit` : version pour le champ de saisie (rien de transformé, liens inactifs). */
+export const inlineMk = (t, edit) => {
+  let x = typo(String(t ?? '')).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  for (let i = 0; i < 5; i++) {   // du plus intérieur au plus extérieur : les accolades se combinent
+    const y = x
+      .replace(/\{c:([\w-]+)\|([^{}]*)\}/g, '<span data-f="c:$1" style="color:var(--c-$1)">$2</span>')
+      .replace(/\{h:([\w-]+)\|([^{}]*)\}/g, '<span data-f="h:$1" style="background:var(--c-$1)">$2</span>')
+      .replace(/\{s\|([^{}]*)\}/g, '<s>$1</s>')
+      .replace(/\{up\|([^{}]*)\}/g, '<span data-f="up" style="text-transform:uppercase">$1</span>')
+      .replace(/\{sc\|([^{}]*)\}/g, '<span data-f="sc" style="font-variant-caps:small-caps">$1</span>')
+      .replace(/\{a:([^|{}]*)\|([^{}]*)\}/g, (m, url, txt) => { const u = url.replace(/&amp;/g, '&'); return SAFE_URL.test(u) ? `<${edit ? 'span' : 'a href="' + url.replace(/"/g, '&quot;') + '"'} class="lnk" data-f="a:${url.replace(/"/g, '&quot;')}">${txt}</${edit ? 'span' : 'a'}>` : txt; });
+    if (y === x) break; x = y;
+  }
+  return x.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/__(.+?)__/g, '<u>$1</u>').replace(/~~(.+?)~~/g, '<i>$1</i>').replace(/\^\^(.+?)\^\^/g, '<sup>$1</sup>').replace(/,,(.+?),,/g, '<sub>$1</sub>').replace(/\u2028/g, '<br>');
+};
+/** Le texte sans accolades de mise en forme (les notes {n|…} disparaissent) */
+export const stripInline = t => { let x = String(t ?? '').replace(/\{n\|[^{}]*\}/g, ''); for (let i = 0; i < 5; i++) { const y = x.replace(/\{(?:c|h|a):[^|{}]*\|([^{}]*)\}/g, '$1').replace(/\{(?:s|sc|up)\|([^{}]*)\}/g, '$1'); if (y === x) break; x = y; } return x; };
 /** Le même texte sans balisage (mesures, libellés de la structure) */
-export const stripMk = t => String(t ?? '').replace(/\u2028/g, ' ').replace(/\*\*|__|~~|\^\^|,,/g, '');
+export const stripMk = t => stripInline(String(t ?? '')).replace(/\u2028/g, ' ').replace(/\*\*|__|~~|\^\^|,,/g, '');
 
 /** Couleur d'un élément d'une dataviz à séries : la surcharge de la ligne (`rows[i].colors[j]`, pour mettre un élément en valeur) sinon la couleur de la série */
 export const elColor = (r, j, sr) => (r && r.colors && r.colors[j]) || (sr && sr.color);

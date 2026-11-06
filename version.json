@@ -1,8 +1,9 @@
 {
-  "version": "1.68.0",
+  "version": "1.69.0",
   "date": "2026-11-06",
   "changes": [
-    "Texte : sept nouveaux styles de paragraphe (Chapeau, Texte gras, Texte petit, Citation, Étiquette, Source 8/9 pt italique, Note) en galerie dans la carte, et icône burger dans la barre pour l'interlignage, le tracking, le kerning, le retrait et les espaces d'un bloc",
-    "Labo : nouveau sujet « Panneau texte » pour comparer le rangement des cartes liées au texte"
+    "Texte : listes numérotées, couleur, surlignage, barré, capitales et petites capitales, lien et appel de note dans la barre (rangée « … »), compteur de caractères",
+    "Texte : cartes « Police et taille » et « Paragraphe » (césure, deux colonnes, filets, chiffres tabulaires) ; réglages du document : typographie française, ordinaux et fractions, texte ajusté",
+    "Export PDF : barré, petites capitales et césure"
   ]
 }

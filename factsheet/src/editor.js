@@ -65,25 +65,29 @@ function parseTable(text) {
 const ESC = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const mkToHtml = t => {
   const lines = String(t || '').replace(/\r\n?/g, '\n').split('\n').filter(l => l.trim());
-  let html = '', ul = false;
+  let html = '', list = '';   // list : '' | 'ul' | 'ol'
+  const close = () => { if (list) { html += `</${list}>`; list = ''; } };
   for (const l of lines) {
     const hd = parseLine(l.trim());
-    if (hd.key) { if (ul) { html += '</ul>'; ul = false; } const P = styleOf(hd.key); html += P.hash ? `<h${P.hash}>${inline(hd.text)}</h${P.hash}>` : `<div data-st="${P.k}">${inline(hd.text)}</div>`; continue; }
-    const m = l.trim().match(/^[-•]\s+(.*)$/);
-    if (m && !ul) { html += '<ul>'; ul = true; } else if (!m && ul) { html += '</ul>'; ul = false; }
-    html += m ? `<li>${inline(m[1])}</li>` : `<div>${inline(l.trim())}</div>`;
+    if (hd.key) { close(); const P = styleOf(hd.key); html += P.hash ? `<h${P.hash}>${inline(hd.text, true)}</h${P.hash}>` : `<div data-st="${P.k}">${inline(hd.text, true)}</div>`; continue; }
+    const m = l.trim().match(/^[-•]\s+(.*)$/), n = l.trim().match(/^(\d{1,2})\.\s+(.*)$/), kind = m ? 'ul' : n ? 'ol' : '';
+    if (kind !== list) { close(); if (kind) { html += `<${kind}>`; list = kind; } }
+    html += kind ? `<li>${inline((m || n)[kind === 'ul' ? 1 : 2], true)}</li>` : `<div>${inline(l.trim(), true)}</div>`;
   }
-  return (html + (ul ? '</ul>' : '')) || '<div><br></div>';
+  close();
+  return html || '<div><br></div>';
 };
 function htmlToMk(root) {
   const lines = []; let cur = [];
+  const keyOf = r => [r.b, r.i, r.u, r.sup, r.sub, r.s, r.c, r.h, r.up, r.sc, r.a].join('|');
   const emit = () => {
-    const runs = []; for (const r of cur) { const l = runs[runs.length - 1]; if (l && l.b === r.b && l.i === r.i && l.u === r.u && l.sup === r.sup && l.sub === r.sub) l.t += r.t; else runs.push({ ...r }); }
-    return runs.filter(r => r.t !== '').map(r => { let t = r.t; if (!t.trim()) return t; if (r.sub) t = `,,${t},,`; if (r.sup) t = `^^${t}^^`; if (r.i) t = `~~${t}~~`; if (r.b) t = `**${t}**`; if (r.u) t = `__${t}__`; return t; }).join('');
+    const runs = []; for (const r of cur) { const l = runs[runs.length - 1]; if (l && keyOf(l) === keyOf(r)) l.t += r.t; else runs.push({ ...r }); }
+    return runs.filter(r => r.t !== '').map(r => { let t = r.t; if (!t.trim()) return t; if (r.sub) t = `,,${t},,`; if (r.sup) t = `^^${t}^^`; if (r.i) t = `~~${t}~~`; if (r.b) t = `**${t}**`; if (r.u) t = `__${t}__`;
+      if (r.s) t = `{s|${t}}`; if (r.up) t = `{up|${t}}`; if (r.sc) t = `{sc|${t}}`; if (r.a) t = `{a:${r.a}|${t}}`; if (r.h) t = `{h:${r.h}|${t}}`; if (r.c) t = `{c:${r.c}|${t}}`; return t; }).join('');
   };
-  const flush = (bullet, pre = '') => { const t = emit().trim(); cur = []; if (t) lines.push((bullet ? '- ' : pre) + t); };
+  const flush = (bullet, pre = '') => { const t = emit().trim(); cur = []; if (t) lines.push((typeof bullet === 'string' ? bullet : bullet ? '- ' : pre) + t); };
   const walk = (n, st, bullet) => {
-    if (n.nodeType === 3) { cur.push({ t: n.nodeValue.replace(/[ \n]/g, ' '), ...st }); return; }
+    if (n.nodeType === 3) { cur.push({ t: n.nodeValue.replace(/[ \n]/g, ' '), ...st }); return; }
     if (n.nodeType !== 1) return;
     const tag = n.tagName, fw = n.style.fontWeight, s = { ...st };
     if (tag === 'BR') { cur.push({ t: '\u2028', ...st }); return; }   // retour à la ligne (Maj + Entrée) : reste dans le paragraphe
@@ -92,7 +96,11 @@ function htmlToMk(root) {
     if (tag === 'SUP') s.sup = true;
     if (tag === 'SUB') s.sub = true;
     if (tag === 'U' || /underline/.test(n.style.textDecoration)) s.u = true;
-    if (tag === 'UL' || tag === 'OL') { for (const c of n.childNodes) walk(c, s, true); return; }
+    if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL' || /line-through/.test(n.style.textDecoration)) s.s = true;
+    const f = tag === 'SPAN' && n.dataset.f;   // couleur, surlignage, capitales, petites capitales, lien (voir inlineMk)
+    if (f) { const [k, ...v] = f.split(':'), val = v.join(':'); if (k === 'c' || k === 'h' || k === 'a') s[k] = val; else if (k === 'up' || k === 'sc') s[k] = true; }
+    if (tag === 'UL') { for (const c of n.childNodes) walk(c, s, true); return; }
+    if (tag === 'OL') { let k = 0; for (const c of n.childNodes) walk(c, s, c.tagName === 'LI' ? `${++k}. ` : true); return; }
     if (tag === 'DIV' && n.dataset.st) { if (cur.length) flush(bullet); for (const c of n.childNodes) walk(c, s, bullet); flush(bullet, prefixOf(n.dataset.st)); return; }
     if (/^H[1-5]$/.test(tag)) { if (cur.length) flush(bullet); for (const c of n.childNodes) walk(c, s, bullet); flush(bullet, '#'.repeat(+tag[1]) + ' '); return; }
     const block = tag === 'LI' || tag === 'DIV' || tag === 'P';
@@ -101,11 +109,13 @@ function htmlToMk(root) {
     for (const c of n.childNodes) walk(c, s, b2);
     if (block) flush(b2);
   };
-  for (const c of root.childNodes) walk(c, { b: false, i: false, u: false, sup: false, sub: false }, false);
+  for (const c of root.childNodes) walk(c, { b: false, i: false, u: false, sup: false, sub: false, s: false, c: '', h: '', up: false, sc: false, a: '' }, false);
   flush(false);
   return lines.join('\n');
 }
-let galleryOpen = false;   // la galerie de styles reste ouverte d'un éditeur à l'autre (le temps de la session)
+/* style d'aperçu d'une mise en forme dans le champ de saisie */
+const fmtStyle = f => { const [k, ...v] = f.split(':'), val = v.join(':'); return k === 'c' ? { color: `var(--c-${val})` } : k === 'h' ? { background: `var(--c-${val})` } : k === 'up' ? { textTransform: 'uppercase' } : k === 'sc' ? { fontVariantCaps: 'small-caps' } : {}; };
+let galleryOpen = false, moreOpen = false;   // la galerie de styles reste ouverte d'un éditeur à l'autre (le temps de la session)
 export function richEditor(value, onChange, opts = {}) {
   const ed = h('div', { class: 're', contentEditable: 'true', spellcheck: 'true', innerHTML: mkToHtml(value) });
   const full = opts.bullets !== false;
@@ -153,19 +163,55 @@ export function richEditor(value, onChange, opts = {}) {
       onclick: () => { pop.hidden = !pop.hidden; burger.setAttribute('aria-expanded', String(!pop.hidden)); burger.classList.toggle('on', !pop.hidden); } }, ico('menu-2'));
     bar.append(burger);
   }
+  /* mise en forme en ligne : liste numérotée, barré, couleur, surlignage, capitales, petites capitales, lien, appel de note (rangée repliable « … ») */
+  let inl = null, pal = null, moreBtn = null, palMode = '', count = null;
+  const textNodes = r => { const out = [], w = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) if (r.intersectsNode(n) && n.nodeValue) out.push(n); return out; };
+  const unwrap = (type, r) => { [...ed.querySelectorAll('span[data-f]')].filter(e => (e.dataset.f === type || e.dataset.f.startsWith(type + ':')) && r.intersectsNode(e)).forEach(e => e.replaceWith(...e.childNodes)); };
+  const wrapSel = (type, val, toggle) => {
+    restore(); const sl = window.getSelection(); if (!sl.rangeCount || sl.isCollapsed) return;
+    const r = sl.getRangeAt(0), had = [...ed.querySelectorAll('span[data-f]')].some(e => (e.dataset.f === type || e.dataset.f.startsWith(type + ':')) && r.intersectsNode(e));
+    const nodes = textNodes(r).map(n => ({ n, a: n === r.startContainer ? r.startOffset : 0, b: n === r.endContainer ? r.endOffset : n.nodeValue.length }));
+    unwrap(type, r);
+    if (!(toggle && had) && val !== null) {
+      const f = val ? `${type}:${val}` : type; let first = null, last = null;
+      for (const { n, a, b } of nodes) {
+        if (!n.parentNode || a >= b) continue;
+        const mid = n.splitText(a); mid.splitText(b - a);
+        const sp = h('span', { dataset: { f }, class: type === 'a' ? 'lnk' : '', style: fmtStyle(f) }); mid.replaceWith(sp); sp.append(mid); first ||= sp; last = sp;
+      }
+      if (first) { const nr = document.createRange(); nr.setStartBefore(first); nr.setEndAfter(last); sl.removeAllRanges(); sl.addRange(nr); keep(); }
+    }
+    ed.normalize(); onChange(htmlToMk(ed)); sync();
+  };
+  if (full) {
+    const ob = mk('', t('Liste numérotée'), 'insertOrderedList'); ob.append(ico('list-numbers')); bar.insertBefore(ob, bar.querySelector('[data-cmd=insertUnorderedList]').nextSibling);
+    const ib = (icon, title, fn, cmd) => h('button', { type: 'button', class: 'mini', title: t(title), 'aria-label': t(title), dataset: cmd ? { cmd } : {}, onmousedown: e => { e.preventDefault(); keep(); }, onclick: fn }, typeof icon === 'string' && icon.startsWith('ti-') ? ico(icon.slice(3)) : icon);
+    const showPal = mode => { palMode = palMode === mode ? '' : mode; pal.hidden = !palMode; pal.dataset.mode = palMode; };
+    const swatch = (k, label) => h('button', { type: 'button', class: 're-sw' + (k ? '' : ' none'), title: label, 'aria-label': label, style: k ? { background: `var(--c-${k})` } : {}, onmousedown: e => { e.preventDefault(); keep(); }, onclick: () => { wrapSel(palMode, k || null); pal.hidden = true; palMode = ''; } }, k ? null : ico('x'));
+    pal = h('div', { class: 're-pal', hidden: true }, swatch('', t('Aucune')), (opts.palette || ['blue', 'sky', 'yellow', 'slate', 'grey', 'white']).map(k => swatch(k, k)));
+    inl = h('div', { class: 'row fmt re-more', hidden: !moreOpen },
+      ib('ti-palette', 'Couleur du texte', () => showPal('c')), ib('ti-highlight', 'Surlignage', () => showPal('h')), ib('ti-strikethrough', 'Barré', cmd('strikeThrough'), 'strikeThrough'),
+      ib(h('span', { class: 're-sc', textContent: 'Aᴀ' }), 'Petites capitales', () => wrapSel('sc', '', true)), ib(h('span', { textContent: 'AA' }), 'Capitales', () => wrapSel('up', '', true)),
+      ib('ti-link', 'Lien', () => { restore(); const cur = (window.getSelection().anchorNode || {}).parentElement; const have = cur && cur.closest && cur.closest('span[data-f^="a:"]'); const url = window.prompt(t('Adresse du lien (https://…) — vide pour retirer'), have ? have.dataset.f.slice(2) : 'https://'); if (url === null) return; wrapSel('a', /^(https?:\/\/|mailto:)\S+/i.test(url.trim()) && url.trim() !== 'https://' ? url.trim() : null); }),
+      ib('ti-asterisk', 'Appel de note (le texte de la note suit entre accolades)', () => { restore(); document.execCommand('insertText', false, '{n|}'); const sl = window.getSelection(); if (sl.modify) sl.modify('move', 'backward', 'character'); onChange(htmlToMk(ed)); }));
+    moreBtn = h('button', { type: 'button', class: 'mini', title: t('Plus de mise en forme'), 'aria-label': t('Plus de mise en forme'), 'aria-expanded': String(moreOpen), onmousedown: e => e.preventDefault(), onclick: () => { moreOpen = !moreOpen; inl.hidden = !moreOpen; moreBtn.setAttribute('aria-expanded', String(moreOpen)); moreBtn.classList.toggle('on', moreOpen); } }, ico('dots'));
+    moreBtn.classList.toggle('on', moreOpen); bar.append(moreBtn); if (burger) bar.append(burger);   // le burger reste le dernier bouton
+    count = h('span', { class: 're-count' });
+  }
   const sync = () => {
-    bar.querySelectorAll('[data-cmd]').forEach(b => { let on = false; try { on = document.queryCommandState(b.dataset.cmd); } catch (e) {} b.classList.toggle('on', on); });
+    [bar, inl].filter(Boolean).forEach(r => r.querySelectorAll('[data-cmd]').forEach(b => { let on = false; try { on = document.queryCommandState(b.dataset.cmd); } catch (e) {} b.classList.toggle('on', on); }));
     const k = currentStyle();
     if (styleSel) styleSel.value = k;
+    if (count) { const tx = (ed.innerText || '').replace(/\u2028/g, ' ').trim(); count.textContent = `${tx.length} ${t('caractères')} · ${tx ? tx.split(/\s+/).length : 0} ${t('mots')}`; }
     if (galBtn) { galBtn.querySelector('.re-gname').textContent = t(styleOf(k).n); gal.querySelectorAll('.re-tile').forEach(b => b.classList.toggle('on', b.dataset.k === k)); }
   };
-  ed.addEventListener('input', () => onChange(htmlToMk(ed)));
+  ed.addEventListener('input', () => { onChange(htmlToMk(ed)); sync(); });
   ed.addEventListener('keyup', sync); ed.addEventListener('mouseup', sync); ed.addEventListener('focus', sync);
-  ed.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain').replace(/\u000B/g, ' ').replace(/[\u0000-\u0008\u000C\u000E-\u001F]/g, '')); });
+  ed.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain').replace(/\u000B/g, '\u2028').replace(/[\u0000-\u0008\u000C\u000E-\u001F]/g, '')); });
   if (styleSel) bar.prepend(styleSel);
   if (!full) ed.classList.add('re-line');
-  if (galBtn) sync();
-  return h('div', { class: 're-wrap' }, bar, gal, pop, ed, full ? h('div', { class: 'hint', textContent: t('Entrée = nouveau paragraphe · Maj + Entrée = retour à la ligne') }) : null);
+  if (galBtn || count) sync();
+  return h('div', { class: 're-wrap' }, bar, inl, pal, gal, pop, ed, full ? h('div', { class: 'hint' }, t('Entrée = nouveau paragraphe · Maj + Entrée = retour à la ligne'), ' · ', count) : null);
 }
 
 export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {

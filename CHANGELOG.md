@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.69.0 — 2026-11-06
+- Texte : listes numérotées, couleur, surlignage, barré, capitales, petites capitales, lien et appel de note (rangée « … » de la barre), compteur de caractères
+- Texte : cartes « Police et taille » et « Paragraphe » (césure, deux colonnes, filets au-dessus et en dessous, chiffres tabulaires)
+- Document : typographie française, ordinaux et fractions, texte ajusté (veuves, orphelines, titres équilibrés)
+- Export PDF : barré, petites capitales et césure
+
 ## 1.68.0 — 2026-11-06
 - Texte : sept nouveaux styles de paragraphe (Chapeau, Texte gras, Texte petit, Citation, Étiquette, Source 8/9 pt italique, Note), choisis dans une galerie à l'intérieur de la carte
 - Texte : icône burger dans la barre de l'éditeur (interlignage, tracking, kerning, retrait, espaces avant/après d'un bloc)

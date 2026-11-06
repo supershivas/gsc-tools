@@ -192,24 +192,44 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
       const drawText = (node, el, scale, isSvg) => {
         const cs = getComputedStyle(el), serif = /serif 4/i.test(cs.fontFamily), italic = cs.fontStyle === 'italic', weight = +cs.fontWeight || 400;
         const size = parseFloat(cs.fontSize) * scale, col = parseCss(isSvg ? cs.fill : cs.color); if (!col || col.a === 0 || size <= 0) return;
-        const upper = cs.textTransform === 'uppercase', ls = parseFloat(cs.letterSpacing) || 0, under = /underline/.test(cs.textDecorationLine);
+        const upper = cs.textTransform === 'uppercase', ls = parseFloat(cs.letterSpacing) || 0, under = /underline/.test(cs.textDecorationLine), strike = /line-through/.test(cs.textDecorationLine), caps = cs.fontVariantCaps === 'small-caps';
         const data = node.data, re = /\S+/g; let w;
         while ((w = re.exec(data))) {
           const range = document.createRange(); range.setStart(node, w.index); range.setEnd(node, w.index + w[0].length);
           const rects = [...range.getClientRects()].filter(r => r.width > 0.01 || r.height > 0);
           if (!rects.length) continue;
           const word = upper ? w[0].toUpperCase() : w[0];
-          const chunks = rects.length === 1 && !ls ? [{ t: word, r: rects[0] }] : word.split('').map((ch, i) => { const rr = document.createRange(); rr.setStart(node, w.index + i); rr.setEnd(node, w.index + i + 1); const rs = rr.getClientRects(); return { t: ch, r: rs[0] }; }).filter(c => c.r);
-          for (const c of chunks) textJobs.push({ text: c.t, x: c.r.left - P.left, top: c.r.top - P.top, h: c.r.height, w: c.r.width, serif, italic, weight, size, col, under });
+          /* lettre par lettre : tracking, petites capitales (lettres bas de casse en capitales à 80 %) et mot coupé en fin de ligne (césure).
+             Un mot coupé a un rectangle par ligne et, sur chaque ligne sauf la dernière, un petit rectangle de trait d'union inséré par le navigateur ;
+             Chrome rattache ce trait d'union à des lettres voisines (deux rectangles) : on range chaque lettre sur sa ligne et on dessine le trait d'union à sa place. */
+          const per = rects.length > 1 || ls || caps;
+          const chunks = [];
+          if (!per) chunks.push({ t: word, r: rects[0], k: 1 });
+          else {
+            const lines = [];
+            for (const r of rects) { let L = lines.find(l => Math.abs(l.top - r.top) < r.height / 2); if (!L) lines.push(L = { top: r.top, frags: [] }); L.frags.push(r); }
+            lines.forEach((L, j) => { L.frags.sort((x, y) => x.left - y.left); L.hy = j < lines.length - 1 && L.frags.length > 1 ? L.frags[L.frags.length - 1] : null; L.limit = L.hy ? L.hy.left - 0.5 : Infinity; });
+            const onLine = (q, L) => Math.abs(q.top - L.top) < q.height / 2 && q.left < L.limit;
+            let li = 0;
+            word.split('').forEach((ch, i) => {
+              const rr = document.createRange(); rr.setStart(node, w.index + i); rr.setEnd(node, w.index + i + 1);
+              const rs = [...rr.getClientRects()]; if (!rs.length) return;
+              while (li < lines.length - 1 && !rs.some(q => onLine(q, lines[li]))) { if (lines[li].hy) chunks.push({ t: '-', r: lines[li].hy, k: 1 }); li++; }
+              const own = rs.find(q => onLine(q, lines[li])) || rs[rs.length - 1], low = caps && ch !== ch.toUpperCase();
+              chunks.push({ t: low ? ch.toUpperCase() : ch, r: own, k: low ? 0.8 : 1 });
+            });
+          }
+          for (const c of chunks) textJobs.push({ text: c.t, x: c.r.left - P.left, top: c.r.top - P.top, h: c.r.height, w: c.r.width, serif, italic, weight, size: size * c.k, bsize: size, col, under, strike });
         }
       };
       const flushText = async () => {
         for (const j of textJobs) {
           const f = await fontFor(j.serif ? 'serif' : 'sans', j.weight, j.italic), t = [...j.text].filter(ch => f.chars.has(ch.codePointAt(0))).join('');
           if (!t) continue;
-          const baseline = j.top + (j.h - (f.asc + f.desc) * j.size) / 2 + f.asc * j.size, [x, y] = toPt(j.x, baseline), c = resolve(j.col.rgb);
+          const bs = j.bsize || j.size, baseline = j.top + (j.h - (f.asc + f.desc) * bs) / 2 + f.asc * bs, [x, y] = toPt(j.x, baseline), c = resolve(j.col.rgb);
           flush();
           page.drawText(t, { x, y, size: j.size * KY, font: f.embedded, color: cmykColor(...c), opacity: j.col.a < 1 ? j.col.a : undefined });
+          if (j.strike) { const [sx, sy] = toPt(j.x, baseline - j.size * 0.3), [ex] = toPt(j.x + j.w, 0); push(pushGraphicsState()); setStroke(c); push(setLineWidth(j.size * 0.06 * KY)); push(moveTo(sx, sy), lineTo(ex, sy), stroke(), popGraphicsState()); }
           if (j.under) { const [ux, uy] = toPt(j.x, baseline + j.size * 0.12), [ex] = toPt(j.x + j.w, 0); push(pushGraphicsState()); setStroke(c); push(setLineWidth(j.size * 0.06 * KY)); push(moveTo(ux, uy), lineTo(ex, uy), stroke(), popGraphicsState()); }
         }
         textJobs.length = 0;

@@ -496,3 +496,13 @@ textarea.dg-ml{display:block;width:100%;min-width:90px;border:0;border-radius:0;
 .ra-seg button{flex:1 1 0;min-width:0;height:32px;padding:0 4px;border:0;border-right:1px solid var(--ui-line);background:#fff;font:inherit;font-size:12px;color:var(--ui-ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
 .ra-seg button:last-child{border-right:0}.ra-seg button.on{background:var(--ui-ink);color:#fff}
 .ra-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* mise en forme en ligne : rangée repliable, palette, compteur */
+.re-more[hidden],.re-pal[hidden]{display:none}
+.re-sc{font-size:11px;letter-spacing:-.02em}
+.re-pal{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px;padding:8px;border:1px solid var(--ui-line);border-radius:8px;background:#fff;max-width:100%}
+.re-sw{width:24px;height:24px;padding:0;border:1px solid rgba(0,0,0,.2);border-radius:50%;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--ui-mute)}.re-sw .ti{font-size:14px}.re-sw.none{background:#fff}
+.re .lnk{color:var(--ui-blue);text-decoration:underline}
+.re s{text-decoration:line-through}
+.re-count{font-variant-numeric:tabular-nums}
+.re ol{margin:0;padding-left:20px}

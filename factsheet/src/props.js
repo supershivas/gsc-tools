@@ -154,11 +154,28 @@ export function buildProps(root, ctx) {
     const num = (label, tx, k, min, max) => field(label, h('input', { type: 'number', min, max, step: 1, value: tx[k] ?? 0, oninput: e => { tx[k] = +e.target.value || 0; ctx.changed(); } }));
     const items = arr.map((tx, i) => h('div', { class: 'col-card' },
       h('div', { class: 'chd' }, h('span', { textContent: `#${i + 1}` }), h('button', { type: 'button', class: 'mini danger', title: t('Supprimer'), onclick: () => { arr.splice(i, 1); ctx.restructure(); } }, ico('x'))),
-      richEditor(tx.text || '', v => { tx.text = v; ctx.changed(); }, { gallery: true, adv: tx, advChange: () => ctx.changed() }),
+      richEditor(tx.text || '', v => { tx.text = v; ctx.changed(); }, { gallery: true, adv: tx, advChange: () => ctx.changed(), palette: toneKeys(doc) }),
       field('Placement', (() => { const sl = h('select', { onchange: e => { tx.mode = e.target.value; ctx.restructure(); } }, [['free', 'Libre (glisser dans l’aperçu)'], ['above', 'Au-dessus du contenu'], ['below', 'En dessous du contenu']].map(([v, l]) => h('option', { value: v, textContent: t(l) }))); sl.value = tx.mode || 'free'; return sl; })()),
       (tx.mode || 'free') === 'free' ? h('div', { class: 'row' }, num('X (% de la colonne)', tx, 'x', 0, 100), num('Largeur (%)', tx, 'w', 10, 100), tx.y == null ? null : num('Y (px)', tx, 'y', 0, 2000)) : null));
     return [...items, h('button', { type: 'button', class: 'pp-btn', onclick: () => { arr.push({ x: 0, y: arr.length * 30, w: 50, text: 'Texte libre' }); ctx.restructure(); } }, ico('plus'), h('span', { textContent: t('Ajouter un texte') })),
       h('p', { class: 'hint', textContent: t('Glisser un texte « libre » dans l’aperçu pour le placer où l’on veut dans la colonne ; « au-dessus » ou « en dessous » le met dans le flux, avant ou après le contenu.') })];
+  };
+  /* Texte d'une colonne : « Police et taille » et « Paragraphe » (réglages du bloc entier, stockés dans col.adv avec ceux du burger) */
+  const advClean = a => { for (const k of Object.keys(a)) if (a[k] == null || a[k] === '' || a[k] === false || a[k] === 0) delete a[k]; };
+  const fontCard = col => {
+    const a = col.adv || (col.adv = {});
+    const fam = h('select', { onchange: e => { if (e.target.value) a.f = e.target.value; else delete a.f; ctx.changed(); } }, [['', 'Source Sans 3'], ['serif', 'Source Serif 4']].map(([v, l]) => h('option', { value: v, textContent: l, selected: (a.f || '') === v })));
+    const sz = h('select', { onchange: e => { if (+e.target.value) a.s = +e.target.value; else delete a.s; ctx.changed(); } }, [['', t('Selon le style')], ...[8, 9, 10, 11, 12, 14, 16, 18, 21, 24, 30].map(n => [String(n), n + ' pt'])].map(([v, l]) => h('option', { value: v, textContent: l, selected: String(a.s || '') === v })));
+    return card('col-font', 'letter-case', t('Police et taille'), [field('Police', fam), field('Taille du texte courant', sz),
+      h('p', { class: 'hint', textContent: t('La taille s’applique au texte courant et aux listes ; les styles de paragraphe (titres, source…) gardent leur corps. L’interlignage suit (130 %, grille de 3 px) sauf réglage dans l’icône burger.') })], null,
+      `${a.f === 'serif' ? 'Serif' : 'Sans'} · ${a.s ? a.s + ' pt' : t('Style')}`);
+  };
+  const paraCard = col => {
+    const a = col.adv || (col.adv = {});
+    const row = (label, k, on) => switchRow(label, on, () => { a[k] = k === 'cols' ? (a.cols > 1 ? 0 : 2) : !a[k]; advClean(a); });
+    const n = ['hyph', 'cols', 'ruleTop', 'ruleBottom', 'tabnum'].filter(k => a[k]).length;
+    return card('col-para', 'align-justified', t('Paragraphe'), [row('Césure automatique', 'hyph', !!a.hyph), row('Texte sur deux colonnes', 'cols', a.cols > 1), row('Filet au-dessus', 'ruleTop', !!a.ruleTop), row('Filet en dessous', 'ruleBottom', !!a.ruleBottom), row('Chiffres tabulaires', 'tabnum', !!a.tabnum),
+      h('p', { class: 'hint', textContent: t('Justifié : « Disposition ». Interlignage, tracking, kerning, retrait et espaces : icône burger de la barre de texte.') })], null, n ? String(n) : t('Aucun'));
   };
   const actions = (...b) => h('div', { class: 'pp-actions' }, ...b);
 
@@ -172,6 +189,8 @@ export function buildProps(root, ctx) {
     root.append(card('doc-main', 'file-text', t('Document'), [
         field('Nom du fichier', h('input', { type: 'text', value: doc.name || '', oninput: e => { doc.name = e.target.value; ctx.changed(); } })),
         pair('Espacement', doc, 'density', Object.fromEntries(Object.entries(DENSITIES).map(([k, d]) => [k, t(d.label)])), struct(() => {})),
+        switchRow('Typographie française', !!doc.frTypo, () => { doc.frTypo = !doc.frTypo; }), switchRow('Ordinaux et fractions', !!doc.ordinals, () => { doc.ordinals = !doc.ordinals; }), switchRow('Texte ajusté (veuves, orphelines)', !!doc.wrapFix, () => { doc.wrapFix = !doc.wrapFix; }),
+        h('p', { class: 'hint', textContent: t('Typographie française : espaces insécables avant ; : ! ? % et dans les guillemets. Ordinaux : 1er, 2e en exposant, ½. Texte ajusté : pas de mot seul en dernière ligne, titres équilibrés.') }),
         field('Format des nombres', (() => { const s = h('select', { onchange: e => { doc.locale = e.target.value; ctx.restructure(); } }, Object.entries(LOCALES).map(([v, l]) => h('option', { value: v, textContent: l }))); s.value = doc.locale || 'en-GB'; return s; })()),
         btn('palette', t('Couleurs du document'), e => openPalette(e.currentTarget, ctx))], null, doc.name || ''),
       h('p', { class: 'hint', textContent: t('Sélectionnez un élément dans la structure (à gauche) ou sur la page pour modifier ses propriétés.') }));
@@ -217,7 +236,7 @@ export function buildProps(root, ctx) {
       const keep = col.text, { valign, align, stroke, strokeColor, fillColor } = col; Object.assign(col, newCol(v), { valign, align, stroke, strokeColor, fillColor });
       if (v === 'text' && keep) col.text = keep; if (v === 'card') { col.card = newCard(columnWidth(doc, si, bi, ci)); col.stroke = false; col.fillColor = 'none'; } ctx.restructure(); } }));
     let editor;
-    if (col.type === 'text') editor = [h('div', { class: 'f' }, h('div', { class: 'hint', textContent: 'Texte' }), richEditor(col.text, v => { col.text = v; ctx.changed(); }, { gallery: true, adv: col, advChange: () => ctx.changed() }))];
+    if (col.type === 'text') editor = [h('div', { class: 'f' }, h('div', { class: 'hint', textContent: 'Texte' }), richEditor(col.text, v => { col.text = v; ctx.changed(); }, { gallery: true, adv: col, advChange: () => ctx.changed(), palette: toneKeys(doc) }))];
     else if (col.type === 'image') {
       const mode = col.imgMode || 'ratio';
       editor = [imgPicker('Image', () => col.src, v => { col.src = v; col.natural = null; }, 1600),
@@ -245,6 +264,7 @@ export function buildProps(root, ctx) {
     })());
     const vt = col.type === 'viz' && col.viz && VIZ_TYPES[col.viz.kind];
     root.append(card('col-content', ICONS[col.type] || 'text-size', t('Contenu'), [typeSel, ...editor], null, t(COL_TYPES[col.type]) + (vt ? ' · ' + t(vt.label) : '')),
+      col.type === 'text' ? fontCard(col) : null, col.type === 'text' ? paraCard(col) : null,
       vt && vt.heights ? card('col-height', 'ruler-2', t('Hauteur'), heightNodes(vt, col.viz.opts, { ctx, width: columnWidth(doc, si, bi, ci) }), null, t(HMODE[col.viz.opts.hmode] || 'Auto'))
         : col.type !== 'viz' ? card('col-height', 'ruler-2', t('Hauteur'), [field('Hauteur minimale de la colonne (px)', h('input', { type: 'number', min: 0, max: 1000, step: 3, value: col.minH || 0, oninput: e => { col.minH = Math.max(0, +e.target.value || 0); ctx.changed(); } })),
           h('p', { class: 'hint', textContent: t('Ou glisser la poignée sous la colonne dans l’aperçu : elle se cale sur la colonne voisine.') })], null, col.minH ? col.minH + ' px' : t('Auto')) : null,
