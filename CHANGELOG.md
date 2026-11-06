@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.69.1 — 2026-11-06
+- Export PDF : les liens du texte sont cliquables
+
 ## 1.69.0 — 2026-11-06
 - Texte : listes numérotées, couleur, surlignage, barré, capitales, petites capitales, lien et appel de note (rangée « … » de la barre), compteur de caractères
 - Texte : cartes « Police et taille » et « Paragraphe » (césure, deux colonnes, filets au-dessus et en dessous, chiffres tabulaires)

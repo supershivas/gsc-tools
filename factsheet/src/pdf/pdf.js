@@ -4,7 +4,7 @@
    - texte : polices incorporées (fonts/pdf/*.ttf, instances statiques de Source Sans 3 / Source Serif 4), positions relevées dans le navigateur
    - images : rastérisées à 300 ppi puis converties en CMJN (le canal alpha devient un masque)
    - fond perdu et traits de coupe : mêmes modes que l'impression (export.js), avec TrimBox et BleedBox. */
-import { PDFDocument, cmyk as cmykColor, pushGraphicsState, popGraphicsState, concatTransformationMatrix, moveTo, lineTo, appendBezierCurve,
+import { PDFDocument, PDFString, cmyk as cmykColor, pushGraphicsState, popGraphicsState, concatTransformationMatrix, moveTo, lineTo, appendBezierCurve,
   closePath, fill, PDFOperator, PDFOperatorNames, stroke, clip, clipEvenOdd, endPath, setLineWidth, setLineCap, setLineJoin, setDashPattern, setFillingCmykColor,
   setStrokingCmykColor, drawObject, setGraphicsState } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
@@ -188,7 +188,7 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
       const unclip = () => { push(popGraphicsState()); clips--; };
 
       /* ----- texte (HTML et SVG) ----- */
-      const textJobs = [];
+      const textJobs = [], links = [];
       const drawText = (node, el, scale, isSvg) => {
         const cs = getComputedStyle(el), serif = /serif 4/i.test(cs.fontFamily), italic = cs.fontStyle === 'italic', weight = +cs.fontWeight || 400;
         const size = parseFloat(cs.fontSize) * scale, col = parseCss(isSvg ? cs.fill : cs.color); if (!col || col.a === 0 || size <= 0) return;
@@ -339,6 +339,10 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
           if (first && col) paint(ellipsePath(first.left - P.left - fs * 0.62, first.top - P.top + first.height * 0.52, fs * 0.17, fs * 0.17), [1, 0, 0, 1, 0, 0], resolve(col.rgb), 1, null, 1, 0, null, 0, 0, false);
         }
         for (const n of el.childNodes) { if (n.nodeType === 3) drawText(n, el, 1, false); else if (n.nodeType === 1) walk(n); }
+        if (el.localName === 'a' && /^(https?:\/\/|mailto:)/i.test(el.getAttribute('href') || '')) {   // lien : une zone cliquable par ligne de texte
+          const rg = document.createRange(); rg.selectNodeContents(el);
+          for (const q of rg.getClientRects()) if (q.width > 0.5 && q.height > 0.5) links.push({ x: q.left - P.left, y: q.top - P.top, w: q.width, h: q.height, url: el.getAttribute('href') });
+        }
         if (clipped) unclip();
         if (al) push(popGraphicsState());
       };
@@ -347,6 +351,11 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
       /* Le texte est dessiné après le reste de la page : l'ordre n'a pas d'importance (aucun élément ne recouvre du texte) sauf pour les SVG, où il suit. */
       walk(p.el);
       flush(); await flushText(); flush();
+      for (const l of links) {
+        const [x1, y1] = toPt(l.x, l.y + l.h), [x2, y2] = toPt(l.x + l.w, l.y);
+        const ref = pdf.context.register(pdf.context.obj({ Type: 'Annot', Subtype: 'Link', Rect: [x1, y1, x2, y2], Border: [0, 0, 0], A: { Type: 'Action', S: 'URI', URI: PDFString.of(l.url) } }));
+        page.node.addAnnot(ref);
+      }
       /* traits de coupe : repère noir (toutes les encres), 0,25 pt, à 3 mm du format fini */
       if (m.marks) {
         const L = 3 * PT_PER_MM, gap = BLEED_MM * PT_PER_MM, X = [off, off + A4.w * PT_PER_MM], Y = [off, off + A4.h * PT_PER_MM], mk = [];

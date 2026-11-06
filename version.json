@@ -1,9 +1,7 @@
 {
-  "version": "1.69.0",
+  "version": "1.69.1",
   "date": "2026-11-06",
   "changes": [
-    "Texte : listes numérotées, couleur, surlignage, barré, capitales et petites capitales, lien et appel de note dans la barre (rangée « … »), compteur de caractères",
-    "Texte : cartes « Police et taille » et « Paragraphe » (césure, deux colonnes, filets, chiffres tabulaires) ; réglages du document : typographie française, ordinaux et fractions, texte ajusté",
-    "Export PDF : barré, petites capitales et césure"
+    "Export PDF : les liens du texte sont cliquables"
   ]
 }
