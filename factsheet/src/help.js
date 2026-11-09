@@ -1,6 +1,6 @@
 /* Petits « ? » d'aide : une icône au trait à côté d'un libellé ; le texte s'affiche en infobulle au survol ou au focus.
    Les textes sont dans HELP, indexés par le libellé (clé française, comme le dictionnaire i18n) : il suffit d'ajouter une entrée
-   pour qu'un champ, un interrupteur ou une carte reçoive son « ? » automatiquement (props.js, editor.js, cards.js, vizheight.js). */
+   pour qu'un champ, un interrupteur ou une carte reçoive son « ? » automatiquement (props/kit.js, editor.js, cards.js, vizheight.js). */
 import { h, ico } from './render.js';
 import { t } from './i18n.js';
 

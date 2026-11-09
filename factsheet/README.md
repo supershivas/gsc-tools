@@ -9,6 +9,7 @@ Après modification de `src/` : `npm install` (une fois) puis `npm run build` po
 - `src/state.js` — modèle JSON : `header` → `sections[]` (page recto|verso) → `subs[]` (gabarit de colonnes) → `cols[]` (text | image | viz).
 - `src/render.js` — JSON → pages A4 HTML + mesure de remplissage (jauges, avertissements de débordement).
 - `src/editor.js` — panneau d'édition (contenu, couleurs, images ; jamais tailles/espacements/layout).
+- `src/props.js` + `src/props/` — panneau de propriétés : `props.js` aiguille vers un module par sorte d’élément (`document`, `header`, `section`, `subsection`, `column`, et pour les colonnes `col-text`, `col-image`, `col-figure`, `col-card`, `col-viz`, `col-free`) ; les briques communes (champs, couleurs, interrupteurs, cartes repliables, tête collante) sont dans `props/kit.js`.
 - `css/doc.css` — styles du document, uniquement via variables issues des tokens.
 
 ## Format du texte
@@ -63,7 +64,7 @@ Bouton « Aperçu 3D » : les pages sont dessinées en images (`src/raster.js`) 
 Anglais par défaut, français en option (`src/i18n.js`). Les textes du code sont en français et servent de clés du dictionnaire FR → EN ; une passe sur le DOM traduit l'interface (jamais le document ni les champs de saisie) et `t()` sert pour les alertes et les valeurs créées dans le document. Ajouter une langue = ajouter un dictionnaire dans `i18n.js`.
 
 ## Interface
-Trois colonnes : **structure** à gauche (header, sections, sous-sections, colonnes ; clic = sélection, poignée ⠿ = réordonner / changer de page), **aperçu** au centre, **propriétés** à droite (document, header, section, sous-section ou colonne selon la sélection, avec fil d'Ariane). Sélectionner dans la structure ou sur la page revient au même (`src/tree.js`, `src/props.js`).
+Trois colonnes : **structure** à gauche (header, sections, sous-sections, colonnes ; clic = sélection, poignée ⠿ = réordonner / changer de page), **aperçu** au centre, **propriétés** à droite (document, header, section, sous-section ou colonne selon la sélection, avec fil d'Ariane). Sélectionner dans la structure ou sur la page revient au même (`src/tree.js`, `src/props.js` → un module par élément dans `src/props/`).
 
 ## Mise en forme du texte
 Champs de texte riches (`richEditor` dans `editor.js`) : gras, italique, souligné, puces ; l'effet est visible dans le champ, sans balisage. Stockage interne : `**gras**`, `~~italique~~`, `__souligné__`, `- puce`. Source Sans 3 italique est embarquée.
