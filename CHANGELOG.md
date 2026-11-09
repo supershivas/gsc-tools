@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.80.0 — 2026-11-09
+- Éditeur de dataviz : les cases à cocher deviennent des interrupteurs, les choix de 2 à 3 valeurs des boutons, les décimales un choix 0 à 4, les espaces des curseurs à crans
+- Les réglages en pixels, degrés ou pourcentages ont un curseur et un champ où l'on peut taper la valeur ; le bouton ↺ rétablit la valeur d'origine
+- Navigation au clavier : un seul Tab par groupe de boutons, flèches pour changer de valeur
+
 ## 1.79.0 — 2026-11-09
 - Éditeur de dataviz : les réglages qui n'ont pas d'effet sont grisés avec une phrase qui explique quoi activer (position de la légende, valeurs dans les barres, accolade, décimales et unité…)
 - Les réglages qui ne concernent qu'un autre mode disparaissent (angle de l'anneau selon l'orientation, réglages du « Chiffre à côté » tant qu'il est sur « Aucun »)

@@ -4,6 +4,7 @@ import { inlineMk, typoOf } from './viz/util.js';
 import { ctxIcons } from './viz/icons.js';
 import { t } from './i18n.js';
 import { helpBtn } from './help.js';
+import { switchControl, segControl, stepsControl, rangeControl, resetButton } from './controls.js';
 import { colorSelect } from './colorselect.js';
 import { iconSelect } from './iconselect.js';
 import { PSTYLES, GROUPS, HASH_KEYS, parseLine, prefixOf, styleOf, specOf, hasAdv } from './textstyles.js';
@@ -709,6 +710,17 @@ const labelled = (h2, label, control) => {
     control,
   );
 };
+/** nombres gardés en champ numérique (petits entiers qu'on compte) ; les autres champs bornés deviennent un curseur */
+const NUMBER_FIELDS = new Set(['cols', 'gridRows', 'perRow']);
+const unitOf = (label) => (/\bpx\b/.test(label) ? 'px' : label.includes('°') ? '°' : label.includes('%') ? '%' : '');
+const STEPS_KEYS = new Set(['groupSpace', 'serSpace', 'rowSpace']);
+/** liste → contrôle : 'steps' (4 crans d'espace), 'seg' (2–3 valeurs courtes), sinon null (liste déroulante) */
+function choiceKind(f) {
+  if (f.icons || typeof f.options === 'function') return null;
+  const v = Object.values(f.options);
+  if (STEPS_KEYS.has(f.k) && v.length === 4) return 'steps';
+  return v.length <= 3 && v.join('').length <= 32 ? 'seg' : null;
+}
 /** valeur affichée d'un champ : celle du document, sinon sa valeur par défaut `def` (celle que le dessin applique), sinon la première option */
 const shown = (f, obj, fallback) => getP(obj, f.k) ?? f.def ?? fallback;
 export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
@@ -719,6 +731,29 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
     syncAll();
   };
   const deps = [];
+  /* libellé + contrôle + ↺ (valeur d'origine : `def` du champ, sinon celle des réglages par défaut du type, `reset`) */
+  const withReset = (f, useId, make) => {
+    const dv = f.def ?? f.reset;
+    let rb = null;
+    const same = (v) => String(v) === String(dv);
+    const commit = (v) => {
+      setP(obj, f.k, v);
+      ctx.changed();
+      syncAll();
+      if (rb) rb.refresh(same(v));
+    };
+    const id = 'bf' + ++fieldSeq;
+    const c = make(id, commit);
+    if (dv !== undefined) {
+      rb = resetButton(h2, f.label, () => {
+        c.set(dv);
+        commit(dv);
+      });
+      rb.refresh(same(getP(obj, f.k) ?? dv));
+    }
+    const lab = useId ? h2('label', { for: id, textContent: f.label }) : h2('span', { textContent: f.label });
+    return h2('div', { class: 'f' }, h2('div', { class: 'hint pp-fh' }, lab, helpBtn(f.label), h2('span', { class: 'pp-sp' }), rb), c.node);
+  };
   for (const f of spec) {
     const start = out.length;
     if (f.t === 'node') out.push(f.build(root, ctx));
@@ -784,6 +819,18 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
           { class: 'f' },
           f.label,
           h2('textarea', { value: getP(obj, f.k) ?? '', style: { minHeight: '64px' }, oninput: live((t) => setP(obj, f.k, t.value)) }),
+        ),
+      );
+    else if (f.t === 'number' && f.k === 'decimals')
+      out.push(
+        withReset(f, false, (id, commit) =>
+          segControl(h2, f.label, { 0: '0', 1: '1', 2: '2', 3: '3', 4: '4' }, shown(f, obj, 0), (v) => commit(+v)),
+        ),
+      );
+    else if (f.t === 'number' && f.min != null && f.max != null && !NUMBER_FIELDS.has(f.k))
+      out.push(
+        withReset(f, true, (id, commit) =>
+          rangeControl(h2, id, f.label, { min: f.min, max: f.max, step: f.step, unit: unitOf(f.label) }, shown(f, obj, f.min), commit),
         ),
       );
     else if (f.t === 'number')
@@ -860,17 +907,17 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
           }),
         ),
       );
-    } else if (f.t === 'bool')
+    } else if (f.t === 'bool') {
+      const id = 'bf' + ++fieldSeq;
+      const c = switchControl(h2, id, f.label, shown(f, obj, false), (v) => {
+        setP(obj, f.k, v);
+        ctx.changed();
+        syncAll();
+      });
       out.push(
-        h2(
-          'label',
-          { class: 'row', style: { marginBottom: '8px' } },
-          h2('input', { type: 'checkbox', checked: !!shown(f, obj, false), onchange: live((t) => setP(obj, f.k, t.checked)) }),
-          f.label,
-          helpBtn(f.label),
-        ),
+        h2('div', { class: 'pp-switchrow f-sw' }, h2('span', {}, h2('label', { for: id, textContent: f.label }), helpBtn(f.label)), c.node),
       );
-    else if (f.t === 'color')
+    } else if (f.t === 'color')
       out.push(
         h2(
           'div',
@@ -906,6 +953,15 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
               ctx.changed();
             },
           }),
+        ),
+      );
+    } else if (f.t === 'select' && choiceKind(f)) {
+      const kind = choiceKind(f);
+      out.push(
+        withReset(f, false, (id, commit) =>
+          kind === 'steps'
+            ? stepsControl(h2, f.label, f.options, shown(f, obj, Object.keys(f.options)[0]), commit)
+            : segControl(h2, f.label, f.options, shown(f, obj, Object.keys(f.options)[0]), commit),
         ),
       );
     } else if (f.t === 'select') {
@@ -1015,7 +1071,7 @@ function dependent(f, nodes, obj, h2, out) {
     e.stopPropagation();
     e.preventDefault();
   };
-  const first = nodes[0].querySelector('input,select,textarea,button');
+  const first = nodes[0].querySelector('[id^="bf"]') || nodes[0].querySelector('input,select,textarea,button');
   if (why && first) first.setAttribute('aria-describedby', why.id);
   const off = new WeakMap();
   return () => {

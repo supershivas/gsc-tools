@@ -6,22 +6,51 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const TYPES = {
-  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml',
-  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.ico': 'image/x-icon',
-  '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.icc': 'application/vnd.iccprofile', '.md': 'text/markdown; charset=utf-8',
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+  '.ttf': 'font/ttf',
+  '.icc': 'application/vnd.iccprofile',
+  '.md': 'text/markdown; charset=utf-8',
 };
 
 function createServer() {
   return http.createServer((req, res) => {
     let file;
-    try { file = path.join(ROOT, decodeURIComponent(new URL(req.url, 'http://x').pathname)); } catch (e) { res.writeHead(400).end('Bad request'); return; }
-    if (file !== ROOT && !file.startsWith(ROOT + path.sep)) { res.writeHead(403).end('Forbidden'); return; }
+    try {
+      file = path.join(ROOT, decodeURIComponent(new URL(req.url, 'http://x').pathname));
+    } catch (e) {
+      res.writeHead(400).end('Bad request');
+      return;
+    }
+    if (file !== ROOT && !file.startsWith(ROOT + path.sep)) {
+      res.writeHead(403).end('Forbidden');
+      return;
+    }
     fs.stat(file, (err, st) => {
-      if (!err && st.isDirectory()) { file = path.join(file, 'index.html'); }
+      if (!err && st.isDirectory()) {
+        file = path.join(file, 'index.html');
+      }
       fs.readFile(file, (err2, data) => {
-        if (err2) { res.writeHead(404, { 'content-type': 'text/plain' }).end('Not found'); return; }
-        res.writeHead(200, { 'content-type': TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream', 'cache-control': 'no-store' });
+        if (err2) {
+          res.writeHead(404, { 'content-type': 'text/plain' }).end('Not found');
+          return;
+        }
+        res.writeHead(200, {
+          'content-type': TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream',
+          'cache-control': 'no-store',
+        });
         res.end(data);
       });
     });

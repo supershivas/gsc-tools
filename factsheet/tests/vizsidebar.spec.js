@@ -5,7 +5,10 @@ const { openApp, watchErrors } = require('./helpers');
    le clavier reste dans l'éditeur. Audit : docs/audit-sidebar-dataviz.md (lot 1). */
 
 async function openEditor(page) {
-  await page.locator('#tree .col-row', { hasText: /Dataviz/ }).first().click();
+  await page
+    .locator('#tree .col-row', { hasText: /Dataviz/ })
+    .first()
+    .click();
   const open = page.locator('#props button.primary').first();
   if (!(await open.count())) {
     const chev = page.locator('#props .pp-chev').first();
@@ -19,11 +22,22 @@ async function pickType(page, label) {
   await page.locator('.ve-typecard .pp-card-h').click();
   await page.locator('.ve-typeopt', { hasText: label }).first().click();
 }
-/** libellé (traduit) → valeur affichée, pour toutes les listes du panneau (cartes toutes ouvertes par la recherche) */
+/** libellé (traduit) → valeur affichée, pour toutes les listes du panneau (liste, segmenté ou curseur à crans ; cartes toutes ouvertes par la recherche) */
 async function shownSelects(page) {
   await page.locator('.ve-form .pp-q').fill(' ');
-  const out = await page.$$eval('.ve-form select', (n) =>
-    Object.fromEntries(n.map((s) => [s.closest('.f').querySelector('label').textContent, s.options[s.selectedIndex].text])),
+  const out = await page.$$eval('.ve-form .f', (n) =>
+    Object.fromEntries(
+      n
+        .map((f) => {
+          const label = f.querySelector('.hint label, .hint > span, .hint');
+          const sel = f.querySelector('select'),
+            on = f.querySelector('.seg button.on'),
+            val = f.querySelector('output.pp-val');
+          const v = sel ? sel.options[sel.selectedIndex].text : on ? on.textContent : val ? val.textContent : null;
+          return v == null ? null : [label.textContent, v];
+        })
+        .filter(Boolean),
+    ),
   );
   await page.locator('.ve-form .pp-q').fill('');
   return out;
@@ -54,10 +68,10 @@ test.describe('sidebar de l’éditeur de dataviz', () => {
   });
 
   test('un clic sur le libellé met le focus dans le champ', async ({ page }) => {
-    await pickType(page, /^Bars \(/);
+    await pickType(page, /^Donut/);
     await page.locator('.ve-form .pp-q').fill(' ');
-    await page.locator('.ve-form .f label', { hasText: 'Bar thickness' }).click();
-    expect(await page.evaluate(() => document.activeElement.tagName)).toBe('SELECT');
+    await page.locator('.ve-form .f label', { hasText: 'Largest segment angle' }).click();
+    expect(await page.evaluate(() => document.activeElement.tagName)).toBe('INPUT');
   });
 
   test('Échap : vide la recherche, confirme avant d’abandonner, ne ferme pas une modale par erreur', async ({ page }) => {
@@ -161,23 +175,24 @@ test.describe('dépendances entre champs', () => {
   test('légende éteinte : la position est grisée avec sa phrase, le focus reste sur l’interrupteur', async ({ page }) => {
     await pickType(page, /^Bars \(/);
     await page.locator('.ve-form .pp-q').fill(' ');
-    const sw = page.locator('.ve-form label.row', { hasText: /^Show legend/ }).locator('input');
+    const sw = page.locator('.ve-form .pp-switchrow', { hasText: /^Show legend/ }).locator('button[role=switch]');
     const pos = page.locator('.ve-form .f', { hasText: 'Legend position' });
     await expect(pos).not.toHaveAttribute('aria-disabled', 'true');
     await sw.focus();
     await page.keyboard.press('Space');
-    await expect(sw).not.toBeChecked();
+    await expect(sw).toHaveAttribute('aria-checked', 'false');
     await expect(pos).toHaveAttribute('aria-disabled', 'true');
     await expect(page.locator('.ve-form .dep-why', { hasText: 'Turn on “Show legend”' })).toBeVisible();
     expect(await sw.evaluate((n) => n === document.activeElement)).toBe(true); // pas de reconstruction du panneau
     const opacity = await pos.evaluate((n) => getComputedStyle(n).opacity);
     expect(opacity).toBe('0.55');
     // reste focalisable en lecture, mais ne change plus
-    const sel = pos.locator('select');
-    await sel.focus();
-    expect(await sel.evaluate((n) => n === document.activeElement)).toBe(true);
-    await page.keyboard.press('ArrowDown');
-    expect(await sel.inputValue()).toBe('bottom');
+    const on = pos.locator('.seg button.on');
+    await expect(on).toHaveText('Bottom');
+    await on.focus();
+    expect(await on.evaluate((n) => n === document.activeElement)).toBe(true);
+    await page.keyboard.press('ArrowRight');
+    await expect(on).toHaveText('Bottom');
     await sw.focus();
     await page.keyboard.press('Space');
     await expect(pos).not.toHaveAttribute('aria-disabled', 'true');
@@ -214,5 +229,33 @@ test.describe('dépendances entre champs', () => {
     await expect(width).toBeHidden();
     await card.locator('select').first().selectOption('none');
     await expect(size).toBeHidden();
+  });
+});
+
+/* Contrôles (lot 4 de l'audit) */
+test.describe('contrôles', () => {
+  test.beforeEach(async ({ page }) => {
+    await openApp(page, 'default');
+    await openEditor(page);
+    await pickType(page, /^Donut/);
+    await page.locator('.ve-form .pp-q').fill(' ');
+  });
+  test('interrupteur, segmenté, curseur éditable et ↺', async ({ page }) => {
+    const form = page.locator('.ve-form');
+    // décimales : segmenté 0–4, flèche droite choisit et garde le focus
+    const dec = form.locator('.f', { hasText: 'Total decimals' });
+    await dec.locator('button[role=radio]').first().focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(dec.locator('button.on')).toHaveText('1');
+    // angle : champ éditable relié au curseur, ↺ rétablit
+    const ang = form.locator('.f', { hasText: 'Largest segment angle' });
+    const num = ang.locator('input[type=number]');
+    await num.fill('120');
+    await expect(ang.locator('input[type=range]')).toHaveValue('120');
+    const rst = ang.locator('.pp-reset');
+    await expect(rst).not.toHaveAttribute('aria-disabled', 'true');
+    await rst.click();
+    await expect(num).toHaveValue('210');
+    await expect(rst).toHaveAttribute('aria-disabled', 'true');
   });
 });

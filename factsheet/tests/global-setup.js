@@ -6,6 +6,8 @@ module.exports = async () => {
   await build({
     entryPoints: [path.join(__dirname, 'entry.js')],
     outfile: path.join(__dirname, 'entry.bundle.js'),
-    bundle: true, format: 'iife', logLevel: 'warning',
+    bundle: true,
+    format: 'iife',
+    logLevel: 'warning',
   });
 };

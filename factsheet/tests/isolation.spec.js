@@ -15,7 +15,8 @@ async function renderPlan(page, plan) {
     const host = document.createElement('div');
     Object.assign(host.style, { position: 'absolute', left: '-30000px', top: '0' });
     document.body.append(host);
-    const live = {}, html = {};
+    const live = {},
+      html = {};
     for (const [op, name] of plan) {
       if (op === 'render') {
         const r = renderDocument(docs[name]());
@@ -41,8 +42,16 @@ test('deux documents rendus entremêlés ne s’influencent pas', async ({ page 
   await openApp(page, 'iso-loose');
   await page.addScriptTag({ url: '/factsheet/tests/entry.bundle.js' });
   const solo = {
-    ...(await renderPlan(page, [['render', 'iso-tight'], ['measure', 'iso-tight'], ['read', 'iso-tight']])),
-    ...(await renderPlan(page, [['render', 'iso-loose'], ['measure', 'iso-loose'], ['read', 'iso-loose']])),
+    ...(await renderPlan(page, [
+      ['render', 'iso-tight'],
+      ['measure', 'iso-tight'],
+      ['read', 'iso-tight'],
+    ])),
+    ...(await renderPlan(page, [
+      ['render', 'iso-loose'],
+      ['measure', 'iso-loose'],
+      ['read', 'iso-loose'],
+    ])),
   };
   // les deux documents diffèrent bien par chacun des réglages (sinon le test ne prouverait rien)
   expect(solo['iso-tight'].html).not.toBe(solo['iso-loose'].html);
@@ -55,16 +64,23 @@ test('deux documents rendus entremêlés ne s’influencent pas', async ({ page 
 
   // A et B rendus avant toute mesure, mesurés dans l'ordre inverse : la dataviz « remplir » de A est redessinée après le rendu de B
   const mixed = await renderPlan(page, [
-    ['render', 'iso-tight'], ['render', 'iso-loose'],
-    ['measure', 'iso-loose'], ['measure', 'iso-tight'],
-    ['read', 'iso-tight'], ['read', 'iso-loose'],
+    ['render', 'iso-tight'],
+    ['render', 'iso-loose'],
+    ['measure', 'iso-loose'],
+    ['measure', 'iso-tight'],
+    ['read', 'iso-tight'],
+    ['read', 'iso-loose'],
   ]);
   expect(mixed['iso-tight']).toEqual(solo['iso-tight']);
   expect(mixed['iso-loose']).toEqual(solo['iso-loose']);
   // l'un après l'autre, dans les deux ordres
   const seq = await renderPlan(page, [
-    ['render', 'iso-loose'], ['measure', 'iso-loose'], ['read', 'iso-loose'],
-    ['render', 'iso-tight'], ['measure', 'iso-tight'], ['read', 'iso-tight'],
+    ['render', 'iso-loose'],
+    ['measure', 'iso-loose'],
+    ['read', 'iso-loose'],
+    ['render', 'iso-tight'],
+    ['measure', 'iso-tight'],
+    ['read', 'iso-tight'],
   ]);
   expect(seq).toEqual(solo);
   expect(errors).toEqual([]);
@@ -74,13 +90,21 @@ test('deux documents rendus entremêlés ne s’influencent pas', async ({ page 
 async function pdfOf(page, name) {
   const b64 = await page.evaluate(async (name) => {
     const { bytes } = await window.FSPDF.build(window.FSTEST.docs[name](), 'bleed', { profile: 'x4' });
-    return await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.readAsDataURL(new Blob([bytes])); });
+    return await new Promise((res) => {
+      const fr = new FileReader();
+      fr.onload = () => res(String(fr.result).split(',')[1]);
+      fr.readAsDataURL(new Blob([bytes]));
+    });
   }, name);
-  return Buffer.from(b64, 'base64').toString('latin1')
-    .replace(/\/(CreationDate|ModDate) \([^)]*\)/g, '/$1 ()').replace(/\/ID \[[^\]]*\]/g, '/ID []')
-    .replace(/<xmp:(\w+Date)>[^<]*</g, '<xmp:$1><').replace(/xmpMM:(DocumentID|InstanceID)>[^<]*</g, 'xmpMM:$1><');
+  return Buffer.from(b64, 'base64')
+    .toString('latin1')
+    .replace(/\/(CreationDate|ModDate) \([^)]*\)/g, '/$1 ()')
+    .replace(/\/ID \[[^\]]*\]/g, '/ID []')
+    .replace(/<xmp:(\w+Date)>[^<]*</g, '<xmp:$1><')
+    .replace(/xmpMM:(DocumentID|InstanceID)>[^<]*</g, 'xmpMM:$1><');
 }
-const previewHtml = (page) => page.evaluate(() => [...document.querySelectorAll('#stage .page')].map((p) => p.outerHTML).join('\n')).then(norm);
+const previewHtml = (page) =>
+  page.evaluate(() => [...document.querySelectorAll('#stage .page')].map((p) => p.outerHTML).join('\n')).then(norm);
 
 test('export PDF d’un document « serré » pendant que l’aperçu montre un document « large »', async ({ page }) => {
   const errors = watchErrors(page);

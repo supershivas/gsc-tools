@@ -447,7 +447,16 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     if (!hasData) tab = 'viz';
     syncTabs(hasData);
     main.classList.toggle('is-data', tab === 'data');
-    const gen = (list) => buildFields(list, col.viz.opts, fctx, paletteOptions(doc), h);
+    /* ↺ : valeur d'origine = celle des réglages par défaut du type (`reset`, jamais lue pour l'affichage) */
+    const dflt = ty.defaults ? ty.defaults() : {};
+    const gen = (list) =>
+      buildFields(
+        list.map((f) => (f.k && f.def === undefined && f.t !== 'text' && dflt[f.k] !== undefined ? { ...f, reset: dflt[f.k] } : f)),
+        col.viz.opts,
+        fctx,
+        paletteOptions(doc),
+        h,
+      );
     if (tab === 'data') {
       const nodes = [];
       for (const f of dataFields) {

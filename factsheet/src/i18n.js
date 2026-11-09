@@ -75,6 +75,7 @@ const EN = {
   'Ton léger (20 %)': 'Light tone (20 %)',
   Édition: 'Edit',
   Rétablir: 'Redo',
+  'Rétablir la valeur d’origine': 'Restore the original value',
   'Couleurs du document…': 'Document colours…',
   'Les couleurs, le format des nombres et le nom du fichier sont dans le menu Édition.':
     'Colours, number format and file name are in the Edit menu.',
