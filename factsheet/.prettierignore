@@ -1,0 +1,7 @@
+# Bundles générés (npm run build)
+app.js
+viewer3d.js
+atelier.js
+labo.js
+pdfexport.js
+node_modules
