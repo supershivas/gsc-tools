@@ -1,6 +1,6 @@
 /* Colonne de gauche : la structure du document en cartes repliables (header, sections, sous-sections, colonnes).
    Clic = sélection (propriétés à droite) · glisser une poignée = prendre l'élément comme un objet : il suit le pointeur
-   pendant que la structure et la page se réorganisent en direct (moteur commun dans main.js, `ctx.startTreeDrag`). */
+   pendant que la structure et la page se réorganisent en direct (moteur commun dans editor/dnd.js, `ctx.startTreeDrag`). */
 import { h, ico } from './render.js';
 import { PREFIX_RE } from './textstyles.js';
 import { stripInline } from './viz/util.js';

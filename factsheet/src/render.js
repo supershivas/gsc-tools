@@ -175,7 +175,7 @@ function renderSub(sub, si, bi, env, W) {
     node.style.gridColumn = custom ? 'span 1' : `span ${L.spans[i]}`;
     cols.append(node);
     x += cw;
-    /* poignée entre deux colonnes : glisser = largeurs personnalisées (main.js), invisible hors de l'aperçu */
+    /* poignée entre deux colonnes : glisser = largeurs personnalisées (editor/handles.js), invisible hors de l'aperçu */
     if (i < sub.cols.length - 1) { cols.append(h('div', { class: 'col-split', dataset: { split: i }, style: { position: 'absolute', top: '0', bottom: '0', left: x + 'px', width: GRID.gutter + 'px' } })); x += GRID.gutter; }
   });
   el.append(cols);

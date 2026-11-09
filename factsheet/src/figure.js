@@ -65,7 +65,7 @@ export function renderFigure(o, W, align) {
   const fsAll = Math.min(...items.map((it, i) => fitSize(stripMk(it.value), TYPE.figure.weight, SERIF, base, ws[i] - (it.icon && it.icon !== 'none' ? TYPE.figure.lh + VIZ.iconGap : 0) - 1, 0.4)));
   const cells = items.map((it, i) => el('div', { class: 'fg-cell', style: { width: ws[i] + 'px' } }, oneFigure(it, ws[i], align, o, fsAll)));
   let x = 0; const splits = ws.slice(0, -1).map((w, i) => { x += w; const sp = el('div', { class: 'fig-split', 'data-split': i, style: { position: 'absolute', top: '0', bottom: '0', left: x + 'px', width: gap + 'px' } }); x += gap; return sp; });
-  const row = el('div', { class: 'fg-row', style: { gap: gap + 'px', position: 'relative' } }, ...cells, ...splits);   // poignées vides entre les chiffres : glisser règle leurs largeurs (main.js)
+  const row = el('div', { class: 'fg-row', style: { gap: gap + 'px', position: 'relative' } }, ...cells, ...splits);   // poignées vides entre les chiffres : glisser règle leurs largeurs (editor/handles.js)
   if (!headText && !headIcon) return row;
   const ic = headIcon ? figureIcon(o.headIcon, 54, false) : null;
   return el('div', { class: 'fg-all' },

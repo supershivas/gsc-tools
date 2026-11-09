@@ -98,7 +98,7 @@ export function composeSide(sd, W, env, tk, core) {
   const GAPF = 18, wv = Math.round(W * Math.max(25, Math.min(80, +sd.share || 60)) / 100), wf = Math.max(40, W - wv - GAPF), r = core(wv); if (!r) return r;
   const fig = renderFigure({ value: fill(sd.value, tk), icon: 'none', scale: +sd.scale || 1, text: fill((sd.text || '').trim() || '{label}', tk) }, wf, 'left');
   const align = { center: 'center', bottom: 'flex-end' }[sd.align] || 'flex-start';
-  /* la séparation entre le contenu et le chiffre est une poignée invisible : glisser dans l'aperçu change la part du contenu (main.js) */
+  /* la séparation entre le contenu et le chiffre est une poignée invisible : glisser dans l'aperçu change la part du contenu (editor/handles.js) */
   const box = el('div', { class: 'viz-side', style: { display: 'flex', width: W + 'px', alignItems: align, flexDirection: sd.pos === 'left' ? 'row-reverse' : 'row' } },
     el('div', { style: { width: wv + 'px', flex: 'none' } }, r.node), el('div', { class: 'side-split', style: { width: GAPF + 'px', flex: 'none', alignSelf: 'stretch' } }), el('div', { style: { width: wf + 'px', flex: 'none' } }, fig));
   return { ...r, node: box };
