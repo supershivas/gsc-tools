@@ -1,5 +1,7 @@
 # Factsheet creator (outil de GSC tools)
 
+> Détail de chaque fonctionnalité et règles de développement : [`docs/architecture.md`](docs/architecture.md).
+
 Éditeur de fiche A4 recto-verso à design system strict (Source Sans 3 / Source Serif 4).
 Ouvrir `index.html` via un serveur local ou GitHub Pages — le code est empaqueté dans `app.js`, les polices sont locales (`fonts/`).
 Après modification de `src/` : `npm install` (une fois) puis `npm run build` pour régénérer les bundles (`app.js`, `viewer3d.js`, `atelier.js`, `labo.js`, `pdfexport.js`, tous minifiés) ; ils se commitent avec les sources. Le champ `version` de `package.json` (`0.0.0-private`) ne veut rien dire : la version de l'app est dans `../version.json`.
