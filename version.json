@@ -1,8 +1,7 @@
 {
-  "version": "1.72.0",
+  "version": "1.72.1",
   "date": "2026-11-09",
   "changes": [
-    "Couleurs du document : nouveau bouton « Importer une palette… » (depuis une image, un fichier .ase / .gpl / .json / .css, ou un autre projet Factsheet)",
-    "On coche les couleurs à garder ; noms et valeurs CMJN sont repris quand le fichier les contient"
+    "Les couleurs du document sont visibles directement dans la barre latérale « Document » (ajout, import, renommage, suppression sans ouvrir de fenêtre)"
   ]
 }

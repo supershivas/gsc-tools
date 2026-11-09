@@ -2,11 +2,11 @@
 import { h } from '../render.js';
 import { t } from '../i18n.js';
 import { DENSITIES } from '../tokens.js';
-import { openPalette } from '../palette.js';
+import { buildPalette } from '../palette.js';
 import { LOCALES } from '../state.js';
 
 export function documentPanel(k) {
-  const { doc, ctx, root, title, card, field, pair, switchRow, btn, struct } = k;
+  const { doc, ctx, root, title, card, field, fieldDiv, pair, switchRow, struct } = k;
   const toggle = (key) => () => {
     doc[key] = !doc[key];
   };
@@ -24,6 +24,14 @@ export function documentPanel(k) {
     );
     s.value = doc.locale || 'en-GB';
     return s;
+  };
+
+  /* la palette est dans le panneau lui-même ; elle se redessine seule après un ajout, un import ou une suppression */
+  const paletteBox = () => {
+    const box = h('div');
+    const draw = () => box.replaceChildren(buildPalette(ctx, draw));
+    draw();
+    return box;
   };
 
   title(doc.name || 'Document', [], { icon: 'file-text', pill: t('Document') });
@@ -61,7 +69,7 @@ export function documentPanel(k) {
           ),
         }),
         field('Format des nombres', localeSelect()),
-        btn('palette', t('Couleurs du document'), (e) => openPalette(e.currentTarget, ctx)),
+        fieldDiv('Couleurs du document', paletteBox()),
       ],
       null,
       doc.name || '',

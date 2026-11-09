@@ -275,6 +275,10 @@ body.v3d-open{overflow:hidden}
 .pal-pop-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .pal-pop .pal2{margin:0 0 10px}
 .pal-pop .pp-btn{width:100%}
+.pal2-add .pp-btn{width:100%}
+/* dans la barre latérale : nom en pleine largeur (ton léger et CMJN restent dans la fenêtre du menu Édition) */
+.f .pal2-row{grid-template-columns:32px minmax(0,1fr) 28px}
+.f .pal2-tint,.f .pal2-hex{display:none}
 .pal2-add{display:flex;flex-direction:column;gap:6px}
 /* import de palette (fenêtre .modal) */
 dialog.pimp{width:min(var(--modal-max-width),calc(100vw - 24px))}
