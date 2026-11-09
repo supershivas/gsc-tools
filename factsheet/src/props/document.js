@@ -59,21 +59,23 @@ export function documentPanel(k) {
           densities,
           struct(() => {}),
         ),
-        switchRow('Typographie française', !!doc.frTypo, toggle('frTypo')),
-        switchRow('Ordinaux et fractions', !!doc.ordinals, toggle('ordinals')),
-        switchRow('Texte ajusté (veuves, orphelines)', !!doc.wrapFix, toggle('wrapFix')),
-        h('p', {
-          class: 'hint',
-          textContent: t(
-            'Typographie française : espaces insécables avant ; : ! ? % et dans les guillemets. Ordinaux : 1er, 2e en exposant, ½. Texte ajusté : pas de mot seul en dernière ligne, titres équilibrés.',
-          ),
-        }),
-        field('Format des nombres', localeSelect()),
       ],
       null,
       doc.name || '',
     ),
     card('doc-colors', 'palette', t('Couleurs du document'), [paletteBox()]),
+    card('doc-advanced', 'adjustments', t('Options avancées'), [
+      switchRow('Typographie française', !!doc.frTypo, toggle('frTypo')),
+      switchRow('Ordinaux et fractions', !!doc.ordinals, toggle('ordinals')),
+      switchRow('Texte ajusté (veuves, orphelines)', !!doc.wrapFix, toggle('wrapFix')),
+      h('p', {
+        class: 'hint',
+        textContent: t(
+          'Typographie française : espaces insécables avant ; : ! ? % et dans les guillemets. Ordinaux : 1er, 2e en exposant, ½. Texte ajusté : pas de mot seul en dernière ligne, titres équilibrés.',
+        ),
+      }),
+      field('Format des nombres', localeSelect()),
+    ]),
     h('p', {
       class: 'hint',
       textContent: t('Sélectionnez un élément dans la structure (à gauche) ou sur la page pour modifier ses propriétés.'),

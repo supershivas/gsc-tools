@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.73.1 — 2026-11-09
+- Barre latérale « Document » : typographie française, ordinaux, texte ajusté et format des nombres passent dans une carte « Options avancées »
+
 ## 1.73.0 — 2026-11-09
 - Les couleurs ont leur propre carte sous « Document », identique à la fenêtre « Couleurs du document » ouverte ailleurs ; l'import d'une palette se lance par la petite icône en haut à droite
 - On nomme chaque couleur au moment de l'import

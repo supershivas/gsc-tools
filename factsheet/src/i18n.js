@@ -853,6 +853,7 @@ const EN = {
   'Cette couleur est utilisée dans le document. Choisissez la couleur qui la remplace :':
     'This colour is used in the document. Choose the colour that replaces it:',
   'Cette couleur reste toujours dans le document': 'This colour always stays in the document',
+  'Options avancées': 'Advanced options',
   'Ajouter une couleur': 'Add a colour',
   Pipette: 'Eyedropper',
   Carte: 'Card',
