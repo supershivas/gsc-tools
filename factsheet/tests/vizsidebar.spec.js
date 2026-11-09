@@ -426,3 +426,58 @@ test.describe('champs de texte', () => {
     await expect(src.locator('[aria-label="More formatting"]')).toHaveCount(1);
   });
 });
+
+/* Dupliquer une colonne : dans la colonne suivante si elle est libre, à droite s'il n'y a pas de suivante, sinon on demande */
+test.describe('dupliquer une colonne', () => {
+  let errors;
+  const layouts = (page) =>
+    page.evaluate(() =>
+      JSON.parse(localStorage.getItem('factsheet-creator-v1')).sections.map((s) =>
+        s.subs.map((b) => b.layout + ':' + b.cols.map((c) => c.type).join(',')),
+      ),
+    );
+  test.beforeEach(async ({ page }) => {
+    errors = watchErrors(page);
+    await openApp(page, 'default');
+  });
+  test.afterEach(() => expect(errors).toEqual([]));
+  const dup = (page) => page.locator('.pr-ib[aria-label="Duplicate the column"]').click();
+
+  test('colonne suivante prise : choix proposé (insérer, remplacer, nouvelle sous-section)', async ({ page }) => {
+    await page.locator('#tree .col-row').first().click(); // 1re colonne de « 3 chiffres clés »
+    await dup(page);
+    const dlg = page.locator('dialog[open]');
+    await expect(dlg).toContainText('already has content');
+    await dlg.getByText('Insert a column beside it').click();
+    await dlg.locator('button.primary').click();
+    await expect.poll(async () => (await layouts(page))[0][0]).toBe('1-1-1-1:figure,figure,figure,figure');
+  });
+  test('remplacer la colonne suivante', async ({ page }) => {
+    await page.locator('#tree .col-row').first().click();
+    await dup(page);
+    await page.locator('dialog[open]').getByText('Replace the next column').click();
+    await page.locator('dialog[open] button.primary').click();
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => JSON.parse(localStorage.getItem('factsheet-creator-v1')).sections[0].subs[0].cols.map((c) => c.figure.value)[1],
+        ),
+      )
+      .toBe('€7.5 bn');
+    const figs = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('factsheet-creator-v1')).sections[0].subs[0].cols.map((c) => c.figure.value),
+    );
+    expect(figs[1]).toBe(figs[0]);
+  });
+  test('nouvelle sous-section, annulation, et pas de question sans colonne suivante', async ({ page }) => {
+    await page.locator('#tree .col-row').first().click();
+    await dup(page);
+    await page.locator('dialog[open]').getByText('Copy into a new subsection').click();
+    await page.locator('dialog[open] button.primary').click();
+    await expect.poll(async () => (await layouts(page))[0][1]).toBe('1-1-1:figure,text,text');
+    await page.locator('#tree .col-row', { hasText: 'Dataviz · Lines' }).click(); // dernière colonne de « 1-2 » : pas de suivante
+    await dup(page);
+    await expect(page.locator('dialog[open]')).toHaveCount(0); // insérée directement
+    await expect.poll(async () => (await layouts(page)).flat()).toContain('1-1-1:text,viz,viz');
+  });
+});

@@ -1,7 +1,8 @@
 /* Propriétés d'une colonne : contenu (un éditeur par type : texte, image, chiffre clé, carte, dataviz), hauteur, disposition, fond, textes libres. */
 import { h, ico, columnWidth } from '../render.js';
 import { t } from '../i18n.js';
-import { COL_TYPES, VALIGNS, ALIGNS, newCol, swapCols, allCols } from '../state.js';
+import { COL_TYPES, VALIGNS, ALIGNS, newCol, swapCols, allCols, duplicateCol, isFreeCol, MAX_COLS, refreshAutoCards } from '../state.js';
+import { chooseBox } from '../dialogs.js';
 import { VIZ_TYPES, SIDE_FIELDS, newColSide } from '../viz/index.js';
 import { newCard } from '../cardmodel.js';
 import { richSelect } from '../colorselect.js';
@@ -30,6 +31,37 @@ export function columnPanel(k, { si, bi, ci, sec, sub, col }) {
     });
   };
 
+  /* Dupliquer : la copie va dans la colonne suivante si elle est libre, s'ajoute à droite s'il n'y a pas de suivante ; sinon on demande (insérer, remplacer, nouvelle sous-section) */
+  const duplicate = async () => {
+    const next = sub.cols[ci + 1];
+    let mode = next && isFreeCol(next) ? 'replace' : !next && nb < MAX_COLS ? 'insert' : null;
+    if (!mode) {
+      const options = [
+        nb < MAX_COLS ? { value: 'insert', label: t('Insérer une colonne à côté (les colonnes deviennent égales)') } : null,
+        next ? { value: 'replace', label: t('Remplacer la colonne suivante') } : null,
+        { value: 'sub', label: t('Copier dans une nouvelle sous-section, en dessous') },
+      ].filter(Boolean);
+      mode = await chooseBox(
+        next
+          ? t('La colonne suivante contient déjà du contenu. Où mettre la copie ?')
+          : t('Il n’y a plus de place à côté. Où mettre la copie ?'),
+        options,
+        options[0].value,
+        t('Dupliquer'),
+      );
+      if (!mode) return;
+    }
+    ctx.moved(
+      () => {
+        const path = duplicateCol(doc, si, bi, ci, mode);
+        refreshAutoCards(sub, (i) => columnWidth(doc, si, bi, i));
+        return path;
+      },
+      'Colonne dupliquée.',
+      'Annuler la duplication',
+    );
+  };
+
   title(
     `Colonne ${ci + 1}`,
     [
@@ -46,6 +78,7 @@ export function columnPanel(k, { si, bi, ci, sec, sub, col }) {
               ci < nb - 1 ? ['arrow-right', t('Colonne suivante'), nudge(1)] : null,
             ].filter(Boolean)
           : []),
+        ['copy', t('Dupliquer la colonne'), duplicate],
         ['trash', t('Supprimer la colonne'), () => ctx.remove(`col:${si}:${bi}:${ci}`), 'danger'],
       ],
     },

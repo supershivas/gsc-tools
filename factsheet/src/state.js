@@ -489,3 +489,35 @@ export function removeCol(doc, si, bi, ci) {
   sub.layout = { 1: '1', 2: '1-1', 3: '1-1-1', 4: '1-1-1-1', 5: '1-1-1-1-1', 6: '1-1-1-1-1-1' }[sub.cols.length] || '1';
   return `col:${si}:${bi}:${Math.min(ci, sub.cols.length - 1)}`;
 }
+
+/* ---------- Duplication d'une colonne ---------- */
+const EQUAL_LAYOUT = { 1: '1', 2: '1-1', 3: '1-1-1', 4: '1-1-1-1', 5: '1-1-1-1-1' };
+/** Nombre maximal de colonnes proposées par les gabarits */
+export const MAX_COLS = 5;
+/** Une colonne « libre » ne contient rien à perdre : texte vide ou texte d'origine, image sans fichier */
+export const isFreeCol = (col) =>
+  !col ||
+  (col.type === 'text' && (!String(col.text || '').trim() || col.text === newCol('text').text)) ||
+  (col.type === 'image' && !col.src);
+/** Duplique la colonne ci de la sous-section bi. `mode` : `replace` (la copie prend la place de la colonne suivante), `insert` (la copie s'ajoute à droite, les colonnes deviennent égales,
+    comme à la suppression d'une colonne), `sub` (nouvelle sous-section dessous, même gabarit, la copie à la même place). Retourne le chemin de la copie. */
+export function duplicateCol(doc, si, bi, ci, mode) {
+  const sec = doc.sections[si],
+    sub = sec.subs[bi],
+    copy = JSON.parse(JSON.stringify(sub.cols[ci]));
+  if (mode === 'replace' && sub.cols[ci + 1]) {
+    sub.cols[ci + 1] = copy;
+    return `col:${si}:${bi}:${ci + 1}`;
+  }
+  if (mode === 'sub') {
+    const n = JSON.parse(JSON.stringify(sub));
+    n.id = uid('sub');
+    n.cols = n.cols.map((c, i) => (i === ci ? copy : newCol('text')));
+    sec.subs.splice(bi + 1, 0, n);
+    return `col:${si}:${bi + 1}:${ci}`;
+  }
+  sub.cols.splice(ci + 1, 0, copy);
+  sub.layout = EQUAL_LAYOUT[sub.cols.length] || sub.layout;
+  delete sub.widths;
+  return `col:${si}:${bi}:${ci + 1}`;
+}

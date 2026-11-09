@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.84.0 — 2026-11-09
+- Nouveau bouton « Dupliquer la colonne » dans les propriétés d'une colonne
+- La copie prend la colonne suivante si elle est vide, s'ajoute à droite s'il n'y a pas de colonne suivante ; si la colonne suivante est déjà remplie, une fenêtre propose d'insérer une colonne (les colonnes deviennent égales), de remplacer la suivante ou de copier dans une nouvelle sous-section
+- La duplication est annulable
+
 ## 1.83.0 — 2026-11-09
 - Champs de texte uniformisés : un seul composant, avec la mise en forme que le dessin sait vraiment rendre
 - Titre, source, chiffre à côté et liste à icônes ont tous la même barre complète (gras, italique, souligné, exposant, indice, puis couleur, surlignage, lien, notes) ; les textes dessinés dans les graphiques n'ont que gras, italique et souligné, ou rien du tout pour les titres d'axes et les valeurs
