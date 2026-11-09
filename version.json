@@ -1,7 +1,8 @@
 {
-  "version": "1.70.2",
+  "version": "1.71.0",
   "date": "2026-11-09",
   "changes": [
-    "Interface en anglais : traduit les derniers textes restés en français (styles de paragraphe, infobulles des couleurs du document, lien et sujets du Labo)"
+    "Export PDF : nouveau profil « RVB (écran) », pour envoyer le document par e-mail ou le lire à l'écran",
+    "Le bouton « PDF RVB (impression) », qui passait par la fenêtre d'impression du navigateur, est retiré : un seul bouton « Télécharger le PDF »"
   ]
 }

@@ -1,12 +1,14 @@
-/* Export PDF CMJN : les pages sont rendues comme à l'écran (render.js) dans un conteneur caché, puis relues élément par élément
-   (fonds, filets, texte mot à mot, SVG des dataviz, images) et réécrites en opérateurs PDF vectoriels en DeviceCMYK avec pdf-lib.
-   - couleurs : valeurs CMJN exactes de la palette (cmyk.js), conversion simple pour le reste ; noir et gris = noir seul
+/* Export PDF (seul chemin d'export) : les pages sont rendues comme à l'écran (render.js) dans un conteneur caché, puis relues élément
+   par élément (fonds, filets, texte mot à mot, SVG des dataviz, images) et réécrites en opérateurs PDF vectoriels avec pdf-lib,
+   en DeviceCMYK, ou en DeviceRGB pour le profil « RVB (écran) » (`rgb: true` dans PDF_PROFILES).
+   - couleurs CMJN : valeurs exactes de la palette (cmyk.js), conversion simple pour le reste ; noir et gris = noir seul
+   - couleurs RVB : celles de l'écran, sans conversion ni profil
    - texte : polices incorporées (fonts/pdf/*.ttf, instances statiques de Source Sans 3 / Source Serif 4), positions relevées dans le navigateur
-   - images : rastérisées à 300 ppi puis converties en CMJN (le canal alpha devient un masque)
-   - fond perdu et traits de coupe : mêmes modes que l'impression (export.js), avec TrimBox et BleedBox
+   - images : rastérisées à 300 ppi puis converties en CMJN ou gardées en RVB (le canal alpha devient un masque)
+   - fond perdu et traits de coupe : modes de export.js, avec TrimBox et BleedBox ; le débord des fonds est décidé par bleedFor
    - profil (PDF_PROFILES, export.js) : PDF/X-4 (transparences conservées) ou PDF/X-1a (transparences aplaties sur le fond situé
      sous l'élément), avec profil de sortie FOGRA39 incorporé (icc/ISOcoated_v2_300_eci.icc, ECI), métadonnées XMP et identifiant ;
-     les liens cliquables ne sont pas gardés en PDF/X (annotations interdites dans la page)
+     les liens cliquables ne sont gardés que hors PDF/X (annotations interdites dans la page)
    - caractères absents des polices : non dessinés, renvoyés dans `missing` pour prévenir avant le téléchargement. */
 import {
   PDFDocument,
@@ -14,6 +16,7 @@ import {
   PDFHexString,
   PDFName,
   cmyk as cmykColor,
+  rgb as rgbColor,
   pushGraphicsState,
   popGraphicsState,
   concatTransformationMatrix,
@@ -34,6 +37,8 @@ import {
   setDashPattern,
   setFillingCmykColor,
   setStrokingCmykColor,
+  setFillingRgbColor,
+  setStrokingRgbColor,
   drawObject,
   setGraphicsState,
 } from 'pdf-lib';
@@ -312,10 +317,38 @@ const fontBytes = async (name) => {
   return bytesCache.get(name);
 };
 
+/* ---------- encres : CMJN (imprimeur) ou RVB (écran) ---------- */
+/* Une seule interface pour tout le parcours : couleur CSS [r, g, b] 0–255 → composantes 0–1 de l'espace du PDF. */
+function makeInk(doc, rgb) {
+  if (rgb)
+    return {
+      n: 3,
+      space: 'DeviceRGB',
+      white: [1, 1, 1],
+      registration: [0, 0, 0], // traits de coupe : noir
+      resolve: (c) => c.map((v) => Math.max(0, Math.min(255, v)) / 255),
+      fill: (c) => setFillingRgbColor(...c),
+      stroke: (c) => setStrokingRgbColor(...c),
+      color: (c) => rgbColor(...c),
+    };
+  return {
+    n: 4,
+    space: 'DeviceCMYK',
+    white: [0, 0, 0, 0],
+    registration: [1, 1, 1, 1], // traits de coupe : repère sur toutes les encres
+    resolve: makeCmykResolver(doc),
+    fill: (c) => setFillingCmykColor(...c),
+    stroke: (c) => setStrokingCmykColor(...c),
+    color: (c) => cmykColor(...c),
+  };
+}
+
 /* ---------- images ---------- */
 const SCALE = 300 / 96;
-function rgbaToCmykImage(data, w, h, resolve) {
-  const cm = new Uint8Array(w * h * 4),
+/** pixels RVBA du canvas → composantes de l'espace du PDF (n par pixel) + canal alpha */
+function rgbaToInkImage(data, w, h, ink) {
+  const { n, resolve } = ink,
+    cm = new Uint8Array(w * h * n),
     al = new Uint8Array(w * h);
   let hasAlpha = false;
   const cache = new Map();
@@ -326,26 +359,22 @@ function rgbaToCmykImage(data, w, h, resolve) {
     const k = (data[i] << 16) | (data[i + 1] << 8) | data[i + 2];
     let v = cache.get(k);
     if (!v) {
-      const c = resolve([data[i], data[i + 1], data[i + 2]]);
-      v = [c[0] * 255, c[1] * 255, c[2] * 255, c[3] * 255].map(Math.round);
+      v = resolve([data[i], data[i + 1], data[i + 2]]).map((c) => Math.round(c * 255));
       cache.set(k, v);
     }
-    cm[q++] = v[0];
-    cm[q++] = v[1];
-    cm[q++] = v[2];
-    cm[q++] = v[3];
+    for (let j = 0; j < n; j++) cm[q++] = v[j];
   }
   return { cm, al, hasAlpha };
 }
 
-const WHITE_CMYK = [0, 0, 0, 0];
-const mix = (c, a, b) => c.map((v, i) => a * v + (1 - a) * b[i]); // aplat équivalent d'une couleur d'opacité a posée sur b (encres 0–1)
+const mix = (c, a, b) => c.map((v, i) => a * v + (1 - a) * b[i]); // aplat équivalent d'une couleur d'opacité a posée sur b (composantes 0–1)
 const xmlEsc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-/** → { bytes, missing } ; opts : { profile: 'none' | 'x4' | 'x1a', onProgress } */
+/** → { bytes, missing } ; opts : { profile: 'none' | 'x4' | 'x1a' | 'rgb', onProgress } */
 export async function buildPdf(doc, mode = 'net', opts = {}) {
   const profile = PDF_PROFILES[opts.profile] ? opts.profile : 'none',
     flat = profile === 'x1a',
+    pdfx = !!PDF_PROFILES[profile].icc,
     onProgress = opts.onProgress || (() => {});
   const missing = new Set();
   const m = EXPORT_MODES[mode] || EXPORT_MODES.net,
@@ -355,7 +384,8 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
     off = m.offset * PT_PER_MM,
     bleedPx = (BLEED_MM * 96) / 25.4;
   await loadFonts();
-  const resolve = makeCmykResolver(doc);
+  const ink = makeInk(doc, !!PDF_PROFILES[profile].rgb),
+    resolve = ink.resolve;
   const stage = document.createElement('div');
   Object.assign(stage.style, { position: 'absolute', left: '-20000px', top: '0' });
   document.body.append(stage);
@@ -382,7 +412,7 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
     const pdf = await PDFDocument.create();
     pdf.registerFontkit(fontkit);
     pdf.setTitle(doc.name || 'factsheet');
-    pdf.setProducer('GSC tools — Factsheet creator (PDF CMJN)');
+    pdf.setProducer(`GSC tools — Factsheet creator (PDF ${ink.n === 3 ? 'RVB' : 'CMJN'})`);
     pdf.setCreator('GSC tools');
     const fonts = new Map();
     const fontFor = async (fam, weight, italic) => {
@@ -440,8 +470,8 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
         return setGraphicsState(gsCache.get(k));
       };
       const toPt = (x, y) => apply(base, x, y);
-      const setFill = (c) => push(setFillingCmykColor(...c)),
-        setStroke = (c) => push(setStrokingCmykColor(...c));
+      const setFill = (c) => push(ink.fill(c)),
+        setStroke = (c) => push(ink.stroke(c));
       /* chemins : liste de commandes en coordonnées utilisateur, transformées par M (utilisateur → px de page) */
       const emitPath = (path, M) => {
         const T = mul(base, M),
@@ -498,7 +528,7 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
       const painted = [];
       const backdrop = (x, y) => {
         for (let i = painted.length - 1; i >= 0; i--) if (painted[i].hit(x, y)) return painted[i].c;
-        return WHITE_CMYK;
+        return ink.white;
       };
       const rectHit = (x, y, w, h) => ({ pt: [x + w / 2, y + h / 2], hit: (px, py) => px >= x && px <= x + w && py >= y && py <= y + h });
       /* forme SVG : test « point dans le remplissage » de l'API SVG, point de sonde à l'intérieur de la forme */
@@ -713,7 +743,7 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
             push(clip(), endPath());
           }
           flush();
-          page.drawText(t, { x, y, size: j.size * KY, font: f.embedded, color: cmykColor(...c), opacity: a < 0.999 ? a : undefined });
+          page.drawText(t, { x, y, size: j.size * KY, font: f.embedded, color: ink.color(c), opacity: a < 0.999 ? a : undefined });
           const la = alphaOps(1, a);
           if (la && (j.strike || j.under)) push(pushGraphicsState(), la);
           if (j.strike) {
@@ -899,13 +929,14 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
           }
           const pos = (cs.objectPosition || '50% 50%').split(' ').map((v) => (v.endsWith('%') ? parseFloat(v) / 100 : 0.5));
           g.drawImage(el, (cw - dw) * pos[0], (ch - dh) * (pos[1] ?? 0.5), dw, dh);
-          const { cm, al, hasAlpha } = rgbaToCmykImage(g.getImageData(0, 0, cw, ch).data, cw, ch, resolve);
+          const { cm, al, hasAlpha } = rgbaToInkImage(g.getImageData(0, 0, cw, ch).data, cw, ch, ink),
+            n = ink.n;
           if (flat && (hasAlpha || alpha < 0.999))
             for (let i = 0; i < al.length; i++) {
               const a = (al[i] / 255) * alpha;
-              for (let k = 0; k < 4; k++) cm[i * 4 + k] = Math.round(a * cm[i * 4 + k] + (1 - a) * B[k] * 255);
+              for (let k = 0; k < n; k++) cm[i * n + k] = Math.round(a * cm[i * n + k] + (1 - a) * B[k] * 255);
             }
-          const dict = { Type: 'XObject', Subtype: 'Image', Width: cw, Height: ch, ColorSpace: 'DeviceCMYK', BitsPerComponent: 8 };
+          const dict = { Type: 'XObject', Subtype: 'Image', Width: cw, Height: ch, ColorSpace: ink.space, BitsPerComponent: 8 };
           if (hasAlpha && !flat)
             dict.SMask = pdf.context.register(
               pdf.context.flateStream(al, {
@@ -1071,7 +1102,7 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
           if (n.nodeType === 3) drawText(n, el, 1, false, A2);
           else if (n.nodeType === 1) walk(n, A2);
         }
-        if (profile === 'none' && el.localName === 'a' && /^(https?:\/\/|mailto:)/i.test(el.getAttribute('href') || '')) {
+        if (!pdfx && el.localName === 'a' && /^(https?:\/\/|mailto:)/i.test(el.getAttribute('href') || '')) {
           // lien : une zone cliquable par ligne de texte
           const rg = document.createRange();
           rg.selectNodeContents(el);
@@ -1108,14 +1139,14 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
         );
         page.node.addAnnot(ref);
       }
-      /* traits de coupe : repère noir (toutes les encres), 0,25 pt, à 3 mm du format fini */
+      /* traits de coupe : repère (toutes les encres en CMJN, noir en RVB), 0,25 pt, à 3 mm du format fini */
       if (m.marks) {
         const L = 3 * PT_PER_MM,
           gap = BLEED_MM * PT_PER_MM,
           X = [off, off + A4.w * PT_PER_MM],
           Y = [off, off + A4.h * PT_PER_MM],
           mk = [];
-        mk.push(pushGraphicsState(), setStrokingCmykColor(1, 1, 1, 1), setLineWidth(0.25));
+        mk.push(pushGraphicsState(), ink.stroke(ink.registration), setLineWidth(0.25));
         X.forEach((x, xi) =>
           Y.forEach((y, yi) => {
             const sx = xi ? 1 : -1,
@@ -1137,10 +1168,10 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
         A4.h * PT_PER_MM + (m.bleed ? 2 * BLEED_MM * PT_PER_MM : 0),
       );
     }
-    if (profile !== 'none') await makePdfX(pdf, profile, doc.name || 'factsheet');
+    if (pdfx) await makePdfX(pdf, profile, doc.name || 'factsheet');
     const bytes = await pdf.save({ useObjectStreams: false });
     /* pdf-lib écrit toujours « %PDF-1.7 » : PDF/X-4 exige 1.6, PDF/X-1a:2003 1.4 (même longueur : les décalages de la table xref restent justes) */
-    if (profile !== 'none') bytes[7] = (profile === 'x1a' ? '4' : '6').charCodeAt(0);
+    if (pdfx) bytes[7] = (profile === 'x1a' ? '4' : '6').charCodeAt(0);
     return { bytes, missing: [...missing] };
   } finally {
     stage.remove();

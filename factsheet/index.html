@@ -30,11 +30,10 @@
   <h3>Exporter en PDF</h3>
   <h4>Format de la feuille</h4>
   <div id="exportOpts"></div>
-  <h4>Profil du PDF CMJN</h4>
+  <h4>Profil du PDF</h4>
   <div id="exportProfile"></div>
-  <p class="tip"><b>PDF CMJN</b> (pour l’imprimeur) : fichier vectoriel généré par l’app, couleurs en CMJN, polices incorporées, TrimBox et BleedBox renseignées. Les images importées sont converties en CMJN par une conversion simple.</p>
-  <details class="tip"><summary>PDF RVB (impression du navigateur)</summary>Le navigateur ouvre sa fenêtre d’impression : choisissez <b>Enregistrer au format PDF</b> comme destination, <b>Marges : aucune</b>, et cochez <b>Graphiques d’arrière-plan</b>. Le PDF contient 2 pages (recto, verso) en vectoriel avec polices incorporées, mais en RVB.</details>
-  <div class="row"><button type="button" id="exportCancel">Annuler</button><button type="button" id="exportGo">PDF RVB (impression)</button><button type="button" class="primary" id="exportCmyk">Télécharger le PDF CMJN</button></div>
+  <p class="tip">Fichier vectoriel généré par l’app, polices incorporées, TrimBox et BleedBox renseignées. <b>CMJN</b> pour l’imprimeur : couleurs exactes de la palette, images importées converties par une conversion simple. <b>RVB</b> pour l’écran.</p>
+  <div class="row"><button type="button" id="exportCancel">Annuler</button><button type="button" class="primary" id="exportGo">Télécharger le PDF</button></div>
 </dialog>
 <script>
 /* Démarrage versionné : GitHub Pages garde les fichiers 10 min en cache ; avec ?v=<version> une mise à jour n'est jamais servie avec d'anciens CSS/JS */

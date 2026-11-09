@@ -58,12 +58,6 @@ details.sel{border-color:#F28C28;box-shadow:0 0 0 2px #f28c2855}
 .thumb.dark{background:#1C1C1E}
 .mini{padding:1px 7px;font-size:12px}
 
-#print-root{display:none}
-.print-sheet{position:relative;overflow:hidden;background:#fff}
-.print-page{position:absolute;transform-origin:0 0}
-.marks i{position:absolute;display:block;border:0 solid #000;border-top-width:.25pt;border-left-width:.25pt;box-sizing:border-box}
-.marks i[style*="height: 0mm"]{border-left-width:0}
-.marks i[style*="width: 0mm"]{border-top-width:0}
 dialog#exportDlg{border:1px solid var(--ui-line);border-radius:12px;padding:18px 20px;max-width:460px;box-shadow:0 12px 40px #0004}
 dialog#exportDlg::backdrop{background:#0006}
 #exportDlg h3{margin:0 0 10px;font-size:15px}
@@ -76,9 +70,6 @@ dialog#exportDlg::backdrop{background:#0006}
 @media print{
   html,body{height:auto;background:#fff}
   body>.app,body>dialog,body>header,body>.desktop-banner,body>.toast,body>.v3d{display:none!important}
-  #print-root{display:block}
-  .print-sheet{break-after:page;page-break-after:always}
-  .print-sheet:last-child{break-after:auto;page-break-after:auto}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 

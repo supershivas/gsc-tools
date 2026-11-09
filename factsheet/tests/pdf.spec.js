@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { PDFDocument, PDFName, PDFDict, PDFArray, PDFString, PDFHexString, PDFNumber } = require('pdf-lib');
+const { PDFDocument, PDFName, PDFDict, PDFArray, PDFString, PDFHexString, PDFNumber, PDFRawStream, decodePDFRawStream } = require('pdf-lib');
 const { execFileSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -7,11 +7,11 @@ const { openApp, addBundle, stubExternal, watchErrors, DOC_KEY } = require('./he
 
 const DOCS = ['default', 'chars', 'dataviz-1', 'dataviz-2', 'dataviz-3'];
 const MODES = { net: { off: 0, bleed: 0 }, bleed: { off: 3, bleed: 3 }, marks: { off: 9, bleed: 3 } };   // mm : décalage du format fini, fond perdu
-const PROFILES = ['none', 'x4', 'x1a'];
+const PROFILES = ['none', 'x4', 'x1a', 'rgb'];
 const PT = 72 / 25.4, A4 = { w: 210, h: 297 };
 const near = (a, b, tol = 0.02) => Math.abs(a - b) <= tol;
 
-/** Construit le PDF CMJN dans la page (window.FSPDF, bundle pdfexport.js) ; renvoie les octets et les caractères manquants. */
+/** Construit le PDF dans la page (window.FSPDF, bundle pdfexport.js) ; renvoie les octets et les caractères manquants. */
 async function buildPdf(page, mode, profile) {
   const r = await page.evaluate(async ([key, mode, profile]) => {
     const doc = JSON.parse(localStorage.getItem(key));
@@ -50,6 +50,25 @@ function transparencyFindings(pdf) {
   return found;
 }
 
+/** Opérateurs de couleur des flux de contenu et espaces des images : { cmyk, rgb, images: Set } — cmyk/rgb = nombre d'opérateurs k/K, rg/RG. */
+function colourUse(pdf) {
+  const out = { cmyk: 0, rgb: 0, images: new Set() };
+  for (const p of pdf.getPages()) {
+    const c = p.node.Contents(), list = c instanceof PDFArray ? c.asArray().map(r => pdf.context.lookup(r)) : [c];
+    for (const st of list) {
+      const txt = Buffer.from(st instanceof PDFRawStream ? decodePDFRawStream(st).decode() : st.getContents()).toString('latin1');
+      out.cmyk += (txt.match(/(^|\s)[kK](?=\s|$)/g) || []).length;
+      out.rgb += (txt.match(/(^|\s)(rg|RG)(?=\s|$)/g) || []).length;
+    }
+    const xo = p.node.Resources() && p.node.Resources().lookup(PDFName.of('XObject'), PDFDict);
+    if (xo) for (const [name] of xo.entries()) {
+      const o = xo.lookup(name), cs = o && o.dict && o.dict.lookup(PDFName.of('ColorSpace'));
+      if (cs) out.images.add(cs.toString());
+    }
+  }
+  return out;
+}
+
 /** Colonne de pixels d'un PPM (P6) : renvoie la fonction px(x, y) → [r, g, b]. */
 function readPpm(buf) {
   let pos = 0; const tok = () => { while (/\s/.test(String.fromCharCode(buf[pos]))) pos++; let s = ''; while (!/\s/.test(String.fromCharCode(buf[pos]))) s += String.fromCharCode(buf[pos++]); return s; };
@@ -65,7 +84,7 @@ function firstChange(px, h, x, from, tol = 10) {
 const hasPdftoppm = spawnSync('pdftoppm', ['-v']).error === undefined;
 
 for (const name of DOCS) {
-  test.describe(`PDF CMJN — ${name}`, () => {
+  test.describe(`PDF — ${name}`, () => {
     test.describe.configure({ mode: 'serial' });
     let page, errors;
     test.beforeAll(async ({ browser }, info) => {
@@ -92,8 +111,9 @@ for (const name of DOCS) {
 
         if (profile === 'x1a') expect(text.slice(0, 8)).toBe('%PDF-1.4');
         if (profile === 'x4') expect(text.slice(0, 8)).toBe('%PDF-1.6');
-        if (profile === 'none') expect(text.slice(0, 5)).toBe('%PDF-');
-        if (profile !== 'none') {
+        if (profile === 'none' || profile === 'rgb') expect(text.slice(0, 5)).toBe('%PDF-');
+        if (profile === 'rgb') expect(pdf.catalog.has(PDFName.of('OutputIntents')), 'pas de profil de sortie en RVB').toBe(false);
+        if (profile === 'x4' || profile === 'x1a') {
           const oi = pdf.catalog.lookup(PDFName.of('OutputIntents'), PDFArray);
           const intent = oi.lookup(0, PDFDict);
           expect(intent.lookup(PDFName.of('OutputConditionIdentifier'), PDFString).decodeText()).toBe('FOGRA39');
@@ -102,24 +122,35 @@ for (const name of DOCS) {
         }
         if (profile === 'x1a') expect(transparencyFindings(pdf), 'transparence en PDF/X-1a').toEqual([]);
 
+        /* espace de couleur : DeviceRGB seulement pour le profil RVB, DeviceCMYK seulement pour les autres */
+        const use = colourUse(pdf), rgb = profile === 'rgb';
+        expect(rgb ? use.rgb : use.cmyk, 'opérateurs de couleur de l’espace du profil').toBeGreaterThan(0);
+        expect(rgb ? use.cmyk : use.rgb, 'opérateurs de couleur de l’autre espace').toBe(0);
+        for (const cs of use.images) expect(cs, 'espace des images').toBe(rgb ? '/DeviceRGB' : '/DeviceCMYK');
+
         if (name === 'chars') expect(missing, 'caractères absents des polices').toEqual([]);
         expect(errors).toEqual([]);
       });
     }
 
     /* Fond perdu : le fond de la 1re bande ne doit pas recouvrir le bas du header (la limite reste à 180 pt du format fini). */
-    if (name === 'chars') for (const mode of ['bleed', 'marks']) {
-      test(`limite header / 1re bande en ${mode}`, async ({}, info) => {
+    if (name === 'chars') for (const mode of ['bleed', 'marks']) for (const profile of ['x4', 'rgb']) {
+      test(`limite header / 1re bande en ${mode} · ${profile}`, async ({}, info) => {
         test.skip(!hasPdftoppm, 'pdftoppm absent : contrôle fait sur la capture de la page (voir plus bas)');
-        const { bytes } = await buildPdf(page, mode, 'x4');
-        const file = info.outputPath(`limite-${mode}.pdf`); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, bytes);
-        const root = info.outputPath(`limite-${mode}`);
+        const { bytes } = await buildPdf(page, mode, profile);
+        const file = info.outputPath(`limite-${mode}-${profile}.pdf`); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, bytes);
+        const root = info.outputPath(`limite-${mode}-${profile}`);
         execFileSync('pdftoppm', ['-r', '144', '-f', '1', '-l', '1', '-singlefile', file, root]);
         const img = readPpm(fs.readFileSync(root + '.ppm')), k = 144 / 72, offPt = MODES[mode].off * PT;
         const x = Math.round((offPt - 2) * k);   // dans la zone de fond perdu à gauche : ni logo ni repère de coupe
         const headerTop = img.px(x, Math.round((offPt - 4) * k)),   // dans le fond perdu (3 mm = 8,5 pt)
            headerBottom = img.px(x, Math.round((offPt + 170) * k));
         expect(headerTop, 'le header déborde en haut').toEqual(headerBottom);
+        if (profile === 'rgb') {   // RVB : la couleur du header est exactement celle de l'écran
+          const css = await page.evaluate(() => getComputedStyle(document.querySelector('#stage .hd')).backgroundColor);
+          const screen = css.match(/\d+/g).slice(0, 3).map(Number);
+          headerBottom.forEach((v, i) => expect(Math.abs(v - screen[i]), `couleur du header ${headerBottom} ≠ ${screen}`).toBeLessThanOrEqual(1));
+        }
         const y = firstChange(img.px, img.h, x, Math.round((offPt + 170) * k));
         expect(y, 'limite header / bande introuvable').not.toBeNull();
         const expected = (180 + offPt) * k;

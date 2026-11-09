@@ -61,14 +61,6 @@
 
 /* Section sur fond coloré : fond pleine largeur, le contenu reste aligné sur les marges */
 
-/* ---------- Export : débord des fonds jusqu'au fond perdu ---------- */
-.print-bleed .page{overflow:visible}
-.print-bleed .hd,.print-bleed .sec-band{position:relative;isolation:isolate}
-.print-bleed .hd::before,.print-bleed .sec-band::before{content:"";position:absolute;z-index:-1;background:inherit;left:calc(-1 * var(--bleed));right:calc(-1 * var(--bleed));top:0;bottom:0}
-.print-bleed .hd::before{top:calc(-1 * var(--bleed))}
-.print-bleed .page-verso .sec-band.sec-first::before{top:calc(-1 * var(--bleed))}   /* au recto, la 1re section touche le header : pas de débordement vers le haut */
-.print-bleed .sec-band.sec-last::before{bottom:calc(-1 * var(--bleed))}
-
 .vf-text,.vi-text,.vf-value{overflow-wrap:anywhere;min-width:0}
 .fg-head{display:flex;align-items:center;gap:var(--viz-iconGap)}
 .fg-ic{flex:none;display:block}

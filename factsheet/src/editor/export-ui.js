@@ -1,9 +1,9 @@
 import { h } from '../render.js';
-import { EXPORT_MODES, PDF_PROFILES, preparePrint, cleanupPrint } from '../export.js';
+import { EXPORT_MODES, PDF_PROFILES } from '../export.js';
 import { t } from '../i18n.js';
 import { rasterizeDocument } from '../raster.js';
 
-/* Export : nom des fichiers, fenêtre d'export PDF (RVB par impression, CMJN par pdfexport.js) et aperçu 3D
+/* Export : nom des fichiers, fenêtre d'export PDF (CMJN ou RVB, tous écrits par pdfexport.js) et aperçu 3D
    (les pages sont dessinées ici, la scène three.js est dans viewer3d.js, chargé à la première ouverture).
    Renvoie `fileStem`, `loadBundle`, `openExport`, `open3d`. */
 export function createExport(ctx) {
@@ -74,7 +74,7 @@ export function createExport(ctx) {
   /* Export PDF */
   const dlg = document.getElementById('exportDlg');
   let exportMode = 'net';
-  /* profil du PDF CMJN (PDF/X-4, PDF/X-1a, sans norme) : préférence locale de ce navigateur */
+  /* profil du PDF (PDF/X-4, PDF/X-1a, CMJN sans norme, RVB) : préférence locale de ce navigateur */
   const PROFILE_KEY = 'factsheet-creator-pdf-profile';
   let exportProfile = 'x4';
   try {
@@ -106,8 +106,8 @@ export function createExport(ctx) {
     dlg.showModal();
   }
   document.getElementById('exportCancel').addEventListener('click', () => dlg.close());
-  /* PDF CMJN : bundle pdfexport.js (pdf-lib) chargé à la demande ; l'app écrit elle-même le PDF */
-  document.getElementById('exportCmyk').addEventListener('click', async (e) => {
+  /* PDF : bundle pdfexport.js (pdf-lib) chargé à la demande ; l'app écrit elle-même le PDF */
+  document.getElementById('exportGo').addEventListener('click', async (e) => {
     const btn = e.currentTarget,
       label = btn.textContent;
     btn.disabled = true;
@@ -136,24 +136,11 @@ export function createExport(ctx) {
       dlg.close();
     } catch (err) {
       console.error(err);
-      alert(t('Impossible de générer le PDF CMJN.') + ' ' + ((err && err.message) || ''));
+      alert(t('Impossible de générer le PDF.') + ' ' + ((err && err.message) || ''));
     } finally {
       btn.disabled = false;
       btn.textContent = label;
     }
-  });
-  document.getElementById('exportGo').addEventListener('click', async () => {
-    dlg.close();
-    const prev = document.title;
-    document.title = fileStem(exportMode === 'net' ? '' : '-' + exportMode);
-    await preparePrint(ctx.getDoc(), exportMode);
-    const done = () => {
-      cleanupPrint();
-      document.title = prev;
-      window.removeEventListener('afterprint', done);
-    };
-    window.addEventListener('afterprint', done);
-    window.print();
   });
 
   return { fileStem, loadBundle, openExport, open3d };

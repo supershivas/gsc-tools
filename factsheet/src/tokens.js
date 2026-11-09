@@ -16,9 +16,6 @@ export const PAGE = {
   margin: 52, // marge latérale gauche/droite — valeur imposée (seule exception à la base de 3)
   marginTop: u(12), // 36 — marge haute (verso, ou recto sans header)
   marginBottom: u(12), // 36 — marge basse
-  bleed: (3 * 96) / 25.4, // 3 mm exacts (11,34 px) — fond perdu à l'export
-  slug: (9 * 96) / 25.4, // 9 mm — marge de repères autour du fond perdu (traits de coupe)
-  cropMark: u(3), // longueur des traits de coupe
 };
 
 /* ---------- Échelle d'espacement (multiples de 3) ---------- */
@@ -280,7 +277,6 @@ export function cssVars(themeKey, colors, density) {
   v['--page-w'] = PAGE.w + 'px';
   v['--page-h'] = PAGE.h + 'px';
   v['--margin'] = PAGE.margin + 'px';
-  v['--bleed'] = PAGE.bleed + 'px';
   return v;
 }
 export function applyVars(el, vars) {
