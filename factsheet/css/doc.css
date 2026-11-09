@@ -71,8 +71,11 @@
 .stroked{border:var(--stroke) solid var(--stroke-color,var(--c-text));border-radius:var(--radius);padding:var(--gap-boxPad)}
 .filled{background:var(--c-white)}
 .hatched{position:relative;isolation:isolate}
-.hatch{position:absolute;inset:0;overflow:hidden;border-radius:inherit;z-index:-1;pointer-events:none}
+.hatch{position:absolute;inset:calc(-1 * var(--stroke));overflow:hidden;border-radius:var(--radius);z-index:-1;pointer-events:none}   /* jusqu'au bord extérieur : le retrait transparent d'un cadre sans contour est couvert aussi */
 .hatch svg{display:block}
+.dashed{position:relative;isolation:isolate}
+.dash{position:absolute;inset:calc(-1 * var(--stroke));z-index:1;pointer-events:none}
+.dash svg{display:block}
 .col.stroked{align-self:stretch;display:flex;flex-direction:column}
 .img-box.fit{aspect-ratio:4/3;height:auto}.img-box.fit.has{background:none}
 .img-box.fit img{width:100%;height:100%;object-fit:contain}

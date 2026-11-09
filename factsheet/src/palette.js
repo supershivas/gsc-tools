@@ -17,8 +17,7 @@ export function buildPalette(ctx, redraw) {
     extras = extraColorKeys(doc);
   doc.colorNames = doc.colorNames || {};
   const defName = (k) => (extras.includes(k) ? k : t(th.names[k] || k));
-  const cm = paletteCmyk(doc),
-    cmTxt = (k) => cm[k].map((v) => Math.round(v)).join(' · ');
+  const cm = paletteCmyk(doc);
   const open = (k, sw) =>
     openColorEditor({
       anchor: sw,
@@ -34,10 +33,17 @@ export function buildPalette(ctx, redraw) {
       },
       onClose: redraw,
     });
+  /* EU Blue et Yellow star restent toujours : on les voit, on ne les modifie pas */
+  const lockedRow = (k) =>
+    h(
+      'div',
+      { class: 'pal2-row locked', dataset: { key: k } },
+      h('span', { class: 'pal2-sw', style: { background: pal[k] } }),
+      h('span', { class: 'pal2-name', textContent: t(colorLabel(doc, k)) }),
+      h('span', { class: 'pal2-lock', title: t('Cette couleur reste toujours dans le document') }, ico('lock')),
+    );
   const row = (k) => {
-    const isExtra = extras.includes(k),
-      recolored = !isExtra && doc.colors[k] && doc.colors[k].toLowerCase() !== th.colors[k].toLowerCase(),
-      renamed = !isExtra && !!doc.colorNames[k];
+    const isExtra = extras.includes(k);
     const sw = h('button', {
       type: 'button',
       class: 'pal2-sw',
@@ -57,52 +63,22 @@ export function buildPalette(ctx, redraw) {
         ctx.changed();
       },
     });
-    const locked = PROTECTED_COLORS.includes(k);
     return h(
       'div',
       { class: 'pal2-row', dataset: { key: k } },
       sw,
+      name,
       h(
-        'div',
-        { class: 'pal2-id' },
-        name,
-        h('span', {
-          class: 'pal2-hex',
-          textContent: cmTxt(k).replace(/ · /g, '·'),
-          title: `${t('CMJN')} ${cmTxt(k)} — ${t('RVB écran')} ${pal[k].toUpperCase()}`,
-        }),
+        'button',
+        {
+          type: 'button',
+          class: 'mini danger',
+          title: t('Supprimer'),
+          'aria-label': t('Supprimer'),
+          onclick: () => removeWithReplacement(k),
+        },
+        ico('x'),
       ),
-      locked
-        ? recolored || renamed
-          ? h(
-              'button',
-              {
-                type: 'button',
-                class: 'mini',
-                title: t('Rétablir la couleur du thème'),
-                'aria-label': t('Rétablir la couleur du thème'),
-                onclick: () => {
-                  delete doc.colors[k];
-                  if (doc.cmyk) delete doc.cmyk[k];
-                  delete doc.colorNames[k];
-                  ctx.changed();
-                  redraw();
-                },
-              },
-              ico('restore'),
-            )
-          : h('span', { class: 'pal2-lock', title: t('Cette couleur reste toujours dans le document') }, ico('lock'))
-        : h(
-            'button',
-            {
-              type: 'button',
-              class: 'mini danger',
-              title: t('Supprimer'),
-              'aria-label': t('Supprimer'),
-              onclick: () => removeWithReplacement(k),
-            },
-            ico('x'),
-          ),
     );
   };
   /* Suppression : si la couleur est utilisée, on choisit celle qui la remplace (EU Blue par défaut) */
@@ -139,7 +115,15 @@ export function buildPalette(ctx, redraw) {
         ico('file-import'),
       ),
     ),
-    h('div', { class: 'pal2' }, Object.keys(pal).map(row)),
+    h(
+      'div',
+      { class: 'pal2' },
+      PROTECTED_COLORS.filter((k) => pal[k]).map(lockedRow),
+      h('div', { class: 'pal2-sep', role: 'separator' }),
+      Object.keys(pal)
+        .filter((k) => !PROTECTED_COLORS.includes(k))
+        .map(row),
+    ),
     canAddColor(doc)
       ? h(
           'div',

@@ -1,7 +1,9 @@
 {
-  "version": "1.73.1",
+  "version": "1.74.0",
   "date": "2026-11-09",
   "changes": [
-    "Barre latérale « Document » : typographie française, ordinaux, texte ajusté et format des nombres passent dans une carte « Options avancées »"
+    "Couleurs du document : EU Blue et Yellow star en haut (non modifiables), séparées des autres par un trait ; plus de code couleur affiché",
+    "Sections, sous-sections et colonnes : les hachures deviennent un interrupteur avec épaisseur, espacement et rotation (aimantée aux angles usuels), et couvrent tout leur contenant",
+    "Le contour passe sous les options de fond ; nouvelles options de pointillés (longueur du tiret et espace entre les tirets)"
   ]
 }

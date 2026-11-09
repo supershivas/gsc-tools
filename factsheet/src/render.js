@@ -1,6 +1,6 @@
 /* Rendu du document en pages A4 (HTML). Aucune valeur de mise en page en dur :
    tout vient de tokens.js via les variables CSS (--s*, --gap-*, --t-*, --c-*). */
-import { PAGE, GRID, HEADER, GAP, cssVars, applyVars, subColWidth, insetW, densityGaps, paletteOf } from './tokens.js';
+import { PAGE, GRID, HEADER, GAP, STROKE, cssVars, applyVars, subColWidth, insetW, densityGaps, paletteOf } from './tokens.js';
 import { renderCtx } from './renderctx.js';
 import { IMAGE_RATIOS } from './state.js';
 import { renderViz, composeSide } from './viz/index.js';
@@ -134,19 +134,69 @@ const strokeStyle = (node) => (o) => {
   node.style.setProperty('--stroke-color', o.stroke ? `var(--c-${o.strokeColor || 'text'})` : 'transparent');
   if (hasFill(o)) node.style.background = `var(--c-${o.fillColor})`;
   if (hasHatch(o)) {
-    // hachures : bandes obliques en vrais éléments SVG (taillés par overflow), sous le contenu
+    // hachures : bandes en vrais éléments SVG (taillées par overflow), sous le contenu
     node.classList.add('hatched');
-    const P = 24,
-      Wd = 900,
-      Ht = 1200,
-      lines = [];
-    for (let x = -Ht; x < Wd; x += P)
-      lines.push(s('line', { x1: x, y1: Ht, x2: x + Ht, y2: 0, stroke: `var(--c-${o.hatch})`, 'stroke-width': P / 2 }));
-    node.prepend(
-      h('div', { class: 'hatch', 'aria-hidden': 'true' }, s('svg', { width: Wd, height: Ht, viewBox: `0 0 ${Wd} ${Ht}` }, ...lines)),
+    node.prepend(h('div', { class: 'hatch', 'aria-hidden': 'true' }, hatchSvg(o)));
+  }
+  if (o.stroke && o.dash) {
+    // contour en pointillés : un trait SVG (la bordure CSS ne règle ni le tiret ni l'espace), calé sur la taille réelle dans measure()
+    node.classList.add('dashed');
+    const sw = STROKE.px;
+    node.append(
+      h(
+        'div',
+        { class: 'dash', 'aria-hidden': 'true' },
+        s(
+          'svg',
+          { width: 0, height: 0 },
+          s('rect', {
+            x: sw / 2,
+            y: sw / 2,
+            width: 0,
+            height: 0,
+            rx: STROKE.radius - sw / 2,
+            fill: 'none',
+            stroke: `var(--c-${o.strokeColor || 'text'})`,
+            'stroke-width': sw,
+            'stroke-dasharray': `${num(o.dashLen, 6, 1, 48)} ${num(o.dashGap, 4, 1, 48)}`,
+          }),
+        ),
+      ),
     );
   }
 };
+
+const num = (v, def, min, max) => Math.max(min, Math.min(max, v == null || isNaN(+v) ? def : +v));
+/** Bandes de largeur `hatchW`, espacées de `hatchGap`, inclinées de `hatchAngle` ° (0 = horizontal, 45 = montant) : elles couvrent toute la page, donc tout contenant */
+function hatchSvg(o) {
+  const w = num(o.hatchW, 12, 1, 96),
+    P = w + num(o.hatchGap, 12, 1, 192),
+    a = (num(o.hatchAngle, 45, 0, 180) * Math.PI) / 180,
+    dx = Math.cos(a),
+    dy = -Math.sin(a),
+    nx = -dy,
+    ny = dx,
+    L = Math.hypot(PAGE.w, PAGE.h),
+    proj = [0, PAGE.w * nx, PAGE.h * ny, PAGE.w * nx + PAGE.h * ny],
+    lo = Math.min(...proj) - w,
+    hi = Math.max(...proj) + w,
+    lines = [];
+  for (let k = Math.floor(lo / P); k * P <= hi; k++) {
+    const px = nx * k * P,
+      py = ny * k * P;
+    lines.push(
+      s('line', {
+        x1: +(px - dx * L).toFixed(2),
+        y1: +(py - dy * L).toFixed(2),
+        x2: +(px + dx * L).toFixed(2),
+        y2: +(py + dy * L).toFixed(2),
+        stroke: `var(--c-${o.hatch})`,
+        'stroke-width': w,
+      }),
+    );
+  }
+  return s('svg', { width: PAGE.w, height: PAGE.h, viewBox: `0 0 ${PAGE.w} ${PAGE.h}` }, ...lines);
+}
 
 /** Image selon le mode choisi : ratio fixe (défaut), « fit » = largeur de la colonne et proportions de l'image, ou taille personnalisée */
 function renderImage(col, w) {
@@ -504,6 +554,19 @@ export function measure(result) {
     // le dernier fond de la page descend jusqu'au bas de page (et au fond perdu à l'export)
     const last = p.content.querySelector('.sec-last.sec-band');
     if (last) last.style.minHeight = Math.max(0, PAGE.h - p.top - last.offsetTop) + 'px';
+    p.el.querySelectorAll('.dash').forEach((d) => {
+      // cadre des pointillés : taille réelle du contenant, trait centré sur la bordure
+      const box = d.parentElement,
+        sw = STROKE.px,
+        svg = d.firstChild,
+        r = svg.firstChild;
+      const bw = box.offsetWidth,
+        bh = box.offsetHeight;
+      svg.setAttribute('width', bw);
+      svg.setAttribute('height', bh);
+      r.setAttribute('width', Math.max(0, bw - sw));
+      r.setAttribute('height', Math.max(0, bh - sw));
+    });
     if (p.key === 'recto') {
       const top = p.el.querySelector('.hd-top'),
         bot = p.el.querySelector('.hd-bottom'),

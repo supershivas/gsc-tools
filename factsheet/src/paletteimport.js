@@ -265,7 +265,6 @@ export function openPaletteImport(ctx, done) {
             oninput: (e) => (c.name = e.target.value.trim()),
           }),
         ),
-        h('span', { class: 'pal2-hex', textContent: c.cmyk ? c.cmyk.map((x) => Math.round(x)).join('·') : c.hex.toUpperCase() }),
       );
     });
     const sync = () => {

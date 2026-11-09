@@ -236,16 +236,20 @@ body.v3d-open{overflow:hidden}
 .ce-act{justify-content:flex-end}
 /* palette du document */
 .pal2{display:flex;flex-direction:column;gap:2px;margin:6px 0 12px}
+.pal2-row.locked .pal2-sw{cursor:default}
+.pal2-row.locked .pal2-name{padding:0 8px}
 .pal2-row{display:grid;grid-template-columns:32px minmax(0,1fr) 28px;align-items:center;gap:10px;min-height:40px;padding:2px 6px;border-radius:var(--radius-md)}
 @media (hover:hover){.pal2-row:hover{background:var(--ui-bg)}}
 .pal2-sw{width:32px;height:32px;border-radius:var(--radius-md);border:1px solid var(--shade);padding:0;cursor:pointer}
 .pal2-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-md)}
 .pal2-row input[type=text]{min-width:0;padding:4px 8px}
 .pal2-bar .mini,.pal2-row .mini{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.pp-range{display:flex;align-items:center;gap:10px}
+.pp-range input{flex:1;min-width:0;accent-color:var(--ui-ink)}
+.pp-range output{min-width:48px;text-align:right;font:var(--fs-xs) var(--font-mono,monospace);color:var(--ui-mute)}
+.pal2-sep{height:1px;margin:6px 6px;background:var(--ui-line)}
 .pal2-bar{display:flex;justify-content:flex-end;margin-bottom:2px}
-.pal2-id{display:flex;flex-direction:column;gap:2px;min-width:0}
 .pal2-lock{display:inline-flex;align-items:center;justify-content:center;width:28px;color:var(--ui-mute)}
-.pal2-hex{font:var(--fs-xs) var(--font-mono,monospace);color:var(--ui-mute);letter-spacing:.02em}
 .pal2 + .btn{margin:var(--modal-gap) 0}   /* bouton du design system (44 px, gap 8) ; écart = --modal-gap */
 
 /* ---------- Propriétés : cartes repliables (variante B du Labo) ---------- */
@@ -295,7 +299,7 @@ dialog.pimp{width:min(var(--modal-max-width),calc(100vw - 24px))}
 .pimp-pick{display:flex;flex-direction:column;gap:10px}
 .pimp-list{display:flex;flex-direction:column;max-height:48vh;overflow:auto}
 .pimp-row input{accent-color:var(--ui-ink)}
-.pimp-row{display:grid;grid-template-columns:20px 32px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:44px;padding:2px 6px;border-radius:var(--radius-md);cursor:pointer}
+.pimp-row{display:grid;grid-template-columns:20px 32px minmax(0,1fr);align-items:center;gap:10px;min-height:44px;padding:2px 6px;border-radius:var(--radius-md);cursor:pointer}
 .pimp-sw{display:block;width:32px;height:32px;border-radius:var(--radius-md);border:1px solid var(--shade)}
 .pimp-name{min-width:0}
 .pimp-name input{width:100%}

@@ -3,7 +3,7 @@
 import { typoOf } from '../viz/util.js';
 import { h, ico } from '../render.js';
 import { t } from '../i18n.js';
-import { toneKeys, colorLabel } from '../tokens.js';
+import { toneKeys, colorLabel, paletteKeys } from '../tokens.js';
 import { openPalette } from '../palette.js';
 import { cardEl } from '../cards.js';
 import { helpBtn } from '../help.js';
@@ -229,15 +229,71 @@ export function createKit(root, ctx, doc, kind) {
   const sumBox = (o) =>
     [o.fillColor && o.fillColor !== 'none' ? sumColor(o.fillColor) : null, o.stroke ? t('Contour') : null].filter(Boolean).join(' · ') ||
     t('Aucun');
-  /* Fond (une couleur au choix, avec teintes) et contour (couleur au choix) : sections, sous-sections et colonnes */
-  const boxControls = (obj, fillLabel = 'Fond') => [
-    swatches(fillLabel, obj, 'fillColor', toneKeys(doc), true),
-    switchRow(t('Contour'), obj.stroke, () => {
-      obj.stroke = !obj.stroke;
-    }),
-    swatches('Hachures', obj, 'hatch', toneKeys(doc), true),
-    obj.stroke ? swatches('Couleur du contour', obj, 'strokeColor', toneKeys(doc)) : null,
-  ];
+  /* Curseur avec valeur affichée ; `snap` : valeurs « standard » qui attirent le curseur à ± `tol` */
+  const rangeRow = (label, obj, key, { min, max, step = 1, def, unit = '', snap = [], tol = 0 }) => {
+    const cur = () => (obj[key] == null ? def : obj[key]);
+    const out = h('output', { textContent: cur() + unit });
+    const r = h('input', {
+      type: 'range',
+      min,
+      max,
+      step,
+      value: cur(),
+      'aria-label': t(label),
+      oninput: () => {
+        let v = +r.value;
+        const near = snap.find((x) => Math.abs(x - v) <= tol);
+        if (near != null) r.value = v = near;
+        obj[key] = v;
+        out.textContent = v + unit;
+        ctx.changed();
+      },
+    });
+    return h('div', { class: 'f' }, h('div', { class: 'hint' }, label), h('div', { class: 'pp-range' }, r, out));
+  };
+  /* Fond, hachures (interrupteur + réglages), puis contour (interrupteur + couleur + pointillés) : sections, sous-sections et colonnes */
+  const boxControls = (obj, fillLabel = 'Fond') => {
+    const hatchOn = !!obj.hatch && obj.hatch !== 'none',
+      dashOn = !!obj.dash;
+    return [
+      swatches(fillLabel, obj, 'fillColor', toneKeys(doc), true),
+      switchRow(t('Hachures'), hatchOn, () => {
+        obj.hatch = hatchOn ? 'none' : paletteKeys(doc, false).find((c) => c !== 'blue') || 'blue';
+      }),
+      ...(hatchOn
+        ? [
+            swatches('Couleur des hachures', obj, 'hatch', toneKeys(doc)),
+            rangeRow('Épaisseur des hachures', obj, 'hatchW', { min: 1, max: 48, def: 12, unit: ' px' }),
+            rangeRow('Espacement des hachures', obj, 'hatchGap', { min: 2, max: 96, def: 12, unit: ' px' }),
+            rangeRow('Rotation', obj, 'hatchAngle', {
+              min: 0,
+              max: 180,
+              def: 45,
+              unit: '°',
+              snap: [0, 30, 45, 60, 90, 120, 135, 150, 180],
+              tol: 4,
+            }),
+          ]
+        : []),
+      switchRow(t('Contour'), obj.stroke, () => {
+        obj.stroke = !obj.stroke;
+      }),
+      ...(obj.stroke
+        ? [
+            swatches('Couleur du contour', obj, 'strokeColor', toneKeys(doc)),
+            switchRow(t('Pointillés'), dashOn, () => {
+              obj.dash = !obj.dash;
+            }),
+            ...(dashOn
+              ? [
+                  rangeRow('Longueur des tirets', obj, 'dashLen', { min: 1, max: 24, def: 6, unit: ' px' }),
+                  rangeRow('Espace entre les tirets', obj, 'dashGap', { min: 1, max: 24, def: 4, unit: ' px' }),
+                ]
+              : []),
+          ]
+        : []),
+    ];
+  };
 
   /* Tête collante : icône, fil d'Ariane, nom, type et actions d'élément (monter, dupliquer, supprimer…) toujours à portée */
   const title = (name, crumbs = [], o = {}) =>
