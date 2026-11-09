@@ -6,7 +6,7 @@
 import { h, ico } from './render.js';
 import { HAS_PREFIX } from './textstyles.js';
 import { openPalette } from './palette.js';
-import { buildFields, paletteOptions, richEditor } from './editor.js';
+import { buildFields, paletteOptions, richEditor, linkButton } from './editor.js';
 import { colWidth, subColWidth, cssVars, applyVars, paletteOf, densityGaps } from './tokens.js';
 import { renderCtx } from './renderctx.js';
 import { ctxIcons } from './viz/icons.js';
@@ -28,7 +28,7 @@ const acc = { cur: null, first: 'dv-style' },
 const MARKUP = new RegExp('\\*\\*|~~|__|\\^\\^|,,|' + HAS_PREFIX.source); // accordéon : une seule carte ouverte dans le panneau
 
 /* Rangement des champs d'un type dans les cartes de l'onglet Visualisation (un champ peut forcer `g: 'format' | 'labels' | 'style' | 'data'`) */
-const LABEL_KEYS = new Set(['legend', 'showValues', 'decimals', 'suffix', 'totalTpl', 'layout']);
+const LABEL_KEYS = new Set(['legend', 'legendPos', 'showValues', 'valuesIn', 'labelIn', 'decimals', 'suffix', 'totalTpl', 'layout']);
 const SERIES_COLORS = ['sky', 'yellow', 'blue', 'slate', 'grey'];
 let availH = 360; // place disponible simulée dans l'aperçu (mode « Remplir »)
 const groupOf = (f) =>
@@ -326,6 +326,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
           label,
           helpBtn(label),
           h('span', { class: 'pp-sp' }),
+          rich ? null : linkButton(() => box.querySelector('input')),
           h(
             'button',
             {
@@ -465,6 +466,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
         F('format').length && 'dv-format',
         'dv-colors',
         F('labels').length && 'dv-labels',
+        F('trend').length && 'dv-trend',
         (F('style').length || ty.actions) && 'dv-style',
         'dv-debug',
       ].filter(Boolean);
@@ -499,6 +501,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
             ),
           ]),
           F('labels').length ? card('dv-labels', 'letter-case', t('Étiquettes'), gen(F('labels'))) : null,
+          F('trend').length ? card('dv-trend', 'trending-up', t('Évolution'), gen(F('trend'))) : null,
           F('style').length || ty.actions
             ? card('dv-style', 'adjustments', t('Options'), [
                 ty.actions

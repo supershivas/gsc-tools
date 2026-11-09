@@ -37,6 +37,48 @@ export function readImage(file, max = 1600) {
   });
 }
 
+/** Lien dans un champ de texte simple (input ou textarea) : entoure la sélection de `{a:adresse|texte}` (voir inlineMk) ; sans sélection, insère l'adresse comme texte du lien.
+    Appelé par le bouton « Lien » des champs, et par Cmd/Ctrl + K dans tous les champs texte (`linkShortcut`). */
+export async function insertLink(el) {
+  const a = el.selectionStart ?? el.value.length,
+    b = el.selectionEnd ?? a;
+  const url = ((await promptBox(t('Adresse du lien (https://…)'), 'https://')) || '').trim();
+  if (!/^(https?:\/\/|mailto:)\S+$/i.test(url) || url === 'https://') return;
+  const sel = el.value.slice(a, b) || url,
+    mk = `{a:${url.replace(/[|{}]/g, encodeURIComponent)}|${sel.replace(/[{}]/g, '')}}`;
+  el.value = el.value.slice(0, a) + mk + el.value.slice(b);
+  el.focus();
+  el.setSelectionRange(a + mk.length, a + mk.length);
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+/** Bouton « Lien » à poser à côté d'un champ texte simple */
+export function linkButton(getEl) {
+  return h(
+    'button',
+    {
+      type: 'button',
+      class: 'mini',
+      title: t('Insérer un lien (Cmd/Ctrl + K)'),
+      'aria-label': t('Insérer un lien'),
+      onclick: () => insertLink(getEl()),
+    },
+    ico('link'),
+  );
+}
+let linkKeys = false;
+/** Cmd/Ctrl + K dans n'importe quel champ texte de l'interface (hors éditeur riche, qui a son bouton) ouvre la saisie d'un lien */
+export function linkShortcut() {
+  if (linkKeys) return;
+  linkKeys = true;
+  document.addEventListener('keydown', (e) => {
+    if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey || e.key.toLowerCase() !== 'k') return;
+    const el = e.target;
+    if (!el || !(el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && el.type === 'text')) || el.closest('.modal, dialog')) return;
+    e.preventDefault();
+    insertLink(el);
+  });
+}
+
 /** Champ texte qui accepte les retours à la ligne (Entrée) et grandit avec son contenu : titres, légendes, textes de cartes… */
 export function multiline(h2, value, onInput, placeholder = '') {
   const ta = h2('textarea', {
@@ -680,22 +722,30 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
           ),
         ),
       );
-    else if (f.t === 'text')
+    else if (f.t === 'text') {
+      const field =
+        f.k === 'suffix' || f.single
+          ? h2('input', { type: 'text', value: getP(obj, f.k) ?? '', oninput: live((t) => setP(obj, f.k, t.value)) })
+          : multiline(h2, getP(obj, f.k), (e) => {
+              setP(obj, f.k, e.target.value);
+              ctx.changed();
+            });
       out.push(
         h2(
-          'label',
+          'div',
           { class: 'f' },
-          f.label,
-          helpBtn(f.label),
-          f.k === 'suffix' || f.single
-            ? h2('input', { type: 'text', value: getP(obj, f.k) ?? '', oninput: live((t) => setP(obj, f.k, t.value)) })
-            : multiline(h2, getP(obj, f.k), (e) => {
-                setP(obj, f.k, e.target.value);
-                ctx.changed();
-              }),
+          h2(
+            'div',
+            { class: 'hint pp-fh' },
+            f.label,
+            helpBtn(f.label),
+            h2('span', { class: 'pp-sp' }),
+            f.k === 'suffix' ? null : linkButton(() => field),
+          ),
+          field,
         ),
       );
-    else if (f.t === 'area')
+    } else if (f.t === 'area')
       out.push(
         h2(
           'div',

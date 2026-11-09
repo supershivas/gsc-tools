@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.77.0 — 2026-11-09
+- Barres : les options de libellés (légende, valeurs, libellés dans les barres) rejoignent la carte « Étiquettes » ; nouvelle carte « Évolution » pour l'accolade et ses chiffres
+- Barres jumelées sans espace entre les groupes : plus de chevauchement d'un groupe sur l'autre
+- Liens dans tous les champs texte (bouton « Lien » ou Cmd/Ctrl + K), y compris titre et source
+
 ## 1.76.0 — 2026-11-09
 - Éditeur de dataviz : carte « Réglages avancés » en fin de panneau, avec un export JSON de la dataviz et des réglages pour le débogage
 

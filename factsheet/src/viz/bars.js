@@ -89,9 +89,9 @@ export default {
     { k: 'labelIn', t: 'bool', label: 'Libellés dans les barres (au pied de la barre)' },
     { k: 'decimals', t: 'number', label: 'Décimales des valeurs', min: 0, max: 4 },
     { k: 'suffix', t: 'text', label: 'Unité après la valeur (%, M€…)' },
-    { k: 'callout.on', t: 'bool', label: 'Afficher l’accolade « évolution »' },
-    { k: 'callout.value', t: 'text', label: 'Valeur de l’accolade (ex. +64 %)' },
-    { k: 'callout.text', t: 'text', label: 'Texte de l’accolade' },
+    { k: 'callout.on', g: 'trend', t: 'bool', label: 'Afficher l’accolade « évolution »' },
+    { k: 'callout.value', g: 'trend', t: 'text', label: 'Valeur de l’accolade (ex. +64 %)' },
+    { k: 'callout.text', g: 'trend', t: 'text', label: 'Texte de l’accolade' },
     { t: 'table', k: 'rows', series: 'series', maxSeries: 4, label: 'Données', icons: true },
     {
       t: 'node',
@@ -138,11 +138,13 @@ export default {
       capW = VIZ.barMaxW * Math.max(1, wf);
     const bw =
       o.groupSpace === 'none'
-        ? stacked || overlap
+        ? stacked
           ? slot
-          : Math.max(2, (slot - (k - 1) * sGap) / k)
+          : overlap
+            ? slot / (1 + VIZ.pairOffset) // la paire (barre arrière décalée) tient dans sa case : pas de chevauchement entre groupes
+            : Math.max(2, (slot - (k - 1) * sGap) / k)
         : Math.min(
-            slot * 0.92,
+            slot * (overlap ? 0.92 / (1 + VIZ.pairOffset) : 0.92),
             wf *
               (stacked
                 ? Math.min(slot * 0.5, VIZ.barMaxW)

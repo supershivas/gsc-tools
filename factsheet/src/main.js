@@ -5,6 +5,7 @@ import { loadFonts } from './viz/util.js';
 import { buildTree } from './tree.js';
 import { buildProps } from './props.js';
 import { openVizEditor } from './vizeditor.js';
+import { linkShortcut } from './editor.js';
 import { initHover } from './hover.js';
 import { createHistory } from './editor/history.js';
 import { createHistoryUi } from './editor/history-ui.js';
@@ -191,6 +192,7 @@ createZoom(ctx, preview, selection);
 const dnd = createDnd(ctx);
 const exporter = createExport(ctx);
 initShortcuts(ctx, history, exporter);
+linkShortcut();
 
 const project = createProjectFile(ctx, exporter.fileStem);
 document.addEventListener('fs-natural', () => {
