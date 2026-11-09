@@ -938,7 +938,6 @@ const EN = {
   Annotations: 'Annotations',
   Chiffres: 'Figures',
   'Styles de paragraphe': 'Paragraph styles',
-  'Options avancées': 'Advanced options',
   Interlignage: 'Line spacing',
   'Interlignage du style': 'Style line spacing',
   'Tracking (espacement des lettres)': 'Tracking (letter spacing)',
