@@ -861,6 +861,7 @@ const EN = {
   Pointillés: 'Dashed',
   'Longueur des tirets': 'Dash length',
   'Espace entre les tirets': 'Dash gap',
+  'Côtés du contour': 'Outline sides',
   'Ajouter une couleur': 'Add a colour',
   Pipette: 'Eyedropper',
   Carte: 'Card',

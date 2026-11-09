@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.75.0 — 2026-11-09
+- Contour : le pointillé remplace le trait plein au lieu de s'y superposer
+- Contour : choix des côtés (haut, droite, bas, gauche), en trait plein comme en pointillés
+
 ## 1.74.0 — 2026-11-09
 - Couleurs du document : EU Blue et Yellow star en haut (non modifiables), séparées des autres par un trait ; plus de code couleur affiché
 - Sections, sous-sections et colonnes : les hachures deviennent un interrupteur avec épaisseur, espacement et rotation (aimantée aux angles usuels), et couvrent tout leur contenant

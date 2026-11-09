@@ -251,6 +251,43 @@ export function createKit(root, ctx, doc, kind) {
     });
     return h('div', { class: 'f' }, h('div', { class: 'hint' }, label), h('div', { class: 'pp-range' }, r, out));
   };
+  /* Côtés du contour : haut, droite, bas, gauche (au moins un reste allumé) */
+  const sidesRow = (obj) => {
+    const sd = obj.sides || {};
+    const on = (k) => sd[k] !== false;
+    return h(
+      'div',
+      { class: 'f' },
+      h('div', { class: 'hint' }, 'Côtés du contour'),
+      h(
+        'div',
+        { class: 'seg' },
+        [
+          ['t', 'border-top', 'Haut'],
+          ['r', 'border-right', 'Droite'],
+          ['b', 'border-bottom', 'Bas'],
+          ['l', 'border-left', 'Gauche'],
+        ].map(([k, icon, label]) =>
+          h(
+            'button',
+            {
+              type: 'button',
+              class: on(k) ? 'on' : '',
+              title: t(label),
+              'aria-label': t(label),
+              'aria-pressed': String(on(k)),
+              onclick: struct(() => {
+                const next = { t: on('t'), r: on('r'), b: on('b'), l: on('l') };
+                next[k] = !next[k];
+                if (Object.values(next).some(Boolean)) obj.sides = next;
+              }),
+            },
+            ico(icon),
+          ),
+        ),
+      ),
+    );
+  };
   /* Fond, hachures (interrupteur + réglages), puis contour (interrupteur + couleur + pointillés) : sections, sous-sections et colonnes */
   const boxControls = (obj, fillLabel = 'Fond') => {
     const hatchOn = !!obj.hatch && obj.hatch !== 'none',
@@ -281,6 +318,7 @@ export function createKit(root, ctx, doc, kind) {
       ...(obj.stroke
         ? [
             swatches('Couleur du contour', obj, 'strokeColor', toneKeys(doc)),
+            sidesRow(obj),
             switchRow(t('Pointillés'), dashOn, () => {
               obj.dash = !obj.dash;
             }),

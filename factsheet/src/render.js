@@ -131,7 +131,13 @@ export const isBox = (o) => !!(o.stroke || hasFill(o) || hasHatch(o));
 const strokeStyle = (node) => (o) => {
   if (!isBox(o)) return;
   node.classList.add('stroked');
-  node.style.setProperty('--stroke-color', o.stroke ? `var(--c-${o.strokeColor || 'text'})` : 'transparent');
+  // le pointillé remplace la bordure pleine (qui reste, transparente, pour garder le retrait) ; `sides` : côtés du contour (haut, droite, bas, gauche)
+  const sd = sidesOf(o);
+  node.style.setProperty('--stroke-color', o.stroke && !o.dash ? `var(--c-${o.strokeColor || 'text'})` : 'transparent');
+  if (o.stroke && !o.dash && !sd.every(Boolean))
+    ['Top', 'Right', 'Bottom', 'Left'].forEach((n, i) => {
+      if (!sd[i]) node.style['border' + n + 'Color'] = 'transparent';
+    });
   if (hasFill(o)) node.style.background = `var(--c-${o.fillColor})`;
   if (hasHatch(o)) {
     // hachures : bandes en vrais éléments SVG (taillées par overflow), sous le contenu
@@ -141,31 +147,23 @@ const strokeStyle = (node) => (o) => {
   if (o.stroke && o.dash) {
     // contour en pointillés : un trait SVG (la bordure CSS ne règle ni le tiret ni l'espace), calé sur la taille réelle dans measure()
     node.classList.add('dashed');
-    const sw = STROKE.px;
-    node.append(
-      h(
-        'div',
-        { class: 'dash', 'aria-hidden': 'true' },
-        s(
-          'svg',
-          { width: 0, height: 0 },
-          s('rect', {
-            x: sw / 2,
-            y: sw / 2,
-            width: 0,
-            height: 0,
-            rx: STROKE.radius - sw / 2,
-            fill: 'none',
-            stroke: `var(--c-${o.strokeColor || 'text'})`,
-            'stroke-width': sw,
-            'stroke-dasharray': `${num(o.dashLen, 6, 1, 48)} ${num(o.dashGap, 4, 1, 48)}`,
-          }),
-        ),
-      ),
-    );
+    const sw = STROKE.px,
+      all = sd.every(Boolean),
+      common = {
+        fill: 'none',
+        stroke: `var(--c-${o.strokeColor || 'text'})`,
+        'stroke-width': sw,
+        'stroke-dasharray': `${num(o.dashLen, 6, 1, 48)} ${num(o.dashGap, 4, 1, 48)}`,
+      };
+    const marks = all
+      ? [s('rect', { ...common, 'data-side': 'all', rx: STROKE.radius - sw / 2 })]
+      : ['t', 'r', 'b', 'l'].filter((_, i) => sd[i]).map((k) => s('line', { ...common, 'data-side': k }));
+    node.append(h('div', { class: 'dash', 'aria-hidden': 'true' }, s('svg', { width: 0, height: 0 }, ...marks)));
   }
 };
 
+/** côtés du contour [haut, droite, bas, gauche] : tous par défaut */
+export const sidesOf = (o) => ['t', 'r', 'b', 'l'].map((k) => !o.sides || o.sides[k] !== false);
 const num = (v, def, min, max) => Math.max(min, Math.min(max, v == null || isNaN(+v) ? def : +v));
 /** Bandes de largeur `hatchW`, espacées de `hatchGap`, inclinées de `hatchAngle` ° (0 = horizontal, 45 = montant) : elles couvrent toute la page, donc tout contenant */
 function hatchSvg(o) {
@@ -557,15 +555,21 @@ export function measure(result) {
     p.el.querySelectorAll('.dash').forEach((d) => {
       // cadre des pointillés : taille réelle du contenant, trait centré sur la bordure
       const box = d.parentElement,
-        sw = STROKE.px,
+        m = STROKE.px / 2,
         svg = d.firstChild,
-        r = svg.firstChild;
-      const bw = box.offsetWidth,
+        bw = box.offsetWidth,
         bh = box.offsetHeight;
       svg.setAttribute('width', bw);
       svg.setAttribute('height', bh);
-      r.setAttribute('width', Math.max(0, bw - sw));
-      r.setAttribute('height', Math.max(0, bh - sw));
+      for (const e of svg.children) {
+        const k = e.dataset.side,
+          set = (o) => Object.entries(o).forEach(([a, v]) => e.setAttribute(a, v));
+        if (k === 'all') set({ x: m, y: m, width: Math.max(0, bw - 2 * m), height: Math.max(0, bh - 2 * m) });
+        else if (k === 't') set({ x1: 0, y1: m, x2: bw, y2: m });
+        else if (k === 'b') set({ x1: 0, y1: bh - m, x2: bw, y2: bh - m });
+        else if (k === 'l') set({ x1: m, y1: 0, x2: m, y2: bh });
+        else set({ x1: bw - m, y1: 0, x2: bw - m, y2: bh });
+      }
     });
     if (p.key === 'recto') {
       const top = p.el.querySelector('.hd-top'),
