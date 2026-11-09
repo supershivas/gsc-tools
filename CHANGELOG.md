@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.80.1 — 2026-11-09
+- Chiffre à côté : si « Texte sous le chiffre » est vide, rien ne s'affiche sous le chiffre (plus de libellé de la 1re donnée ajouté automatiquement) ; {label} permet toujours de l'insérer
+
 ## 1.80.0 — 2026-11-09
 - Éditeur de dataviz : les cases à cocher deviennent des interrupteurs, les choix de 2 à 3 valeurs des boutons, les décimales un choix 0 à 4, les espaces des curseurs à crans
 - Les réglages en pixels, degrés ou pourcentages ont un curseur et un champ où l'on peut taper la valeur ; le bouton ↺ rétablit la valeur d'origine

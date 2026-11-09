@@ -652,7 +652,7 @@ const EN = {
   /* chiffre à côté, repères du waffle */
   'Chiffre à côté': 'Figure beside',
   'Chiffre ({pct} = part de la 1re donnée)': 'Figure ({pct} = share of the 1st item)',
-  'Texte sous le chiffre (vide = libellé de la 1re donnée)': 'Text under the figure (empty = label of the 1st item)',
+  'Texte sous le chiffre ({label} = libellé de la 1re donnée)': 'Text under the figure ({label} = label of the 1st item)',
   'Largeur de la dataviz (% de la largeur)': 'Dataviz width (% of the width)',
   'Autres logements': 'Other housing',
   Repère: 'Mark',

@@ -144,7 +144,7 @@ const sideSide = (o) => o.pos === 'right' || o.pos === 'left';
 export const SIDE_FIELDS = [
   { k: 'pos', t: 'select', label: 'Chiffre à côté', options: { none: 'Aucun', right: 'À droite', left: 'À gauche', top: 'Au-dessus' } },
   { k: 'value', when: sideOn, t: 'text', rich: true, label: 'Chiffre ({pct} = part de la 1re donnée)' },
-  { k: 'text', when: sideOn, t: 'text', rich: true, label: 'Texte sous le chiffre (vide = libellé de la 1re donnée)' },
+  { k: 'text', when: sideOn, t: 'text', rich: true, label: 'Texte sous le chiffre ({label} = libellé de la 1re donnée)' },
   { k: 'share', when: sideSide, t: 'number', label: 'Largeur du contenu (% de la largeur)', min: 25, max: 80 },
   { k: 'scale', when: sideOn, t: 'select', label: 'Taille du chiffre', options: { 1: 'Normal', 1.5: 'Grand', 2: 'Très grand' } },
   {
@@ -167,7 +167,7 @@ export function composeSide(sd, W, env, tk, core) {
     const r = core(W);
     if (!r) return r;
     const fig = renderFigure(
-      { value: fill(sd.value, tk), icon: 'none', scale: +sd.scale || 1, text: fill((sd.text || '').trim() || '{label}', tk) },
+      { value: fill(sd.value, tk), icon: 'none', scale: +sd.scale || 1, text: fill((sd.text || '').trim(), tk) },
       W,
       'left',
       env,
@@ -188,7 +188,7 @@ export function composeSide(sd, W, env, tk, core) {
     r = core(wv);
   if (!r) return r;
   const fig = renderFigure(
-    { value: fill(sd.value, tk), icon: 'none', scale: +sd.scale || 1, text: fill((sd.text || '').trim() || '{label}', tk) },
+    { value: fill(sd.value, tk), icon: 'none', scale: +sd.scale || 1, text: fill((sd.text || '').trim(), tk) },
     wf,
     'left',
     env,
