@@ -34,6 +34,7 @@ export function applyFilter(root, st) {
     root.querySelectorAll('.pr-adv').forEach((x) => {
       x.style.display = 'none';
     });
+    let shown = 0;
     root.querySelectorAll('.pp-card').forEach((card) => {
       const name = ((card.querySelector('.pp-card-h b') || {}).textContent || '').toLowerCase(),
         body = card.querySelector('.pp-body');
@@ -45,14 +46,42 @@ export function applyFilter(root, st) {
           any = any || hit;
         });
       card.style.display = any ? '' : 'none';
+      if (any) shown++;
     });
+    root.querySelectorAll('.pp-empty').forEach((x) => x.remove());
+    if (!shown) {
+      const first = root.querySelector('.pp-search');
+      if (first)
+        first.after(
+          h(
+            'div',
+            { class: 'pp-empty', role: 'status' },
+            h('p', { textContent: `${t('Aucun réglage ne correspond à')} « ${st.q.trim()} »` }),
+            h(
+              'button',
+              {
+                type: 'button',
+                class: 'pp-btn',
+                onclick: () => {
+                  const inp = root.querySelector('.pp-q');
+                  inp.value = '';
+                  inp.dispatchEvent(new Event('input')); // même chemin que la frappe : le panneau se reconstruit
+                },
+              },
+              h('span', { textContent: t('Effacer la recherche') }),
+            ),
+          ),
+        );
+    }
   }, 0);
 }
 
 /* acc = { cur, first } : mode accordéon (une seule carte ouverte ; `first` tant que rien n'a été choisi) ; sum = valeur actuelle affichée quand la carte est repliée */
+let cardSeq = 0;
 export function cardEl(id, icon, name, nodes, { shut, refresh, toggle = null, live = true, acc = null, sum = '', q = '' }) {
   const open = q ? true : acc ? (acc.cur ?? acc.first) === id : !shut.has(id),
-    show = open && (live || !!q);
+    show = open && (live || !!q),
+    bodyId = 'pp-body-' + ++cardSeq;
   const flip = () => {
     if (acc) acc.cur = open ? '' : id;
     else {
@@ -80,10 +109,16 @@ export function cardEl(id, icon, name, nodes, { shut, refresh, toggle = null, li
       toggle,
       h(
         'button',
-        { type: 'button', class: 'pp-chev', 'aria-expanded': String(open), 'aria-label': open ? t('Replier') : t('Déplier') },
+        {
+          type: 'button',
+          class: 'pp-chev',
+          'aria-expanded': String(open),
+          'aria-controls': show ? bodyId : null,
+          'aria-label': `${open ? t('Replier') : t('Déplier')} · ${name}`, // le nom de la carte : sinon tous les boutons s'annoncent pareil
+        },
         ico(open ? 'chevron-up' : 'chevron-down'),
       ),
     ),
-    show ? h('div', { class: 'pp-body' }, nodes.flat().filter(Boolean)) : null,
+    show ? h('div', { class: 'pp-body', id: bodyId, role: 'region', 'aria-label': name }, nodes.flat().filter(Boolean)) : null,
   );
 }

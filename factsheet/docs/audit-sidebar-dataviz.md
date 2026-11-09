@@ -1,7 +1,7 @@
 # Audit UX — sidebar de l'éditeur de dataviz
 
 Date : 2026-11-09 · Périmètre : onglet **Visualisation** de l'éditeur de dataviz (`factsheet/src/vizeditor.js`, panneau de 320 px à droite).
-**Rien n'est implémenté** : aucun fichier de `factsheet/src/` n'a été modifié, la version n'a pas changé. Ce document complète `docs/audit-ux-sidebars.md` (5 nov., qui traitait la structure générale de l'éditeur et du panneau des propriétés) : ici on descend dans le détail des cartes et des champs.
+**État** : audit rédigé le 9 nov. ; **lot 1 livré en v1.77.1** (C1, C2, C11 en partie, C13, C14, C15, C16 ; voir §6.2). Les autres lots ne sont pas implémentés. Ce document complète `docs/audit-ux-sidebars.md` (5 nov., qui traitait la structure générale de l'éditeur et du panneau des propriétés) : ici on descend dans le détail des cartes et des champs.
 
 **Comment lire ce document.** Les « cartes » sont les blocs repliables du panneau (Type, Titre et source, Étiquettes…). Un « champ » est un réglage (une case, une liste, un nombre). Chaque constat renvoie à du code (`fichier:ligne`) ou à une capture (`docs/captures/sidebar-dataviz-*.png`). Les mesures ont été faites dans l'interface réelle (Chromium, 17 types ouverts, cartes dépliées via la recherche).
 

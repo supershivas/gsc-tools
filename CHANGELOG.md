@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.77.1 — 2026-11-09
+- Éditeur de dataviz : les listes (épaisseur et espaces des barres, interlignage de l'anneau) affichent enfin la valeur réellement appliquée
+- Échap ne fait plus perdre le travail : il vide la recherche ou ferme la liste ouverte, et demande confirmation avant d'abandonner des modifications
+- Clavier et lecteurs d'écran : le focus reste dans l'éditeur, les cartes et onglets ont un nom, cliquer un libellé place le curseur dans le champ ; type choisi en neutre ; message quand la recherche ne trouve rien
+
 ## 1.77.0 — 2026-11-09
 - Barres : les options de libellés (légende, valeurs, libellés dans les barres) rejoignent la carte « Étiquettes » ; nouvelle carte « Évolution » pour l'accolade et ses chiffres
 - Barres jumelées sans espace entre les groupes : plus de chevauchement d'un groupe sur l'autre

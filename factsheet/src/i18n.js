@@ -46,6 +46,12 @@ const EN = {
   Disposition: 'Layout',
   Replier: 'Collapse',
   Déplier: 'Expand',
+  'Aucun réglage ne correspond à': 'No setting matches',
+  'Effacer la recherche': 'Clear search',
+  'Abandonner les modifications de la dataviz ?': 'Discard your changes to the dataviz?',
+  Abandonner: 'Discard',
+  'Glisser un élément pour changer son ordre : les autres se réajustent en gardant des écarts proportionnels.':
+    'Drag an item to change its order: the others readjust, keeping proportional gaps.',
   'Modifier, renommer ou ajouter des couleurs': 'Edit, rename or add colours',
   'Nom de la couleur': 'Colour name',
   'Couleurs du document': 'Document colours',

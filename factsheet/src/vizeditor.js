@@ -13,11 +13,14 @@ import { ctxIcons } from './viz/icons.js';
 import { VIZ_TYPES, VIZ_FAMILIES, switchKind, renderVizFull } from './viz/index.js';
 import { cardEl, searchBox, applyFilter } from './cards.js';
 import { helpBtn } from './help.js';
-import { loadFonts, typoOf } from './viz/util.js';
+import { loadFonts, typoOf, stripMk } from './viz/util.js';
+import { confirmBox } from './dialogs.js';
 import { startReorder } from './vizreorder.js';
 import { newSide, SIDE_FIELDS } from './viz/index.js';
 import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
 import { t } from './i18n.js';
+
+const tr = t; // `t` est masqué par des variables locales (type de dataviz) dans `draw`
 
 let current = null;
 const shut = new Set(); // cartes repliées (gardées d'une ouverture à l'autre)
@@ -132,14 +135,14 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     meta = null,
     svgW = baseW;
 
-  const root = h('div', { class: 've' });
+  const root = h('div', { class: 've', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('Éditeur de dataviz'), tabindex: -1 });
   applyVars(root, cssVars(doc.theme, doc.colors, doc.density));
   const sheet = h('div', { class: 'page viz-sheet', style: { background: bg && bg !== 'none' ? `var(--c-${bg})` : '#fff' } });
   const holder = h('div', { class: 'col col-viz' });
   sheet.append(holder);
   const scaler = h('div', { class: 've-scaler' }, sheet);
-  const stage = h('div', { class: 've-stage' }, scaler);
-  const dataPane = h('div', { class: 've-data' }),
+  const stage = h('div', { class: 've-stage', id: 've-stage' }, scaler);
+  const dataPane = h('div', { class: 've-data', id: 've-data-pane' }),
     miniHold = h('div', { class: 've-mini' });
   const form = h('aside', { class: 'panel ve-form' });
   const hint = h('div', { class: 've-hint' });
@@ -154,6 +157,8 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
       {
         type: 'button',
         class: 've-tab',
+        role: 'tab',
+        'aria-controls': k === 'data' ? 've-data-pane' : 've-stage',
         dataset: { tab: k },
         onclick: () => {
           tab = k;
@@ -165,13 +170,31 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
       h('span', { textContent: t(l) }),
     ),
   );
-  const tabs = h('div', { class: 've-tabs', role: 'tablist' }, ...tabBtns);
+  const tabs = h(
+    'div',
+    {
+      class: 've-tabs',
+      role: 'tablist',
+      'aria-label': t('Éditeur de dataviz'),
+      onkeydown: (e) => {
+        const i = tabBtns.findIndex((b) => b === document.activeElement),
+          d = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+        if (i < 0 || !d) return;
+        e.preventDefault();
+        const b = tabBtns[(i + d + tabBtns.length) % tabBtns.length];
+        b.focus();
+        b.click();
+      },
+    },
+    ...tabBtns,
+  );
   const syncTabs = (hasData) => {
     tabs.style.display = hasData ? '' : 'none';
     tabBtns.forEach((b) => {
       const on = b.dataset.tab === tab;
       b.classList.toggle('on', on);
       b.setAttribute('aria-selected', String(on));
+      b.tabIndex = on ? 0 : -1; // un seul arrêt de Tab pour la liste d'onglets, flèches pour changer
     });
   };
 
@@ -202,11 +225,12 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     hiliteSel();
     if (miniHold.isConnected) drawMini();
     const t = VIZ_TYPES[col.viz.kind];
-    hint.textContent = holder.querySelector('[data-reorder]')
+    const hintMsg = holder.querySelector('[data-reorder]')
       ? 'Glisser un élément pour changer son ordre : les autres se réajustent en gardant des écarts proportionnels.'
       : t && t.edit
         ? 'Cliquer un segment ou un libellé pour le sélectionner · glisser l’anneau pour le tourner · glisser un libellé (verticalement, ou de l’autre côté) · glisser le point blanc pour déplacer l’ancrage du trait'
         : '';
+    hint.textContent = hintMsg && tr(hintMsg);
     sheet.style.width = width + 48 + 'px';
     holder.style.width = width + 'px';
     stage.classList.toggle('fit', zoom === 'fit');
@@ -401,6 +425,17 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     el.classList.add('ve-typecard');
     return el;
   };
+  /* Résumés des cartes repliées : le titre lui-même (première ligne, sans balisage), la position du chiffre à côté */
+  const headSummary = (hd) => {
+    const first = String(hd.title || hd.source || '')
+      .split('\n')[0]
+      .replace(/^(#{1,5}|@\w+)\s+/, '');
+    return stripMk(first).trim() || t('Aucun');
+  };
+  const sideSummary = (sd) => {
+    const pos = SIDE_FIELDS[0].options[sd && sd.pos];
+    return !pos || sd.pos === 'none' ? t('Aucun') : sd.pos === 'top' ? t(pos) : `${t(pos)} · ${sd.share} %`;
+  };
   function buildForm() {
     const top = form.scrollTop;
     form.innerHTML = '';
@@ -481,8 +516,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
             'typography',
             t('Titre et source'),
             [softField(head, 'title', 'Titre de la dataviz', {}), softField(head, 'source', 'Source de la dataviz', { bullets: false })],
-            null,
-            [head.title, head.source].filter(Boolean).length ? t('Renseigné') : t('Aucun'),
+            headSummary(head),
           ),
           ty.panel ? card('dv-picto', 'mood-smile', t(ty.panelTitle || 'Pictogramme'), ty.panel(col.viz.opts, fctx)) : null,
           card(
@@ -490,6 +524,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
             'number',
             t('Chiffre à côté'),
             buildFields(SIDE_FIELDS, col.viz.side || (col.viz.side = newSide(col.viz.kind)), fctx, {}, h),
+            sideSummary(col.viz.side),
           ),
           F('format').length ? card('dv-format', 'ruler-2', t('Dimensions'), gen(F('format'))) : null,
           card('dv-colors', 'palette', t('Couleurs'), [
@@ -753,19 +788,69 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
       ['2', '200 %'],
     ].map(([v, l]) => h('option', { value: v, textContent: l })),
   );
+  /* L'éditeur est modal : le reste de l'application (en-tête, aperçu) est inerte tant qu'il est ouvert, donc Tab ne s'en échappe pas */
+  const opener = document.activeElement,
+    muted = [...document.body.children].filter((n) => n !== root && !n.inert && !/^(SCRIPT|STYLE|LINK)$/.test(n.tagName));
   const close = (keep) => {
     if (!keep) {
       col.viz = JSON.parse(snapshot);
     }
-    window.removeEventListener('keydown', onKey);
+    window.removeEventListener('keydown', onKey, true);
+    muted.forEach((n) => {
+      n.inert = false;
+    });
     root.remove();
+    if (opener && opener.isConnected && opener.focus) opener.focus();
     current = null;
     document.body.classList.remove('ve-open');
     ctx.restructure();
   };
-  const onKey = (e) => {
+  /* Échap ferme d'abord ce qui est ouvert (liste, fenêtre de couleurs, modale), puis vide la recherche ; il n'abandonne l'éditeur qu'à vide,
+     avec confirmation s'il y a des modifications. Écouteur en phase de capture : on voit la fenêtre ouverte avant qu'elle ne se referme. */
+  let leaving = false;
+  const onKey = async (e) => {
+    if (e.key === 'Tab') {
+      /* focus piégé : Tab boucle du dernier réglage au premier (sauf si une modale ou la fenêtre des couleurs est ouverte) */
+      if (document.querySelector('dialog[open], .pal2-wrap, .ce')) return;
+      const items = [...root.querySelectorAll('button, input, select, textarea, a[href], [contenteditable], [tabindex]')].filter(
+          (n) => !n.disabled && n.tabIndex >= 0 && n.offsetParent !== null,
+        ),
+        a = document.activeElement;
+      if (!items.length) return;
+      if (!root.contains(a) || a === root) {
+        e.preventDefault();
+        (e.shiftKey ? items[items.length - 1] : items[0]).focus();
+      } else if (e.shiftKey && a === items[0]) {
+        e.preventDefault();
+        items[items.length - 1].focus();
+      } else if (!e.shiftKey && a === items[items.length - 1]) {
+        e.preventDefault();
+        items[0].focus();
+      }
+      return;
+    }
     if (e.key === 'Escape') {
-      close(false);
+      if (leaving || document.querySelector('dialog[open], .cs-pop, .cpop, .pal2-wrap, .ce')) return;
+      const q = e.target.closest && e.target.closest('.pp-q');
+      if (q) {
+        e.preventDefault();
+        if (q.value) {
+          q.value = '';
+          q.dispatchEvent(new Event('input'));
+        }
+        return;
+      }
+      e.preventDefault(); // sinon le même Échap ferme aussitôt la modale de confirmation qui vient de s'ouvrir
+      leaving = true;
+      try {
+        if (
+          JSON.stringify(col.viz) === snapshot ||
+          (await confirmBox(t('Abandonner les modifications de la dataviz ?'), { ok: t('Abandonner'), danger: true }))
+        )
+          close(false);
+      } finally {
+        leaving = false;
+      }
       return;
     }
     const tg = e.target;
@@ -779,7 +864,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
       goHist(hist.i + 1);
     }
   };
-  window.addEventListener('keydown', onKey);
+  window.addEventListener('keydown', onKey, true);
 
   const undoBtn = h(
     'button',
@@ -834,6 +919,10 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
   body.append(main, form);
   document.body.append(root);
   document.body.classList.add('ve-open');
+  muted.forEach((n) => {
+    n.inert = true;
+  });
+  root.focus({ preventScroll: true }); // Tab part du haut de l'éditeur
   current = root;
   new ResizeObserver(() => {
     if (zoom === 'fit') draw();

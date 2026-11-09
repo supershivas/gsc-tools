@@ -698,6 +698,19 @@ export function richEditor(value, onChange, opts = {}) {
 
 /** typographie du document d'un ctx (les panneaux de l'éditeur) ; aucune hors de l'éditeur (Labo) */
 const ctxTypo = (ctx) => (ctx && ctx.getDoc ? typoOf(ctx.getDoc()) : undefined);
+/** Libellé + aide « ? » + champ : le libellé est un vrai <label for> (un clic dessus met le focus dans le champ) ; l'aide reste à côté, jamais dans le <label> */
+let fieldSeq = 0;
+const labelled = (h2, label, control) => {
+  control.id = 'bf' + ++fieldSeq;
+  return h2(
+    'div',
+    { class: 'f' },
+    h2('div', { class: 'hint' }, h2('label', { for: control.id, textContent: label }), helpBtn(label)),
+    control,
+  );
+};
+/** valeur affichée d'un champ : celle du document, sinon sa valeur par défaut `def` (celle que le dessin applique), sinon la première option */
+const shown = (f, obj, fallback) => getP(obj, f.k) ?? f.def ?? fallback;
 export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
   const out = [];
   const live = (fn) => (e) => {
@@ -772,14 +785,12 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
       );
     else if (f.t === 'number')
       out.push(
-        h2(
-          'label',
-          { class: 'f' },
+        labelled(
+          h2,
           f.label,
-          helpBtn(f.label),
           h2('input', {
             type: 'number',
-            value: getP(obj, f.k) ?? 0,
+            value: shown(f, obj, 0),
             min: f.min,
             max: f.max,
             step: f.step || 1,
@@ -851,7 +862,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
         h2(
           'label',
           { class: 'row', style: { marginBottom: '8px' } },
-          h2('input', { type: 'checkbox', checked: !!getP(obj, f.k), onchange: live((t) => setP(obj, f.k, t.checked)) }),
+          h2('input', { type: 'checkbox', checked: !!shown(f, obj, false), onchange: live((t) => setP(obj, f.k, t.checked)) }),
           f.label,
           helpBtn(f.label),
         ),
@@ -863,7 +874,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
           { class: 'f' },
           h2('div', { class: 'hint' }, f.label, helpBtn(f.label)),
           colorSelect({
-            value: getP(obj, f.k) ?? 'blue',
+            value: shown(f, obj, 'blue'),
             options: palOpts,
             text: true,
             onChange: (v) => {
@@ -881,7 +892,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
           { class: 'f' },
           h2('div', { class: 'hint' }, f.label, helpBtn(f.label)),
           iconSelect({
-            value: getP(obj, f.k) ?? Object.keys(opts)[0],
+            value: shown(f, obj, Object.keys(opts)[0]),
             options: opts,
             text: true,
             root,
@@ -901,8 +912,8 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
         { onchange: live((t) => setP(obj, f.k, t.value)) },
         Object.entries(opts).map(([v, l]) => h2('option', { value: v, textContent: l })),
       );
-      sel.value = getP(obj, f.k) ?? Object.keys(opts)[0];
-      out.push(h2('label', { class: 'f' }, f.label, helpBtn(f.label), sel));
+      sel.value = shown(f, obj, Object.keys(opts)[0]);
+      out.push(labelled(h2, f.label, sel));
     } else if (f.t === 'list') {
       const arr = obj[f.k] || (obj[f.k] = []);
       const box = h2('div', {}, h2('div', { class: 'hint', textContent: f.label }));

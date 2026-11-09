@@ -79,6 +79,7 @@ export default {
       t: 'select',
       label: 'Interlignage des textes',
       options: { tight: 'Serré (15 px)', normal: 'Normal (18 px)', loose: 'Large (21 px)' },
+      def: 'normal',
     },
     {
       k: 'layout',
