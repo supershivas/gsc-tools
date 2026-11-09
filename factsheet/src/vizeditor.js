@@ -19,7 +19,7 @@ import { startReorder } from './vizreorder.js';
 import { newSide, SIDE_FIELDS } from './viz/index.js';
 import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
 import { t } from './i18n.js';
-import { CARDS, groupOf, fieldsOf } from './vizgroups.js';
+import { CARDS, groupOf, fieldsOf, subsections, SUBS } from './vizgroups.js';
 
 const tr = t; // `t` est masqué par des variables locales (type de dataviz) dans `draw`
 
@@ -538,7 +538,25 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
           ico('palette'),
           h('span', { textContent: t('Couleurs du document') }),
         );
-      const cardNodes = (g) => [...gen(F(g)), g === 'struct' ? actions() : g === 'colors' ? paletteBtn() : null];
+      /* cartes denses : sous-sections (titre + filet, `role="group"`), les actions de l'anneau terminent la dernière */
+      let subSeq = 0;
+      const cardNodes = (g) => {
+        const extra = g === 'struct' ? actions() : g === 'colors' ? paletteBtn() : null;
+        const groups = subsections(F(g), g === 'struct' && ty.actions ? ty.actions.length : 0);
+        if (groups.length === 1 && !groups[0].s) return [...gen(groups[0].fields), extra];
+        const boxes = groups.map(({ s, fields: fs }, i) => {
+          const id = 'dvs' + ++subSeq;
+          const body = gen(fs);
+          if (i === groups.length - 1 && extra) body.push(extra);
+          return h(
+            'div',
+            { class: 'pp-subgroup', role: s ? 'group' : null, 'aria-labelledby': s ? id : null },
+            s ? h('div', { class: 'pp-sub', id, textContent: t(SUBS[s]) }) : null,
+            ...body,
+          );
+        });
+        return boxes;
+      };
       form.append(
         searchBox(search, refreshForm),
         typeCard(),

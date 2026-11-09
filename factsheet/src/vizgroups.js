@@ -45,3 +45,37 @@ export const fieldsOf = (fields, g) => {
     .sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1])
     .map(([f]) => f);
 };
+
+/** Sous-sections des cartes denses (6 champs ou plus, actions comprises) : titre + filet, sans repli. Un champ garde la même sous-section dans tous les types ;
+    un champ absent de la table reste en tête de carte, sans titre. Vocabulaire figé (docs/architecture.md). */
+export const SUBS = {
+  legend: 'Légende',
+  values: 'Valeurs',
+  names: 'Noms et textes',
+  inbars: 'Texte dans les barres',
+  axes: 'Axes',
+  numbers: 'Nombres',
+  shape: 'Forme',
+  orient: 'Orientation',
+  position: 'Position',
+};
+const SUB_OF = {
+  legend: 'legend', legendPos: 'legend', showPercent: 'legend',
+  showValues: 'values', valuesIn: 'values', showTotal: 'values',
+  showLabels: 'names', groupLabels: 'names', showDates: 'names', layout: 'names', leading: 'names', totalTpl: 'names',
+  labelIn: 'inbars', xTitle: 'axes', yTitle: 'axes', decimals: 'numbers', suffix: 'numbers',
+  style: 'shape', orient: 'orient', largestAngle: 'orient', startAngle: 'orient', ringAlign: 'position',
+}; // prettier-ignore
+const SUB_RANK = Object.keys(SUBS);
+export const subOf = (f) => f.s || SUB_OF[f.k];
+
+/** Découpe les champs d'une carte en groupes [{ s, fields }] (sans titre d'abord, puis dans l'ordre du vocabulaire) ; `extra` : nombre d'actions de la carte (comptées dans le seuil) */
+export function subsections(fields, extra = 0) {
+  if (fields.length + extra < 6) return [{ s: null, fields }];
+  const out = [];
+  for (const s of [null, ...SUB_RANK]) {
+    const fs = fields.filter((f) => (subOf(f) || null) === s);
+    if (fs.length) out.push({ s, fields: fs });
+  }
+  return out;
+}

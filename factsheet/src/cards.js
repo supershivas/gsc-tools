@@ -41,8 +41,15 @@ export function applyFilter(root, st) {
       let any = name.includes(n);
       if (body && !any)
         [...body.children].forEach((ch) => {
-          const hit = ch.textContent.toLowerCase().includes(n);
-          ch.style.display = hit ? '' : 'none';
+          /* sous-section : on filtre ses champs, le groupe disparaît quand plus aucun ne correspond */
+          const items = ch.classList.contains('pp-subgroup') ? [...ch.children].filter((c) => !c.classList.contains('pp-sub')) : [ch];
+          let hit = false;
+          items.forEach((it) => {
+            const m = it.textContent.toLowerCase().includes(n);
+            it.style.display = m ? '' : 'none';
+            hit = hit || m;
+          });
+          if (items[0] !== ch) ch.style.display = hit ? '' : 'none';
           any = any || hit;
         });
       card.style.display = any ? '' : 'none';

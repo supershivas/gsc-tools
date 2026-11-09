@@ -4,6 +4,12 @@
 import { ico } from './render.js';
 import { t } from './i18n.js';
 
+/** Options d'une liste dans l'ordre logique : un objet JS range les clés entières avant les autres (1, 2, puis 1.5) ; quand toutes les clés sont des nombres, on trie par valeur */
+export function orderedOptions(opts) {
+  const e = Object.entries(opts);
+  return e.length && e.every(([k]) => k !== '' && !isNaN(+k)) ? e.sort((a, b) => a[0] - b[0]) : e;
+}
+
 /** Interrupteur : bouton `role="switch"` ; le libellé (un vrai <label for>) le bascule aussi */
 export function switchControl(h2, id, label, on, commit) {
   let cur = !!on;
@@ -23,9 +29,9 @@ export function switchControl(h2, id, label, on, commit) {
 
 /** Choix entre quelques valeurs courtes : un seul Tab dans le groupe, ← → déplacent et choisissent, Début/Fin aux extrémités */
 export function segControl(h2, label, choices, current, commit) {
-  const keys = Object.keys(choices);
+  const keys = choices.map(([k]) => k);
   let cur = String(current);
-  const btns = keys.map((k) => h2('button', { type: 'button', role: 'radio', textContent: choices[k], dataset: { v: k } }));
+  const btns = choices.map(([k, l]) => h2('button', { type: 'button', role: 'radio', textContent: l, dataset: { v: k } }));
   const box = h2('div', { class: 'seg seg-text', role: 'radiogroup', 'aria-label': t(label) }, btns);
   const set = (v) => {
     cur = String(v);
@@ -57,14 +63,15 @@ export function segControl(h2, label, choices, current, commit) {
 
 /** Curseur à crans pour une liste ordonnée de valeurs (espaces) : la valeur affichée est le nom du cran */
 export function stepsControl(h2, label, choices, current, commit) {
-  const keys = Object.keys(choices);
+  const keys = choices.map(([k]) => k),
+    names = Object.fromEntries(choices);
   const out = h2('output', { class: 'pp-val' });
   const r = h2('input', { type: 'range', min: 0, max: keys.length - 1, step: 1, 'aria-label': t(label) });
   const set = (v) => {
     const i = Math.max(0, keys.indexOf(String(v)));
     r.value = i;
-    out.textContent = choices[keys[i]];
-    r.setAttribute('aria-valuetext', choices[keys[i]]);
+    out.textContent = names[keys[i]];
+    r.setAttribute('aria-valuetext', names[keys[i]]);
   };
   r.addEventListener('input', () => {
     set(keys[+r.value]);

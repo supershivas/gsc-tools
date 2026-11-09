@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.81.0 — 2026-11-09
+- Éditeur de dataviz : les cartes denses (Étiquettes, Structure de l'anneau) sont découpées en sous-sections titrées (Légende, Valeurs, Nombres, Orientation…)
+- Les choix numériques s'affichent dans l'ordre logique : la taille du chiffre passe de « Normal, Très grand, Grand » à « Normal, Grand, Très grand »
+
 ## 1.80.1 — 2026-11-09
 - Chiffre à côté : si « Texte sous le chiffre » est vide, rien ne s'affiche sous le chiffre (plus de libellé de la 1re donnée ajouté automatiquement) ; {label} permet toujours de l'insérer
 

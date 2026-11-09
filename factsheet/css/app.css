@@ -541,3 +541,8 @@ textarea.dg-ml{display:block;width:100%;min-width:90px;border:0;border-radius:0;
 .pp-body .pp-range input[type=range]{flex:1;min-width:0;width:auto}
 .pp-range .pp-unit,.pp-range .pp-val{font:var(--fs-xs) var(--font-mono,monospace);color:var(--ui-mute)}
 .pp-range .pp-val{min-width:56px;text-align:right}
+
+/* sous-sections des cartes denses : titre de 11 px en capitales suivi d'un filet, jamais focalisable */
+.pp-subgroup{display:grid;gap:16px}
+.pp-sub{display:flex;align-items:center;gap:8px;font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.06em;color:var(--ui-mute);margin-top:4px}
+.pp-sub::after{content:"";flex:1;height:1px;background:var(--ui-line)}

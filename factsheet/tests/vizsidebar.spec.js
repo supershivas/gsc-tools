@@ -259,3 +259,46 @@ test.describe('contrôles', () => {
     await expect(rst).toHaveAttribute('aria-disabled', 'true');
   });
 });
+
+/* Sous-sections (lot 5 de l'audit) : seulement dans les cartes de 6 champs ou plus */
+test.describe('sous-sections', () => {
+  test.beforeEach(async ({ page }) => {
+    await openApp(page, 'default');
+    await openEditor(page);
+  });
+  const titles = (page, card) =>
+    page.$$eval(
+      '.ve-form .pp-card',
+      (cs, c) => {
+        const el = cs.find((x) => x.querySelector('.pp-card-h b').textContent === c);
+        return el ? [...el.querySelectorAll('.pp-sub')].map((n) => n.textContent) : null;
+      },
+      card,
+    );
+  test('barres : Étiquettes en sous-sections, Dimensions sans titre', async ({ page }) => {
+    await pickType(page, /^Bars \(/);
+    await page.locator('.ve-form .pp-q').fill(' ');
+    expect(await titles(page, 'Labels')).toEqual(['Caption', 'Values', 'Text in the bars', 'Numbers']);
+    expect(await titles(page, 'Dimensions')).toEqual([]);
+    await expect(page.locator('.ve-form .pp-sub').first()).not.toHaveAttribute('tabindex', /.*/);
+  });
+  test('anneau : Structure (champs + actions) en sous-sections', async ({ page }) => {
+    await pickType(page, /^Donut/);
+    await page.locator('.ve-form .pp-q').fill(' ');
+    expect(await titles(page, 'Structure')).toEqual(['Shape', 'Orientation', 'Position']);
+  });
+  test('la recherche masque les sous-sections sans résultat', async ({ page }) => {
+    await pickType(page, /^Bars \(/);
+    await page.locator('.ve-form .pp-q').fill('decimals');
+    await expect(page.locator('.ve-form .pp-subgroup:visible .pp-sub')).toHaveText(['Numbers']);
+  });
+});
+
+test('taille du chiffre : ordre logique Normal, Grand, Très grand', async ({ page }) => {
+  await openApp(page, 'default');
+  await openEditor(page);
+  await pickType(page, /^Bars \(/);
+  await page.locator('.ve-form .pp-q').fill(' ');
+  const f = page.locator('.ve-form .f', { hasText: 'Figure size' });
+  expect(await f.locator('button[role=radio]').allTextContents()).toEqual(['Normal', 'Large', 'Extra large']);
+});

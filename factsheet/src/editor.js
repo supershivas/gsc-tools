@@ -4,7 +4,7 @@ import { inlineMk, typoOf } from './viz/util.js';
 import { ctxIcons } from './viz/icons.js';
 import { t } from './i18n.js';
 import { helpBtn } from './help.js';
-import { switchControl, segControl, stepsControl, rangeControl, resetButton } from './controls.js';
+import { orderedOptions, switchControl, segControl, stepsControl, rangeControl, resetButton } from './controls.js';
 import { colorSelect } from './colorselect.js';
 import { iconSelect } from './iconselect.js';
 import { PSTYLES, GROUPS, HASH_KEYS, parseLine, prefixOf, styleOf, specOf, hasAdv } from './textstyles.js';
@@ -824,7 +824,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
     else if (f.t === 'number' && f.k === 'decimals')
       out.push(
         withReset(f, false, (id, commit) =>
-          segControl(h2, f.label, { 0: '0', 1: '1', 2: '2', 3: '3', 4: '4' }, shown(f, obj, 0), (v) => commit(+v)),
+          segControl(h2, f.label, orderedOptions({ 0: '0', 1: '1', 2: '2', 3: '3', 4: '4' }), shown(f, obj, 0), (v) => commit(+v)),
         ),
       );
     else if (f.t === 'number' && f.min != null && f.max != null && !NUMBER_FIELDS.has(f.k))
@@ -960,8 +960,8 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
       out.push(
         withReset(f, false, (id, commit) =>
           kind === 'steps'
-            ? stepsControl(h2, f.label, f.options, shown(f, obj, Object.keys(f.options)[0]), commit)
-            : segControl(h2, f.label, f.options, shown(f, obj, Object.keys(f.options)[0]), commit),
+            ? stepsControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit)
+            : segControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit),
         ),
       );
     } else if (f.t === 'select') {
@@ -969,7 +969,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
       const sel = h2(
         'select',
         { onchange: live((t) => setP(obj, f.k, t.value)) },
-        Object.entries(opts).map(([v, l]) => h2('option', { value: v, textContent: l })),
+        orderedOptions(opts).map(([v, l]) => h2('option', { value: v, textContent: l })),
       );
       sel.value = shown(f, obj, Object.keys(opts)[0]);
       out.push(labelled(h2, f.label, sel));
