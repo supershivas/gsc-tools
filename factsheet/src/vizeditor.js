@@ -6,7 +6,7 @@
 import { h, ico } from './render.js';
 import { HAS_PREFIX } from './textstyles.js';
 import { openPalette } from './palette.js';
-import { buildFields, paletteOptions, richEditor, linkButton } from './editor.js';
+import { buildFields, paletteOptions, richEditor, linkButton, getP, setP } from './editor.js';
 import { colWidth, subColWidth, cssVars, applyVars, paletteOf, densityGaps } from './tokens.js';
 import { renderCtx } from './renderctx.js';
 import { ctxIcons } from './viz/icons.js';
@@ -32,6 +32,8 @@ const accs = {}, // accordéon par type de dataviz : { cur, first } (la dernièr
 const MARKUP = new RegExp('\\*\\*|~~|__|\\^\\^|,,|' + HAS_PREFIX.source); // accordéon : une seule carte ouverte dans le panneau
 
 const SERIES_COLORS = ['sky', 'yellow', 'blue', 'slate', 'grey'];
+let clip = null, // réglages copiés (gardés tant que la page reste ouverte)
+  pasteMsg = '';
 let availH = 360; // place disponible simulée dans l'aperçu (mode « Remplir »)
 
 /** Petite fenêtre de choix de couleur à l'endroit du clic : pastilles de la palette du document ; « toute la série » (au lieu du seul élément) et « couleur de la série » (retire la surcharge) */
@@ -300,6 +302,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     syncHist();
   };
   const changed = () => {
+    resetUps.forEach((f) => f());
     draw();
     rec(true);
     ctx.changed();
@@ -333,8 +336,78 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     },
   };
   const refreshForm = () => buildForm();
-  const card = (id, icon, name, nodes, sum) =>
-    cardEl(id, icon, name, nodes, { shut, refresh: refreshForm, acc: accs[col.viz.kind], sum, q: search.q });
+  const card = (id, icon, name, nodes, sum, headExtra) =>
+    cardEl(id, icon, name, nodes, { shut, refresh: refreshForm, acc: accs[col.viz.kind], sum, q: search.q, headExtra });
+
+  /* ----- confort (audit lot 6) : rétablir une carte, copier / coller les réglages ----- */
+  const SETTINGS_G = new Set(['struct', 'dims', 'labels', 'colors', 'bracket']);
+  const settingsOf = (ty) => (ty.fields || []).filter((f) => f.k && f.t !== 'node' && SETTINGS_G.has(groupOf(f)));
+  /** champs d'une carte dont la valeur a quitté la valeur d'origine : [{ obj, f, v }] (valeur d'origine = réglages par défaut du type) */
+  const changedIn = (list, obj, dflt) =>
+    list
+      .map((f) => [f, f.def ?? dflt[f.k]])
+      .filter(([f, d]) => d !== undefined && getP(obj, f.k) !== undefined && String(getP(obj, f.k)) !== String(d))
+      .map(([f, d]) => ({ obj, f, v: d }));
+  /* bouton de l'en-tête : masqué tant que rien n'a changé, mis à jour à chaque modification sans reconstruire le panneau */
+  const resetUps = [];
+  const resetCard = (name, list, obj, dflt) => {
+    const mods = () => changedIn(list, obj, dflt);
+    const b = h(
+      'button',
+      {
+        type: 'button',
+        class: 'mini pp-reset pp-reset-card',
+        title: `${t('Rétablir la carte')} · ${name}`,
+        'aria-label': `${t('Rétablir la carte')} · ${name}`,
+        onclick: () => {
+          mods().forEach(({ obj: o, f, v }) => setP(o, f.k, v));
+          fctx.restructure();
+        },
+      },
+      ico('rotate-2'),
+    );
+    const upd = () => (b.hidden = !mods().length);
+    upd();
+    resetUps.push(upd);
+    return b;
+  };
+  const valid = (f, v) => {
+    if (f.t === 'select' && f.options && typeof f.options === 'object') return String(v) in f.options;
+    if (f.t === 'number') return typeof v === 'number' && (f.min == null || v >= f.min) && (f.max == null || v <= f.max);
+    if (f.t === 'bool') return typeof v === 'boolean';
+    return typeof v === 'string' || typeof v === 'number';
+  };
+  const copySettings = () => {
+    const ty = VIZ_TYPES[col.viz.kind],
+      values = {};
+    settingsOf(ty).forEach((f) => {
+      const v = getP(col.viz.opts, f.k);
+      if (v !== undefined) values[f.k] = v;
+    });
+    clip = { kind: col.viz.kind, label: ty.label, values, side: { ...(col.viz.side || {}) } };
+    pasteMsg = `${t('Réglages copiés')} · ${Object.keys(values).length}`;
+    buildForm();
+  };
+  const pasteSettings = () => {
+    if (!clip) return;
+    const ty = VIZ_TYPES[col.viz.kind];
+    let n = 0;
+    settingsOf(ty).forEach((f) => {
+      if (f.k in clip.values && valid(f, clip.values[f.k])) {
+        setP(col.viz.opts, f.k, clip.values[f.k]);
+        n++;
+      }
+    });
+    const side = col.viz.side || (col.viz.side = newSide(col.viz.kind));
+    SIDE_FIELDS.forEach((f) => {
+      if (f.k in clip.side && valid(f, clip.side[f.k])) {
+        side[f.k] = clip.side[f.k];
+        n++;
+      }
+    });
+    pasteMsg = `${t('Réglages collés')} · ${n}`;
+    fctx.restructure();
+  };
   /* Titre et source : un champ simple par défaut (une ligne) ; l'éditeur riche (gras, styles de paragraphe…) s'ouvre avec le bouton, ou d'office si le texte est déjà mis en forme */
   const softField = (obj, k, label, opts) => {
     const box = h('div', { class: 'f' }),
@@ -438,6 +511,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     const top = form.scrollTop;
     form.innerHTML = '';
     dataPane.innerHTML = '';
+    resetUps.length = 0;
     const ty = VIZ_TYPES[col.viz.kind],
       fields = ty.fields || [],
       F = (g) => fieldsOf(fields, g);
@@ -569,15 +643,43 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
             headSummary(head),
           ),
           ty.panel ? card('dv-picto', 'mood-smile', t(ty.panelTitle || 'Pictogramme'), ty.panel(col.viz.opts, fctx)) : null,
-          ...CARDS.map((c) => (has[c.id] ? card(c.id, c.icon, t(c.name), cardNodes(c.g)) : null)),
+          ...CARDS.map((c) =>
+            has[c.id] ? card(c.id, c.icon, t(c.name), cardNodes(c.g), '', resetCard(t(c.name), F(c.g), col.viz.opts, dflt)) : null,
+          ),
           card(
             'dv-side',
             'number',
             t('Chiffre à côté'),
             buildFields(SIDE_FIELDS, col.viz.side || (col.viz.side = newSide(col.viz.kind)), fctx, {}, h),
             sideSummary(col.viz.side),
+            resetCard(t('Chiffre à côté'), SIDE_FIELDS, col.viz.side, newSide(col.viz.kind)),
           ),
           card('dv-debug', 'bug', t('Réglages avancés'), [
+            h('p', {
+              class: 'hint',
+              textContent: t(
+                'Copie les réglages de cette dataviz (Structure, Dimensions, Étiquettes, Couleurs, Accolade, Chiffre à côté) pour les coller dans une autre, même d’un autre type : seuls les réglages communs sont repris.',
+              ),
+            }),
+            h(
+              'div',
+              { class: 'pp-actions' },
+              h(
+                'button',
+                { type: 'button', class: 'pp-btn', onclick: copySettings },
+                ico('copy'),
+                h('span', { textContent: t('Copier les réglages') }),
+              ),
+              h(
+                'button',
+                { type: 'button', class: 'pp-btn', 'aria-disabled': String(!clip), onclick: pasteSettings },
+                ico('clipboard'),
+                h('span', { textContent: t('Coller les réglages') }),
+              ),
+            ),
+            clip || pasteMsg
+              ? h('p', { class: 'hint', role: 'status', textContent: pasteMsg || `${t('Réglages copiés depuis')} ${t(clip.label)}` })
+              : null,
             h('p', {
               class: 'hint',
               textContent: t('Exporte la dataviz et les réglages du document (thème, couleurs, densité) pour le débogage.'),

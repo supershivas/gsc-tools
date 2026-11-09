@@ -85,13 +85,29 @@ export function applyFilter(root, st) {
 
 /* acc = { cur, first } : mode accordéon (une seule carte ouverte ; `first` tant que rien n'a été choisi) ; sum = valeur actuelle affichée quand la carte est repliée */
 let cardSeq = 0;
-export function cardEl(id, icon, name, nodes, { shut, refresh, toggle = null, live = true, acc = null, sum = '', q = '' }) {
-  const open = q ? true : acc ? (acc.cur ?? acc.first) === id : !shut.has(id),
+export function cardEl(
+  id,
+  icon,
+  name,
+  nodes,
+  { shut, refresh, toggle = null, live = true, acc = null, sum = '', q = '', headExtra = null },
+) {
+  const open = q ? true : acc ? (acc.cur ?? acc.first) === id || !!(acc.extra && acc.extra.has(id)) : !shut.has(id),
     show = open && (live || !!q),
     bodyId = 'pp-body-' + ++cardSeq;
-  const flip = () => {
-    if (acc) acc.cur = open ? '' : id;
-    else {
+  /* Maj + clic : ouvre ou ferme une carte sans toucher aux autres (l'accordéon ne s'applique qu'au clic simple) */
+  const flip = (e) => {
+    if (acc && e && e.shiftKey) {
+      const ex = (acc.extra ||= new Set());
+      if (open) {
+        ex.delete(id);
+        if ((acc.cur ?? acc.first) === id) acc.cur = '';
+      } else ex.add(id);
+    } else if (acc) {
+      const was = open;
+      if (acc.extra) acc.extra.clear();
+      acc.cur = was ? '' : id;
+    } else {
       open ? shut.add(id) : shut.delete(id);
     }
     refresh();
@@ -105,13 +121,14 @@ export function cardEl(id, icon, name, nodes, { shut, refresh, toggle = null, li
       {
         class: 'pp-card-h',
         onclick: (e) => {
-          if (!e.target.closest('button, input, select, a') || e.target.closest('.pp-chev')) flip();
+          if (!e.target.closest('button, input, select, a') || e.target.closest('.pp-chev')) flip(e);
         },
       },
       ico(icon),
       h('b', { textContent: name }),
       helpBtn(name),
       h('span', { class: 'pp-sp' }),
+      headExtra,
       !open && sum ? h('em', { class: 'pp-sum', textContent: sum }) : null,
       toggle,
       h(

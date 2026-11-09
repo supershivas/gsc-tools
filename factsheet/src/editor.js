@@ -4,7 +4,19 @@ import { inlineMk, typoOf } from './viz/util.js';
 import { ctxIcons } from './viz/icons.js';
 import { t } from './i18n.js';
 import { helpBtn } from './help.js';
-import { orderedOptions, switchControl, segControl, stepsControl, rangeControl, resetButton } from './controls.js';
+import {
+  orderedOptions,
+  switchControl,
+  segControl,
+  stepsControl,
+  rangeControl,
+  resetButton,
+  thumbsControl,
+  stepperControl,
+  autoControl,
+  unitChips,
+} from './controls.js';
+import { richSelect } from './colorselect.js';
 import { colorSelect } from './colorselect.js';
 import { iconSelect } from './iconselect.js';
 import { PSTYLES, GROUPS, HASH_KEYS, parseLine, prefixOf, styleOf, specOf, hasAdv } from './textstyles.js';
@@ -103,8 +115,8 @@ export function multiline(h2, value, onInput, placeholder = '') {
 }
 
 /* ---------- Formulaires générés depuis la définition d'une dataviz ---------- */
-const getP = (o, p) => p.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
-const setP = (o, p, v) => {
+export const getP = (o, p) => p.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
+export const setP = (o, p, v) => {
   const ks = p.split('.'),
     last = ks.pop();
   const t = ks.reduce((a, k) => (a[k] == null ? (a[k] = {}) : a[k]), o);
@@ -711,14 +723,24 @@ const labelled = (h2, label, control) => {
   );
 };
 /** nombres gardés en champ numérique (petits entiers qu'on compte) ; les autres champs bornés deviennent un curseur */
-const NUMBER_FIELDS = new Set(['cols', 'gridRows', 'perRow']);
+const STEPPER_FIELDS = new Set(['cols', 'gridRows']);
+const AUTO_FIELDS = new Set(['perDot', 'perRow', 'total']);
+const NUMBER_FIELDS = new Set([...STEPPER_FIELDS, ...AUTO_FIELDS]);
 const unitOf = (label) => (/\bpx\b/.test(label) ? 'px' : label.includes('°') ? '°' : label.includes('%') ? '%' : '');
+/** choix de nature visuelle : liste déroulante riche, une icône par valeur */
+const RICH_ICONS = {
+  orient: { largest: 'chart-pie-2', first: 'arrow-bar-up', manual: 'hand-move' },
+  layout: { auto: 'wand', around: 'chart-donut-3', legend: 'list-details', none: 'circle' },
+  tail: { dashed: 'line-dashed', solid: 'minus', none: 'point' },
+  align: { justify: 'align-justified', left: 'align-left', right: 'align-right', center: 'align-center' },
+};
 const STEPS_KEYS = new Set(['groupSpace', 'serSpace', 'rowSpace']);
 /** liste → contrôle : 'steps' (4 crans d'espace), 'seg' (2–3 valeurs courtes), sinon null (liste déroulante) */
 function choiceKind(f) {
   if (f.icons || typeof f.options === 'function') return null;
   const v = Object.values(f.options);
   if (STEPS_KEYS.has(f.k) && v.length === 4) return 'steps';
+  if (f.k === 'barSize') return 'thumbs';
   return v.length <= 3 && v.join('').length <= 32 ? 'seg' : null;
 }
 /** valeur affichée d'un champ : celle du document, sinon sa valeur par défaut `def` (celle que le dessin applique), sinon la première option */
@@ -794,6 +816,12 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
             f.k === 'suffix' ? null : linkButton(() => field),
           ),
           field,
+          f.k === 'suffix'
+            ? unitChips(h2, field, (v) => {
+                setP(obj, f.k, v);
+                ctx.changed();
+              })
+            : null,
         ),
       );
     } else if (f.t === 'area')
@@ -825,6 +853,16 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
       out.push(
         withReset(f, false, (id, commit) =>
           segControl(h2, f.label, orderedOptions({ 0: '0', 1: '1', 2: '2', 3: '3', 4: '4' }), shown(f, obj, 0), (v) => commit(+v)),
+        ),
+      );
+    else if (f.t === 'number' && STEPPER_FIELDS.has(f.k))
+      out.push(
+        withReset(f, true, (id, commit) => stepperControl(h2, id, f.label, { min: f.min, max: f.max }, shown(f, obj, f.min), commit)),
+      );
+    else if (f.t === 'number' && AUTO_FIELDS.has(f.k))
+      out.push(
+        withReset(f, true, (id, commit) =>
+          autoControl(h2, id, f.label, { min: f.min, max: f.max, step: f.step }, shown(f, obj, 0), commit),
         ),
       );
     else if (f.t === 'number' && f.min != null && f.max != null && !NUMBER_FIELDS.has(f.k))
@@ -955,13 +993,36 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
           }),
         ),
       );
+    } else if (f.t === 'select' && RICH_ICONS[f.k] && Object.keys(f.options).every((k) => k in RICH_ICONS[f.k])) {
+      const opts = f.options;
+      const ic = RICH_ICONS[f.k];
+      out.push(
+        h2(
+          'div',
+          { class: 'f' },
+          h2('div', { class: 'hint' }, f.label, helpBtn(f.label)),
+          richSelect({
+            value: shown(f, obj, Object.keys(opts)[0]),
+            options: opts,
+            text: true,
+            lead: (k) => ico(ic[k] || 'circle'),
+            onChange: (v) => {
+              setP(obj, f.k, v);
+              ctx.changed();
+              syncAll();
+            },
+          }),
+        ),
+      );
     } else if (f.t === 'select' && choiceKind(f)) {
       const kind = choiceKind(f);
       out.push(
         withReset(f, false, (id, commit) =>
-          kind === 'steps'
-            ? stepsControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit)
-            : segControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit),
+          kind === 'thumbs'
+            ? thumbsControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit)
+            : kind === 'steps'
+              ? stepsControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit)
+              : segControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit),
         ),
       );
     } else if (f.t === 'select') {

@@ -205,10 +205,15 @@ test.describe('dépendances entre champs', () => {
     const start = page.locator('.ve-form .f', { hasText: 'Start angle of the 1st segment' });
     await expect(largest).toBeVisible();
     await expect(start).toBeHidden();
-    await page.locator('.ve-form .f', { hasText: 'Ring orientation' }).locator('select').selectOption('manual');
+    const orient = page.locator('.ve-form .f', { hasText: 'Ring orientation' });
+    const pickOrient = async (name) => {
+      await orient.locator('button.cs').click();
+      await page.locator('.cs-pop .cs-opt', { hasText: name }).click();
+    };
+    await pickOrient('Manual');
     await expect(largest).toBeHidden();
     await expect(start).toBeVisible();
-    await page.locator('.ve-form .f', { hasText: 'Ring orientation' }).locator('select').selectOption('first');
+    await pickOrient('1st segment');
     await expect(largest).toBeHidden();
     await expect(start).toBeHidden();
   });
@@ -301,4 +306,88 @@ test('taille du chiffre : ordre logique Normal, Grand, Très grand', async ({ pa
   await page.locator('.ve-form .pp-q').fill(' ');
   const f = page.locator('.ve-form .f', { hasText: 'Figure size' });
   expect(await f.locator('button[role=radio]').allTextContents()).toEqual(['Normal', 'Large', 'Extra large']);
+});
+
+/* Fin du lot 4 et lot 6 : vignettes, stepper, Auto, unités, rétablir la carte, copier / coller, Maj + clic */
+test.describe('confort', () => {
+  let errors;
+  test.beforeEach(async ({ page }) => {
+    errors = watchErrors(page);
+    await openApp(page, 'default');
+    await openEditor(page);
+  });
+  test.afterEach(() => expect(errors).toEqual([]));
+  const all = (page) => page.locator('.ve-form .pp-q').fill(' ');
+
+  test('vignettes d’épaisseur, stepper, Auto et unités', async ({ page }) => {
+    await pickType(page, /^Bars \(/);
+    await all(page);
+    const th = page.locator('.ve-form .f', { hasText: 'Bar thickness' });
+    expect(await th.locator('button[role=radio]').allTextContents()).toEqual(['Thin', 'Normal', 'Thick']);
+    await th.locator('button[role=radio]', { hasText: 'Thick' }).click();
+    await expect(th.locator('button.on')).toHaveText('Thick');
+    await pickType(page, /waffle|percentage grid/i);
+    await all(page);
+    const cols = page.locator('.ve-form .f', { hasText: 'Cells per row' });
+    const before = +(await cols.locator('input').inputValue());
+    await cols.locator('.pp-step').last().click();
+    await expect(cols.locator('input')).toHaveValue(String(before + 1));
+    const total = page.locator('.ve-form .f', { hasText: 'Value of the whole grid' });
+    const auto = total.locator('button[role=switch]');
+    await auto.click(); // Auto : 0 = somme des valeurs
+    await expect(total.locator('input[type=number]')).toBeDisabled();
+    await auto.click();
+    await expect(total.locator('input[type=number]')).toBeEnabled();
+    await pickType(page, /^Treemap/);
+    await all(page);
+    await page.locator('.ve-form .pp-chips .mini', { hasText: 'M€' }).first().click();
+    await expect(page.locator('.ve-form .f', { hasText: 'Unit after the value' }).locator('input[type=text]')).toHaveValue('M€');
+  });
+
+  test('rétablir la carte, Maj + clic, copier / coller', async ({ page }) => {
+    await pickType(page, /^Bars \(/);
+    await page
+      .locator('.ve-form .pp-card', { has: page.locator('b', { hasText: /^Dimensions$/ }) })
+      .locator('.pp-chev')
+      .click();
+    const dim = page.locator('.ve-form .pp-card', { has: page.locator('b', { hasText: /^Dimensions$/ }) });
+    await dim.locator('.f', { hasText: 'Bar thickness' }).locator('button', { hasText: 'Thick' }).click();
+    const rc = dim.locator('.pp-reset-card');
+    await expect(rc).toBeVisible();
+    // copier, changer de type, coller
+    await page
+      .locator('.ve-form .pp-card', { has: page.locator('b', { hasText: /^Advanced settings$/ }) })
+      .locator('.pp-chev')
+      .click();
+    await page.getByRole('button', { name: 'Copy settings' }).click();
+    await pickType(page, /^Horizontal bars/);
+    await page
+      .locator('.ve-form .pp-card', { has: page.locator('b', { hasText: /^Advanced settings$/ }) })
+      .locator('.pp-chev')
+      .click();
+    await page.getByRole('button', { name: 'Paste settings' }).click();
+    await expect(page.locator('.ve-form [role=status]')).toContainText('Settings pasted');
+    await all(page);
+    await expect(page.locator('.ve-form .f', { hasText: 'Bar thickness' }).locator('button.on')).toHaveText('Thick');
+    await page.locator('.ve-form .pp-q').fill('');
+    // rétablir la carte
+    await page
+      .locator('.ve-form .pp-card', { has: page.locator('b', { hasText: /^Dimensions$/ }) })
+      .locator('.pp-chev')
+      .click();
+    await page
+      .locator('.ve-form .pp-card', { has: page.locator('b', { hasText: /^Dimensions$/ }) })
+      .locator('.pp-reset-card')
+      .click();
+    await expect(page.locator('.ve-form .f', { hasText: 'Bar thickness' }).locator('button.on')).toHaveText('Normal');
+    // Maj + clic : deux cartes ouvertes en même temps
+    await page
+      .locator('.ve-form .pp-card', { has: page.locator('b', { hasText: /^Labels$/ }) })
+      .locator('.pp-chev')
+      .click({ modifiers: ['Shift'] });
+    for (const n of ['Dimensions', 'Labels'])
+      await expect(
+        page.locator('.ve-form .pp-card', { has: page.locator('b', { hasText: new RegExp('^' + n + '$') }) }).locator('.pp-body'),
+      ).toBeVisible();
+  });
 });

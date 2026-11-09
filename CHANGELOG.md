@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.82.0 — 2026-11-09
+- Éditeur de dataviz : épaisseur des barres en vignettes, « + / − » pour les cases d'une grille, interrupteur « Auto » à la place du 0 magique, unités courantes (%, M€, Md€…) en un clic, listes à icônes (orientation, libellés, extrémités, alignement)
+- Chaque carte a un bouton ↺ « Rétablir la carte » dès qu'un de ses réglages a changé ; Maj + clic ouvre plusieurs cartes à la fois
+- Réglages avancés : « Copier les réglages » / « Coller les réglages » pour reprendre les réglages communs d'une dataviz à une autre, même d'un autre type
+
 ## 1.81.0 — 2026-11-09
 - Éditeur de dataviz : les cartes denses (Étiquettes, Structure de l'anneau) sont découpées en sous-sections titrées (Légende, Valeurs, Nombres, Orientation…)
 - Les choix numériques s'affichent dans l'ordre logique : la taille du chiffre passe de « Normal, Très grand, Grand » à « Normal, Grand, Très grand »

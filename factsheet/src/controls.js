@@ -125,3 +125,85 @@ export function resetButton(h2, label, onReset) {
   b.refresh = (isDef) => b.setAttribute('aria-disabled', String(isDef));
   return b;
 }
+
+/** Vignettes : comme le segmenté, avec un mini-dessin au-dessus du libellé (épaisseur de barre : 3 barres de plus en plus larges) */
+export function thumbsControl(h2, label, choices, current, commit) {
+  const c = segControl(h2, label, choices, current, commit);
+  c.node.classList.add('thumbs');
+  [...c.node.children].forEach((b, i) => {
+    const bar = (j) => h2('b', { style: { width: 3 + i * 3 + 'px', height: 10 + j * 4 + 'px' } });
+    b.replaceChildren(
+      h2('i', { class: 'th-ico', 'aria-hidden': 'true' }, bar(0), bar(1), bar(2)),
+      h2('span', { textContent: choices[i][1] }),
+    );
+  });
+  return c;
+}
+
+/** Stepper − / valeur / + pour de petits entiers qu'on compte (cases d'une grille) */
+export function stepperControl(h2, id, label, { min = 0, max = 99 }, current, commit) {
+  const n = h2('input', { type: 'number', id, class: 'pp-num', min, max, step: 1 });
+  const clamp = (v) => Math.max(min, Math.min(max, Math.round(v)));
+  const go = (v) => {
+    n.value = clamp(v);
+    commit(+n.value);
+  };
+  const b = (txt, ico2, d) =>
+    h2('button', { type: 'button', class: 'mini pp-step', 'aria-label': t(txt), onclick: () => go((+n.value || 0) + d) }, ico(ico2));
+  n.addEventListener('input', () => {
+    const v = parseFloat(n.value);
+    if (!isNaN(v)) commit(clamp(v));
+  });
+  n.addEventListener('blur', () => (n.value = clamp(parseFloat(n.value) || min)));
+  n.value = current;
+  return { node: h2('div', { class: 'pp-stepper' }, b('Diminuer', 'minus', -1), n, b('Augmenter', 'plus', 1)), set: (v) => (n.value = v) };
+}
+
+/** Nombre dont 0 veut dire « automatique » : l'interrupteur « Auto » remplace la valeur magique */
+export function autoControl(h2, id, label, { min, max, step }, current, commit) {
+  let last = +current > 0 ? +current : 1;
+  const n = h2('input', { type: 'number', id, class: 'pp-num', min, max, step: step || 1 });
+  const sw = switchControl(h2, id + 'a', 'Auto', !(+current > 0), (auto) => {
+    sync(auto);
+    commit(auto ? 0 : +n.value || last);
+  });
+  const sync = (auto) => {
+    n.disabled = auto;
+    n.value = auto ? '' : last;
+  };
+  n.addEventListener('input', () => {
+    const v = parseFloat(n.value);
+    if (!isNaN(v) && v > 0) {
+      last = v;
+      commit(v);
+    }
+  });
+  sync(!(+current > 0));
+  return {
+    node: h2('div', { class: 'pp-auto' }, h2('label', { for: id + 'a', textContent: t('Auto') }), sw.node, n),
+    set: (v) => {
+      if (+v > 0) last = +v;
+      sw.set(!(+v > 0));
+      sync(!(+v > 0));
+    },
+  };
+}
+
+/** Unités courantes à portée de clic sous le champ « Unité après la valeur » (le champ reste libre) */
+export function unitChips(h2, input, commit) {
+  return h2(
+    'div',
+    { class: 'pp-chips' },
+    ['%', 'M€', 'Md€', '€', 'k€'].map((u) =>
+      h2('button', {
+        type: 'button',
+        class: 'mini',
+        textContent: u,
+        onclick: () => {
+          input.value = u;
+          commit(u);
+        },
+      }),
+    ),
+  );
+}
