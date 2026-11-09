@@ -109,8 +109,9 @@ function parseTransform(str) {
 }
 
 /* ---------- polices ---------- */
-const WEIGHTS = { sans: [200, 400, 600, 700], 'sans-italic': [400, 600, 700], serif: [400, 600, 700] };
-const nearest = (list, w) => list.reduce((a, b) => (Math.abs(b - w) < Math.abs(a - w) ? b : a));
+/* toutes les graisses (200 à 900), en romain et en italique, des deux familles : fonts/pdf/<Famille>-<graisse>[-italic].ttf (scripts/pdf-fonts.py) */
+const WEIGHTS = [200, 300, 400, 500, 600, 700, 800, 900];
+const nearest = w => WEIGHTS.reduce((a, b) => (Math.abs(b - w) < Math.abs(a - w) ? b : a));
 const bytesCache = new Map();
 const fontBytes = async name => { if (!bytesCache.has(name)) bytesCache.set(name, fetch(new URL(`fonts/pdf/${name}.ttf`, document.baseURI)).then(r => { if (!r.ok) throw new Error(name); return r.arrayBuffer(); })); return bytesCache.get(name); };
 
@@ -149,8 +150,7 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
     pdf.setTitle(doc.name || 'factsheet'); pdf.setProducer('GSC tools — Factsheet creator (PDF CMJN)'); pdf.setCreator('GSC tools');
     const fonts = new Map();
     const fontFor = async (fam, weight, italic) => {
-      const f = fam === 'serif' ? 'serif' : italic ? 'sans-italic' : 'sans', w = nearest(WEIGHTS[f], weight);
-      const name = (fam === 'serif' ? 'SourceSerif4' : 'SourceSans3') + '-' + w + (f === 'sans-italic' ? '-italic' : '');
+      const name = (fam === 'serif' ? 'SourceSerif4' : 'SourceSans3') + '-' + nearest(weight) + (italic ? '-italic' : '');
       if (!fonts.has(name)) {
         const bytes = await fontBytes(name), fk = fontkit.create(new Uint8Array(bytes)), embedded = await pdf.embedFont(bytes, { subset: true });
         fonts.set(name, { embedded, asc: fk.ascent / fk.unitsPerEm, desc: -fk.descent / fk.unitsPerEm, chars: new Set(embedded.getCharacterSet()) });
@@ -158,7 +158,7 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
       return fonts.get(name);
     };
     /* le texte est d'abord collecté (polices asynchrones), puis dessiné : on prépare toutes les polices utiles avant le rendu */
-    const families = new Set(); for (const el of stage.querySelectorAll('*')) { const cs = getComputedStyle(el); families.add(`${/serif 4/i.test(cs.fontFamily) ? 'serif' : 'sans'}|${nearest(WEIGHTS[/serif 4/i.test(cs.fontFamily) ? 'serif' : cs.fontStyle === 'italic' ? 'sans-italic' : 'sans'], +cs.fontWeight || 400)}|${cs.fontStyle === 'italic'}`); }
+    const families = new Set(); for (const el of stage.querySelectorAll('*')) { const cs = getComputedStyle(el); families.add(`${/serif 4/i.test(cs.fontFamily) ? 'serif' : 'sans'}|${nearest(+cs.fontWeight || 400)}|${cs.fontStyle === 'italic' || cs.fontStyle.startsWith('oblique')}`); }
     for (const k of families) { const [f, w, it] = k.split('|'); await fontFor(f, +w, it === 'true'); }
 
     const imgCache = new Map();

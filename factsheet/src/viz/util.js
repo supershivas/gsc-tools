@@ -192,7 +192,7 @@ export function drawLegendWrap(svg, L, y) {
 /* Les mesures de texte (canvas) ne déclenchent pas le chargement des polices : sans cela, un premier rendu mesure avec une police de secours plus étroite
    et le texte déborde une fois la vraie police chargée. À attendre avant tout rendu qui mesure. */
 const FONT_SPECS = ['200 16px "Source Sans 3"', '400 16px "Source Sans 3"', '600 16px "Source Sans 3"', '700 16px "Source Sans 3"', 'italic 400 16px "Source Sans 3"', 'italic 700 16px "Source Sans 3"',
-  '400 16px "Source Serif 4"', '600 16px "Source Serif 4"', '700 16px "Source Serif 4"'];
+  '400 16px "Source Serif 4"', '600 16px "Source Serif 4"', '700 16px "Source Serif 4"', 'italic 400 16px "Source Serif 4"', 'italic 700 16px "Source Serif 4"'];
 let fontsLoaded = null;
 export const loadFonts = () => fontsLoaded || (fontsLoaded = (document.fonts && document.fonts.load ? Promise.all(FONT_SPECS.map(f => document.fonts.load(f, 'AaÉé€0123 ').catch(() => {}))).then(() => document.fonts.ready) : Promise.resolve()));
 
