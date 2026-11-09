@@ -1,0 +1,2 @@
+Profil de sortie de l'export PDF/X (FOGRA39, offset sur papier couché, ISO 12647-2:2004) :
+ISOcoated_v2_300_eci.icc, European Color Initiative (www.eci.org), paquet « ECI_Offset_2009 », librement téléchargeable et diffusable.

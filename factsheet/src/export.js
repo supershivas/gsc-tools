@@ -14,6 +14,15 @@ export const EXPORT_MODES = {
   marks: { label: 'Fond perdu 3 mm + traits de coupe — 228 × 315 mm', note: 'Pour l’imprimeur : fond perdu et repères de coupe (feuille de 228 × 315 mm).', offset: SLUG_MM, bleed: true, marks: true },
 };
 
+/* Profils du PDF CMJN (choisis avant l'export). Profil de sortie : FOGRA39 (ISO 12647-2:2004, offset, papier couché), profil ECI
+   « ISO Coated v2 300 % » incorporé (icc/, librement diffusable). PDF/X-4 garde les transparences, PDF/X-1a les aplatit. */
+const FOGRA39 = { icc: 'icc/ISOcoated_v2_300_eci.icc', iccName: 'ISO Coated v2 300% (ECI)', condition: 'FOGRA39', conditionText: 'Offset commercial, papier couché (ISO 12647-2:2004, FOGRA39)' };
+export const PDF_PROFILES = {
+  x4:   { label: 'PDF/X-4 — FOGRA39 (ISO Coated v2 300 %)', note: 'Recommandé : transparences conservées, profil d’impression incorporé. Liens non cliquables.', suffix: '-x4', ...FOGRA39 },
+  x1a:  { label: 'PDF/X-1a — FOGRA39 (ISO Coated v2 300 %)', note: 'Pour un imprimeur qui refuse la transparence : chaque transparence est remplacée par l’aplat équivalent sur son fond. Liens non cliquables.', suffix: '-x1a', ...FOGRA39 },
+  none: { label: 'CMJN sans norme', note: 'Sans profil incorporé ; les liens restent cliquables (lecture à l’écran).', suffix: '' },
+};
+
 export function sheetSize(mode) { const m = EXPORT_MODES[mode]; return { w: A4.w + 2 * m.offset, h: A4.h + 2 * m.offset }; }
 
 function cropMarks(offset) {

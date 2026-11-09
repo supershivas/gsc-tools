@@ -67,6 +67,7 @@ details.sel{border-color:#F28C28;box-shadow:0 0 0 2px #f28c2855}
 dialog#exportDlg{border:1px solid var(--ui-line);border-radius:12px;padding:18px 20px;max-width:460px;box-shadow:0 12px 40px #0004}
 dialog#exportDlg::backdrop{background:#0006}
 #exportDlg h3{margin:0 0 10px;font-size:15px}
+#exportDlg h4{margin:14px 0 6px;font-size:12px;font-weight:600;color:var(--ui-mute);text-transform:uppercase;letter-spacing:.04em}
 #exportDlg label.opt{display:block;border:1px solid var(--ui-line);border-radius:8px;padding:8px 10px;margin:0 0 8px;cursor:pointer}
 #exportDlg label.opt:has(input:checked){border-color:var(--ui-blue);background:#f3f8ff}
 #exportDlg label.opt small{display:block;color:var(--ui-mute);margin-left:22px}

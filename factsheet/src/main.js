@@ -8,7 +8,7 @@ import { buildProps } from './props.js';
 import { openVizEditor } from './vizeditor.js';
 import { openMedia } from './media.js';
 import { initHover } from './hover.js';
-import { EXPORT_MODES, preparePrint, cleanupPrint } from './export.js';
+import { EXPORT_MODES, PDF_PROFILES, preparePrint, cleanupPrint } from './export.js';
 import { t, initI18n, getLang, LANGS } from './i18n.js';
 import { rasterizeDocument } from './raster.js';
 
@@ -672,12 +672,20 @@ loadFonts().then(schedule);   // les mesures de texte supposent les polices char
 /* ---------- Export PDF ---------- */
 const dlg = document.getElementById('exportDlg');
 let exportMode = 'net';
+/* profil du PDF CMJN (PDF/X-4, PDF/X-1a, sans norme) : préférence locale de ce navigateur */
+const PROFILE_KEY = 'factsheet-creator-pdf-profile';
+let exportProfile = 'x4';
+try { const v = localStorage.getItem(PROFILE_KEY); if (PDF_PROFILES[v]) exportProfile = v; } catch (e) { /* stockage indisponible : PDF/X-4 */ }
 function openExport() {
-  const box = document.getElementById('exportOpts'); box.innerHTML = '';
-  for (const [k, o] of Object.entries(EXPORT_MODES)) {
-    const r = h('input', { type: 'radio', name: 'xmode', value: k, checked: k === exportMode, onchange: () => { exportMode = k; } });
-    box.append(h('label', { class: 'opt' }, r, ' ' + o.label, h('small', { textContent: o.note })));
-  }
+  const radios = (id, name, list, cur, set) => {
+    const box = document.getElementById(id); box.innerHTML = '';
+    for (const [k, o] of Object.entries(list)) {
+      const r = h('input', { type: 'radio', name, value: k, checked: k === cur, onchange: () => set(k) });
+      box.append(h('label', { class: 'opt' }, r, ' ' + t(o.label), h('small', { textContent: t(o.note) })));
+    }
+  };
+  radios('exportOpts', 'xmode', EXPORT_MODES, exportMode, k => { exportMode = k; });
+  radios('exportProfile', 'xprofile', PDF_PROFILES, exportProfile, k => { exportProfile = k; try { localStorage.setItem(PROFILE_KEY, k); } catch (e) { /* préférence non gardée */ } });
   dlg.showModal();
 }
 document.getElementById('exportCancel').addEventListener('click', () => dlg.close());
@@ -686,8 +694,10 @@ document.getElementById('exportCmyk').addEventListener('click', async e => {
   const btn = e.currentTarget, label = btn.textContent; btn.disabled = true; btn.textContent = t('Génération du PDF…');
   try {
     if (!window.FSPDF) await loadBundle('pdfexport.js');
-    const bytes = await window.FSPDF.build(doc, exportMode);
-    const name = fileStem(exportMode === 'net' ? '' : '-' + exportMode) + '.pdf';
+    const { bytes, missing } = await window.FSPDF.build(doc, exportMode, { profile: exportProfile });
+    /* caractères absents des polices (symboles rares, alphabets non latins hors grec et cyrillique) : ils ne seraient pas imprimés */
+    if (missing.length && !confirm(t('Ces caractères n’existent pas dans les polices du document et n’apparaîtront pas dans le PDF :') + '\n\n' + missing.join('  ') + '\n\n' + t('Télécharger quand même ?'))) return;
+    const name = fileStem((exportMode === 'net' ? '' : '-' + exportMode) + PDF_PROFILES[exportProfile].suffix) + '.pdf';
     const a = h('a', { href: URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' })), download: name }); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     dlg.close();
   } catch (err) { console.error(err); alert(t('Impossible de générer le PDF CMJN.') + ' ' + (err && err.message || '')); }

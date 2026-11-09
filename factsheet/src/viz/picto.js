@@ -22,18 +22,25 @@ export const pictoChoices = o => ({
 });
 
 /* ---------- import d'un SVG : nettoyage (ni script, ni image distante) puis stockage du contenu ---------- */
-export function sanitizeSvg(text, name = 'icon') {
-  if (text.length > 400000) throw new Error('trop lourd');
-  const doc = new DOMParser().parseFromString(text, 'image/svg+xml'), svg = doc.documentElement;
-  if (!svg || svg.nodeName.toLowerCase() !== 'svg' || doc.querySelector('parsererror')) throw new Error('svg illisible');
-  doc.querySelectorAll('script,foreignObject,iframe,object,embed,animate,animateTransform,animateMotion,set,image,audio,video').forEach(n => n.remove());
-  doc.querySelectorAll('style').forEach(n => { if (/@import|url\((?!\s*['"]?#)/i.test(n.textContent)) n.remove(); });
-  doc.querySelectorAll('*').forEach(n => [...n.attributes].forEach(a => {
+/** retire d'un arbre SVG tout ce qui exécute du code ou charge une ressource externe ; appelé à l'import ET à chaque rendu
+    (un document ouvert depuis un fichier ou publié par l'Atelier n'est pas passé par l'import) */
+export function cleanSvgTree(root) {
+  root.querySelectorAll('script,foreignObject,iframe,object,embed,animate,animateTransform,animateMotion,set,image,audio,video').forEach(n => n.remove());
+  root.querySelectorAll('style').forEach(n => { if (/@import|url\((?!\s*['"]?#)/i.test(n.textContent)) n.remove(); });
+  [root, ...root.querySelectorAll('*')].forEach(n => [...n.attributes].forEach(a => {
     const ln = a.name.toLowerCase();
     if (ln.startsWith('on')) n.removeAttribute(a.name);
     else if ((ln === 'href' || ln.endsWith(':href')) && !a.value.startsWith('#')) n.removeAttribute(a.name);
     else if (/url\((?!\s*['"]?#)/i.test(a.value) || /javascript:/i.test(a.value)) n.removeAttribute(a.name);
   }));
+  return root;
+}
+const SAFE_IMG = /^data:image\/(png|jpe?g|gif|webp);base64,/i;
+export function sanitizeSvg(text, name = 'icon') {
+  if (text.length > 400000) throw new Error('trop lourd');
+  const doc = new DOMParser().parseFromString(text, 'image/svg+xml'), svg = doc.documentElement;
+  if (!svg || svg.nodeName.toLowerCase() !== 'svg' || doc.querySelector('parsererror')) throw new Error('svg illisible');
+  cleanSvgTree(doc.documentElement);
   let vb = (svg.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number);
   if (vb.length !== 4 || vb.some(isNaN)) { const w = parseFloat(svg.getAttribute('width')), h = parseFloat(svg.getAttribute('height')); vb = [0, 0, w || 24, h || 24]; }
   const inner = [...svg.childNodes].map(n => new XMLSerializer().serializeToString(n)).join('').replace(/ xmlns(:\w+)?="[^"]*"/g, '');
@@ -49,10 +56,10 @@ export function iconNode(o, key, x, y, w, h, color) {
   if (kind === 'icon') svg.append(s('path', { d: (ICONS[id] || ICONS.check).d, fill: 'none', stroke: col, 'stroke-width': 1.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
   else if (kind === 'custom') {
     const c = customList(o).find(k => k.id === id);
-    if (c && c.img) { svg.setAttribute('viewBox', c.vb.join(' ')); svg.append(s('image', { href: c.img, x: 0, y: 0, width: c.vb[2], height: c.vb[3], preserveAspectRatio: 'xMidYMid meet' })); }
+    if (c && c.img && SAFE_IMG.test(c.img)) { svg.setAttribute('viewBox', c.vb.join(' ')); svg.append(s('image', { href: c.img, x: 0, y: 0, width: c.vb[2], height: c.vb[3], preserveAspectRatio: 'xMidYMid meet' })); }
     else if (c) {
       svg.setAttribute('viewBox', c.vb.join(' ')); svg.setAttribute('fill', col);
-      const tmp = new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${c.markup}</svg>`, 'image/svg+xml').documentElement;
+      const tmp = cleanSvgTree(new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${c.markup}</svg>`, 'image/svg+xml').documentElement);
       if (o.recolor !== false) tmp.querySelectorAll('*').forEach(n => { const f = n.getAttribute('fill'), st = n.getAttribute('stroke'); if (f && f !== 'none') n.removeAttribute('fill'); if (st && st !== 'none') n.setAttribute('stroke', col); n.removeAttribute('style'); });
       [...tmp.childNodes].forEach(n => svg.append(document.importNode(n, true)));
     }

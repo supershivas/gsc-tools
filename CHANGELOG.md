@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.70.0 — 2026-11-09
+- Export PDF : choix du profil avant l'export — PDF/X-4 ou PDF/X-1a (profil d'impression FOGRA39 incorporé), ou CMJN sans norme
+- Export PDF : les lettres accentuées d'Europe centrale, le grec et le cyrillique sortent ; avertissement si un caractère manque aux polices
+- Corrige le fond perdu qui recouvrait le bas du header, l'opacité des textes (sources) dans le PDF, et un risque de code caché dans un SVG importé
+
 ## 1.69.2 — 2026-11-06
 - Export PDF : les textes des graphiques (légendes, axes, libellés) sont placés avec l'API SVG, pour que tous les mots sortent quel que soit le navigateur
 

@@ -3,8 +3,12 @@
    - couleurs : valeurs CMJN exactes de la palette (cmyk.js), conversion simple pour le reste ; noir et gris = noir seul
    - texte : polices incorporées (fonts/pdf/*.ttf, instances statiques de Source Sans 3 / Source Serif 4), positions relevées dans le navigateur
    - images : rastérisées à 300 ppi puis converties en CMJN (le canal alpha devient un masque)
-   - fond perdu et traits de coupe : mêmes modes que l'impression (export.js), avec TrimBox et BleedBox. */
-import { PDFDocument, PDFString, cmyk as cmykColor, pushGraphicsState, popGraphicsState, concatTransformationMatrix, moveTo, lineTo, appendBezierCurve,
+   - fond perdu et traits de coupe : mêmes modes que l'impression (export.js), avec TrimBox et BleedBox
+   - profil (PDF_PROFILES, export.js) : PDF/X-4 (transparences conservées) ou PDF/X-1a (transparences aplaties sur le fond situé
+     sous l'élément), avec profil de sortie FOGRA39 incorporé (icc/ISOcoated_v2_300_eci.icc, ECI), métadonnées XMP et identifiant ;
+     les liens cliquables ne sont pas gardés en PDF/X (annotations interdites dans la page)
+   - caractères absents des polices : non dessinés, renvoyés dans `missing` pour prévenir avant le téléchargement. */
+import { PDFDocument, PDFString, PDFHexString, PDFName, cmyk as cmykColor, pushGraphicsState, popGraphicsState, concatTransformationMatrix, moveTo, lineTo, appendBezierCurve,
   closePath, fill, PDFOperator, PDFOperatorNames, stroke, clip, clipEvenOdd, endPath, setLineWidth, setLineCap, setLineJoin, setDashPattern, setFillingCmykColor,
   setStrokingCmykColor, drawObject, setGraphicsState } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
@@ -12,7 +16,7 @@ import { PAGE, STROKE } from '../tokens.js';
 import { renderDocument, measure } from '../render.js';
 import { loadFonts } from '../viz/util.js';
 import { makeCmykResolver } from '../cmyk.js';
-import { EXPORT_MODES, A4, BLEED_MM, sheetSize } from '../export.js';
+import { EXPORT_MODES, PDF_PROFILES, A4, BLEED_MM, sheetSize } from '../export.js';
 
 const PT_PER_MM = 72 / 25.4;
 const KX = A4.w * PT_PER_MM / PAGE.w, KY = A4.h * PT_PER_MM / PAGE.h;      // px de page → points
@@ -123,7 +127,14 @@ function rgbaToCmykImage(data, w, h, resolve) {
   return { cm, al, hasAlpha };
 }
 
-export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
+const WHITE_CMYK = [0, 0, 0, 0];
+const mix = (c, a, b) => c.map((v, i) => a * v + (1 - a) * b[i]);     // aplat équivalent d'une couleur d'opacité a posée sur b (encres 0–1)
+const xmlEsc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/** → { bytes, missing } ; opts : { profile: 'none' | 'x4' | 'x1a', onProgress } */
+export async function buildPdf(doc, mode = 'net', opts = {}) {
+  const profile = PDF_PROFILES[opts.profile] ? opts.profile : 'none', flat = profile === 'x1a', onProgress = opts.onProgress || (() => {});
+  const missing = new Set();
   const m = EXPORT_MODES[mode] || EXPORT_MODES.net, size = sheetSize(mode), Wp = size.w * PT_PER_MM, Hp = size.h * PT_PER_MM, off = m.offset * PT_PER_MM, bleedPx = BLEED_MM * 96 / 25.4;
   await loadFonts();
   const resolve = makeCmykResolver(doc);
@@ -158,7 +169,7 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
       /* repères : px relatifs à la page du document → points sur la feuille */
       const base = [KX, 0, 0, -KY, off, Hp - off];
       const ops = []; const push = (...o) => ops.push(...o); const flush = () => { if (ops.length) { page.pushOperators(...ops); ops.length = 0; } };
-      const alphaOps = (a, A = a) => { if (a >= 0.999 && A >= 0.999) return null; const k = a.toFixed(3) + '|' + A.toFixed(3); if (!gsCache.has(k)) { const d = pdf.context.obj({ Type: 'ExtGState', ca: a, CA: A }); gsCache.set(k, page.node.newExtGState('GS', d)); } return setGraphicsState(gsCache.get(k)); };
+      const alphaOps = (a, A = a) => { if (flat || (a >= 0.999 && A >= 0.999)) return null; const k = a.toFixed(3) + '|' + A.toFixed(3); if (!gsCache.has(k)) { const d = pdf.context.obj({ Type: 'ExtGState', ca: a, CA: A }); gsCache.set(k, page.node.newExtGState('GS', d)); } return setGraphicsState(gsCache.get(k)); };
       const toPt = (x, y) => apply(base, x, y);
       const setFill = c => push(setFillingCmykColor(...c)), setStroke = c => push(setStrokingCmykColor(...c));
       /* chemins : liste de commandes en coordonnées utilisateur, transformées par M (utilisateur → px de page) */
@@ -169,8 +180,13 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
           else if (s[0] === 'C') push(appendBezierCurve(...pt(s[1], s[2]), ...pt(s[3], s[4]), ...pt(s[5], s[6]))); else push(closePath());
         }
       };
-      const paint = (path, M, fillC, fillA, strokeC, strokeA, sw, dash, cap, join, evenodd) => {
+      const paint = (path, M, fillC, fillA, strokeC, strokeA, sw, dash, cap, join, evenodd, probe) => {
         if (!fillC && !strokeC) return;
+        if (flat && probe) {
+          if (fillC && fillA < 0.999) { fillC = mix(fillC, fillA, backdrop(...probe.pt)); fillA = 1; }
+          if (strokeC && strokeA < 0.999) { strokeC = mix(strokeC, strokeA, backdrop(...probe.pt)); strokeA = 1; }
+        }
+        if (fillC && probe && probe.hit) painted.push({ hit: probe.hit, c: fillA >= 0.999 ? fillC : mix(fillC, fillA, backdrop(...probe.pt)) });
         const swM = Math.sqrt(Math.abs(M[0] * M[3] - M[1] * M[2])) * Math.sqrt(KX * KY);   // largeur de trait en points
         push(pushGraphicsState());
         const a = alphaOps(fillC ? fillA : 1, strokeC ? strokeA : 1); if (a) push(a);
@@ -183,15 +199,29 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
         push(popGraphicsState());
       };
       const ID = [1, 0, 0, 1, -P.left, -P.top];            // px écran → px page
+      /* surfaces déjà peintes (de bas en haut) : ce qu'il y a sous un point, pour aplatir une transparence (PDF/X-1a) */
+      const painted = [];
+      const backdrop = (x, y) => { for (let i = painted.length - 1; i >= 0; i--) if (painted[i].hit(x, y)) return painted[i].c; return WHITE_CMYK; };
+      const rectHit = (x, y, w, h) => ({ pt: [x + w / 2, y + h / 2], hit: (px, py) => px >= x && px <= x + w && py >= y && py <= y + h });
+      /* forme SVG : test « point dans le remplissage » de l'API SVG, point de sonde à l'intérieur de la forme */
+      const svgHit = el => {
+        const ctm = el.getScreenCTM && el.getScreenCTM(); if (!ctm || !el.isPointInFill) return null;
+        const inv = ctm.inverse(), hit = (x, y) => { try { return el.isPointInFill(new DOMPoint(x + P.left, y + P.top).matrixTransform(inv)); } catch (e) { return false; } };
+        const b = el.getBoundingClientRect(), x0 = b.left - P.left, y0 = b.top - P.top; let pt = [x0 + b.width / 2, y0 + b.height / 2];
+        if (!hit(...pt)) for (let i = 1; i < 6; i++) for (let j = 1; j < 6; j++) { const q = [x0 + b.width * i / 6, y0 + b.height * j / 6]; if (hit(...q)) { pt = q; i = j = 6; } }
+        return { pt, hit };
+      };
+      let curClip = null;                                   // rectangle de rognage HTML en cours (px de page), appliqué au texte
       let clips = 0;
       const clipTo = (path, M) => { push(pushGraphicsState()); emitPath(path, M); push(clip(), endPath()); clips++; };
       const unclip = () => { push(popGraphicsState()); clips--; };
 
       /* ----- texte (HTML et SVG) ----- */
       const textJobs = [], links = [];
-      const drawText = (node, el, scale, isSvg) => {
-        const cs = getComputedStyle(el), serif = /serif 4/i.test(cs.fontFamily), italic = cs.fontStyle === 'italic', weight = +cs.fontWeight || 400;
-        const size = parseFloat(cs.fontSize) * scale, col = parseCss(isSvg ? cs.fill : cs.color); if (!col || col.a === 0 || size <= 0) return;
+      const drawText = (node, el, scale, isSvg, alpha = 1) => {
+        const cs = getComputedStyle(el), clip = curClip, serif = /serif 4/i.test(cs.fontFamily), italic = cs.fontStyle === 'italic', weight = +cs.fontWeight || 400;
+        const size = parseFloat(cs.fontSize) * scale, col0 = parseCss(isSvg ? cs.fill : cs.color); if (!col0 || col0.a * alpha <= 0 || size <= 0) return;
+        const col = { rgb: col0.rgb, a: col0.a * alpha };   // opacité du texte × opacité des éléments parents
         const upper = cs.textTransform === 'uppercase', ls = parseFloat(cs.letterSpacing) || 0, under = /underline/.test(cs.textDecorationLine), strike = /line-through/.test(cs.textDecorationLine), caps = cs.fontVariantCaps === 'small-caps';
         const data = node.data, re = /\S+/g; let w;
         /* Texte SVG : positions par l'API SVG (getStartPositionOfChar / getSubStringLength), pas par Range.getClientRects(), que les navigateurs
@@ -214,7 +244,7 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
                 try {
                   const p0 = el.getStartPositionOfChar(a), len = el.getSubStringLength(a, w[0].length);
                   const pt = new DOMPoint(p0.x, p0.y).matrixTransform(ctm);
-                  jobs.push({ text: upper ? w[0].toUpperCase() : w[0], x: pt.x - P.left, top: 0, h: 0, by: pt.y - P.top, w: len * ctm.a, serif, italic, weight, size, bsize: size, col, under, strike });
+                  jobs.push({ text: upper ? w[0].toUpperCase() : w[0], x: pt.x - P.left, top: 0, h: 0, by: pt.y - P.top, w: len * ctm.a, serif, italic, weight, size, bsize: size, col, under, strike, clip });
                 } catch (e) { ok = false; break; }
               }
               if (ok) { textJobs.push(...jobs); return; }
@@ -247,19 +277,26 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
               chunks.push({ t: low ? ch.toUpperCase() : ch, r: own, k: low ? 0.8 : 1 });
             });
           }
-          for (const c of chunks) textJobs.push({ text: c.t, x: c.r.left - P.left, top: c.r.top - P.top, h: c.r.height, w: c.r.width, serif, italic, weight, size: size * c.k, bsize: size, col, under, strike });
+          for (const c of chunks) textJobs.push({ text: c.t, x: c.r.left - P.left, top: c.r.top - P.top, h: c.r.height, w: c.r.width, serif, italic, weight, size: size * c.k, bsize: size, col, under, strike, clip });
         }
       };
       const flushText = async () => {
         for (const j of textJobs) {
-          const f = await fontFor(j.serif ? 'serif' : 'sans', j.weight, j.italic), t = [...j.text].filter(ch => f.chars.has(ch.codePointAt(0))).join('');
+          const f = await fontFor(j.serif ? 'serif' : 'sans', j.weight, j.italic), t = [...j.text].filter(ch => { const ok = f.chars.has(ch.codePointAt(0)); if (!ok && !/\s/.test(ch)) missing.add(ch); return ok; }).join('');
           if (!t) continue;
-          const bs = j.bsize || j.size, baseline = j.by != null ? j.by : j.top + (j.h - (f.asc + f.desc) * bs) / 2 + f.asc * bs, [x, y] = toPt(j.x, baseline), c = resolve(j.col.rgb);
+          const bs = j.bsize || j.size, baseline = j.by != null ? j.by : j.top + (j.h - (f.asc + f.desc) * bs) / 2 + f.asc * bs, [x, y] = toPt(j.x, baseline);
+          let c = resolve(j.col.rgb), a = j.col.a;
+          if (flat && a < 0.999) { c = mix(c, a, backdrop(j.x + j.w / 2, baseline - j.size * 0.3)); a = 1; }
+          if (j.clip) { push(pushGraphicsState()); emitPath(rectPath(j.clip.x, j.clip.y, j.clip.w, j.clip.h), [1, 0, 0, 1, 0, 0]); push(clip(), endPath()); }
           flush();
-          page.drawText(t, { x, y, size: j.size * KY, font: f.embedded, color: cmykColor(...c), opacity: j.col.a < 1 ? j.col.a : undefined });
+          page.drawText(t, { x, y, size: j.size * KY, font: f.embedded, color: cmykColor(...c), opacity: a < 0.999 ? a : undefined });
+          const la = alphaOps(1, a); if (la && (j.strike || j.under)) push(pushGraphicsState(), la);
           if (j.strike) { const [sx, sy] = toPt(j.x, baseline - j.size * 0.3), [ex] = toPt(j.x + j.w, 0); push(pushGraphicsState()); setStroke(c); push(setLineWidth(j.size * 0.06 * KY)); push(moveTo(sx, sy), lineTo(ex, sy), stroke(), popGraphicsState()); }
           if (j.under) { const [ux, uy] = toPt(j.x, baseline + j.size * 0.12), [ex] = toPt(j.x + j.w, 0); push(pushGraphicsState()); setStroke(c); push(setLineWidth(j.size * 0.06 * KY)); push(moveTo(ux, uy), lineTo(ex, uy), stroke(), popGraphicsState()); }
+          if (la && (j.strike || j.under)) push(popGraphicsState());
+          if (j.clip) push(popGraphicsState());
         }
+        flush();
         textJobs.length = 0;
       };
 
@@ -279,7 +316,7 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
         const cs = getComputedStyle(el), tag = el.localName; if (cs.display === 'none' || cs.visibility === 'hidden') return;
         if (['defs', 'clippath', 'style', 'title', 'desc', 'mask', 'lineargradient', 'radialgradient', 'filter', 'symbol'].includes(tag.toLowerCase())) return;
         let N = el.hasAttribute('transform') ? mul(M, parseTransform(el.getAttribute('transform'))) : M;
-        const alpha = parentAlpha * (parseFloat(cs.opacity) || (cs.opacity === '0' ? 0 : 1)); if (alpha <= 0) return;
+        const op = parseFloat(cs.opacity), alpha = parentAlpha * (isNaN(op) ? 1 : op); if (alpha <= 0) return;
         let pushed = 0;
         const cp = urlRef(el.getAttribute('clip-path') || cs.clipPath);
         if (cp) { const path = []; for (const c of cp.children) { const sp = shapePath(c); if (sp) path.push(...sp); } if (path.length) { clipTo(path, N); pushed++; } }
@@ -290,43 +327,48 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
           if (cs.overflowX !== 'visible' && w && h) { clipTo(rectPath(0, 0, w, h), mul(N, [1, 0, 0, 1, x, y])); pushed++; }
           for (const c of el.children) svgNode(c, Q, alpha);
         } else if (tag === 'g' || tag === 'a') { for (const c of el.children) svgNode(c, N, alpha); }
-        else if (tag === 'image') { const im = svgImg.get(el); if (im && im.naturalWidth) drawImg(el, { objectFit: 'contain', objectPosition: '50% 50%', opacity: String(alpha) }, { img: im, rect: el.getBoundingClientRect() }); }
-        else if (tag === 'text') { for (const n of el.querySelectorAll('*')) void n; const sc = el.getScreenCTM ? (el.getScreenCTM() || { a: 1 }).a : 1; walkText(el, sc, true); }
+        else if (tag === 'image') { const im = svgImg.get(el); if (im && im.naturalWidth) drawImg(el, { objectFit: 'contain', objectPosition: '50% 50%' }, { img: im, rect: el.getBoundingClientRect() }, alpha); }
+        else if (tag === 'text') { const sc = el.getScreenCTM ? (el.getScreenCTM() || { a: 1 }).a : 1; walkText(el, sc, true, alpha); }
         else {
           const path = shapePath(el);
           if (path) {
             const f = parseCss(cs.fill), s = parseCss(cs.stroke), fillC = f && f.a > 0 ? resolve(f.rgb) : null, strokeC = s && s.a > 0 ? resolve(s.rgb) : null;
             const dash = (cs.strokeDasharray || 'none') === 'none' ? null : (cs.strokeDasharray.match(NUM) || []).map(Number);
-            paint(path, N, fillC, (parseFloat(cs.fillOpacity) || 0) * (f ? f.a : 1) * alpha || (fillC ? alpha : 0), strokeC, (parseFloat(cs.strokeOpacity) || 0) * (s ? s.a : 1) * alpha || (strokeC ? alpha : 0),
-              parseFloat(cs.strokeWidth) || 0, dash, { round: 1, square: 2 }[cs.strokeLinecap] || 0, { round: 1, bevel: 2 }[cs.strokeLinejoin] || 0, cs.fillRule === 'evenodd');
+            const fo = parseFloat(cs.fillOpacity), so = parseFloat(cs.strokeOpacity);   // fill-opacity: 0 = invisible (pas de repli sur 1)
+            const probe = flat ? (svgHit(el) || { pt: (b => [b.left - P.left + b.width / 2, b.top - P.top + b.height / 2])(el.getBoundingClientRect()) }) : null;
+            paint(path, N, fillC, (isNaN(fo) ? 1 : fo) * (f ? f.a : 1) * alpha, strokeC, (isNaN(so) ? 1 : so) * (s ? s.a : 1) * alpha,
+              parseFloat(cs.strokeWidth) || 0, dash, { round: 1, square: 2 }[cs.strokeLinecap] || 0, { round: 1, bevel: 2 }[cs.strokeLinejoin] || 0, cs.fillRule === 'evenodd', probe);
           }
         }
         while (pushed--) unclip();
       };
-      const drawSvg = el => {
+      const drawSvg = (el, A = 1) => {
         const r = el.getBoundingClientRect(), vb = el.viewBox && el.viewBox.baseVal && el.viewBox.baseVal.width ? el.viewBox.baseVal : { x: 0, y: 0, width: r.width, height: r.height };
         const sx = r.width / vb.width, sy = r.height / vb.height, M = [sx, 0, 0, sy, r.left - P.left - vb.x * sx, r.top - P.top - vb.y * sy], cs = getComputedStyle(el);
         const clipIt = cs.overflowX !== 'visible'; if (clipIt) clipTo(rectPath(vb.x, vb.y, vb.width, vb.height), M);
-        for (const c of el.children) svgNode(c, M, parseFloat(cs.opacity) || 1);
+        const op = parseFloat(cs.opacity), alpha = A * (isNaN(op) ? 1 : op);
+        if (alpha > 0) for (const c of el.children) svgNode(c, M, alpha);
         if (clipIt) unclip();
       };
 
       /* ----- images ----- */
-      const drawImg = (el0, cs, ov) => {
+      const drawImg = (el0, cs, ov, alpha = 1) => {
         const el = ov ? ov.img : el0, r = ov ? ov.rect : el0.getBoundingClientRect(); if (r.width < 0.5 || r.height < 0.5 || !el.naturalWidth) return;
         const fit = cs.objectFit || 'fill', cw = Math.max(1, Math.min(4000, Math.round(r.width * SCALE))), ch = Math.max(1, Math.min(4000, Math.round(r.height * SCALE)));
-        const key = `${el.currentSrc}|${cw}|${ch}|${fit}|${cs.objectPosition}`;
+        const x0 = r.left - P.left, y0 = r.top - P.top, B = flat ? backdrop(x0 + r.width / 2, y0 + r.height / 2) : null;   // X-1a : image posée à plat sur son fond
+        const key = `${el.currentSrc}|${cw}|${ch}|${fit}|${cs.objectPosition}|${flat ? alpha + '|' + B.join() : ''}`;
         let ref = imgCache.get(key);
         if (!ref) {
           const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch; const g = cv.getContext('2d'), iw = el.naturalWidth, ih = el.naturalHeight;
           let dw = cw, dh = ch; if (fit === 'cover' || fit === 'contain' || fit === 'scale-down') { const k = (fit === 'cover' ? Math.max : Math.min)(cw / iw, ch / ih); dw = iw * k; dh = ih * k; } else if (fit === 'none') { dw = iw * SCALE; dh = ih * SCALE; }
           const pos = (cs.objectPosition || '50% 50%').split(' ').map(v => (v.endsWith('%') ? parseFloat(v) / 100 : 0.5)); g.drawImage(el, (cw - dw) * pos[0], (ch - dh) * (pos[1] ?? 0.5), dw, dh);
           const { cm, al, hasAlpha } = rgbaToCmykImage(g.getImageData(0, 0, cw, ch).data, cw, ch, resolve);
+          if (flat && (hasAlpha || alpha < 0.999)) for (let i = 0; i < al.length; i++) { const a = al[i] / 255 * alpha; for (let k = 0; k < 4; k++) cm[i * 4 + k] = Math.round(a * cm[i * 4 + k] + (1 - a) * B[k] * 255); }
           const dict = { Type: 'XObject', Subtype: 'Image', Width: cw, Height: ch, ColorSpace: 'DeviceCMYK', BitsPerComponent: 8 };
-          if (hasAlpha) dict.SMask = pdf.context.register(pdf.context.flateStream(al, { Type: 'XObject', Subtype: 'Image', Width: cw, Height: ch, ColorSpace: 'DeviceGray', BitsPerComponent: 8 }));
+          if (hasAlpha && !flat) dict.SMask = pdf.context.register(pdf.context.flateStream(al, { Type: 'XObject', Subtype: 'Image', Width: cw, Height: ch, ColorSpace: 'DeviceGray', BitsPerComponent: 8 }));
           ref = pdf.context.register(pdf.context.flateStream(cm, dict)); imgCache.set(key, ref);
         }
-        const name = page.node.newXObject('Img', ref), [x, y] = toPt(r.left - P.left, r.bottom - P.top), a = alphaOps(parseFloat(cs.opacity) || 1);
+        const name = page.node.newXObject('Img', ref), [x, y] = toPt(r.left - P.left, r.bottom - P.top), a = alphaOps(alpha);
         push(pushGraphicsState()); if (a) push(a); push(concatTransformationMatrix(r.width * KX, 0, 0, r.height * KY, x, y), drawObject(name), popGraphicsState());
       };
 
@@ -334,47 +376,60 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
       const bleedFor = (el, r) => {
         if (!m.bleed) return null;
         const isHd = el.classList.contains('hd'), isBand = el.classList.contains('sec-band'); if (!isHd && !isBand) return null;
-        return { l: bleedPx, r: bleedPx, t: isHd || el.classList.contains('sec-first') ? bleedPx : 0, b: el.classList.contains('sec-last') && isBand ? bleedPx : 0 };
+        /* vers le haut : le header, ou la 1re bande d'une page SANS header (au recto, elle touche le header : elle le recouvrirait de 3 mm) */
+        const top = isHd || (el.classList.contains('sec-first') && !p.el.querySelector('.hd'));
+        return { l: bleedPx, r: bleedPx, t: top ? bleedPx : 0, b: el.classList.contains('sec-last') && isBand ? bleedPx : 0 };
       };
-      const walk = el => {
+      /* A : opacité cumulée des parents (appliquée à chaque objet, texte compris, et non en groupe) */
+      const walk = (el, A = 1) => {
         const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden') return;
-        if (el instanceof SVGSVGElement) { drawSvg(el); return; }
+        if (el instanceof SVGSVGElement) { drawSvg(el, A); return; }
         const r = el.getBoundingClientRect(), x = r.left - P.left, y = r.top - P.top;
-        const bg = parseCss(cs.backgroundColor), rad = parseFloat(cs.borderTopLeftRadius) || 0, opacity = parseFloat(cs.opacity); const al = alphaOps(isNaN(opacity) ? 1 : opacity);
-        if (al) push(pushGraphicsState(), al);
+        const bg = parseCss(cs.backgroundColor), rad = parseFloat(cs.borderTopLeftRadius) || 0, opacity = parseFloat(cs.opacity), A2 = A * (isNaN(opacity) ? 1 : opacity);
+        if (A2 <= 0) return;
         if (bg && bg.a > 0 && r.width > 0 && r.height > 0) {
-          const bl = bleedFor(el, r) || { l: 0, r: 0, t: 0, b: 0 }, a2 = alphaOps(bg.a);
-          push(pushGraphicsState()); if (a2) push(a2); setFill(resolve(bg.rgb)); emitPath(rectPath(x - bl.l, y - bl.t, r.width + bl.l + bl.r, r.height + bl.t + bl.b, rad), ID.slice(0, 4).concat([0, 0]));
+          const bl = bleedFor(el, r) || { l: 0, r: 0, t: 0, b: 0 }, probe = rectHit(x, y, r.width, r.height); let c = resolve(bg.rgb), ba = bg.a * A2;
+          if (flat && ba < 0.999) { c = mix(c, ba, backdrop(...probe.pt)); ba = 1; }
+          painted.push({ hit: probe.hit, c: ba >= 0.999 ? c : mix(c, ba, backdrop(...probe.pt)) });
+          const a2 = alphaOps(ba);
+          push(pushGraphicsState()); if (a2) push(a2); setFill(c); emitPath(rectPath(x - bl.l, y - bl.t, r.width + bl.l + bl.r, r.height + bl.t + bl.b, rad), ID.slice(0, 4).concat([0, 0]));
           push(fill(), popGraphicsState());
         }
         const bw = ['Top', 'Right', 'Bottom', 'Left'].map(sd => { const w0 = parseFloat(cs['border' + sd + 'Width']) || 0; return cs['border' + sd + 'Style'] === 'none' || !w0 ? 0 : w0 <= 1.01 ? STROKE.px : w0; });
         if (bw.some(Boolean)) {
-          const side = (sd, i) => { const c = parseCss(cs['border' + sd + 'Color']); return c && c.a > 0 ? { w: bw[i], c: resolve(c.rgb), a: c.a } : null; };
+          const side = (sd, i) => { const c = parseCss(cs['border' + sd + 'Color']); return c && c.a > 0 ? { w: bw[i], c: resolve(c.rgb), a: c.a * A2 } : null; };
+          const edge = { pt: [x + r.width / 2, y + Math.max(bw[0], 0.5) / 2] };   // sonde d'aplatissement : sur le trait du haut
           const S = [side('Top', 0), side('Right', 1), side('Bottom', 2), side('Left', 3)];
           if (bw.every(v => v === bw[0]) && S.every(Boolean) && S.every(s => s.c.join() === S[0].c.join())) {
-            const w = bw[0]; paint(rectPath(x + w / 2, y + w / 2, r.width - w, r.height - w, Math.max(0, rad - w / 2)), [1, 0, 0, 1, 0, 0], null, 1, S[0].c, S[0].a, w, null, 0, 0, false);
+            const w = bw[0]; paint(rectPath(x + w / 2, y + w / 2, r.width - w, r.height - w, Math.max(0, rad - w / 2)), [1, 0, 0, 1, 0, 0], null, 1, S[0].c, S[0].a, w, null, 0, 0, false, edge);
           } else {
             const seg = [[x, y + bw[0] / 2, x + r.width, y + bw[0] / 2], [x + r.width - bw[1] / 2, y, x + r.width - bw[1] / 2, y + r.height], [x, y + r.height - bw[2] / 2, x + r.width, y + r.height - bw[2] / 2], [x + bw[3] / 2, y, x + bw[3] / 2, y + r.height]];
-            S.forEach((s, i) => { if (s) paint([['M', seg[i][0], seg[i][1]], ['L', seg[i][2], seg[i][3]]], [1, 0, 0, 1, 0, 0], null, 1, s.c, s.a, s.w, null, 0, 0, false); });
+            S.forEach((s, i) => { if (s) paint([['M', seg[i][0], seg[i][1]], ['L', seg[i][2], seg[i][3]]], [1, 0, 0, 1, 0, 0], null, 1, s.c, s.a, s.w, null, 0, 0, false, { pt: [(seg[i][0] + seg[i][2]) / 2, (seg[i][1] + seg[i][3]) / 2] }); });
           }
         }
         const clipped = cs.overflowX !== 'visible' && el !== p.el && el.localName !== 'html';
-        if (clipped) clipTo(rectPath(x, y, r.width, r.height, rad), [1, 0, 0, 1, 0, 0]);
-        if (el.localName === 'img') drawImg(el, cs);
+        const prevClip = curClip;
+        if (clipped) {
+          clipTo(rectPath(x, y, r.width, r.height, rad), [1, 0, 0, 1, 0, 0]);
+          const c0 = curClip || { x: -1e6, y: -1e6, w: 2e6, h: 2e6 }, x1 = Math.max(c0.x, x), y1 = Math.max(c0.y, y);
+          curClip = { x: x1, y: y1, w: Math.max(0, Math.min(c0.x + c0.w, x + r.width) - x1), h: Math.max(0, Math.min(c0.y + c0.h, y + r.height) - y1) };
+        }
+        if (el.localName === 'img') drawImg(el, cs, null, A2);
         if (cs.display === 'list-item' && cs.listStyleType !== 'none') {         // puce : disque devant la première ligne
           const rg = document.createRange(); rg.selectNodeContents(el); const first = [...rg.getClientRects()].find(q => q.width > 0);
           const fs = parseFloat(cs.fontSize), col = parseCss(cs.color);
-          if (first && col) paint(ellipsePath(first.left - P.left - fs * 0.62, first.top - P.top + first.height * 0.52, fs * 0.17, fs * 0.17), [1, 0, 0, 1, 0, 0], resolve(col.rgb), 1, null, 1, 0, null, 0, 0, false);
+          const bx = first ? first.left - P.left - fs * 0.62 : 0, by = first ? first.top - P.top + first.height * 0.52 : 0;
+          if (first && col) paint(ellipsePath(bx, by, fs * 0.17, fs * 0.17), [1, 0, 0, 1, 0, 0], resolve(col.rgb), col.a * A2, null, 1, 0, null, 0, 0, false, { pt: [bx, by] });
         }
-        for (const n of el.childNodes) { if (n.nodeType === 3) drawText(n, el, 1, false); else if (n.nodeType === 1) walk(n); }
-        if (el.localName === 'a' && /^(https?:\/\/|mailto:)/i.test(el.getAttribute('href') || '')) {   // lien : une zone cliquable par ligne de texte
+        for (const n of el.childNodes) { if (n.nodeType === 3) drawText(n, el, 1, false, A2); else if (n.nodeType === 1) walk(n, A2); }
+        if (profile === 'none' && el.localName === 'a' && /^(https?:\/\/|mailto:)/i.test(el.getAttribute('href') || '')) {   // lien : une zone cliquable par ligne de texte
           const rg = document.createRange(); rg.selectNodeContents(el);
           for (const q of rg.getClientRects()) if (q.width > 0.5 && q.height > 0.5) links.push({ x: q.left - P.left, y: q.top - P.top, w: q.width, h: q.height, url: el.getAttribute('href') });
         }
         if (clipped) unclip();
-        if (al) push(popGraphicsState());
+        curClip = prevClip;
       };
-      const walkText = (el, scale, isSvg) => { for (const n of el.childNodes) { if (n.nodeType === 3) drawText(n, el, scale, isSvg); else if (n.nodeType === 1) walkText(n, scale, isSvg); } };
+      const walkText = (el, scale, isSvg, alpha) => { for (const n of el.childNodes) { if (n.nodeType === 3) drawText(n, el, scale, isSvg, alpha); else if (n.nodeType === 1) walkText(n, scale, isSvg, alpha); } };
 
       /* Le texte est dessiné après le reste de la page : l'ordre n'a pas d'importance (aucun élément ne recouvre du texte) sauf pour les SVG, où il suit. */
       walk(p.el);
@@ -396,8 +451,43 @@ export async function buildPdf(doc, mode = 'net', onProgress = () => {}) {
       page.setTrimBox(off, off, A4.w * PT_PER_MM, A4.h * PT_PER_MM);
       page.setBleedBox(off - (m.bleed ? BLEED_MM * PT_PER_MM : 0), off - (m.bleed ? BLEED_MM * PT_PER_MM : 0), A4.w * PT_PER_MM + (m.bleed ? 2 * BLEED_MM * PT_PER_MM : 0), A4.h * PT_PER_MM + (m.bleed ? 2 * BLEED_MM * PT_PER_MM : 0));
     }
-    return await pdf.save({ useObjectStreams: false });
+    if (profile !== 'none') await makePdfX(pdf, profile, doc.name || 'factsheet');
+    const bytes = await pdf.save({ useObjectStreams: false });
+    /* pdf-lib écrit toujours « %PDF-1.7 » : PDF/X-4 exige 1.6, PDF/X-1a:2003 1.4 (même longueur : les décalages de la table xref restent justes) */
+    if (profile !== 'none') bytes[7] = (profile === 'x1a' ? '4' : '6').charCodeAt(0);
+    return { bytes, missing: [...missing] };
   } finally { stage.remove(); }
+}
+
+/* ---------- PDF/X : version, profil de sortie, métadonnées (Info et XMP identiques), identifiant ---------- */
+async function makePdfX(pdf, profile, title) {
+  const x1a = profile === 'x1a', P = PDF_PROFILES[profile];
+  const now = new Date(Math.floor(Date.now() / 1000) * 1000), iso = now.toISOString().replace(/\.\d+Z$/, 'Z');
+  const producer = 'GSC tools — Factsheet creator (PDF CMJN)', creator = 'GSC tools', version = x1a ? 'PDF/X-1a:2003' : 'PDF/X-4';
+  pdf.setTitle(title); pdf.setProducer(producer); pdf.setCreator(creator); pdf.setCreationDate(now); pdf.setModificationDate(now);
+  const info = pdf.getInfoDict();
+  info.set(PDFName.of('Trapped'), PDFName.of('False'));
+  info.set(PDFName.of('GTS_PDFXVersion'), PDFString.of(version));
+  const res = await fetch(new URL(P.icc, document.baseURI)); if (!res.ok) throw new Error(P.icc);
+  const icc = pdf.context.register(pdf.context.flateStream(new Uint8Array(await res.arrayBuffer()), { N: 4 }));
+  pdf.catalog.set(PDFName.of('OutputIntents'), pdf.context.obj([pdf.context.obj({
+    Type: 'OutputIntent', S: 'GTS_PDFX', OutputConditionIdentifier: PDFString.of(P.condition), OutputCondition: PDFString.of(P.conditionText),
+    RegistryName: PDFString.of('http://www.color.org'), Info: PDFString.of(P.iccName), DestOutputProfile: icc })]));
+  const hex = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join('');
+  const uuid = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  pdf.context.trailerInfo.ID = pdf.context.obj([PDFHexString.of(hex), PDFHexString.of(hex)]);
+  const xmp = `<?xpacket begin="\uFEFF" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xmp="http://ns.adobe.com/xap/1.0/" xmlns:pdf="http://ns.adobe.com/pdf/1.3/"
+ xmlns:xmpMM="http://ns.adobe.com/xap/1.0/mm/" xmlns:pdfxid="http://www.npes.org/pdfx/ns/id/" xmlns:pdfx="http://ns.adobe.com/pdfx/1.3/">
+<dc:format>application/pdf</dc:format><dc:title><rdf:Alt><rdf:li xml:lang="x-default">${xmlEsc(title)}</rdf:li></rdf:Alt></dc:title>
+<xmp:CreateDate>${iso}</xmp:CreateDate><xmp:ModifyDate>${iso}</xmp:ModifyDate><xmp:MetadataDate>${iso}</xmp:MetadataDate><xmp:CreatorTool>${xmlEsc(creator)}</xmp:CreatorTool>
+<pdf:Producer>${xmlEsc(producer)}</pdf:Producer><pdf:Trapped>False</pdf:Trapped>
+<xmpMM:DocumentID>uuid:${uuid}</xmpMM:DocumentID><xmpMM:InstanceID>uuid:${uuid}</xmpMM:InstanceID><xmpMM:RenditionClass>default</xmpMM:RenditionClass><xmpMM:VersionID>1</xmpMM:VersionID>
+<pdfxid:GTS_PDFXVersion>${version}</pdfxid:GTS_PDFXVersion><pdfx:GTS_PDFXVersion>${version}</pdfx:GTS_PDFXVersion>
+</rdf:Description></rdf:RDF></x:xmpmeta>
+<?xpacket end="w"?>`;
+  pdf.catalog.set(PDFName.of('Metadata'), pdf.context.register(pdf.context.stream(new TextEncoder().encode(xmp), { Type: 'Metadata', Subtype: 'XML' })));
 }
 
 window.FSPDF = { build: buildPdf };
