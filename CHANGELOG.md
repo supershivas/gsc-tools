@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.70.1 — 2026-11-09
+- Source Serif 4 a son vrai italique, à l'écran et dans le PDF (au lieu de lettres droites penchées)
+- Toutes les graisses de Source Sans 3 et Source Serif 4 (200 à 900), en romain et en italique, sont disponibles dans le PDF
+
 ## 1.70.0 — 2026-11-09
 - Export PDF : choix du profil avant l'export — PDF/X-4 ou PDF/X-1a (profil d'impression FOGRA39 incorporé), ou CMJN sans norme
 - Export PDF : les lettres accentuées d'Europe centrale, le grec et le cyrillique sortent ; avertissement si un caractère manque aux polices

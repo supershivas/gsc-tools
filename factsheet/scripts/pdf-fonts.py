@@ -2,7 +2,7 @@
 
 Les woff2 variables de l'écran (fonts/*.woff2, découpés par alphabet) sont figés à chaque graisse utile,
 puis les alphabets sont fusionnés en un seul TTF par graisse : latin, latin étendu, grec, cyrillique, vietnamien,
-comme à l'écran. Sans cela, l'export supprimait les lettres absentes (ł, č, ő, grec, cyrillique, ≥, ‰…).
+comme à l'écran, pour les 8 graisses (200 à 900) en romain et en italique des deux familles. Sans cela, l'export supprimait les lettres absentes (ł, č, ő, grec, cyrillique, ≥, ‰…).
 Chaque graisse reçoit un nom PostScript distinct (les préflights d'imprimeur refusent deux polices de même nom).
 
 Usage (depuis factsheet/) : pip install fonttools brotli && python3 scripts/pdf-fonts.py
@@ -15,11 +15,13 @@ from fontTools.merge import Merger, Options
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FONTS, OUT = os.path.join(HERE, 'fonts'), os.path.join(HERE, 'fonts', 'pdf')
 SUBSETS = ['latin', 'latin-ext', 'greek', 'greek-ext', 'cyrillic', 'cyrillic-ext', 'vietnamese']
-NAMES = {200: 'ExtraLight', 400: 'Regular', 600: 'Semibold', 700: 'Bold'}
+NAMES = {200: 'ExtraLight', 300: 'Light', 400: 'Regular', 500: 'Medium', 600: 'Semibold', 700: 'Bold', 800: 'ExtraBold', 900: 'Black'}
+ALL = sorted(NAMES)   # toutes les graisses des deux familles, en romain et en italique
 # (fichier de sortie, préfixe woff2, style, graisses, famille, nom PostScript de base)
-JOBS = [('SourceSans3', 'source-sans-3', 'normal', [200, 400, 600, 700], 'Source Sans 3', 'SourceSans3'),
-        ('SourceSans3', 'source-sans-3', 'italic', [400, 600, 700], 'Source Sans 3', 'SourceSans3'),
-        ('SourceSerif4', 'source-serif-4', 'normal', [400, 600, 700], 'Source Serif 4', 'SourceSerif4')]
+JOBS = [('SourceSans3', 'source-sans-3', 'normal', ALL, 'Source Sans 3', 'SourceSans3'),
+        ('SourceSans3', 'source-sans-3', 'italic', ALL, 'Source Sans 3', 'SourceSans3'),
+        ('SourceSerif4', 'source-serif-4', 'normal', ALL, 'Source Serif 4', 'SourceSerif4'),
+        ('SourceSerif4', 'source-serif-4', 'italic', ALL, 'Source Serif 4', 'SourceSerif4')]
 DROP = ['GSUB', 'GPOS', 'GDEF', 'BASE', 'STAT', 'gasp', 'prep', 'HVAR', 'MVAR']   # mise en page faite par le navigateur : seuls les dessins comptent
 
 

@@ -1598,7 +1598,9 @@
     'italic 700 16px "Source Sans 3"',
     '400 16px "Source Serif 4"',
     '600 16px "Source Serif 4"',
-    '700 16px "Source Serif 4"'
+    '700 16px "Source Serif 4"',
+    'italic 400 16px "Source Serif 4"',
+    'italic 700 16px "Source Serif 4"'
   ];
   var fontsLoaded = null;
   var loadFonts = () => fontsLoaded || (fontsLoaded = document.fonts && document.fonts.load ? Promise.all(FONT_SPECS.map((f) => document.fonts.load(f, "Aa\xC9\xE9\u20AC0123 ").catch(() => {
