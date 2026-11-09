@@ -32,6 +32,8 @@ const VALIGN_FLEX = { top: 'flex-start', center: 'center', bottom: 'flex-end' };
 const vizVariant = kind => { const ty = VIZ_TYPES[kind]; return { title: ty.label, desc: VIZ_DESC[kind] || '', opts: { kind, viz: ty.defaults(), head: { title: '', source: '' }, boxH: 0, valign: 'top' } }; };
 
 
+/* Le Labo rend avec les réglages par défaut d'un document : densité normale, pas de typographie automatique, aucune icône importée */
+const LABO_ENV = { locale: 'en-GB', pal: paletteOf(DEFAULT_THEME, {}), rc: renderCtx({}) };
 const WIDTHS = { '1/3': colWidth('1-1-1', 0, GAP.columns), '1/2': colWidth('1-1', 0, GAP.columns), '2/3': colWidth('2-1', 0, GAP.columns), 'full': colWidth('1', 0, GAP.columns) };
 
 const cardControls = [
@@ -50,7 +52,7 @@ const figureControls = [
 const fig = o => ({ icon: false, iconName: 'globe', iconCircle: false, text: true, stroke: true, fill: true, align: 'left', ...o });
 
 const TOPICS = [
-  { id: 'cartes', icon: 'layout-cards', label: 'Cartes', controls: cardControls, render: (o, W) => renderCard(o, W), variants: [
+  { id: 'cartes', icon: 'layout-cards', label: 'Cartes', controls: cardControls, render: (o, W) => renderCard(o, W, LABO_ENV), variants: [
     { title: 'Carte simple', base: true, desc: 'Titre et texte dans un contour : le minimum, point de départ.', opts: card({}) },
     { title: 'Image en haut', kept: 'colonnes moyennes', desc: 'Image au-dessus, étiquette, titre, texte et lien ; l’image reste dans les marges du contour.', opts: card({ image: true, tag: true, link: true }) },
     { title: 'Image jusqu’au bord', desc: 'Comme B, mais l’image touche le contour (coins hauts arrondis de 3 px).', opts: card({ image: true, bleed: true, tag: true, link: true }) },
@@ -62,7 +64,7 @@ const TOPICS = [
   { id: 'chiffre', icon: 'number', label: 'Chiffre clé', controls: figureControls, render: (o, W) => {
       const box = h('div', { class: 'col col-figure' + (o.stroke ? ' stroked' + (o.fill ? ' filled' : '') : ''), style: { width: W + 'px' } });
       const f = { ...FIGURE_DEFAULTS(), icon: o.icon ? o.iconName : 'none', iconStyle: o.iconCircle ? 'circle' : 'plain', text: o.text ? FIGURE_DEFAULTS().text : '' };
-      box.append(renderFigure(f, o.stroke ? insetW(W) : W, o.align)); return box;
+      box.append(renderFigure(f, o.stroke ? insetW(W) : W, o.align, LABO_ENV)); return box;
     }, variants: [
     { title: 'Sans icône', base: true, desc: 'Le chiffre clé actuel : contour, fond blanc, chiffre et texte.', opts: fig({}) },
     { title: 'Icône devant le chiffre', desc: 'Pictogramme au trait à la hauteur du chiffre.', opts: fig({ icon: true }) },
@@ -183,7 +185,7 @@ const optCard = (id, icon, name, nodes) => {
 function renderVizTopic(o, W, paint) {
   const ty = VIZ_TYPES[o.kind], opts = o.viz, ui = (o.__ui ||= { sel: -1, drag: null });
   if (ty.heights && o.boxH) Object.assign(opts, { hmode: 'fixed', hfixed: o.boxH, valign: o.valign }); else if (ty.heights) { delete opts.hmode; delete opts.hfixed; }
-  const r = renderVizFull({ kind: o.kind, opts, head: o.head }, W, { locale: 'en-GB', pal: paletteOf(DEFAULT_THEME, {}), ui, rc: renderCtx({}) });
+  const r = renderVizFull({ kind: o.kind, opts, head: o.head }, W, { ...LABO_ENV, ui });
   const box = h('div', { class: 'labo-vizbox' + (o.boxH ? ' fixed' : ''), style: { width: W + 'px', minHeight: o.boxH ? o.boxH + 'px' : null, display: 'flex', alignItems: VALIGN_FLEX[o.valign] || 'flex-start' } });
   box.append(r ? r.node : h('div', { textContent: 'Rendu impossible' }));
   /* réordonner à la souris : les autres éléments se réajustent en direct (vizreorder.js) */

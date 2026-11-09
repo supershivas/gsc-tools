@@ -12,7 +12,7 @@ import { renderCtx } from './renderctx.js';
 import { VIZ_TYPES, VIZ_FAMILIES, switchKind, renderVizFull } from './viz/index.js';
 import { cardEl, searchBox, applyFilter } from './cards.js';
 import { helpBtn } from './help.js';
-import { loadFonts } from './viz/util.js';
+import { loadFonts, typoOf } from './viz/util.js';
 import { startReorder } from './vizreorder.js';
 import { newSide, SIDE_FIELDS } from './viz/index.js';
 import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
@@ -286,6 +286,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
 
   /* ----- formulaire ----- */
   const fctx = {
+    getDoc: ctx.getDoc,
     changed,
     restructure: () => {
       buildForm();
@@ -347,7 +348,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
                 obj[k] = v;
                 fctx.changed();
               },
-              opts,
+              { ...opts, typo: typoOf(doc) },
             )
           : h('input', {
               type: 'text',

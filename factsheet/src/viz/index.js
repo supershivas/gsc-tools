@@ -95,7 +95,7 @@ function boxed(t, o, W, env, node) {
 }
 
 /** Titre et source facultatifs, communs à tous les types (`viz.head`) */
-function withHead(viz, node) {
+function withHead(viz, node, env) {
   const hd = viz.head || {};
   if (!node || (!(hd.title || '').trim() && !(hd.source || '').trim())) return node;
   const wrap = el('div', { class: 'viz-wrap' });
@@ -108,12 +108,12 @@ function withHead(viz, node) {
       .filter((l) => l.trim())
       .forEach((l) => {
         const m = parseLine(l.trim());
-        T.append(el('div', { class: m.key ? 'p-' + m.key : '', innerHTML: inlineMk(m.text) }));
+        T.append(el('div', { class: m.key ? 'p-' + m.key : '', innerHTML: inlineMk(m.text, false, env.rc.typo) }));
       });
     wrap.append(T);
   }
   wrap.append(node);
-  if ((hd.source || '').trim()) wrap.append(el('div', { class: 'viz-source', innerHTML: inlineMk(hd.source) }));
+  if ((hd.source || '').trim()) wrap.append(el('div', { class: 'viz-source', innerHTML: inlineMk(hd.source, false, env.rc.typo) }));
   return wrap;
 }
 
@@ -161,6 +161,7 @@ export function composeSide(sd, W, env, tk, core) {
       { value: fill(sd.value, tk), icon: 'none', scale: +sd.scale || 1, text: fill((sd.text || '').trim() || '{label}', tk) },
       W,
       'left',
+      env,
     );
     return {
       ...r,
@@ -181,6 +182,7 @@ export function composeSide(sd, W, env, tk, core) {
     { value: fill(sd.value, tk), icon: 'none', scale: +sd.scale || 1, text: fill((sd.text || '').trim() || '{label}', tk) },
     wf,
     'left',
+    env,
   );
   const align = { center: 'center', bottom: 'flex-end' }[sd.align] || 'flex-start';
   /* la séparation entre le contenu et le chiffre est une poignée invisible : glisser dans l'aperçu change la part du contenu (editor/handles.js) */
@@ -229,6 +231,7 @@ export function renderViz(viz, width, env) {
         r.node = legendTop(r.node, o);
         return { ...r, node: boxed(t, o, w, e, r.node) };
       }).node,
+      e,
     );
   } catch (e) {
     console.error('dataviz', viz.kind, e);
@@ -248,7 +251,7 @@ export function renderVizFull(viz, width, env) {
         q.node = legendTop(q.node, o);
         return { ...q, node: boxed(t, o, w, e, q.node) };
       });
-    return { ...r, node: withHead(viz, r.node), wrapped: !!(viz.head && (viz.head.title || viz.head.source)) };
+    return { ...r, node: withHead(viz, r.node, e), wrapped: !!(viz.head && (viz.head.title || viz.head.source)) };
   } catch (e) {
     console.error('dataviz', viz.kind, e);
     return null;

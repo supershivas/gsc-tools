@@ -1,5 +1,6 @@
 /* Panneau d'édition : tout est éditable, mais jamais les tailles / espacements / layout. */
-import { h, inline, ico } from './render.js';
+import { h, ico } from './render.js';
+import { inlineMk, typoOf } from './viz/util.js';
 import { t } from './i18n.js';
 import { helpBtn } from './help.js';
 import { colorSelect } from './colorselect.js';
@@ -87,7 +88,9 @@ function parseTable(text) {
 /* ---------- Éditeur de texte riche : l'effet est visible dans le champ, le balisage reste interne ----------
    Stockage : **gras**  ~~italique~~  __souligné__  « - » en début de ligne = puce. */
 const ESC = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const mkToHtml = (t) => {
+/** ty : typographie automatique du document (le champ montre le texte comme l'aperçu) */
+const mkToHtml = (t, ty) => {
+  const inline = (x) => inlineMk(x, true, ty);
   const lines = String(t || '')
     .replace(/\r\n?/g, '\n')
     .split('\n')
@@ -105,7 +108,7 @@ const mkToHtml = (t) => {
     if (hd.key) {
       close();
       const P = styleOf(hd.key);
-      html += P.hash ? `<h${P.hash}>${inline(hd.text, true)}</h${P.hash}>` : `<div data-st="${P.k}">${inline(hd.text, true)}</div>`;
+      html += P.hash ? `<h${P.hash}>${inline(hd.text)}</h${P.hash}>` : `<div data-st="${P.k}">${inline(hd.text)}</div>`;
       continue;
     }
     const m = l.trim().match(/^[-•]\s+(.*)$/),
@@ -118,7 +121,7 @@ const mkToHtml = (t) => {
         list = kind;
       }
     }
-    html += kind ? `<li>${inline((m || n)[kind === 'ul' ? 1 : 2], true)}</li>` : `<div>${inline(l.trim(), true)}</div>`;
+    html += kind ? `<li>${inline((m || n)[kind === 'ul' ? 1 : 2])}</li>` : `<div>${inline(l.trim())}</div>`;
   }
   close();
   return html || '<div><br></div>';
@@ -234,7 +237,7 @@ const fmtStyle = (f) => {
 let galleryOpen = false,
   moreOpen = false; // la galerie de styles reste ouverte d'un éditeur à l'autre (le temps de la session)
 export function richEditor(value, onChange, opts = {}) {
-  const ed = h('div', { class: 're', contentEditable: 'true', spellcheck: 'true', innerHTML: mkToHtml(value) });
+  const ed = h('div', { class: 're', contentEditable: 'true', spellcheck: 'true', innerHTML: mkToHtml(value, opts.typo) });
   const full = opts.bullets !== false;
   const cmd = (c) => () => {
     ed.focus();
@@ -648,6 +651,8 @@ export function richEditor(value, onChange, opts = {}) {
   );
 }
 
+/** typographie du document d'un ctx (les panneaux de l'éditeur) ; aucune hors de l'éditeur (Labo) */
+const ctxTypo = (ctx) => (ctx && ctx.getDoc ? typoOf(ctx.getDoc()) : undefined);
 export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
   const out = [];
   const live = (fn) => (e) => {
@@ -668,7 +673,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
               setP(obj, f.k, v);
               ctx.changed();
             },
-            { bullets: false },
+            { bullets: false, typo: ctxTypo(ctx) },
           ),
         ),
       );
@@ -693,10 +698,14 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
           'div',
           { class: 'f' },
           h2('div', { class: 'hint', textContent: f.label }),
-          richEditor(getP(obj, f.k) ?? '', (v) => {
-            setP(obj, f.k, v);
-            ctx.changed();
-          }),
+          richEditor(
+            getP(obj, f.k) ?? '',
+            (v) => {
+              setP(obj, f.k, v);
+              ctx.changed();
+            },
+            { typo: ctxTypo(ctx) },
+          ),
         ),
       );
     else if (f.t === 'lines')

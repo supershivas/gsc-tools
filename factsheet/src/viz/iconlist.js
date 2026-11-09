@@ -98,7 +98,7 @@ export default {
           el('div', {
             class: 'vi-text',
             style: sc !== 1 ? { fontSize: bodyPx + 'px', lineHeight: TYPE.body.lh * sc + 'px' } : null,
-            innerHTML: inlineMk(it.text),
+            innerHTML: inlineMk(it.text, false, env.rc.typo),
           }),
         ),
       );

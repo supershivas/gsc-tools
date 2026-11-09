@@ -4,7 +4,7 @@ import { PAGE, GRID, HEADER, GAP, cssVars, applyVars, subColWidth, insetW, densi
 import { renderCtx } from './renderctx.js';
 import { IMAGE_RATIOS } from './state.js';
 import { renderViz, composeSide } from './viz/index.js';
-import { inlineMk, s, setTypo, stripInline } from './viz/util.js';
+import { inlineMk, s, stripInline } from './viz/util.js';
 import { iconLib } from './viz/icons.js';
 import { parseLine, PREFIX_RE, applyAdv, blockStyle } from './textstyles.js';
 import { renderFigure } from './figure.js';
@@ -27,10 +27,11 @@ export function h(tag, props = {}, ...kids) {
 }
 
 const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-export const inline = inlineMk;
+/** balisage en ligne → HTML, avec la typographie automatique du rendu (env.rc) */
+export const inline = (t, env) => inlineMk(t, false, env && env.rc.typo);
 
-/** Texte à balisage léger → éléments <p> / <ul> */
-export function richText(text, align, adv) {
+/** Texte à balisage léger → éléments <p> / <ul> ; env : environnement de rendu (env.rc) */
+export function richText(text, align, adv, env) {
   const al = (adv && adv.align) || align;
   const root = h('div', { class: 'rich', style: al && al !== 'left' ? { textAlign: al } : {} });
   blockStyle(adv, root);
@@ -54,7 +55,7 @@ export function richText(text, align, adv) {
     const hm = parseLine(line); // style de paragraphe : # Titre 1 … ##### Chiffre clé (petit), @source, @citation…
     if (hm.key) {
       ul = ol = null;
-      root.append(applyAdv(h('p', { class: 'p-' + hm.key, innerHTML: inline(note(hm.text)) }), adv, false));
+      root.append(applyAdv(h('p', { class: 'p-' + hm.key, innerHTML: inline(note(hm.text), env) }), adv, false));
       continue;
     }
     const m = line.match(/^[-•]\s+(.*)$/),
@@ -65,7 +66,7 @@ export function richText(text, align, adv) {
         ul = h('ul');
         root.append(ul);
       }
-      ul.append(applyAdv(h('li', { innerHTML: inline(note(m[1])) }), adv, true));
+      ul.append(applyAdv(h('li', { innerHTML: inline(note(m[1]), env) }), adv, true));
     } else if (n) {
       // liste numérotée : repère en vrai élément (l'export PDF lit le texte, pas les pseudo-éléments)
       ul = null;
@@ -76,24 +77,24 @@ export function richText(text, align, adv) {
       }
       ol.append(
         applyAdv(
-          h('li', {}, h('span', { class: 'mk', textContent: num++ + '.' }), h('span', { class: 'lt', innerHTML: inline(note(n[2])) })),
+          h('li', {}, h('span', { class: 'mk', textContent: num++ + '.' }), h('span', { class: 'lt', innerHTML: inline(note(n[2]), env) })),
           adv,
           true,
         ),
       );
     } else {
       ul = ol = null;
-      root.append(applyAdv(h('p', { innerHTML: inline(note(line)) }), adv, true));
+      root.append(applyAdv(h('p', { innerHTML: inline(note(line), env) }), adv, true));
     }
   }
-  notes.forEach((body, i) => root.append(h('p', { class: 'p-note rich-note', innerHTML: inline(`^^${i + 1}^^ ${body}`) })));
+  notes.forEach((body, i) => root.append(h('p', { class: 'p-note rich-note', innerHTML: inline(`^^${i + 1}^^ ${body}`, env) })));
   return root;
 }
 
 /** Image du header actuellement choisie dans la bibliothèque */
 export const headerImage = (H) => (H.images || []).find((i) => i.id === H.imageId) || (H.images || [])[0] || null;
 
-function renderHeader(doc) {
+function renderHeader(doc, env) {
   const H = doc.header,
     sel = { 'data-sel': 'header' };
   const el = h('header', { class: 'hd', style: { background: `var(--c-${H.bg})`, color: `var(--c-${H.fg})` }, dataset: { sel: 'header' } });
@@ -104,12 +105,17 @@ function renderHeader(doc) {
     inner.append(
       img && img.src ? h('img', { class: 'hd-img', src: img.src, alt: '' }) : h('div', { class: 'hd-img ph', textContent: 'image' }),
     );
-  const top = h('div', { class: 'hd-top' }, h('div', { class: 'hd-over', innerHTML: inline(H.overline) }), h('div', { class: 'hd-rule' }));
+  const top = h(
+    'div',
+    { class: 'hd-top' },
+    h('div', { class: 'hd-over', innerHTML: inline(H.overline, env) }),
+    h('div', { class: 'hd-rule' }),
+  );
   const bottom = h(
     'div',
     { class: 'hd-bottom' },
-    h('div', { class: 'hd-title', innerHTML: inline(H.title) }),
-    H.subtitle && H.subtitle.trim() ? h('div', { class: 'hd-sub', innerHTML: inline(H.subtitle) }) : null,
+    h('div', { class: 'hd-title', innerHTML: inline(H.title, env) }),
+    H.subtitle && H.subtitle.trim() ? h('div', { class: 'hd-sub', innerHTML: inline(H.subtitle, env) }) : null,
   );
   inner.append(h('div', { class: 'hd-text' }, top, bottom));
   if (H.showLogo)
@@ -211,8 +217,8 @@ function renderCol(col, w, path, env) {
       side(strip(col.text), (ww) => ({
         node:
           col.side && col.side.pos !== 'none'
-            ? h('div', { style: { width: ww + 'px' } }, richText(col.text, col.align, col.adv))
-            : richText(col.text, col.align, col.adv),
+            ? h('div', { style: { width: ww + 'px' } }, richText(col.text, col.align, col.adv, env))
+            : richText(col.text, col.align, col.adv, env),
       })),
     );
   else if (col.type === 'image') {
@@ -220,11 +226,11 @@ function renderCol(col, w, path, env) {
     if (+col.minH > 0 && (col.imgMode || 'ratio') === 'ratio' && ib.classList && ib.classList.contains('img-box'))
       ib.style.height = col.minH + 'px';
     wrap.append(ib);
-    if (col.caption && col.caption.trim()) wrap.append(h('div', { class: 'cap', innerHTML: inline(col.caption) }));
+    if (col.caption && col.caption.trim()) wrap.append(h('div', { class: 'cap', innerHTML: inline(col.caption, env) }));
   } else if (col.type === 'card' && col.card) {
-    wrap.append(side(strip(col.card.content && col.card.content.title), (ww) => ({ node: renderCard(col.card, ww) })));
+    wrap.append(side(strip(col.card.content && col.card.content.title), (ww) => ({ node: renderCard(col.card, ww, env) })));
   } else if (col.type === 'figure') {
-    wrap.append(renderFigure(col.figure || {}, w, col.align));
+    wrap.append(renderFigure(col.figure || {}, w, col.align, env));
   } else {
     const node = renderViz(col.viz, w, env);
     wrap.append(node || h('div', { class: 'viz-ph' }, h('span', { textContent: 'dataviz' })));
@@ -246,7 +252,7 @@ function renderCol(col, w, path, env) {
               class: 'col-text-flow',
               style: { marginTop: tx.mode === 'below' ? '9px' : '0', marginBottom: tx.mode === 'above' ? '9px' : '0' },
             },
-            richText(tx.text, tx.align || 'left', tx.adv),
+            richText(tx.text, tx.align || 'left', tx.adv, env),
           ),
         );
         return;
@@ -259,7 +265,7 @@ function renderCol(col, w, path, env) {
         h(
           'div',
           { class: 'col-text-free', style: st, dataset: { free: `${path}:${i}` } },
-          richText(tx.text, tx.align || 'left', tx.adv),
+          richText(tx.text, tx.align || 'left', tx.adv, env),
           h('div', { class: 'free-grip' }),
         ),
       );
@@ -287,7 +293,8 @@ function renderSub(sub, si, bi, env, W) {
   if (bi > 0) el.append(h('div', { class: 'sub-rule' })); // filet entre sous-sections (vrai élément : l'export PDF le lit)
   strokeStyle(el)(sub);
   if (isBox(sub)) W = insetW(W);
-  if (sub.title && sub.title.trim() && sub.showTitle !== false) el.append(h('h3', { class: 'sub-title', innerHTML: inline(sub.title) }));
+  if (sub.title && sub.title.trim() && sub.showTitle !== false)
+    el.append(h('h3', { class: 'sub-title', innerHTML: inline(sub.title, env) }));
   const custom = sub.layout === 'custom' && Array.isArray(sub.widths) && sub.widths.length === sub.cols.length;
   const cols = h('div', {
     class: 'cols',
@@ -367,7 +374,8 @@ function renderSection(sec, si, env, pos) {
     el.append(host);
     W = insetW(W);
   }
-  if (sec.title && sec.title.trim() && sec.showTitle !== false) host.append(h('h2', { class: 'sec-title', innerHTML: inline(sec.title) }));
+  if (sec.title && sec.title.trim() && sec.showTitle !== false)
+    host.append(h('h2', { class: 'sec-title', innerHTML: inline(sec.title, env) }));
   sec.subs.forEach((sub, bi) => host.append(renderSub(sub, si, bi, env, W)));
   return el;
 }
@@ -375,7 +383,6 @@ function renderSection(sec, si, env, pos) {
 /** → { pages: [{el, key, content, top, max, used, overflow}], warnings: [] } */
 export function renderDocument(doc) {
   iconLib.list = doc.customIcons || (doc.customIcons = []); // icônes SVG importées, communes à tout le document
-  setTypo(doc);
   const vars = cssVars(doc.theme, doc.colors, doc.density);
   const env = { locale: doc.locale || 'en-GB', pal: paletteOf(doc.theme, doc.colors), fills: [], page: '', rc: renderCtx(doc) };
   const pages = [];
@@ -384,7 +391,7 @@ export function renderDocument(doc) {
     const page = h('div', { class: `page page-${key}${doc.wrapFix ? ' wrapfix' : ''}`, dataset: { page: key } });
     applyVars(page, vars);
     const top = key === 'recto' ? HEADER.h : 0;
-    if (key === 'recto') page.append(renderHeader(doc));
+    if (key === 'recto') page.append(renderHeader(doc, env));
     const content = h('div', { class: 'content', style: { top: top + 'px' } });
     const list = doc.sections.map((s, si) => ({ s, si })).filter((x) => x.s.page === key);
     list.forEach((x, k) =>

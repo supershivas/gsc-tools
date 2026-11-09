@@ -1,5 +1,6 @@
 /* Briques communes des panneaux de propriétés : champs, couleurs, interrupteurs, cartes repliables, tête collante.
    `createKit` les lie au document, au contexte et au panneau du moment ; chaque module d'élément (document, header, section…) les reçoit en paramètre. */
+import { typoOf } from '../viz/util.js';
 import { h, ico } from '../render.js';
 import { t } from '../i18n.js';
 import { toneKeys, colorLabel } from '../tokens.js';
@@ -39,7 +40,7 @@ export function createKit(root, ctx, doc, kind) {
           obj[key] = v;
           ctx.changed();
         },
-        { bullets: false },
+        { bullets: false, typo: typoOf(doc) },
       ),
     );
   const select = (obj, key, label, opts, onSet) => {

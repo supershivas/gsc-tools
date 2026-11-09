@@ -15,7 +15,8 @@ export const SAMPLE_IMG =
   );
 
 /** W = largeur de la carte (px) */
-export function renderCard(o, W) {
+/** env : environnement de rendu (env.rc : typographie, icônes importées) */
+export function renderCard(o, W, env) {
   const C = o.content || SAMPLE,
     src = o.src || SAMPLE_IMG;
   const bullets = (Array.isArray(C.bullets) ? C.bullets : String(C.bullets || '').split('\n')).map((x) => x.trim()).filter(Boolean);
@@ -32,21 +33,21 @@ export function renderCard(o, W) {
   const body = h(
     'div',
     { class: 'card-body' },
-    o.tag ? h('div', { class: 'card-tag', innerHTML: inline(C.tag) }) : null,
+    o.tag ? h('div', { class: 'card-tag', innerHTML: inline(C.tag, env) }) : null,
     iconAbove,
     o.title || iconInline
-      ? h('div', { class: 'card-head' }, iconInline, o.title ? h('h3', { class: 'card-title', innerHTML: inline(C.title) }) : null)
+      ? h('div', { class: 'card-head' }, iconInline, o.title ? h('h3', { class: 'card-title', innerHTML: inline(C.title, env) }) : null)
       : null,
-    o.figure ? h('div', { class: 'vf-value', innerHTML: inline(C.figure) }) : null,
-    o.text ? richText(C.text, o.align === 'center' ? 'center' : 'left') : null,
+    o.figure ? h('div', { class: 'vf-value', innerHTML: inline(C.figure, env) }) : null,
+    o.text ? richText(C.text, o.align === 'center' ? 'center' : 'left', undefined, env) : null,
     o.bullets
       ? h(
           'ul',
           { class: 'card-list' },
-          bullets.map((b) => h('li', { innerHTML: inline(b) })),
+          bullets.map((b) => h('li', { innerHTML: inline(b, env) })),
         )
       : null,
-    o.link ? h('div', { class: 'card-link' }, h('span', { innerHTML: inline(C.link) }), h('i', { class: 'ti ti-arrow-right' })) : null,
+    o.link ? h('div', { class: 'card-link' }, h('span', { innerHTML: inline(C.link, env) }), h('i', { class: 'ti ti-arrow-right' })) : null,
   );
   if (o.layout === 'vertical' || !pic) card.append(...[pic, body].filter(Boolean));
   else card.append(...(o.layout === 'left' ? [pic, body] : [body, pic]));

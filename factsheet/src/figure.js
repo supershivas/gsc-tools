@@ -110,12 +110,12 @@ function progressBar(pct, W, o) {
   );
 }
 
-/** W = largeur utile (px), align = alignement du texte de la colonne (left | center | right | justify) */
-export function renderFigure(o, W, align) {
+/** W = largeur utile (px), align = alignement du texte de la colonne (left | center | right | justify) ; env : environnement de rendu (env.rc) */
+export function renderFigure(o, W, align, env) {
   const more = Array.isArray(o.more) ? o.more : [],
     headText = String(o.headText || '').trim(),
     headIcon = o.headIcon && o.headIcon !== 'none';
-  if (!more.length && !headText && !headIcon && !(+o.bar > 0)) return oneFigure(o, W, align, o);
+  if (!more.length && !headText && !headIcon && !(+o.bar > 0)) return oneFigure(o, W, align, o, undefined, env);
   const gap = 18,
     items = [o, ...more],
     n = items.length,
@@ -159,7 +159,7 @@ export function renderFigure(o, W, align) {
     ),
   );
   const cells = items.map((it, i) =>
-    el('div', { class: 'fg-cell', style: { width: ws[i] + 'px' } }, oneFigure(it, ws[i], align, o, fsAll)),
+    el('div', { class: 'fg-cell', style: { width: ws[i] + 'px' } }, oneFigure(it, ws[i], align, o, fsAll, env)),
   );
   let x = 0;
   const splits = ws.slice(0, -1).map((w, i) => {
@@ -183,7 +183,7 @@ export function renderFigure(o, W, align) {
   );
 }
 
-function oneFigure(o, W, align, g, fsAll) {
+function oneFigure(o, W, align, g, fsAll, env) {
   const base0 = pxOf(TYPE.figure.size),
     base = base0 * (+o.scale || 1),
     lh = TYPE.figure.lh,
@@ -200,7 +200,7 @@ function oneFigure(o, W, align, g, fsAll) {
     icon,
     el('div', {
       class: 'vf-value',
-      innerHTML: inlineMk(o.value),
+      innerHTML: inlineMk(o.value, false, env.rc.typo),
       style: fs !== base0 ? { fontSize: fs + 'px', lineHeight: 1.1, whiteSpace: 'nowrap' } : {},
     }),
   );
@@ -208,7 +208,7 @@ function oneFigure(o, W, align, g, fsAll) {
     'div',
     { class: 'fg', style: align && align !== 'left' ? { textAlign: align } : {} },
     head,
-    o.text && o.text.trim() ? el('div', { class: 'vf-text', innerHTML: inlineMk(o.text) }) : null,
+    o.text && o.text.trim() ? el('div', { class: 'vf-text', innerHTML: inlineMk(o.text, false, env.rc.typo) }) : null,
     +o.bar > 0 ? progressBar(o.bar, W, g) : null,
   );
 }

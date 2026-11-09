@@ -1,4 +1,5 @@
 /* Colonne de texte : éditeur riche, cartes « Police et taille » et « Paragraphe » (réglages du bloc entier, stockés dans col.adv avec ceux du burger). */
+import { typoOf } from '../viz/util.js';
 import { h } from '../render.js';
 import { t } from '../i18n.js';
 import { toneKeys } from '../tokens.js';
@@ -17,7 +18,7 @@ export function textEditor(k, col) {
           col.text = v;
           ctx.changed();
         },
-        { gallery: true, adv: col, advChange: () => ctx.changed(), palette: toneKeys(doc) },
+        { gallery: true, adv: col, advChange: () => ctx.changed(), palette: toneKeys(doc), typo: typoOf(doc) },
       ),
     ),
   ];

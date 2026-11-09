@@ -1,4 +1,5 @@
 /* Textes libres d'une colonne : plusieurs, posés où l'on veut (déplaçables à la souris dans l'aperçu). */
+import { typoOf } from '../viz/util.js';
 import { h, ico } from '../render.js';
 import { t } from '../i18n.js';
 import { toneKeys } from '../tokens.js';
@@ -70,7 +71,7 @@ export function freeTexts(k, col) {
           tx.text = v;
           ctx.changed();
         },
-        { gallery: true, adv: tx, advChange: () => ctx.changed(), palette: toneKeys(doc) },
+        { gallery: true, adv: tx, advChange: () => ctx.changed(), palette: toneKeys(doc), typo: typoOf(doc) },
       ),
       placement(tx),
       (tx.mode || 'free') === 'free'

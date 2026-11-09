@@ -342,22 +342,18 @@ export function reorderHit(env, key, i, axis, x, y, w, h) {
   });
 }
 
-/* Typographie automatique (réglages du document, posés avant chaque rendu par renderDocument) :
+/* Typographie automatique (réglages du document : `typoOf(doc)`, transmis par le contexte de rendu `rc.typo`) :
    fr = espaces insécables avant ; : ! ? % € et dans les guillemets « » ; ord = 1er, 2e en exposant et ½ ¼ ¾ */
-export const TYPO = { fr: false, ord: false };
-export const setTypo = (o) => {
-  TYPO.fr = !!(o && o.frTypo);
-  TYPO.ord = !!(o && o.ordinals);
-};
-const typo = (t) => {
-  if (TYPO.fr)
+export const typoOf = (doc) => Object.freeze({ fr: !!(doc && doc.frTypo), ord: !!(doc && doc.ordinals) });
+const typo = (t, o) => {
+  if (o && o.fr)
     t = t
       .replace(/([^\s;!?:])[ \u00A0\u202F]*([;!?])(?=\s|$|[»)\]*_~])/g, '$1\u202F$2')
       .replace(/([^\s;!?:/])[ \u00A0\u202F]*:(?=\s|$)/g, '$1\u00A0:')
       .replace(/«[ \u00A0\u202F]*/g, '«\u00A0')
       .replace(/[ \u00A0\u202F]*»/g, '\u00A0»')
       .replace(/(\d)[ \u00A0\u202F]*([%€])/g, '$1\u00A0$2');
-  if (TYPO.ord)
+  if (o && o.ord)
     t = t
       .replace(/\b(\d+)(er|re|e|ers|res|es)(?=[\s.,;:)\u00A0\u202F*_~]|$)/g, '$1^^$2^^')
       .replace(/(?<![\d/.])([13])\/([24])(?![\d/])/g, (m, a, b) => ({ '1/2': '½', '1/4': '¼', '3/4': '¾' })[m] || m);
@@ -365,9 +361,10 @@ const typo = (t) => {
 };
 const SAFE_URL = /^(https?:\/\/|mailto:)/i;
 /** Balisage léger → HTML sûr : **gras**, ~~italique~~, __souligné__, ^^exposant^^, ,,indice,, et les accolades {c:clé|couleur} {h:clé|surlignage}
-    {s|barré} {up|capitales} {sc|petites capitales} {a:adresse|lien}. `edit` : version pour le champ de saisie (rien de transformé, liens inactifs). */
-export const inlineMk = (t, edit) => {
-  let x = typo(String(t ?? ''))
+    {s|barré} {up|capitales} {sc|petites capitales} {a:adresse|lien}. `edit` : version pour le champ de saisie (liens inactifs) ;
+    `ty` : typographie automatique du document (`rc.typo` ou `typoOf(doc)`), absente = aucune. */
+export const inlineMk = (t, edit, ty) => {
+  let x = typo(String(t ?? ''), ty)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
