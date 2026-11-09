@@ -24,11 +24,12 @@ export default {
     ].map(([date, title, text]) => ({ date, title, text, color: 'blue' })),
   }),
   fields: [
-    { k: 'orientation', t: 'select', label: 'Orientation', options: { vertical: 'Verticale', horizontal: 'Horizontale' } },
-    { k: 'alternate', t: 'bool', label: 'Alterner les événements de part et d’autre de la ligne' },
-    { k: 'showDates', t: 'bool', label: 'Afficher les dates' },
+    { k: 'orientation', g: 'struct', t: 'select', label: 'Orientation', options: { vertical: 'Verticale', horizontal: 'Horizontale' } },
+    { k: 'alternate', g: 'struct', t: 'bool', label: 'Alterner les événements de part et d’autre de la ligne' },
+    { k: 'showDates', g: 'labels', t: 'bool', label: 'Afficher les dates' },
     {
       k: 'tail',
+      g: 'struct',
       t: 'select',
       label: 'Extrémités de la ligne',
       options: {

@@ -44,7 +44,9 @@ export const HELP = {
   'Titre et source': 'Texte facultatif au-dessus (titre) et sous (source) de la dataviz.',
   Données:
     'Collez un tableau depuis Excel ou Sheets, importez un fichier CSV, TSV ou JSON, ou saisissez directement dans les cellules. Entrée passe à la ligne suivante.',
-  Dimensions: 'Proportions du graphique.',
+  Structure: 'Comment le graphique est construit : séries, orientation, forme, grille, axes.',
+  Dimensions: 'Épaisseurs, espaces et rayons du graphique.',
+  'Accolade et liaison': 'Accolade d’évolution, accolade de liste et trait de liaison vers la colonne voisine.',
   Étiquettes: 'Légende, valeurs affichées, décimales et unité.',
   Couleurs: 'Couleurs du document ; les séries utilisent les clés de la palette, donc suivent le thème.',
   'Format du graphique': 'Proportion hauteur / largeur du graphique (en mode « Proportion »).',

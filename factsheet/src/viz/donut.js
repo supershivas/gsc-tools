@@ -65,17 +65,19 @@ export default {
     ],
   }),
   fields: [
-    { k: 'style', t: 'select', label: 'Forme', options: { donut: 'Anneau (total au centre)', pie: 'Camembert' } },
-    { k: 'totalTpl', t: 'ctext', label: 'Texte du centre' },
-    { k: 'decimals', t: 'number', label: 'Décimales du total', min: 0, max: 4 },
+    { k: 'style', g: 'struct', t: 'select', label: 'Forme', options: { donut: 'Anneau (total au centre)', pie: 'Camembert' } },
+    { k: 'totalTpl', g: 'labels', t: 'ctext', label: 'Texte du centre' },
+    { k: 'decimals', g: 'labels', t: 'number', label: 'Décimales du total', min: 0, max: 4 },
     {
       k: 'ringAlign',
+      g: 'struct',
       t: 'select',
       label: 'Position verticale de l’anneau',
       options: { top: 'En haut', center: 'Centré sur le contenu', bottom: 'En bas' },
     },
     {
       k: 'leading',
+      g: 'labels',
       t: 'select',
       label: 'Interlignage des textes',
       options: { tight: 'Serré (15 px)', normal: 'Normal (18 px)', loose: 'Large (21 px)' },
@@ -83,6 +85,7 @@ export default {
     },
     {
       k: 'layout',
+      g: 'labels',
       t: 'select',
       label: 'Libellés',
       options: {
@@ -92,10 +95,11 @@ export default {
         none: 'Aucun (anneau seul)',
       },
     },
-    { k: 'linkExtra', t: 'number', label: 'Trait de liaison : longueur au-delà de la colonne (px)', min: 0, max: 120 },
-    { k: 'linkColor', t: 'color', label: 'Trait de liaison : couleur', def: 'blue' },
+    { k: 'linkExtra', g: 'bracket', t: 'number', label: 'Trait de liaison : longueur au-delà de la colonne (px)', min: 0, max: 120 },
+    { k: 'linkColor', g: 'bracket', t: 'color', label: 'Trait de liaison : couleur', def: 'blue' },
     {
       k: 'orient',
+      g: 'struct',
       t: 'select',
       label: 'Orientation de l’anneau',
       options: {
@@ -104,8 +108,15 @@ export default {
         manual: 'Manuelle (glisser l’anneau dans l’éditeur)',
       },
     },
-    { k: 'largestAngle', t: 'number', label: 'Angle du plus grand segment (° — 0 = haut, 210 = bas gauche)', min: 0, max: 359 },
-    { k: 'startAngle', t: 'number', label: 'Angle de départ du 1er segment (° — mode manuel)', min: 0, max: 359, step: 'any' },
+    {
+      k: 'largestAngle',
+      g: 'struct',
+      t: 'number',
+      label: 'Angle du plus grand segment (° — 0 = haut, 210 = bas gauche)',
+      min: 0,
+      max: 359,
+    },
+    { k: 'startAngle', g: 'struct', t: 'number', label: 'Angle de départ du 1er segment (° — mode manuel)', min: 0, max: 359, step: 'any' },
     {
       k: 'segments',
       t: 'list',

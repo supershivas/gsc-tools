@@ -104,3 +104,45 @@ test.describe('sidebar de l’éditeur de dataviz', () => {
     await expect(page.locator('.ve-form .pp-empty')).toHaveCount(0);
   });
 });
+
+/* Squelette fixe de 10 cartes (lot 2 de l'audit) : chaque champ de chaque type est rangé explicitement. */
+test.describe('squelette de cartes', () => {
+  test.beforeEach(async ({ page }) => {
+    await openApp(page, 'default');
+    await openEditor(page);
+  });
+  test('tout champ de tous les types a un « g » valide', async ({ page }) => {
+    await page.goto('/factsheet/tests/blank.html');
+    await page.addScriptTag({ url: '/factsheet/tests/entry.bundle.js' });
+    const bad = await page.evaluate(() => {
+      const { VIZ_TYPES, groupOf, VALID_G } = window.FSTEST;
+      const out = [];
+      for (const [kind, ty] of Object.entries(VIZ_TYPES))
+        for (const f of ty.fields || []) if (!VALID_G.includes(groupOf(f))) out.push(`${kind}.${f.k || f.t}`);
+      return out;
+    });
+    expect(bad).toEqual([]);
+  });
+
+  test('cartes dans l’ordre fixe, Structure ouverte, « Options » et « Évolution » disparues', async ({ page }) => {
+    await pickType(page, /^Bars \(/);
+    const names = () => page.$$eval('.ve-form .pp-card-h b', (n) => n.map((x) => x.textContent));
+    expect(await names()).toEqual([
+      'Type · Bars (overlapping, grouped, stacked)',
+      'Title and source',
+      'Structure',
+      'Dimensions',
+      'Labels',
+      'Colours',
+      'Bracket and link',
+      'Figure beside',
+      'Advanced settings',
+    ]);
+    await expect(page.locator('.ve-form .pp-card', { hasText: /^Structure/ }).locator('.pp-body')).toBeVisible();
+    await pickType(page, /^Line/); // pas de Dimensions ni d'accolade : masquées, l'ordre ne change pas
+    const line = await names();
+    expect(line.filter((n) => /^(Options|Trend)$/.test(n))).toEqual([]);
+    expect(line.indexOf('Structure')).toBeLessThan(line.indexOf('Labels'));
+    expect(line.indexOf('Figure beside')).toBeGreaterThan(line.indexOf('Colours'));
+  });
+});

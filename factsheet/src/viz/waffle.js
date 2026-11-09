@@ -32,13 +32,13 @@ export default {
     ],
   }),
   fields: [
-    { k: 'cols', t: 'number', label: 'Cases par ligne', min: 1, max: 40 },
-    { k: 'gridRows', t: 'number', label: 'Nombre de lignes', min: 1, max: 40 },
-    { k: 'total', t: 'number', label: 'Valeur de la grille entière (0 = somme des valeurs)', min: 0, step: 'any' },
-    { k: 'shape', t: 'select', label: 'Forme des cases', options: { square: 'Carrée', rounded: 'Arrondie', circle: 'Ronde' } },
-    { k: 'gap', t: 'number', label: 'Espace entre les cases (px)', min: 0, max: 12 },
-    { k: 'legend', t: 'bool', label: 'Afficher la légende' },
-    { k: 'legendPos', t: 'select', label: 'Position de la légende', options: { bottom: 'En bas', top: 'En haut' } },
+    { k: 'cols', g: 'struct', t: 'number', label: 'Cases par ligne', min: 1, max: 40 },
+    { k: 'gridRows', g: 'struct', t: 'number', label: 'Nombre de lignes', min: 1, max: 40 },
+    { k: 'total', g: 'struct', t: 'number', label: 'Valeur de la grille entière (0 = somme des valeurs)', min: 0, step: 'any' },
+    { k: 'shape', g: 'struct', t: 'select', label: 'Forme des cases', options: { square: 'Carrée', rounded: 'Arrondie', circle: 'Ronde' } },
+    { k: 'gap', g: 'dims', t: 'number', label: 'Espace entre les cases (px)', min: 0, max: 12 },
+    { k: 'legend', g: 'labels', t: 'bool', label: 'Afficher la légende' },
+    { k: 'legendPos', g: 'labels', t: 'select', label: 'Position de la légende', options: { bottom: 'En bas', top: 'En haut' } },
   ],
   /* chaque catégorie a sa couleur et son repère (croix, point, coche ou une icône), choisis dans le tableau */
   data: {

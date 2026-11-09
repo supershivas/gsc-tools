@@ -19,6 +19,7 @@ import { startReorder } from './vizreorder.js';
 import { newSide, SIDE_FIELDS } from './viz/index.js';
 import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
 import { t } from './i18n.js';
+import { CARDS, groupOf, fieldsOf } from './vizgroups.js';
 
 const tr = t; // `t` est masqué par des variables locales (type de dataviz) dans `draw`
 
@@ -26,16 +27,12 @@ let current = null;
 const shut = new Set(); // cartes repliées (gardées d'une ouverture à l'autre)
 let tab = 'data';
 shut.add('dv-type'); // la carte du type est repliée à la première ouverture ; `tab` : 'data' (Données) ou 'viz' (Visualisation)
-const acc = { cur: null, first: 'dv-style' },
+const accs = {}, // accordéon par type de dataviz : { cur, first } (la dernière carte ouverte est gardée d'une ouverture à l'autre)
   search = { q: '', focus: false };
 const MARKUP = new RegExp('\\*\\*|~~|__|\\^\\^|,,|' + HAS_PREFIX.source); // accordéon : une seule carte ouverte dans le panneau
 
-/* Rangement des champs d'un type dans les cartes de l'onglet Visualisation (un champ peut forcer `g: 'format' | 'labels' | 'style' | 'data'`) */
-const LABEL_KEYS = new Set(['legend', 'legendPos', 'showValues', 'valuesIn', 'labelIn', 'decimals', 'suffix', 'totalTpl', 'layout']);
 const SERIES_COLORS = ['sky', 'yellow', 'blue', 'slate', 'grey'];
 let availH = 360; // place disponible simulée dans l'aperçu (mode « Remplir »)
-const groupOf = (f) =>
-  f.g || (f.t === 'table' || f.t === 'list' ? 'data' : f.k === 'ratio' ? 'ratio' : LABEL_KEYS.has(f.k) ? 'labels' : 'style');
 
 /** Petite fenêtre de choix de couleur à l'endroit du clic : pastilles de la palette du document ; « toute la série » (au lieu du seul élément) et « couleur de la série » (retire la surcharge) */
 function openColorPop(host, x, y, cur, options, { series, onPick, onReset }) {
@@ -336,7 +333,8 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     },
   };
   const refreshForm = () => buildForm();
-  const card = (id, icon, name, nodes, sum) => cardEl(id, icon, name, nodes, { shut, refresh: refreshForm, acc, sum, q: search.q });
+  const card = (id, icon, name, nodes, sum) =>
+    cardEl(id, icon, name, nodes, { shut, refresh: refreshForm, acc: accs[col.viz.kind], sum, q: search.q });
   /* Titre et source : un champ simple par défaut (une ligne) ; l'éditeur riche (gras, styles de paragraphe…) s'ouvre avec le bouton, ou d'office si le texte est déjà mis en forme */
   const softField = (obj, k, label, opts) => {
     const box = h('div', { class: 'f' }),
@@ -442,7 +440,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     dataPane.innerHTML = '';
     const ty = VIZ_TYPES[col.viz.kind],
       fields = ty.fields || [],
-      F = (g) => fields.filter((f) => groupOf(f) === g);
+      F = (g) => fieldsOf(fields, g);
     const head = col.viz.head || (col.viz.head = { title: '', source: '' });
     const dataFields = F('data'),
       hasData = !!ty.data || dataFields.length > 0;
@@ -494,19 +492,44 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
       );
       drawMini();
     } else {
-      const ids = [
-        'dv-head',
-        ty.panel && 'dv-picto',
-        'dv-side',
-        F('format').length && 'dv-format',
-        'dv-colors',
-        F('labels').length && 'dv-labels',
-        F('trend').length && 'dv-trend',
-        (F('style').length || ty.actions) && 'dv-style',
-        'dv-debug',
-      ].filter(Boolean);
-      acc.first = ['dv-style', 'dv-labels', 'dv-colors'].find((x) => ids.includes(x));
+      /* squelette fixe : une carte sans contenu est masquée, jamais déplacée (docs/architecture.md) */
+      const has = { 'dv-struct': F('struct').length > 0 || !!ty.actions };
+      for (const c of CARDS) if (c.g !== 'struct') has[c.id] = c.g === 'colors' || F(c.g).length > 0;
+      const ids = ['dv-head', ty.panel && 'dv-picto', ...CARDS.map((c) => c.id).filter((id) => has[id]), 'dv-side', 'dv-debug'].filter(
+        Boolean,
+      );
+      const acc = (accs[col.viz.kind] ||= { cur: null, first: null });
+      acc.first = has['dv-struct'] ? 'dv-struct' : 'dv-labels'; // ouverte au départ : Structure, sinon Étiquettes
       if (acc.cur && !ids.includes(acc.cur)) acc.cur = null;
+      /* contenu d'une carte : ses champs dans l'ordre de FIELD_ORDER ; les actions de l'anneau terminent Structure, le bouton des couleurs du document termine Couleurs */
+      const actions = () =>
+        ty.actions
+          ? h(
+              'div',
+              { class: 'pp-actions' },
+              ty.actions.map((a) =>
+                h('button', {
+                  type: 'button',
+                  class: 'pp-btn',
+                  textContent: a.label,
+                  title: a.title || '',
+                  onclick: () => {
+                    a.run(col.viz.opts);
+                    ui.sel = -1;
+                    fctx.restructure();
+                  },
+                }),
+              ),
+            )
+          : null;
+      const paletteBtn = () =>
+        h(
+          'button',
+          { type: 'button', class: 'pp-btn', onclick: (e) => openPalette(e.currentTarget, palCtx) },
+          ico('palette'),
+          h('span', { textContent: t('Couleurs du document') }),
+        );
+      const cardNodes = (g) => [...gen(F(g)), g === 'struct' ? actions() : g === 'colors' ? paletteBtn() : null];
       form.append(
         searchBox(search, refreshForm),
         typeCard(),
@@ -519,6 +542,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
             headSummary(head),
           ),
           ty.panel ? card('dv-picto', 'mood-smile', t(ty.panelTitle || 'Pictogramme'), ty.panel(col.viz.opts, fctx)) : null,
+          ...CARDS.map((c) => (has[c.id] ? card(c.id, c.icon, t(c.name), cardNodes(c.g)) : null)),
           card(
             'dv-side',
             'number',
@@ -526,41 +550,6 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
             buildFields(SIDE_FIELDS, col.viz.side || (col.viz.side = newSide(col.viz.kind)), fctx, {}, h),
             sideSummary(col.viz.side),
           ),
-          F('format').length ? card('dv-format', 'ruler-2', t('Dimensions'), gen(F('format'))) : null,
-          card('dv-colors', 'palette', t('Couleurs'), [
-            h(
-              'button',
-              { type: 'button', class: 'pp-btn', onclick: (e) => openPalette(e.currentTarget, palCtx) },
-              ico('palette'),
-              h('span', { textContent: t('Couleurs du document') }),
-            ),
-          ]),
-          F('labels').length ? card('dv-labels', 'letter-case', t('Étiquettes'), gen(F('labels'))) : null,
-          F('trend').length ? card('dv-trend', 'trending-up', t('Évolution'), gen(F('trend'))) : null,
-          F('style').length || ty.actions
-            ? card('dv-style', 'adjustments', t('Options'), [
-                ty.actions
-                  ? h(
-                      'div',
-                      { class: 'pp-actions' },
-                      ty.actions.map((a) =>
-                        h('button', {
-                          type: 'button',
-                          class: 'pp-btn',
-                          textContent: a.label,
-                          title: a.title || '',
-                          onclick: () => {
-                            a.run(col.viz.opts);
-                            ui.sel = -1;
-                            fctx.restructure();
-                          },
-                        }),
-                      ),
-                    )
-                  : null,
-                ...gen(F('style')),
-              ])
-            : null,
           card('dv-debug', 'bug', t('Réglages avancés'), [
             h('p', {
               class: 'hint',

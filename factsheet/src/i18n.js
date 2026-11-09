@@ -383,7 +383,9 @@ const EN = {
   'Titre et source': 'Title and source',
   'Titre de la dataviz (facultatif)': 'Dataviz title (optional)',
   'Source (facultatif)': 'Source (optional)',
+  Structure: 'Structure',
   Dimensions: 'Dimensions',
+  'Accolade et liaison': 'Bracket and link',
   Étiquettes: 'Labels',
   'Fichier illisible.': 'Unreadable file.',
   'Collez ici un tableau copié depuis Excel, Sheets ou un CSV (la 1re ligne peut contenir les en-têtes)':
@@ -537,7 +539,11 @@ const EN = {
   'Texte facultatif au-dessus (titre) et sous (source) de la dataviz.': 'Optional text above (title) and below (source) the dataviz.',
   'Collez un tableau depuis Excel ou Sheets, importez un fichier CSV, TSV ou JSON, ou saisissez directement dans les cellules. Entrée passe à la ligne suivante.':
     'Paste a table from Excel or Sheets, import a CSV, TSV or JSON file, or type straight into the cells. Enter moves to the next row.',
-  'Proportions du graphique.': 'Chart proportions.',
+  'Comment le graphique est construit : séries, orientation, forme, grille, axes.':
+    'How the chart is built: series, orientation, shape, grid, axes.',
+  'Épaisseurs, espaces et rayons du graphique.': 'Thicknesses, spaces and radii of the chart.',
+  'Accolade d’évolution, accolade de liste et trait de liaison vers la colonne voisine.':
+    'Trend bracket, list bracket and link line to the neighbouring column.',
   'Légende, valeurs affichées, décimales et unité.': 'Legend, displayed values, decimals and unit.',
   'Couleurs du document ; les séries utilisent les clés de la palette, donc suivent le thème.':
     'Document colours; series use palette keys, so they follow the theme.',

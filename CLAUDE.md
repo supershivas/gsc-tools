@@ -47,6 +47,7 @@ Détail et raisons dans `factsheet/docs/architecture.md`.
 - **Déplacements et suppressions** passent par `ctx.moved()` (annulables) ; toute modification du document appelle `ctx.changed()` ou `ctx.restructure()` (historique).
 - **Nouvel élément redimensionnable** : poignée `div` vide dans `editor/handles.js` (`dragSplit`), avec retour en direct ; hors export.
 - **Nouvelle accolade de mise en forme en ligne** : `inlineMk`, `stripInline`, `htmlToMk`/`fmtStyle`. **Nouveau style de paragraphe** : `PSTYLES` + `TYPE` + `doc.css` + `app.css` + traduction. **Nouvelle sérialisation XML** : via `XML_BAD` (`raster.js`). **SVG importé** : toujours par `cleanSvgTree`.
+- **Champ de dataviz** : chaque champ de `fields` déclare sa carte par `g:` (`struct`, `dims`, `labels`, `colors`, `bracket`, `data`) selon la règle de `docs/architecture.md`, sans rangement par défaut (un test refuse l'oubli) ; son ordre dans la carte se règle dans `FIELD_ORDER` (`src/vizgroups.js`).
 - **Dataviz** : toute modification passe par l'éditeur de dataviz ; nouvelle légende par `drawLegend`/`drawLegendWrap` ; nouveau choix d'icône par `iconSelect` ; texte du document : champs `<textarea class="ml">` et `white-space: pre-line`.
 - **SVG non rognés** : `.page svg, .viz-sheet svg { overflow: visible }` (`doc.css`) ; ne jamais s'appuyer sur le rognage par défaut d'un SVG.
 - **Choix de type** : `richSelect` avec icônes ; 2–3 valeurs courtes : `pair` ; jamais un bouton dans un `<label>`.

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.78.0 — 2026-11-09
+- Éditeur de dataviz : mêmes cartes dans le même ordre pour tous les types (Structure, Dimensions, Étiquettes, Couleurs, Accolade et liaison, Chiffre à côté) ; « Options » et « Évolution » disparaissent
+- Chaque réglage est rangé dans la carte qui correspond à son rôle et dans le même ordre d'un type à l'autre ; la carte ouverte au départ est Structure (ou Étiquettes), et l'éditeur se souvient de la dernière carte ouverte pour chaque type
+- Pictogrammes simples : le doublon « Format du graphique » disparaît de l'éditeur (il reste dans les propriétés, sous Hauteur)
+
 ## 1.77.1 — 2026-11-09
 - Éditeur de dataviz : les listes (épaisseur et espaces des barres, interlignage de l'anneau) affichent enfin la valeur réellement appliquée
 - Échap ne fait plus perdre le travail : il vide la recherche ou ferme la liste ouverte, et demande confirmation avant d'abandonner des modifications

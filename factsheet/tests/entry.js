@@ -4,10 +4,12 @@ import { defaultDoc, newSection, newSub, newCol } from '../src/state.js';
 import { newViz, VIZ_TYPES } from '../src/viz/index.js';
 import { DOCS, docEvilIcon } from './docs.js';
 import { renderDocument, measure } from '../src/render.js';
+import { groupOf, VALID_G } from '../src/vizgroups.js';
 
 window.FSTEST = {
   defaultDoc, newSection, newSub, newCol, newViz, VIZ_TYPES,
   docs: DOCS,
   evilIcon: docEvilIcon,
   renderDocument, measure,
+  groupOf, VALID_G: [...VALID_G],
 };

@@ -267,15 +267,16 @@ function make(variant) {
     fields: [
       {
         k: 'perIcon',
+        g: 'struct',
         t: 'number',
         label: multi ? 'Valeur d’un pictogramme' : 'Valeur du pictogramme plein (ex. 100)',
         min: 0.0001,
         step: 'any',
       },
-      { k: 'color', t: 'color', label: 'Couleur des pictogrammes' },
-      { k: 'showValues', t: 'bool', label: 'Afficher les valeurs' },
-      { k: 'decimals', t: 'number', label: 'Décimales des valeurs', min: 0, max: 4 },
-      { k: 'suffix', t: 'text', label: 'Unité après la valeur (%, M€…)' },
+      { k: 'color', g: 'colors', t: 'color', label: 'Couleur des pictogrammes' },
+      { k: 'showValues', g: 'labels', t: 'bool', label: 'Afficher les valeurs' },
+      { k: 'decimals', g: 'labels', t: 'number', label: 'Décimales des valeurs', min: 0, max: 4 },
+      { k: 'suffix', g: 'labels', t: 'text', label: 'Unité après la valeur (%, M€…)' },
     ].concat(
       multi
         ? []
@@ -285,7 +286,6 @@ function make(variant) {
               t: 'select',
               label: 'Format du graphique',
               options: { '2:1': '2:1 (large)', '16:9': '16:9', '3:2': '3:2', '1:1': '1:1 (carré)' },
-              g: 'format',
             },
           ],
     ),
