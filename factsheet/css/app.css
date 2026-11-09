@@ -560,3 +560,12 @@ textarea.dg-ml{display:block;width:100%;min-width:90px;border:0;border-radius:0;
 .pp-reset-card{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-color:transparent;background:transparent}
 .pp-btn[aria-disabled=true]{opacity:.5;cursor:default}
 .pp-reset-card[hidden]{display:none}
+
+/* dépassement de page (aperçu seulement) : contenu coupé sous la page, trait rouge à la limite, pastille dans l'arbre */
+.ovf-flag{position:absolute;left:0;right:0;height:0;pointer-events:none;z-index:6}
+.ovf-flag span{position:absolute;right:6px;top:4px;padding:1px 8px;border-radius:var(--radius-sm);background:var(--danger);color:#fff;font-size:var(--fs-xs);font-weight:600}
+.ovf{position:absolute;left:0;overflow:hidden;pointer-events:none;opacity:.55;border-top:2px solid var(--danger);background:repeating-linear-gradient(135deg,#fff4e5 0 6px,#fff 6px 12px);z-index:4}
+.ovf .ovf-clone{background:transparent!important}
+.warnings .ovf-row{display:flex;align-items:center;gap:8px;box-sizing:border-box;height:38px}.ovf-row .ovf-txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ovf-row .mini{flex:none;white-space:nowrap}   /* hauteur entière : la page ne doit pas se décaler d'une fraction de pixel (captures de référence) */
+.tn-ovf{margin-left:4px;color:var(--danger);flex:none}
+#exportWarn{white-space:pre-line;margin:0 0 12px;padding:8px 10px;border-radius:var(--radius-sm);background:#fff4e5;color:#92400e;font-size:var(--fs-sm)}#exportWarn[hidden]{display:none}

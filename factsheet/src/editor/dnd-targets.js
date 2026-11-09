@@ -43,7 +43,7 @@ export function makeTargets(ctx, getDrag) {
   function secTarget(e) {
     const sd = ctx.shown(),
       dg = getDrag();
-    for (const page of stage.querySelectorAll('.page')) {
+    for (const page of stage.querySelectorAll('.page:not(.ovf-clone)')) {
       const pr = page.getBoundingClientRect();
       if (e.clientX < pr.left || e.clientX > pr.right || e.clientY < pr.top || e.clientY > pr.bottom) continue;
       const key = page.dataset.page,
@@ -68,7 +68,7 @@ export function makeTargets(ctx, getDrag) {
   function subTarget(e) {
     const sd = ctx.shown(),
       dg = getDrag();
-    for (const page of stage.querySelectorAll('.page')) {
+    for (const page of stage.querySelectorAll('.page:not(.ovf-clone)')) {
       const pr = page.getBoundingClientRect();
       if (e.clientX < pr.left || e.clientX > pr.right || e.clientY < pr.top || e.clientY > pr.bottom) continue;
       const secs = [...page.querySelectorAll('.sec')];

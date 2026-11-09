@@ -84,7 +84,25 @@ export function createExport(ctx) {
   } catch (e) {
     /* stockage indisponible : PDF/X-4 */
   }
+  /* page qui dépasse : le PDF coupe ce qui sort de la feuille, on le dit avant d'exporter */
+  const overflowText = () => {
+    const ov = ctx.overflows || [];
+    if (!ov.length) return '';
+    return ov
+      .map(
+        (o) =>
+          `${o.page === 'recto' ? t('Recto') : t('Verso')} : ${t('le contenu dépasse de')} ${o.over} px${o.hidden ? ' — ' + t('une partie sera coupée dans le PDF') : ''}`,
+      )
+      .join('\n');
+  };
   function openExport() {
+    let warn = document.getElementById('exportWarn');
+    if (!warn) {
+      warn = h('p', { id: 'exportWarn', role: 'alert' });
+      dlg.querySelector('h3').after(warn);
+    }
+    warn.textContent = overflowText();
+    warn.hidden = !warn.textContent;
     const radios = (id, name, list, cur, set) => {
       const box = document.getElementById(id);
       box.innerHTML = '';
@@ -114,6 +132,8 @@ export function createExport(ctx) {
     btn.disabled = true;
     btn.textContent = t('Génération du PDF…');
     try {
+      const ovf = overflowText();
+      if (ovf && !(await confirmBox(ovf + '\n\n' + t('Exporter quand même ?'), { ok: t('Exporter') }))) return;
       if (!window.FSPDF) await loadBundle('pdfexport.js');
       const { bytes, missing } = await window.FSPDF.build(ctx.getDoc(), exportMode, { profile: exportProfile });
       /* caractères absents des polices (symboles rares, alphabets non latins hors grec et cyrillique) : ils ne seraient pas imprimés */

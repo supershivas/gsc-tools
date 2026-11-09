@@ -539,7 +539,8 @@ function fillPage(p, fills) {
 }
 
 export function measure(result) {
-  const warnings = [];
+  const warnings = [],
+    overflows = []; // [{ page, over (px au-delà de la limite), hidden (px hors de la feuille, donc coupés), secs: [{ si, state: 'out' | 'cut' }] }]
   if (result.fills && result.fills.length) matchRows(result.fills);
   for (const p of result.pages) {
     if (result.fills && result.fills.length) fillPage(p, result.fills);
@@ -552,6 +553,18 @@ export function measure(result) {
     // le dernier fond de la page descend jusqu'au bas de page (et au fond perdu à l'export)
     const last = p.content.querySelector('.sec-last.sec-band');
     if (last) last.style.minHeight = Math.max(0, PAGE.h - p.top - last.offsetTop) + 'px';
+    if (p.overflow) {
+      /* sections qui sortent de la limite : 'out' = entièrement au-delà, 'cut' = coupée par la limite */
+      const secs = [];
+      p.content.querySelectorAll(':scope > .sec').forEach((s) => {
+        const si = +String(s.dataset.sel || '').split(':')[1],
+          top = s.offsetTop,
+          bot = top + s.offsetHeight;
+        if (top >= p.max - 0.5) secs.push({ si, state: 'out' });
+        else if (bot > p.max + 0.5) secs.push({ si, state: 'cut' });
+      });
+      overflows.push({ page: p.key, over: Math.ceil(p.used - p.max), hidden: Math.max(0, Math.ceil(p.top + p.used - PAGE.h)), secs });
+    }
     p.el.querySelectorAll('.dash').forEach((d) => {
       // cadre des pointillés : taille réelle du contenant, trait centré sur la bordure
       const box = d.parentElement,
@@ -583,5 +596,6 @@ export function measure(result) {
     }
   }
   result.warnings = warnings;
+  result.overflows = overflows;
   return result;
 }

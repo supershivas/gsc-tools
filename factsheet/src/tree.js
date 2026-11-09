@@ -34,6 +34,7 @@ export function buildTree(root, ctx) {
     collapsed = ctx.collapsed;
   root.innerHTML = '';
   applyVars(root, cssVars(doc.theme, doc.colors, doc.density));
+  queueMicrotask(() => ctx.markTree && ctx.markTree()); // pastilles de dépassement (calculées par l'aperçu)
   const row = (path, cls, kids) =>
     h(
       'div',

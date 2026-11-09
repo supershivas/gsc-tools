@@ -8,7 +8,7 @@ for (const name of DOCS) {
   test(`aperçu — ${name}`, async ({ page }) => {
     const errors = watchErrors(page);
     await openApp(page, name);
-    const pages = page.locator('#stage .page');
+    const pages = page.locator('#stage .page:not(.ovf-clone)');
     const n = await pages.count();
     expect(n).toBe(2);
     expect(await page.locator('#stage .viz-ph').count(), 'une dataviz n’a pas pu être dessinée').toBe(0);

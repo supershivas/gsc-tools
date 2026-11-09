@@ -524,3 +524,51 @@ test.describe('réduire les colonnes', () => {
     expect((await sections(page)).length).toBe(2);
   });
 });
+
+/* Dépassement de page : visible dans l'aperçu, expliqué par section, déplaçable, signalé à l'export */
+test.describe('dépassement de page', () => {
+  let errors;
+  test.beforeEach(async ({ page }) => {
+    errors = watchErrors(page);
+    await openApp(page, 'default');
+    await page.evaluate(() => {
+      const key = 'factsheet-creator-v1',
+        doc = JSON.parse(localStorage.getItem(key)),
+        s = doc.sections[0];
+      for (let i = 0; i < 14; i++) {
+        const c = JSON.parse(JSON.stringify(s.subs[0]));
+        c.id = 'xsub' + i;
+        s.subs.push(c);
+      }
+      localStorage.setItem(key, JSON.stringify(doc));
+    });
+    await page.reload();
+    await expect(page.locator('.ovf-flag')).toHaveCount(1);
+  });
+  test.afterEach(() => expect(errors).toEqual([]));
+
+  test('repère dans l’aperçu, avertissement par section, pastille dans l’arbre', async ({ page }) => {
+    await expect(page.locator('.ovf-flag')).toContainText('Overflows by');
+    await expect(page.locator('.ovf')).toHaveCount(1); // contenu coupé, dessiné sous la page
+    await expect(page.locator('.ovf [data-sel]')).toHaveCount(0); // la copie n'est jamais sélectionnable
+    await expect(page.locator('.warnings .ovf-row').first()).toContainText('page');
+    await expect(page.locator('#tree .tn-ovf').first()).toHaveAttribute('title', /page/); // (la police d'icônes est coupée dans les tests)
+    expect(await page.locator('.page:not(.ovf-clone)').count()).toBe(2);
+  });
+  test('déplacer la section sur l’autre page, annulable', async ({ page }) => {
+    const before = await page.evaluate(() => JSON.parse(localStorage.getItem('factsheet-creator-v1')).sections.map((s) => s.page));
+    await page.locator('.warnings .ovf-row button', { hasText: 'Move it to the back' }).first().click();
+    await expect
+      .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('factsheet-creator-v1')).sections.map((s) => s.page)))
+      .not.toEqual(before);
+  });
+  test('export : la fenêtre prévient et demande confirmation', async ({ page }) => {
+    await page.keyboard.press('Control+p');
+    await expect(page.locator('#exportWarn')).toBeVisible();
+    await expect(page.locator('#exportWarn')).toContainText('content overflows by');
+    await page.locator('#exportGo').click();
+    await expect(page.locator('dialog.modal[open]')).toContainText('Export anyway?');
+    await page.locator('dialog.modal[open]').getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.locator('#exportGo')).toBeEnabled();
+  });
+});
