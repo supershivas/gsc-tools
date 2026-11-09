@@ -7,6 +7,7 @@ import { openColorEditor } from './colorpicker.js';
 import { paletteCmyk } from './cmyk.js';
 import { extraColorKeys, addColor, removeColor, canAddColor } from './state.js';
 import { confirmBox } from './dialogs.js';
+import { openPaletteImport } from './paletteimport.js';
 
 /** redraw : redessine l'appelant après un changement de structure (ajout, suppression, retour au thème) */
 export function buildPalette(ctx, redraw) {
@@ -115,22 +116,32 @@ export function buildPalette(ctx, redraw) {
     h('div', { class: 'pal2' }, Object.keys(pal).map(row)),
     canAddColor(doc)
       ? h(
-          'button',
-          {
-            type: 'button',
-            class: 'pp-btn',
-            onclick: () => {
-              const k = addColor(doc, '#808080');
-              ctx.changed();
-              redraw();
-              requestAnimationFrame(() => {
-                const b = document.querySelector(`[data-key="${k}"] .pal2-sw`);
-                if (b) b.click();
-              });
+          'div',
+          { class: 'pal2-add' },
+          h(
+            'button',
+            {
+              type: 'button',
+              class: 'pp-btn',
+              onclick: () => {
+                const k = addColor(doc, '#808080');
+                ctx.changed();
+                redraw();
+                requestAnimationFrame(() => {
+                  const b = document.querySelector(`[data-key="${k}"] .pal2-sw`);
+                  if (b) b.click();
+                });
+              },
             },
-          },
-          ico('plus'),
-          h('span', { textContent: t('Ajouter une couleur') }),
+            ico('plus'),
+            h('span', { textContent: t('Ajouter une couleur') }),
+          ),
+          h(
+            'button',
+            { type: 'button', class: 'pp-btn', onclick: () => openPaletteImport(ctx, redraw) },
+            ico('file-import'),
+            h('span', { textContent: t('Importer une palette…') }),
+          ),
         )
       : null,
   );
@@ -174,11 +185,11 @@ export function openPalette(anchor, ctx) {
   el.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left - w + r.width)) + 'px';
   el.style.top = Math.max(8, Math.min(window.innerHeight - hh - 8, r.bottom + 6)) + 'px';
   const away = (e) => {
-    if (el.contains(e.target) || anchor.contains(e.target) || e.target.closest('.ce')) return;
+    if (el.contains(e.target) || anchor.contains(e.target) || e.target.closest('.ce, dialog.pimp')) return;
     closePalette();
   };
   const key = (e) => {
-    if (e.key === 'Escape' && !document.querySelector('.ce')) closePalette();
+    if (e.key === 'Escape' && !document.querySelector('.ce, dialog.pimp')) closePalette();
   };
   document.addEventListener('pointerdown', away, true);
   document.addEventListener('keydown', key, true);

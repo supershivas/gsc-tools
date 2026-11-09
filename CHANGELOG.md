@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.72.0 — 2026-11-09
+- Couleurs du document : nouveau bouton « Importer une palette… » (depuis une image, un fichier .ase / .gpl / .json / .css, ou un autre projet Factsheet)
+- On coche les couleurs à garder ; noms et valeurs CMJN sont repris quand le fichier les contient
+
 ## 1.71.3 — 2026-11-09
 - Les alertes, confirmations et saisies du navigateur sont remplacées par des modales aux couleurs de l'app
 - Le menu Fichier n'a plus de lien vers l'Atelier : il reste accessible depuis la roue crantée des réglages

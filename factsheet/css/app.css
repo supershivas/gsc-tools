@@ -275,6 +275,25 @@ body.v3d-open{overflow:hidden}
 .pal-pop-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .pal-pop .pal2{margin:0 0 10px}
 .pal-pop .pp-btn{width:100%}
+.pal2-add{display:flex;flex-direction:column;gap:6px}
+/* import de palette (fenêtre .modal) */
+dialog.pimp{width:min(var(--modal-max-width),calc(100vw - 24px))}
+.pimp-head{padding:var(--modal-padding) var(--modal-padding) 0}
+.pimp-head h2{margin:0;font-size:var(--fs-lg)}
+.pimp-body{padding:var(--modal-padding);display:flex;flex-direction:column;gap:10px}
+.pimp-body .modal-actions{padding:0}
+.pimp-lead{margin:0;color:var(--ui-mute)}
+.pimp-src{display:flex;align-items:center;gap:14px;width:100%;min-height:56px;padding:10px 14px;border:1px solid var(--ui-line);border-radius:var(--radius-md);background:#fff;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.pimp-src .ti{font-size:24px;color:var(--ui-mute)}
+.pimp-src span{display:flex;flex-direction:column}
+.pimp-src small{color:var(--ui-mute)}
+@media (hover:hover){.pimp-src:hover{border-color:var(--ui-ink)}}
+.pimp-pick{display:flex;flex-direction:column;gap:10px}
+.pimp-list{display:flex;flex-direction:column;max-height:48vh;overflow:auto}
+.pimp-row input{accent-color:var(--ui-ink)}
+.pimp-row{display:grid;grid-template-columns:20px 32px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:44px;padding:2px 6px;border-radius:var(--radius-md);cursor:pointer}
+.pimp-sw{display:block;width:32px;height:32px;border-radius:var(--radius-md);border:1px solid var(--shade)}
+.pimp-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ---------- Structure (gauche) : cartes repliables ---------- */
 .panel.tree{padding:16px 14px 40px;background:var(--ui-bg)}
