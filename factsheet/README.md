@@ -92,14 +92,14 @@ Filet de sécurité avant de toucher au rendu ou à l'export : `tests/` (Playwri
 
 ```bash
 npm ci                              # une fois (puis « npx playwright install chromium » si le navigateur manque)
-npm run check                       # traductions, compilation sans avertissement, bundles identiques au dépôt
+npm run check                       # mise en forme (Prettier), traductions, compilation sans avertissement, bundles identiques au dépôt
 npm test                            # tests Playwright (≈ 30 s)
 ```
 
 `npm test` lit les bundles du dépôt : après une modification de `src/`, lancer `npm run build` d'abord (`npm run check` le fait).
 
 **Ce qui est vérifié**
-- `npm run check` (`scripts/check.mjs`) : dictionnaire EN de `src/i18n.js` sans clé en double ni espace en bordure (`scripts/check-i18n.mjs`) ; `npm run build` sans aucune ligne `[WARNING]` d'esbuild ; `git diff --exit-code` sur les cinq bundles (un bundle oublié ou compilé à la main est refusé — pensez à `git add` avant de relancer).
+- `npm run check` (`scripts/check.mjs`) : `prettier --check src` (configuration dans `.prettierrc.json` : largeur 140, guillemets simples, points-virgules ; bundles exclus par `.prettierignore` ; pour corriger : `npx prettier --write src`) ; dictionnaire EN de `src/i18n.js` sans clé en double ni espace en bordure (`scripts/check-i18n.mjs`) ; `npm run build` sans aucune ligne `[WARNING]` d'esbuild ; `git diff --exit-code` sur les cinq bundles (un bundle oublié ou compilé à la main est refusé — pensez à `git add` avant de relancer).
 - `tests/visual.spec.js` : une capture par page de l'aperçu, pour 5 documents de référence (document par défaut ; « caractères » avec latin étendu, grec et cyrillique ; trois documents qui contiennent ensemble les 17 types de dataviz, 3 par page), comparée à `tests/references/`.
 - `tests/pdf.spec.js` : export PDF CMJN (`window.FSPDF.build`) de chaque document, en modes net / bleed / marks et profils none / x4 / x1a : nombre de pages, MediaBox / TrimBox / BleedBox, version d'en-tête (1.4 en x1a, 1.6 en x4), OutputIntent FOGRA39 et `/ID`, aucune transparence en x1a, aucun caractère manquant pour le document « caractères ». Fond perdu : la limite header / 1re bande est à 180 pt + le fond perdu du bord (lue sur le rendu `pdftoppm` ; sans `pdftoppm`, sur la capture de la page). Sécurité : une icône SVG importée avec un `onerror` n'exécute rien.
 - `tests/console.spec.js` : aucune erreur de console au chargement de `index.html`, `labo.html` et `atelier.html`.
