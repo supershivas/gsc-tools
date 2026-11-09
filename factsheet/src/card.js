@@ -28,8 +28,9 @@ export function renderCard(o, W, env) {
       (o.bleed && o.stroke ? ' bleed' : ''),
   });
   const pic = o.image ? h('div', { class: 'card-img' }, h('img', { src, alt: '' })) : null;
-  const iconAbove = o.icon && !o.iconInline ? h('div', { class: 'card-ico' }, figureIcon(o.iconName, GAP.boxPad * 4, o.iconCircle)) : null;
-  const iconInline = o.icon && o.iconInline ? figureIcon(o.iconName, GAP.boxPad * 2, o.iconCircle) : null;
+  const iconAbove =
+    o.icon && !o.iconInline ? h('div', { class: 'card-ico' }, figureIcon(o.iconName, GAP.boxPad * 4, o.iconCircle, env.rc.icons)) : null;
+  const iconInline = o.icon && o.iconInline ? figureIcon(o.iconName, GAP.boxPad * 2, o.iconCircle, env.rc.icons) : null;
   const body = h(
     'div',
     { class: 'card-body' },

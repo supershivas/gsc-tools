@@ -17,7 +17,7 @@ export const FIGURE_FIELDS = [
     k: 'icon',
     t: 'select',
     label: 'Icône devant le chiffre',
-    options: () => ({ none: 'Aucune', ...ICON_OPTIONS, ...customChoices() }),
+    options: (root, icons) => ({ none: 'Aucune', ...ICON_OPTIONS, ...customChoices(null, icons) }),
     icons: true,
   },
   { k: 'iconStyle', t: 'select', label: 'Style de l’icône', options: { plain: 'Pictogramme seul', circle: 'Dans une pastille' } },
@@ -43,7 +43,7 @@ export const FIGURE_FIELDS = [
     k: 'headIcon',
     t: 'select',
     label: 'Icône de l’en-tête',
-    options: () => ({ none: 'Aucune', ...ICON_OPTIONS, ...customChoices() }),
+    options: (root, icons) => ({ none: 'Aucune', ...ICON_OPTIONS, ...customChoices(null, icons) }),
     icons: true,
   },
 ];
@@ -54,8 +54,8 @@ const esc = (t) =>
     .replace(/</g, '&lt;')
     .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
 
-/** Icône au trait, à la hauteur de ligne du chiffre ; pastille ronde 0,5 pt en option */
-export function figureIcon(key, size, circle) {
+/** Icône au trait, à la hauteur de ligne du chiffre ; pastille ronde 0,5 pt en option ; icons : bibliothèque du document (rc.icons) */
+export function figureIcon(key, size, circle, icons) {
   const custom = String(key || '').startsWith('custom:'),
     ic = ICONS[key];
   if (!ic && !custom) return null;
@@ -69,7 +69,7 @@ export function figureIcon(key, size, circle) {
       ? s('circle', { cx: size / 2, cy: size / 2, r: size / 2 - SW / 2, fill: 'none', stroke: 'currentColor', 'stroke-width': SW })
       : null,
     custom
-      ? iconNode({}, key, o, o, G, G, 'blue')
+      ? iconNode({}, key, o, o, G, G, 'blue', icons)
       : s('path', {
           d: ic.d,
           fill: 'none',
@@ -174,7 +174,7 @@ export function renderFigure(o, W, align, env) {
   });
   const row = el('div', { class: 'fg-row', style: { gap: gap + 'px', position: 'relative' } }, ...cells, ...splits); // poignées vides entre les chiffres : glisser règle leurs largeurs (editor/handles.js)
   if (!headText && !headIcon) return row;
-  const ic = headIcon ? figureIcon(o.headIcon, 54, false) : null;
+  const ic = headIcon ? figureIcon(o.headIcon, 54, false, env.rc.icons) : null;
   return el(
     'div',
     { class: 'fg-all' },
@@ -187,7 +187,7 @@ function oneFigure(o, W, align, g, fsAll, env) {
   const base0 = pxOf(TYPE.figure.size),
     base = base0 * (+o.scale || 1),
     lh = TYPE.figure.lh,
-    icon = o.icon && o.icon !== 'none' ? figureIcon(o.icon, lh, o.iconStyle === 'circle') : null;
+    icon = o.icon && o.icon !== 'none' ? figureIcon(o.icon, lh, o.iconStyle === 'circle', env.rc.icons) : null;
   const avail = (W || 9999) - (icon ? lh + VIZ.iconGap : 0) - 1;
   const fs =
     fsAll != null

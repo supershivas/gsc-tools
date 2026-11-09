@@ -71,11 +71,16 @@ const GAPS_BY_DENSITY = Object.fromEntries(
 export const densityGaps = (key) => GAPS_BY_DENSITY[key] || GAPS_BY_DENSITY.normal;
 
 /* ---------- Grille ---------- */
+function deepFreeze(o) {
+  for (const v of Object.values(o)) if (v && typeof v === 'object') deepFreeze(v);
+  return Object.freeze(o);
+}
 export const GRID = Object.freeze({
   cols: 3,
   contentW: PAGE.w - 2 * PAGE.margin, // 690
   /* Gabarits de sous-section : grille de `cols` colonnes, chaque colonne occupe `spans[i]` */
-  layouts: {
+  /* figés comme le reste : une clé de gabarit est stockée dans les documents (sub.layout) */
+  layouts: deepFreeze({
     1: { label: '1 colonne', cols: 1, spans: [1] },
     '1-1': { label: '2 colonnes', cols: 2, spans: [1, 1] },
     '1-1-1': { label: '3 colonnes', cols: 3, spans: [1, 1, 1] },
@@ -92,7 +97,7 @@ export const GRID = Object.freeze({
     '1-2-1': { label: '3 colonnes (1/4 + 1/2 + 1/4)', cols: 4, spans: [1, 2, 1] },
     '1-1-2': { label: '3 colonnes (1/4 + 1/4 + 1/2)', cols: 4, spans: [1, 1, 2] },
     custom: { label: 'Personnalisé (poignées entre les colonnes)', cols: 1, spans: [1], hidden: true, custom: true }, // largeurs libres : sub.widths = fractions (somme 1), réglées à la souris
-  },
+  }),
 });
 
 /** gabarit « personnalisé » d'une sous-section (pour le schéma du menu) : une colonne par largeur, en centièmes */

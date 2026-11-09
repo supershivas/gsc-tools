@@ -5,10 +5,10 @@ import { s, el } from './viz/util.js';
 import { t } from './i18n.js';
 import { ICONS } from './viz/icons.js';
 import { PICTOS, iconNode, importSvgFile } from './viz/picto.js';
-import { customList } from './viz/icons.js';
 import { richSelect } from './colorselect.js';
 
-export function iconGlyph(key, root, size = 20) {
+/** icons : bibliothèque d'icônes du document (ctxIcons) */
+export function iconGlyph(key, root, size = 20, icons) {
   const svg = s('svg', { width: size, height: size, viewBox: '0 0 24 24', class: 'cs-glyph', 'aria-hidden': 'true' });
   const stroke = (d) =>
     s('path', { d, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
@@ -24,7 +24,7 @@ export function iconGlyph(key, root, size = 20) {
   else if (k.startsWith('picto:')) {
     const p = PICTOS[k.slice(6)];
     if (p) svg.append(s('path', { d: p.d, fill: 'currentColor' }));
-  } else if (k.startsWith('custom:')) svg.append(iconNode(root || {}, k, 0, 0, 24, 24, 'text'));
+  } else if (k.startsWith('custom:')) svg.append(iconNode(root || {}, k, 0, 0, 24, 24, 'text', icons));
   else {
     const ic = ICONS[k.startsWith('icon:') ? k.slice(5) : k];
     if (ic) svg.append(stroke(ic.d));
@@ -32,8 +32,9 @@ export function iconGlyph(key, root, size = 20) {
   return svg;
 }
 
-/** options : { clé → libellé } ; root : options de la dataviz (pour les icônes importées) */
-export function iconSelect({ root, refresh, ...o }) {
+/** options : { clé → libellé } ; root : options de la dataviz (anciennes icônes importées) ; icons : bibliothèque du document (ctxIcons),
+    où « Importer… » range l'icône */
+export function iconSelect({ root, icons, refresh, ...o }) {
   const footer = ({ close, pick }) => {
     // « Importer un SVG… » au bas de la liste : partout où l'on choisit une icône
     const inp = el('input', {
@@ -44,7 +45,7 @@ export function iconSelect({ root, refresh, ...o }) {
         const f = inp.files[0];
         inp.value = '';
         if (!f) return;
-        const c = await importSvgFile(f);
+        const c = await importSvgFile(f, icons);
         if (!c) return;
         o.options['custom:' + c.id] = `${t('Importé')} · ${c.name}`;
         pick('custom:' + c.id);
@@ -63,5 +64,5 @@ export function iconSelect({ root, refresh, ...o }) {
       inp,
     );
   };
-  return richSelect({ ...o, footer, lead: (k) => iconGlyph(k, root) });
+  return richSelect({ ...o, footer, lead: (k) => iconGlyph(k, root, 20, icons) });
 }

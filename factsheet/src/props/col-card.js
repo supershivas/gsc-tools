@@ -3,7 +3,7 @@ import { h } from '../render.js';
 import { t } from '../i18n.js';
 import { newCard, cardPresetFor, CARD_CHECKS } from '../cardmodel.js';
 import { buildFields } from '../editor.js';
-import { ICON_OPTIONS, customChoices } from '../viz/icons.js';
+import { ICON_OPTIONS, customChoices, ctxIcons } from '../viz/icons.js';
 import { iconSelect } from '../iconselect.js';
 
 const CONTENT_FIELDS = [
@@ -59,8 +59,9 @@ export function cardEditor(k, col, W) {
       h('div', { class: 'hint', textContent: t('Icône choisie') }),
       iconSelect({
         value: C.iconName || Object.keys(ICON_OPTIONS)[0],
-        options: { ...ICON_OPTIONS, ...customChoices() },
+        options: { ...ICON_OPTIONS, ...customChoices(null, ctxIcons(ctx)) },
         text: true,
+        icons: ctxIcons(ctx),
         refresh: () => ctx.restructure(),
         onChange: (v) =>
           chosen(() => {

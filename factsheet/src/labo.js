@@ -33,7 +33,8 @@ const vizVariant = kind => { const ty = VIZ_TYPES[kind]; return { title: ty.labe
 
 
 /* Le Labo rend avec les réglages par défaut d'un document : densité normale, pas de typographie automatique, aucune icône importée */
-const LABO_ENV = { locale: 'en-GB', pal: paletteOf(DEFAULT_THEME, {}), rc: renderCtx({}) };
+const LABO_ICONS = []; // icônes importées dans le Labo (le temps de la page)
+const LABO_ENV = { locale: 'en-GB', pal: paletteOf(DEFAULT_THEME, {}), rc: renderCtx({ customIcons: LABO_ICONS }) };
 const WIDTHS = { '1/3': colWidth('1-1-1', 0, GAP.columns), '1/2': colWidth('1-1', 0, GAP.columns), '2/3': colWidth('2-1', 0, GAP.columns), 'full': colWidth('1', 0, GAP.columns) };
 
 const cardControls = [
@@ -208,15 +209,15 @@ function renderVizTopic(o, W, paint) {
 }
 /* Cartes de réglages : conteneur, titre, options du type, données (fausses, modifiables) */
 function vizExtra(o, v, paint, redraw) {
-  const ty = VIZ_TYPES[o.kind], pal = paletteOptions({ theme: DEFAULT_THEME, colors: {} }), ctx = { changed: paint, restructure: () => { paint(); redraw(); } };
+  const ty = VIZ_TYPES[o.kind], pal = paletteOptions({ theme: DEFAULT_THEME, colors: {} }), ctx = { changed: paint, restructure: () => { paint(); redraw(); }, icons: LABO_ICONS };
   const range = h('input', { type: 'range', min: 0, max: 900, step: 3, value: o.boxH || 0 });
   const out = h('output', { textContent: o.boxH ? `${o.boxH} px` : 'auto' });
   range.addEventListener('input', () => { o.boxH = +range.value; out.textContent = o.boxH ? `${o.boxH} px` : 'auto'; paint(); });
   const align = { type: 'radio', k: 'valign', label: 'Alignement vertical dans le conteneur', choices: { top: 'En haut', center: 'Centré', bottom: 'En bas' } };
   const optionFields = (ty.fields || []).filter(f => f.t !== 'table' && f.t !== 'list' && f.g !== 'data');
   const dataNodes = [];
-  for (const f of ty.fields || []) { if (f.t === 'table') dataNodes.push(gridEditor(tableAdapter(f, o.viz, pal, ['sky', 'yellow', 'blue', 'slate', 'grey']), ctx, { downloadName: o.kind })); else if (f.t === 'list') dataNodes.push(...buildFields([f], o.viz, ctx, pal, h)); }
-  if (ty.data) dataNodes.push(gridEditor(recordsAdapter(ty.data, o.viz, pal), ctx, { downloadName: o.kind }));
+  for (const f of ty.fields || []) { if (f.t === 'table') dataNodes.push(gridEditor(tableAdapter(f, o.viz, pal, ['sky', 'yellow', 'blue', 'slate', 'grey'], LABO_ICONS), ctx, { downloadName: o.kind })); else if (f.t === 'list') dataNodes.push(...buildFields([f], o.viz, ctx, pal, h)); }
+  if (ty.data) dataNodes.push(gridEditor(recordsAdapter(ty.data, o.viz, pal, LABO_ICONS), ctx, { downloadName: o.kind }));
   return [
     optCard('viz-box', 'box-padding', 'Conteneur', [h('label', { class: 'labo-group' }, h('div', { class: 'labo-lab', textContent: 'Hauteur du conteneur (0 = automatique)' }), range, out), control(null, align, o, paint),
       h('p', { class: 'hint', textContent: (ty.edit ? 'Glisser l’anneau, un libellé ou le point blanc. ' : '') + (['donut', 'survey', 'scatter', 'sunburst', 'bubbles', 'treemap', 'sankey'].includes(o.kind) ? 'Ce type n’a pas de réordonnancement à la souris (ordre dans les données).' : 'Glisser un élément pour changer son ordre : les autres se réajustent, écarts proportionnels.') })]),

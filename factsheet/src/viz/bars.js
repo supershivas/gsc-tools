@@ -348,7 +348,8 @@ export default {
       });
     if (hasIcons)
       rows.forEach((r, i) => {
-        if (r.icon && r.icon !== 'none') svg.append(iconNode(o, r.icon, slot * (i + 0.5) - iconSz / 2, baseY + 6, iconSz, iconSz, 'blue'));
+        if (r.icon && r.icon !== 'none')
+          svg.append(iconNode(o, r.icon, slot * (i + 0.5) - iconSz / 2, baseY + 6, iconSz, iconSz, 'blue', env.rc.icons));
       });
     if (o.legend && !legIn) drawLegend(svg, series, H - VIZ.legendH, W);
     rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'x', slot * i, 0, slot, baseY + catH)));

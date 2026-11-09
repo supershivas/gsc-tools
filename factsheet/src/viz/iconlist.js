@@ -44,7 +44,13 @@ export default {
       max: 8,
       item: () => ({ icon: 'check', text: t('Nouvel élément') }),
       fields: [
-        { k: 'icon', t: 'select', icons: true, label: 'Icône', options: (root) => ({ ...ICON_OPTIONS, ...customChoices(root) }) },
+        {
+          k: 'icon',
+          t: 'select',
+          icons: true,
+          label: 'Icône',
+          options: (root, icons) => ({ ...ICON_OPTIONS, ...customChoices(root, icons) }),
+        },
         { k: 'text', t: 'text', rich: true, label: 'Texte' },
       ],
     },
@@ -75,7 +81,7 @@ export default {
         { width: C, height: C, viewBox: `0 0 ${C} ${C}`, class: 'vi-ic' },
         ring ? s('circle', { cx: C / 2, cy: C / 2, r: C / 2 - SW / 2, fill: 'none', stroke: 'currentColor', 'stroke-width': SW }) : null,
         isCustom
-          ? iconNode(o, it.icon, (C - G) / 2, (C - G) / 2, G, G, 'text')
+          ? iconNode(o, it.icon, (C - G) / 2, (C - G) / 2, G, G, 'text', env.rc.icons)
           : s('path', {
               d: ic.d,
               fill: 'none',

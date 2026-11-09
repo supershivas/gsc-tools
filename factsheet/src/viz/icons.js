@@ -33,13 +33,21 @@ export const ICONS = {
 };
 export const ICON_OPTIONS = Object.fromEntries(Object.entries(ICONS).map(([k, v]) => [k, v.label]));
 
-/** Icônes SVG importées, communes à tout le document (`doc.customIcons`, branché par `renderDocument`) ; `o.customIcons` = anciennes icônes propres à une dataviz */
-export const iconLib = { list: [] };
-export const customList = (o) => {
-  const a = [...iconLib.list];
+/* Icônes SVG importées, communes à tout le document (`doc.customIcons`) : pendant un rendu, `env.rc.icons` (renderctx.js) ;
+   dans l'éditeur, `ctxIcons(ctx)`. `o.customIcons` = anciennes icônes propres à une dataviz. */
+/** bibliothèque du document d'un ctx de l'éditeur (là où un import range l'icône) ; le Labo fournit la sienne (`ctx.icons`) */
+export const ctxIcons = (ctx) => {
+  const d = ctx && ctx.getDoc && ctx.getDoc();
+  if (d) return d.customIcons || (d.customIcons = []);
+  return (ctx && ctx.icons) || [];
+};
+/** icons : bibliothèque du document (rc.icons ou ctxIcons(ctx)) */
+export const customList = (o, icons) => {
+  const a = [...(icons || [])];
   ((o && o.customIcons) || []).forEach((c) => {
     if (!a.some((x) => x.id === c.id)) a.push(c);
   });
   return a;
 };
-export const customChoices = (o) => Object.fromEntries(customList(o).map((c) => [`custom:${c.id}`, `${t('Importé')} · ${c.name}`]));
+export const customChoices = (o, icons) =>
+  Object.fromEntries(customList(o, icons).map((c) => [`custom:${c.id}`, `${t('Importé')} · ${c.name}`]));

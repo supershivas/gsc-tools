@@ -144,7 +144,7 @@ export default {
     };
     rows.forEach((r, i) => {
       const y = i * (rh + rGap);
-      if (r.icon && r.icon !== 'none') svg.append(iconNode(o, r.icon, 0, y + rh / 2 - 12, 24, 24, 'blue'));
+      if (r.icon && r.icon !== 'none') svg.append(iconNode(o, r.icon, 0, y + rh / 2 - 12, 24, 24, 'blue', env.rc.icons));
       if (!o.labelIn) {
         const f = fitText(r.label || '', TYPE.caption.weight, SANS, capPx, labW - icW - VIZ.iconGap, 0.7);
         svg.append(s('text', { x: icW, y: y + rh / 2 + 0.33 * f.size, 'font-size': f.size, 'font-weight': TYPE.caption.weight }, f.text));

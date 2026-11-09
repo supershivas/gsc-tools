@@ -48,7 +48,14 @@ export default {
       { k: 'label', label: 'Libellé', t: 'text' },
       { k: 'value', label: 'Valeur', t: 'number', def: 10 },
       { k: 'color', label: 'Couleur', t: 'color', def: 'blue' },
-      { k: 'mark', label: 'Repère', t: 'select', def: 'none', options: (root) => ({ ...MARKS, ...customChoices(root) }), icons: true },
+      {
+        k: 'mark',
+        label: 'Repère',
+        t: 'select',
+        def: 'none',
+        options: (root, icons) => ({ ...MARKS, ...customChoices(root, icons) }),
+        icons: true,
+      },
       { k: 'markColor', label: 'Couleur du repère', t: 'color', def: 'yellow' },
     ],
     item: () => ({ label: '', value: 10, color: 'blue', mark: 'none', markColor: 'yellow' }),
@@ -121,7 +128,7 @@ export default {
           'stroke-linecap': 'round',
           'stroke-linejoin': 'round',
         });
-      if (m.startsWith('custom:')) return iconNode(o, m, x + size * 0.18, y + size * 0.18, size * 0.64, size * 0.64, mc);
+      if (m.startsWith('custom:')) return iconNode(o, m, x + size * 0.18, y + size * 0.18, size * 0.64, size * 0.64, mc, env.rc.icons);
       const ic = m.startsWith('icon:') && ICONS[m.slice(5)];
       if (!ic) return null;
       const k = (size * 0.64) / 24;

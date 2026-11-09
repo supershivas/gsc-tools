@@ -1,6 +1,7 @@
 /* Panneau d'édition : tout est éditable, mais jamais les tailles / espacements / layout. */
 import { h, ico } from './render.js';
 import { inlineMk, typoOf } from './viz/util.js';
+import { ctxIcons } from './viz/icons.js';
 import { t } from './i18n.js';
 import { helpBtn } from './help.js';
 import { colorSelect } from './colorselect.js';
@@ -821,7 +822,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
         ),
       );
     else if (f.t === 'select' && f.icons) {
-      const opts = typeof f.options === 'function' ? f.options(root) : f.options;
+      const opts = typeof f.options === 'function' ? f.options(root, ctxIcons(ctx)) : f.options;
       out.push(
         h2(
           'div',
@@ -832,6 +833,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
             options: opts,
             text: true,
             root,
+            icons: ctxIcons(ctx),
             refresh: () => ctx.restructure(),
             onChange: (v) => {
               setP(obj, f.k, v);
@@ -841,7 +843,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
         ),
       );
     } else if (f.t === 'select') {
-      const opts = typeof f.options === 'function' ? f.options(root) : f.options;
+      const opts = typeof f.options === 'function' ? f.options(root, ctxIcons(ctx)) : f.options;
       const sel = h2(
         'select',
         { onchange: live((t) => setP(obj, f.k, t.value)) },

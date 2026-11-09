@@ -9,6 +9,7 @@ import { openPalette } from './palette.js';
 import { buildFields, paletteOptions, richEditor } from './editor.js';
 import { colWidth, subColWidth, cssVars, applyVars, paletteOf, densityGaps } from './tokens.js';
 import { renderCtx } from './renderctx.js';
+import { ctxIcons } from './viz/icons.js';
 import { VIZ_TYPES, VIZ_FAMILIES, switchKind, renderVizFull } from './viz/index.js';
 import { cardEl, searchBox, applyFilter } from './cards.js';
 import { helpBtn } from './help.js';
@@ -417,12 +418,16 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
       const nodes = [];
       for (const f of dataFields) {
         if (f.t === 'table')
-          nodes.push(gridEditor(tableAdapter(f, col.viz.opts, paletteOptions(doc), SERIES_COLORS), fctx, { downloadName: col.viz.kind }));
+          nodes.push(
+            gridEditor(tableAdapter(f, col.viz.opts, paletteOptions(doc), SERIES_COLORS, ctxIcons(fctx)), fctx, {
+              downloadName: col.viz.kind,
+            }),
+          );
         else nodes.push(...gen([f]));
       }
       if (ty.data)
         nodes.push(
-          gridEditor(recordsAdapter(ty.data, col.viz.opts, paletteOptions(doc)), fctx, { downloadName: col.viz.kind }),
+          gridEditor(recordsAdapter(ty.data, col.viz.opts, paletteOptions(doc), ctxIcons(fctx)), fctx, { downloadName: col.viz.kind }),
           ty.dataHint ? h('p', { class: 'hint', textContent: t(ty.dataHint) }) : null,
         );
       dataPane.append(

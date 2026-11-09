@@ -6,6 +6,7 @@ import { t } from './i18n.js';
 import { colorSelect } from './colorselect.js';
 import { iconSelect } from './iconselect.js';
 import { pictoChoices } from './viz/picto.js';
+import { ctxIcons } from './viz/icons.js';
 
 const num = (c) => {
   const n = parseFloat(String(c).replace(/\s/g, '').replace(',', '.'));
@@ -56,7 +57,8 @@ export const hasHeader = (m, numericCols) =>
   m.length > 1 && numericCols.some((j) => m[0][j] !== undefined && m[0][j] !== '' && num(m[0][j]) === null);
 
 /* ---------- Adaptateur « libellé × séries » (barres, courbes…) ---------- */
-export function tableAdapter(f, obj, palOpts, SERIES_COLORS) {
+/** icons : bibliothèque d'icônes du document (ctxIcons) */
+export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
   const rows = obj[f.k],
     series = obj[f.series],
     max = f.maxSeries || 4;
@@ -65,7 +67,7 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS) {
       r.v = Array.from({ length: series.length }, (_, j) => +(r.v || [])[j] || 0);
     });
   const ns = series.length,
-    iconCol = f.icons ? [{ name: t('Icône'), type: 'text', isIcon: true, select: { none: t('Aucune'), ...pictoChoices(obj) } }] : [];
+    iconCol = f.icons ? [{ name: t('Icône'), type: 'text', isIcon: true, select: { none: t('Aucune'), ...pictoChoices(obj, icons) } }] : [];
   return {
     root: obj,
     cols: [
@@ -136,7 +138,7 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS) {
 }
 
 /* ---------- Adaptateur « enregistrements » : lignes = objets, colonnes décrites par le type de dataviz ---------- */
-export function recordsAdapter(spec, obj, palOpts) {
+export function recordsAdapter(spec, obj, palOpts, icons) {
   const rows = obj[spec.k] || (obj[spec.k] = []),
     cols = spec.cols;
   const conv = (c, v) => (c.t === 'number' ? (num(v) ?? 0) : c.t === 'color' ? (palOpts[v] ? v : c.auto ? '' : c.def || 'blue') : v);
@@ -151,7 +153,7 @@ export function recordsAdapter(spec, obj, palOpts) {
           ? c.auto
             ? { '': t('Auto'), ...palOpts }
             : palOpts
-          : (typeof c.options === 'function' ? c.options(obj) : c.options) || null,
+          : (typeof c.options === 'function' ? c.options(obj, icons) : c.options) || null,
       isColor: c.t === 'color',
       isIcon: !!c.icons,
     })),
@@ -327,6 +329,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data' } = {}) {
           options: c.select,
           text: true,
           root: ad.root,
+          icons: ctxIcons(ctx),
           refresh: () => ctx.restructure && ctx.restructure(),
           onChange: (nv) => {
             ad.set(i, j, nv);

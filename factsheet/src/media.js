@@ -1,7 +1,7 @@
 /* Médias importés du document : les icônes SVG (doc.customIcons, communes à tout le document) ; un seul endroit, dans le menu Édition */
 import { h, ico } from './render.js';
 import { t } from './i18n.js';
-import { iconLib } from './viz/icons.js';
+import { ctxIcons } from './viz/icons.js';
 import { iconGlyph } from './iconselect.js';
 import { importSvgFile } from './viz/picto.js';
 
@@ -15,17 +15,18 @@ export function openMedia(ctx) {
     onchange: async () => {
       const files = [...inp.files];
       inp.value = '';
-      for (const f of files) await importSvgFile(f);
+      for (const f of files) await importSvgFile(f, ctxIcons(ctx));
       ctx.changed();
       draw();
     },
   });
   const draw = () => {
-    const rows = iconLib.list.map((c) =>
+    const lib = ctxIcons(ctx);
+    const rows = lib.map((c) =>
       h(
         'div',
         { class: 'media-row' },
-        h('span', { class: 'media-prev' }, iconGlyph('custom:' + c.id, null, 28)),
+        h('span', { class: 'media-prev' }, iconGlyph('custom:' + c.id, null, 28, lib)),
         h('input', {
           type: 'text',
           value: c.name,
@@ -43,8 +44,8 @@ export function openMedia(ctx) {
             title: t('Retirer'),
             'aria-label': t('Retirer'),
             onclick: () => {
-              const i = iconLib.list.findIndex((k) => k.id === c.id);
-              if (i >= 0) iconLib.list.splice(i, 1);
+              const i = lib.findIndex((k) => k.id === c.id);
+              if (i >= 0) lib.splice(i, 1);
               ctx.changed();
               draw();
             },

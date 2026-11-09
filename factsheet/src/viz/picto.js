@@ -2,7 +2,7 @@
    (bibliothèque ou SVG importé, stocké dans le JSON de la dataviz). */
 import { VIZ, TYPE } from '../tokens.js';
 import { reorderHit, s, el, SW, colorRef, pxOf, fmt, SANS, drawLegend, fitText, mw, heightOf, round3 } from './util.js';
-import { ICONS, iconLib, customList, customChoices } from './icons.js';
+import { ICONS, customList, customChoices, ctxIcons } from './icons.js';
 import { iconSelect } from '../iconselect.js';
 import { t } from '../i18n.js';
 
@@ -15,9 +15,9 @@ export const PICTOS = {
   house: { label: 'Maison', vb: [0, 0, 24, 24], d: 'M12 2.5L2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z' },
   star: { label: 'Étoile', vb: [0, 0, 24, 24], d: 'M12 2l3 6.6 7.2.8-5.4 4.8 1.6 7.1L12 17.6 5.6 21.3l1.6-7.1L1.8 9.4 9 8.6z' },
 };
-export const pictoChoices = (o) => ({
+export const pictoChoices = (o, icons) => ({
   ...Object.fromEntries(Object.entries(PICTOS).map(([k, v]) => [`picto:${k}`, t(v.label)])),
-  ...customChoices(o),
+  ...customChoices(o, icons),
   ...Object.fromEntries(Object.entries(ICONS).map(([k, v]) => [`icon:${k}`, `${t('Trait')} · ${t(v.label)}`])),
 });
 
@@ -61,8 +61,8 @@ export function sanitizeSvg(text, name = 'icon') {
   return { id: 'c' + Math.random().toString(36).slice(2, 8), name: name.replace(/\.svg$/i, '').slice(0, 40), vb, markup: inner };
 }
 
-/** Nœud <svg> imbriqué (x, y, w, h) contenant le pictogramme, de couleur `color` */
-export function iconNode(o, key, x, y, w, h, color) {
+/** Nœud <svg> imbriqué (x, y, w, h) contenant le pictogramme, de couleur `color` ; icons : bibliothèque du document (rc.icons) */
+export function iconNode(o, key, x, y, w, h, color, icons) {
   const [kind, id] = String(key || 'picto:person').split(':');
   let vb = [0, 0, 24, 24],
     inner = null;
@@ -88,7 +88,7 @@ export function iconNode(o, key, x, y, w, h, color) {
       }),
     );
   else if (kind === 'custom') {
-    const c = customList(o).find((k) => k.id === id);
+    const c = customList(o, icons).find((k) => k.id === id);
     if (c && c.img && SAFE_IMG.test(c.img)) {
       svg.setAttribute('viewBox', c.vb.join(' '));
       svg.append(s('image', { href: c.img, x: 0, y: 0, width: c.vb[2], height: c.vb[3], preserveAspectRatio: 'xMidYMid meet' }));
@@ -114,31 +114,32 @@ export function iconNode(o, key, x, y, w, h, color) {
   }
   return svg;
 }
-let clipN = 0;
-/** pictogramme rempli à `frac` (0–1) : fond estompé + copie découpée ; dir = 'v' (de bas en haut) ou 'h' (de gauche à droite) */
-function partial(o, key, x, y, w, h, color, frac, dir) {
+/** pictogramme rempli à `frac` (0–1) : fond estompé + copie découpée ; dir = 'v' (de bas en haut) ou 'h' (de gauche à droite) ;
+    env.rc : icônes du document et identifiant du clipPath */
+function partial(o, key, x, y, w, h, color, frac, dir, env) {
+  const icons = env.rc.icons;
   frac = Math.max(0, Math.min(1, frac));
   const g = s('g');
-  g.append(s('g', { opacity: 0.22 }, iconNode(o, key, x, y, w, h, color)));
+  g.append(s('g', { opacity: 0.22 }, iconNode(o, key, x, y, w, h, color, icons)));
   if (frac <= 0) return g;
   if (frac >= 1) {
-    g.append(iconNode(o, key, x, y, w, h, color));
+    g.append(iconNode(o, key, x, y, w, h, color, icons));
     return g;
   }
-  const id = 'pc' + ++clipN;
+  const id = env.rc.uid('pc');
   const r = dir === 'v' ? { x, y: y + h * (1 - frac), width: w, height: h * frac } : { x, y, width: w * frac, height: h };
-  g.append(s('clipPath', { id }, s('rect', r)), s('g', { 'clip-path': `url(#${id})` }, iconNode(o, key, x, y, w, h, color)));
+  g.append(s('clipPath', { id }, s('rect', r)), s('g', { 'clip-path': `url(#${id})` }, iconNode(o, key, x, y, w, h, color, icons)));
   return g;
 }
 
-/** Importe un fichier SVG dans la bibliothèque du document (nettoyé, stocké dans doc.customIcons) ; renvoie l'icône ou null */
-export async function importSvgFile(file) {
+/** Importe un fichier SVG dans la bibliothèque du document `icons` (doc.customIcons, nettoyé) ; renvoie l'icône ou null */
+export async function importSvgFile(file, icons) {
   try {
     let c;
     if (/^image\/(png|jpe?g|webp|gif)$/i.test(file.type) || /\.(png|jpe?g|webp|gif)$/i.test(file.name))
       c = await rasterIcon(file); // image (drapeau…) : réduite à 256 px, stockée en data URL
     else c = sanitizeSvg(await file.text(), file.name);
-    iconLib.list.push(c);
+    icons.push(c);
     return c;
   } catch (e) {
     alert(t('Image illisible ou trop lourde.'));
@@ -182,7 +183,7 @@ function importParts(o, ctx, hint) {
     onchange: async () => {
       const f = inp.files[0];
       inp.value = '';
-      if (f && (await importSvgFile(f))) ctx.restructure();
+      if (f && (await importSvgFile(f, ctxIcons(ctx)))) ctx.restructure();
     },
   });
   return [
@@ -213,9 +214,10 @@ function importParts(o, ctx, hint) {
 export function pictoPanel(o, ctx) {
   const sel = iconSelect({
     value: o.icon || 'picto:person',
-    options: pictoChoices(o),
+    options: pictoChoices(o, ctxIcons(ctx)),
     text: true,
     root: o,
+    icons: ctxIcons(ctx),
     refresh: () => ctx.restructure(),
     onChange: (v) => {
       o.icon = v;
@@ -355,6 +357,7 @@ function make(variant) {
                 r.color,
                 Math.min(1, n - i),
                 'h',
+                env,
               ),
             );
           if (o.showValues) svg.append(valTxt(labW + Math.min(Math.ceil(n), perLine) * (sz + G) + 3, y + sz / 2 + 0.33 * numPx, r.value));
@@ -377,7 +380,7 @@ function make(variant) {
             n = r.value / per,
             base = top + stackH;
           for (let k = 0; k < Math.ceil(n); k++)
-            svg.append(partial(o, o.icon, cx - sz / 2, base - (k + 1) * sz - k * G, sz, sz, r.color, Math.min(1, n - k), 'v'));
+            svg.append(partial(o, o.icon, cx - sz / 2, base - (k + 1) * sz - k * G, sz, sz, r.color, Math.min(1, n - k), 'v', env));
           if (o.showValues) svg.append(valTxt(cx, base - Math.ceil(n) * (sz + G) + G - 3, r.value, 'middle'));
           svg.append(label(r.label, cx, base + 6 + capPx * 0.6, cw - 4, 'middle'));
           svg.append(reorderHit(env, 'rows', i, 'x', cw * i, 0, cw, H));
@@ -395,7 +398,7 @@ function make(variant) {
         rows.forEach((r, i) => {
           const cx = cw * (i + 0.5),
             y = top + (box - sz) / 2 + 0;
-          svg.append(partial(o, o.icon, cx - sz / 2, y, sz, sz, r.color, r.value / per, 'v'));
+          svg.append(partial(o, o.icon, cx - sz / 2, y, sz, sz, r.color, r.value / per, 'v', env));
           if (o.showValues) svg.append(valTxt(cx, numPx, r.value, 'middle'));
           svg.append(label(r.label, cx, top + box + 6 + capPx * 0.6, cw - 4, 'middle'));
           svg.append(reorderHit(env, 'rows', i, 'x', cw * i, 0, cw, H));
@@ -412,7 +415,7 @@ function make(variant) {
       rows.forEach((r, i) => {
         const y = i * (rh + 9) + (rh - sz) / 2;
         svg.append(label(r.label, 0, i * (rh + 9) + rh / 2, labW - VIZ.iconGap));
-        svg.append(partial(o, o.icon, labW, y, sz, sz, r.color, r.value / per, 'h'));
+        svg.append(partial(o, o.icon, labW, y, sz, sz, r.color, r.value / per, 'h', env));
         if (o.showValues) svg.append(valTxt(labW + sz + 6, i * (rh + 9) + rh / 2 + 0.33 * numPx, r.value));
         svg.append(reorderHit(env, 'rows', i, 'y', 0, i * (rh + 9) - 4, W, rh + 8));
       });

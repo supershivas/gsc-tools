@@ -5,7 +5,6 @@ import { renderCtx } from './renderctx.js';
 import { IMAGE_RATIOS } from './state.js';
 import { renderViz, composeSide } from './viz/index.js';
 import { inlineMk, s, stripInline } from './viz/util.js';
-import { iconLib } from './viz/icons.js';
 import { parseLine, PREFIX_RE, applyAdv, blockStyle } from './textstyles.js';
 import { renderFigure } from './figure.js';
 import { renderCard } from './card.js';
@@ -382,7 +381,6 @@ function renderSection(sec, si, env, pos) {
 
 /** → { pages: [{el, key, content, top, max, used, overflow}], warnings: [] } */
 export function renderDocument(doc) {
-  iconLib.list = doc.customIcons || (doc.customIcons = []); // icônes SVG importées, communes à tout le document
   const vars = cssVars(doc.theme, doc.colors, doc.density);
   const env = { locale: doc.locale || 'en-GB', pal: paletteOf(doc.theme, doc.colors), fills: [], page: '', rc: renderCtx(doc) };
   const pages = [];
