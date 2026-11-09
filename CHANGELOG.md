@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.76.0 — 2026-11-09
+- Éditeur de dataviz : carte « Réglages avancés » en fin de panneau, avec un export JSON de la dataviz et des réglages pour le débogage
+
 ## 1.75.0 — 2026-11-09
 - Contour : le pointillé remplace le trait plein au lieu de s'y superposer
 - Contour : choix des côtés (haut, droite, bas, gauche), en trait plein comme en pointillés

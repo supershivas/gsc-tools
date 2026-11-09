@@ -120,7 +120,7 @@ const delPath = (o, p) => {
   if (q) delete q[p[p.length - 1]];
 };
 
-export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
+export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) {
   if (current) return;
   const doc = ctx.getDoc();
   const snapshot = JSON.stringify(col.viz);
@@ -466,6 +466,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
         'dv-colors',
         F('labels').length && 'dv-labels',
         (F('style').length || ty.actions) && 'dv-style',
+        'dv-debug',
       ].filter(Boolean);
       acc.first = ['dv-style', 'dv-labels', 'dv-colors'].find((x) => ids.includes(x));
       if (acc.cur && !ids.includes(acc.cur)) acc.cur = null;
@@ -522,11 +523,42 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
                 ...gen(F('style')),
               ])
             : null,
+          card('dv-debug', 'bug', t('Réglages avancés'), [
+            h('p', {
+              class: 'hint',
+              textContent: t('Exporte la dataviz et les réglages du document (thème, couleurs, densité) pour le débogage.'),
+            }),
+            h(
+              'button',
+              { type: 'button', class: 'pp-btn', onclick: exportDebug },
+              ico('download'),
+              h('span', { textContent: t('Exporter pour le débogage (JSON)') }),
+            ),
+          ]),
         ].filter(Boolean),
       );
     }
     applyFilter(form, search);
     form.scrollTop = top;
+  }
+  /* Outil de débogage : la dataviz (`col.viz`) et les réglages qui influencent son rendu, dans un seul JSON */
+  function exportDebug() {
+    const dump = {
+      format: 'factsheet-creator-dataviz-debug',
+      exportedAt: new Date().toISOString(),
+      kind: col.viz.kind,
+      previewWidth: Math.round(width),
+      settings: { locale: doc.locale, density: doc.density, theme: doc.theme, colors: doc.colors },
+      viz: col.viz,
+    };
+    const a = h('a', {
+      href: URL.createObjectURL(new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' })),
+      download: (fileStem ? fileStem('_dataviz-' + col.viz.kind) : 'dataviz-' + col.viz.kind) + '.json',
+    });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
   const focusItem = (path) => {
     form.querySelectorAll('.col-card.sel').forEach((n) => n.classList.remove('sel'));

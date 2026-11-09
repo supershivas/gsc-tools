@@ -854,6 +854,10 @@ const EN = {
     'This colour is used in the document. Choose the colour that replaces it:',
   'Cette couleur reste toujours dans le document': 'This colour always stays in the document',
   'Options avancées': 'Advanced options',
+  'Réglages avancés': 'Advanced settings',
+  'Exporte la dataviz et les réglages du document (thème, couleurs, densité) pour le débogage.':
+    'Exports the dataviz and the document settings (theme, colors, density) for debugging.',
+  'Exporter pour le débogage (JSON)': 'Export for debugging (JSON)',
   'Couleur des hachures': 'Stripe colour',
   'Épaisseur des hachures': 'Stripe thickness',
   'Espacement des hachures': 'Stripe spacing',

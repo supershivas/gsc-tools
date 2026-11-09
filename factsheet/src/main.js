@@ -160,7 +160,15 @@ const ctx = {
   },
   editViz({ col, sub, ci }) {
     const sec = doc.sections.find((x) => x.subs.includes(sub));
-    openVizEditor({ col, sub, ci, bg: sec && sec.bg, width: columnWidth(doc, doc.sections.indexOf(sec), sec.subs.indexOf(sub), ci), ctx });
+    openVizEditor({
+      col,
+      sub,
+      ci,
+      bg: sec && sec.bg,
+      width: columnWidth(doc, doc.sections.indexOf(sec), sec.subs.indexOf(sub), ci),
+      ctx,
+      fileStem: (x) => exporter.fileStem(x),
+    });
   },
 };
 
