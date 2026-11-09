@@ -236,12 +236,15 @@ body.v3d-open{overflow:hidden}
 .ce-act{justify-content:flex-end}
 /* palette du document */
 .pal2{display:flex;flex-direction:column;gap:2px;margin:6px 0 12px}
-.pal2-row{display:grid;grid-template-columns:32px 18px minmax(0,1fr) auto 28px;align-items:center;gap:10px;min-height:40px;padding:2px 6px;border-radius:var(--radius-md)}
+.pal2-row{display:grid;grid-template-columns:32px minmax(0,1fr) 28px;align-items:center;gap:10px;min-height:40px;padding:2px 6px;border-radius:var(--radius-md)}
 @media (hover:hover){.pal2-row:hover{background:var(--ui-bg)}}
 .pal2-sw{width:32px;height:32px;border-radius:var(--radius-md);border:1px solid var(--shade);padding:0;cursor:pointer}
 .pal2-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-md)}
 .pal2-row input[type=text]{min-width:0;padding:4px 8px}
-.pal2-row .mini{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.pal2-bar .mini,.pal2-row .mini{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.pal2-bar{display:flex;justify-content:flex-end;margin-bottom:2px}
+.pal2-id{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pal2-lock{display:inline-flex;align-items:center;justify-content:center;width:28px;color:var(--ui-mute)}
 .pal2-hex{font:var(--fs-xs) var(--font-mono,monospace);color:var(--ui-mute);letter-spacing:.02em}
 .pal2 + .btn{margin:var(--modal-gap) 0}   /* bouton du design system (44 px, gap 8) ; écart = --modal-gap */
 
@@ -276,9 +279,6 @@ body.v3d-open{overflow:hidden}
 .pal-pop .pal2{margin:0 0 10px}
 .pal-pop .pp-btn{width:100%}
 .pal2-add .pp-btn{width:100%}
-/* dans la barre latérale : nom en pleine largeur (ton léger et CMJN restent dans la fenêtre du menu Édition) */
-.f .pal2-row{grid-template-columns:32px minmax(0,1fr) 28px}
-.f .pal2-tint,.f .pal2-hex{display:none}
 .pal2-add{display:flex;flex-direction:column;gap:6px}
 /* import de palette (fenêtre .modal) */
 dialog.pimp{width:min(var(--modal-max-width),calc(100vw - 24px))}
@@ -297,7 +297,8 @@ dialog.pimp{width:min(var(--modal-max-width),calc(100vw - 24px))}
 .pimp-row input{accent-color:var(--ui-ink)}
 .pimp-row{display:grid;grid-template-columns:20px 32px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:44px;padding:2px 6px;border-radius:var(--radius-md);cursor:pointer}
 .pimp-sw{display:block;width:32px;height:32px;border-radius:var(--radius-md);border:1px solid var(--shade)}
-.pimp-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pimp-name{min-width:0}
+.pimp-name input{width:100%}
 
 /* ---------- Structure (gauche) : cartes repliables ---------- */
 .panel.tree{padding:16px 14px 40px;background:var(--ui-bg)}
@@ -347,7 +348,6 @@ dialog.pimp{width:min(var(--modal-max-width),calc(100vw - 24px))}
 .sp-legend span{display:inline-flex;align-items:center;gap:5px}
 .sp-legend i{width:12px;height:12px;border-radius:var(--radius-xs);display:inline-block}
 
-.pal2-tint{display:block;width:18px;height:32px;border-radius:var(--radius-xs);border:1px solid #0002}
 .swrow+.swrow{margin-top:6px}
 .hv-sw.ghost{visibility:hidden;border:0}
 

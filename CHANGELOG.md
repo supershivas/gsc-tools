@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.73.0 — 2026-11-09
+- Les couleurs ont leur propre carte sous « Document », identique à la fenêtre « Couleurs du document » ouverte ailleurs ; l'import d'une palette se lance par la petite icône en haut à droite
+- On nomme chaque couleur au moment de l'import
+- EU Blue et Yellow star restent toujours dans le document ; les autres couleurs peuvent être supprimées, avec choix de la couleur de remplacement (EU Blue par défaut) si elles sont utilisées
+
 ## 1.72.1 — 2026-11-09
 - Les couleurs du document sont visibles directement dans la barre latérale « Document » (ajout, import, renommage, suppression sans ouvrir de fenêtre)
 

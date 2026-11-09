@@ -41,6 +41,11 @@ dialog.modal::backdrop { background: var(--modal-overlay); }
 .modal-field { margin-top: 12px; }
 .modal-input { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--panel); color: var(--ink); font: inherit; }
 .modal-input:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.modal-choices { display: flex; flex-direction: column; gap: 2px; margin-top: 12px; max-height: 40vh; overflow: auto; }
+.modal-choice { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 8px; border-radius: var(--radius-md); cursor: pointer; }
+.modal-choice input { accent-color: var(--ink); }
+.modal-sw { display: block; flex: none; width: 24px; height: 24px; border-radius: var(--radius-sm); border: 1px solid var(--line); }
+@media (hover: hover) { .modal-choice:hover { background: var(--bg); } }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px var(--modal-padding) var(--modal-padding); }
 .modal .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 

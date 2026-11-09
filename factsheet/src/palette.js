@@ -2,11 +2,11 @@
    Se trouve dans les propriétés du document et s'ouvre en fenêtre depuis chaque choix de couleur (openPalette). */
 import { h, ico } from './render.js';
 import { t } from './i18n.js';
-import { THEMES, paletteOf, colorLabel, tintOf } from './tokens.js';
+import { THEMES, paletteOf, colorLabel, PROTECTED_COLORS } from './tokens.js';
 import { openColorEditor } from './colorpicker.js';
 import { paletteCmyk } from './cmyk.js';
-import { extraColorKeys, addColor, removeColor, canAddColor } from './state.js';
-import { confirmBox } from './dialogs.js';
+import { extraColorKeys, addColor, removeColor, canAddColor, colorUses } from './state.js';
+import { confirmBox, chooseBox } from './dialogs.js';
 import { openPaletteImport } from './paletteimport.js';
 
 /** redraw : redessine l'appelant après un changement de structure (ajout, suppression, retour au thème) */
@@ -57,39 +57,23 @@ export function buildPalette(ctx, redraw) {
         ctx.changed();
       },
     });
-    const chip = h('i', { class: 'pal2-tint', title: t('Ton léger (20 %)'), style: { background: tintOf(pal[k]) } });
+    const locked = PROTECTED_COLORS.includes(k);
     return h(
       'div',
       { class: 'pal2-row', dataset: { key: k } },
       sw,
-      chip,
-      name,
-      h('span', {
-        class: 'pal2-hex',
-        textContent: cmTxt(k).replace(/ · /g, '·'),
-        title: `${t('CMJN')} ${cmTxt(k)} — ${t('RVB écran')} ${pal[k].toUpperCase()}`,
-      }),
-      isExtra
-        ? h(
-            'button',
-            {
-              type: 'button',
-              class: 'mini danger',
-              title: t('Supprimer'),
-              'aria-label': t('Supprimer'),
-              onclick: async () => {
-                if (
-                  await confirmBox(t('Supprimer cette couleur ? Ce qui l’utilise passera en bleu.'), { ok: t('Supprimer'), danger: true })
-                ) {
-                  removeColor(doc, k);
-                  ctx.changed();
-                  redraw();
-                }
-              },
-            },
-            ico('x'),
-          )
-        : recolored || renamed
+      h(
+        'div',
+        { class: 'pal2-id' },
+        name,
+        h('span', {
+          class: 'pal2-hex',
+          textContent: cmTxt(k).replace(/ · /g, '·'),
+          title: `${t('CMJN')} ${cmTxt(k)} — ${t('RVB écran')} ${pal[k].toUpperCase()}`,
+        }),
+      ),
+      locked
+        ? recolored || renamed
           ? h(
               'button',
               {
@@ -107,12 +91,54 @@ export function buildPalette(ctx, redraw) {
               },
               ico('restore'),
             )
-          : h('span'),
+          : h('span', { class: 'pal2-lock', title: t('Cette couleur reste toujours dans le document') }, ico('lock'))
+        : h(
+            'button',
+            {
+              type: 'button',
+              class: 'mini danger',
+              title: t('Supprimer'),
+              'aria-label': t('Supprimer'),
+              onclick: () => removeWithReplacement(k),
+            },
+            ico('x'),
+          ),
     );
+  };
+  /* Suppression : si la couleur est utilisée, on choisit celle qui la remplace (EU Blue par défaut) */
+  const removeWithReplacement = async (k) => {
+    let rep = 'blue';
+    if (colorUses(doc, k)) {
+      const options = [...Object.keys(pal).filter((x) => x !== k), 'white'].map((x) => ({
+        value: x,
+        label: t(colorLabel(doc, x)),
+        color: x === 'white' ? '#ffffff' : pal[x],
+      }));
+      rep = await chooseBox(t('Cette couleur est utilisée dans le document. Choisissez la couleur qui la remplace :'), options, 'blue');
+      if (rep == null) return;
+    } else if (!(await confirmBox(t('Supprimer cette couleur ?'), { ok: t('Supprimer'), danger: true }))) return;
+    removeColor(doc, k, rep);
+    ctx.restructure();
+    redraw();
   };
   return h(
     'div',
     { class: 'pal2-wrap' },
+    h(
+      'div',
+      { class: 'pal2-bar' },
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'mini',
+          title: t('Importer une palette…'),
+          'aria-label': t('Importer une palette…'),
+          onclick: () => openPaletteImport(ctx, redraw),
+        },
+        ico('file-import'),
+      ),
+    ),
     h('div', { class: 'pal2' }, Object.keys(pal).map(row)),
     canAddColor(doc)
       ? h(
@@ -135,12 +161,6 @@ export function buildPalette(ctx, redraw) {
             },
             ico('plus'),
             h('span', { textContent: t('Ajouter une couleur') }),
-          ),
-          h(
-            'button',
-            { type: 'button', class: 'pp-btn', onclick: () => openPaletteImport(ctx, redraw) },
-            ico('file-import'),
-            h('span', { textContent: t('Importer une palette…') }),
           ),
         )
       : null,

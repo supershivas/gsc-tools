@@ -213,7 +213,7 @@ export const THEMES = {
     },
     /* valeurs CMJN d'imprimeur (0–100) : celles du PDF exporté ; le RVB ci-dessus est l'équivalent écran */
     cmyk: { blue: [100, 80, 0, 0], sky: [35, 12, 0, 0], yellow: [0, 0, 100, 0], slate: [62, 48, 47, 30], grey: [14, 9, 7, 0] },
-    names: { blue: 'Bleu', sky: 'Bleu ciel', yellow: 'Jaune', slate: 'Ardoise', grey: 'Gris clair' },
+    names: { blue: 'EU Blue', sky: 'Bleu ciel', yellow: 'Yellow star', slate: 'Ardoise', grey: 'Gris clair' },
     text: 'blue', // couleur des textes et traits par défaut
   },
 };
@@ -236,7 +236,13 @@ const rgb2hex = (r, g, b) =>
 export const tintOf = (hex) => rgb2hex(...hex2rgb(hex).map((c) => c * TINT + 255 * (1 - TINT)));
 
 /** palette effective d'un document : couleurs du thème (éventuellement modifiées) + couleurs ajoutées */
-export const paletteOf = (themeKey, colors) => Object.assign({}, (THEMES[themeKey] || THEMES[DEFAULT_THEME]).colors, colors || {});
+export const paletteOf = (themeKey, colors) => {
+  const p = Object.assign({}, (THEMES[themeKey] || THEMES[DEFAULT_THEME]).colors, colors || {});
+  for (const k of Object.keys(p)) if (p[k] == null) delete p[k]; // couleur du thème retirée par le document (`doc.colors[clé] = null`)
+  return p;
+};
+/** couleurs qui restent quoi qu'il arrive : EU Blue (texte et traits par défaut) et Yellow star */
+export const PROTECTED_COLORS = ['blue', 'yellow'];
 /** clés de couleur proposées (sans les teintes) ; `white` ajoute le blanc */
 export const paletteKeys = (doc, white = true) => [...Object.keys(paletteOf(doc.theme, doc.colors)), ...(white ? ['white'] : [])];
 /** fonds de section proposés : une teinte par couleur */
@@ -268,6 +274,13 @@ export function cssVars(themeKey, colors, density) {
   for (const [k, c] of Object.entries(pal)) {
     v[`--c-${k}`] = c;
     v[`--c-tint-${k}`] = tintOf(c);
+  }
+  for (const k of Object.keys(th.colors)) {
+    // couleur du thème retirée : une référence oubliée s'affiche en bleu plutôt qu'en transparent
+    if (!pal[k]) {
+      v[`--c-${k}`] = pal.blue;
+      v[`--c-tint-${k}`] = tintOf(pal.blue);
+    }
   }
   v['--c-white'] = WHITE;
   for (const [k, val] of Object.entries(VIZ)) if (typeof val === 'number') v[`--viz-${k}`] = val + 'px';

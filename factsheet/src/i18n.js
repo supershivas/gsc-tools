@@ -849,9 +849,12 @@ const EN = {
   Ajouter: 'Add',
   'couleur(s) trouvée(s)': 'colour(s) found',
   'place restante': 'room left',
+  'Supprimer cette couleur ?': 'Delete this colour?',
+  'Cette couleur est utilisée dans le document. Choisissez la couleur qui la remplace :':
+    'This colour is used in the document. Choose the colour that replaces it:',
+  'Cette couleur reste toujours dans le document': 'This colour always stays in the document',
   'Ajouter une couleur': 'Add a colour',
   Pipette: 'Eyedropper',
-  'Supprimer cette couleur ? Ce qui l’utilise passera en bleu.': 'Delete this colour? Anything using it will turn blue.',
   Carte: 'Card',
   'Options de la carte': 'Card options',
   'Type de carte selon la largeur de la colonne': 'Card type follows the column width',

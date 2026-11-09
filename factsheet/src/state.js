@@ -447,13 +447,25 @@ export function addColor(doc, hex) {
   doc.colorNames[k] = `${t('Couleur')} ${5 + extraColorKeys(doc).length}`;
   return k;
 }
-/** Retire une couleur ajoutée : ce qui l'utilisait passe en bleu (les fonds en « aucun ») */
-export function removeColor(doc, key) {
-  delete doc.colors[key];
+/** Nombre de références à une couleur (ou à sa teinte) dans le document : header, fonds, contours, séries */
+export function colorUses(doc, key) {
+  let n = 0;
+  const count = (k) => {
+    if (k === key || k === 'tint-' + key) n++;
+    return k;
+  };
+  remapColors(doc, count);
+  return n;
+}
+/** Retire une couleur : ajoutée → supprimée ; du thème → marquée absente (`null`). Ce qui l'utilisait passe à `replacement` (EU Blue par défaut) */
+export function removeColor(doc, key, replacement = 'blue') {
+  if (extraColorKeys(doc).includes(key)) delete doc.colors[key];
+  else (doc.colors || (doc.colors = {}))[key] = null;
   delete (doc.colorNames || {})[key];
   delete (doc.cmyk || {})[key];
-  const gone = (k) => (k === key || k === 'tint-' + key ? 'none' : k);
-  remapColors(doc, (k) => (k === key ? 'blue' : k === 'tint-' + key ? 'tint-blue' : k), gone, gone);
+  const tint = replacement === 'white' ? 'white' : replacement === 'none' ? 'none' : 'tint-' + replacement;
+  const f = (k) => (k === key ? replacement : k === 'tint-' + key ? tint : k);
+  remapColors(doc, f);
 }
 
 /** Cartes « automatiques » : suivent la largeur de leur colonne tant qu'on n'a pas touché à leurs options (voir cardPresetFor) */

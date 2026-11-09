@@ -251,11 +251,20 @@ export function openPaletteImport(ctx, done) {
         sync();
       });
       return h(
-        'label',
+        'div',
         { class: 'pimp-row' },
         cb,
         h('i', { class: 'pimp-sw', style: { background: c.hex } }),
-        h('span', { class: 'pimp-name', textContent: c.name || c.hex.toUpperCase() }),
+        h(
+          'span',
+          { class: 'pimp-name' },
+          h('input', {
+            type: 'text',
+            value: c.name || c.hex.toUpperCase(),
+            'aria-label': t('Nom de la couleur'),
+            oninput: (e) => (c.name = e.target.value.trim()),
+          }),
+        ),
         h('span', { class: 'pal2-hex', textContent: c.cmyk ? c.cmyk.map((x) => Math.round(x)).join('·') : c.hex.toUpperCase() }),
       );
     });

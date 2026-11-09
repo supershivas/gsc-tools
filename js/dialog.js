@@ -48,3 +48,16 @@ export const promptModal = (message, value = '', { title, ok = 'OK', cancel = 'A
   const input = el('input', { type: 'text', className: 'modal-input', value, autocomplete: 'off', spellcheck: false });
   return open({ message, title, ok, cancel, fields: el('div', { className: 'modal-field' }, input), read: () => input.value });
 };
+
+/* Choix d'une valeur parmi `options` [{ value, label, color? }] (pastille de couleur facultative) : rend la valeur choisie, ou null si annulé. */
+export const chooseModal = (message, options, { value = options[0] && options[0].value, title, ok = 'OK', cancel = 'Annuler', icon = 'arrows-exchange' } = {}) => {
+  const name = 'choice-' + Math.random().toString(36).slice(2);
+  const rows = options.map((o) =>
+    el('label', { className: 'modal-choice' },
+      el('input', { type: 'radio', name, value: o.value, checked: o.value === value }),
+      o.color ? el('i', { className: 'modal-sw', style: `background:${o.color}` }) : null,
+      el('span', { textContent: o.label })));
+  const list = el('div', { className: 'modal-choices', role: 'radiogroup' }, ...rows);
+  return open({ message, title, ok, cancel, icon, fields: list, read: () => (list.querySelector('input:checked') || {}).value ?? null })
+    .then((r) => (r === true ? null : r));
+};

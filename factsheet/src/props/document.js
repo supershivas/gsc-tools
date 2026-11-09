@@ -6,7 +6,7 @@ import { buildPalette } from '../palette.js';
 import { LOCALES } from '../state.js';
 
 export function documentPanel(k) {
-  const { doc, ctx, root, title, card, field, fieldDiv, pair, switchRow, struct } = k;
+  const { doc, ctx, root, title, card, field, pair, switchRow, struct } = k;
   const toggle = (key) => () => {
     doc[key] = !doc[key];
   };
@@ -69,11 +69,11 @@ export function documentPanel(k) {
           ),
         }),
         field('Format des nombres', localeSelect()),
-        fieldDiv('Couleurs du document', paletteBox()),
       ],
       null,
       doc.name || '',
     ),
+    card('doc-colors', 'palette', t('Couleurs du document'), [paletteBox()]),
     h('p', {
       class: 'hint',
       textContent: t('Sélectionnez un élément dans la structure (à gauche) ou sur la page pour modifier ses propriétés.'),
