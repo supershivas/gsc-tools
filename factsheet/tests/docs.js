@@ -68,10 +68,36 @@ export function docUi() {
   return d;
 }
 
+/** Indépendance des rendus : deux documents de même structure, réglages opposés (densité, typographie automatique, icône importée
+    de même identifiant mais de dessin différent). La dernière dataviz du verso (barres horizontales à icônes, titre à typographie)
+    est en mode « remplir » : elle est redessinée par measure(), après le rendu. */
+function docIso(density, typo, markup) {
+  const d = defaultDoc();
+  d.name = `iso-${density}`;
+  d.density = density;
+  d.frTypo = d.ordinals = typo;
+  d.customIcons = [{ id: 'iso', name: 'iso', vb: [0, 0, 24, 24], markup }];
+  d.header.title = 'Le 1er bilan : 3/4 des « cas » ?';
+  const viz = newViz('hbars');
+  viz.opts.hmode = 'fill';
+  viz.opts.rows.forEach(r => { r.icon = 'custom:iso'; });
+  viz.head = { title: 'Bilan : le 1er trimestre ?', source: 'Source : 2e vague' };
+  const last = d.sections.filter(s => s.page === 'verso').pop();
+  last.subs = [{ ...newSub('1'), cols: [{ ...newCol('viz'), viz }] }];
+  const pic = newViz('pictoBars');
+  pic.opts.icon = 'custom:iso';
+  d.sections.find(s => s.page === 'verso').subs[0].cols[0] = { ...newCol('viz'), viz: pic };
+  return d;
+}
+export const docIsoTight = () => docIso('tight', true, '<path d="M12 2l3 7h7l-6 5 2 8-6-4-6 4 2-8-6-5h7z"/>');
+export const docIsoLoose = () => docIso('loose', false, '<circle cx="12" cy="12" r="9"/>');
+
 export const DOCS = {
   ui: docUi,
   default: docDefault,
   chars: docChars,
   ...Object.fromEntries([0, 1, 2].map(i => [`dataviz-${i + 1}`, () => docsViz()[i]])),
+  'iso-tight': docIsoTight,
+  'iso-loose': docIsoLoose,
 };
 export const DOC_NAMES = Object.keys(DOCS);
