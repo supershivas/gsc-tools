@@ -66,8 +66,8 @@ export default {
   }),
   fields: [
     { k: 'style', g: 'struct', t: 'select', label: 'Forme', options: { donut: 'Anneau (total au centre)', pie: 'Camembert' } },
-    { k: 'totalTpl', g: 'labels', t: 'ctext', label: 'Texte du centre' },
-    { k: 'decimals', g: 'labels', t: 'number', label: 'Décimales du total', min: 0, max: 4 },
+    { k: 'totalTpl', g: 'labels', when: (o) => o.style !== 'pie', t: 'ctext', label: 'Texte du centre' },
+    { k: 'decimals', g: 'labels', when: (o) => o.style !== 'pie', t: 'number', label: 'Décimales du total', min: 0, max: 4 },
     {
       k: 'ringAlign',
       g: 'struct',
@@ -96,7 +96,15 @@ export default {
       },
     },
     { k: 'linkExtra', g: 'bracket', t: 'number', label: 'Trait de liaison : longueur au-delà de la colonne (px)', min: 0, max: 120 },
-    { k: 'linkColor', g: 'bracket', t: 'color', label: 'Trait de liaison : couleur', def: 'blue' },
+    {
+      k: 'linkColor',
+      g: 'bracket',
+      when: (o) => +o.linkExtra > 0,
+      why: 'Allongez le trait de liaison pour choisir sa couleur.',
+      t: 'color',
+      label: 'Trait de liaison : couleur',
+      def: 'blue',
+    },
     {
       k: 'orient',
       g: 'struct',
@@ -111,12 +119,22 @@ export default {
     {
       k: 'largestAngle',
       g: 'struct',
+      when: (o) => (o.orient || 'largest') === 'largest',
       t: 'number',
       label: 'Angle du plus grand segment (° — 0 = haut, 210 = bas gauche)',
       min: 0,
       max: 359,
     },
-    { k: 'startAngle', g: 'struct', t: 'number', label: 'Angle de départ du 1er segment (° — mode manuel)', min: 0, max: 359, step: 'any' },
+    {
+      k: 'startAngle',
+      g: 'struct',
+      when: (o) => o.orient === 'manual',
+      t: 'number',
+      label: 'Angle de départ du 1er segment (° — mode manuel)',
+      min: 0,
+      max: 359,
+      step: 'any',
+    },
     {
       k: 'segments',
       t: 'list',

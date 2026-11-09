@@ -716,8 +716,11 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
   const live = (fn) => (e) => {
     fn(e.target);
     ctx.changed();
+    syncAll();
   };
+  const deps = [];
   for (const f of spec) {
+    const start = out.length;
     if (f.t === 'node') out.push(f.build(root, ctx));
     else if ((f.t === 'text' || f.t === 'lines') && f.rich)
       out.push(
@@ -971,8 +974,67 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
         );
       out.push(box);
     } else if (f.t === 'table') out.push(tableField(f, obj, ctx, palOpts, h2));
+    if (f.when) {
+      const nodes = out.slice(start).filter((n) => n && n.nodeType === 1);
+      if (nodes.length) deps.push(dependent(f, nodes, obj, h2, out));
+    }
+  }
+  if (deps.length) {
+    const run = () => deps.forEach((d) => d());
+    run();
+    /* un parent bascule : ses enfants se mettent à jour sur place, sans reconstruire le panneau (le focus clavier reste) */
+    const entry = { run, anchor: out.find((n) => n && n.nodeType === 1), seen: false, miss: 0 };
+    syncs.add(entry);
+    syncAll();
   }
   return out;
+}
+
+/** Champs qui dépendent d'un autre (`when`) : chaque rangée de contrôles construite par buildFields s'y enregistre */
+const syncs = new Set();
+const syncAll = () => {
+  for (const e of syncs) {
+    if (e.anchor && e.anchor.isConnected) e.seen = true;
+    else if (e.seen || ++e.miss > 50) {
+      syncs.delete(e);
+      continue;
+    }
+    e.run();
+  }
+};
+let whySeq = 0;
+const BLOCKED = ['click', 'mousedown', 'keydown', 'keyup', 'beforeinput', 'input', 'change', 'paste', 'cut', 'drop'];
+/** Applique `when` à un champ : sans `why` il est masqué (n'a de sens que pour un autre mode), avec `why` il est grisé et la phrase s'affiche dessous.
+    Grisé = `aria-disabled` (jamais `disabled`) : le champ reste focalisable et lisible au lecteur d'écran, mais n'est plus modifiable. */
+function dependent(f, nodes, obj, h2, out) {
+  const why = f.why ? h2('div', { class: 'dep-why', id: 'dw' + ++whySeq, hidden: true, textContent: t(f.why) }) : null;
+  if (why) out.splice(out.indexOf(nodes[nodes.length - 1]) + 1, 0, why);
+  nodes.forEach((n) => n.classList.add('f-dep'));
+  const block = (e) => {
+    if (e.type === 'keydown' && e.key === 'Tab') return;
+    e.stopPropagation();
+    e.preventDefault();
+  };
+  const first = nodes[0].querySelector('input,select,textarea,button');
+  if (why && first) first.setAttribute('aria-describedby', why.id);
+  const off = new WeakMap();
+  return () => {
+    const on = !!f.when(obj);
+    nodes.forEach((n) => {
+      n.hidden = !on && !why;
+      n.classList.toggle('dep-off', !on && !!why);
+      if (!on && why) n.setAttribute('aria-disabled', 'true');
+      else n.removeAttribute('aria-disabled');
+      if (!on && why && !off.get(n)) {
+        BLOCKED.forEach((ev) => n.addEventListener(ev, block, true));
+        off.set(n, true);
+      } else if ((on || !why) && off.get(n)) {
+        BLOCKED.forEach((ev) => n.removeEventListener(ev, block, true));
+        off.set(n, false);
+      }
+    });
+    if (why) why.hidden = on;
+  };
 }
 
 function tableField(f, obj, ctx, palOpts, h2) {

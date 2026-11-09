@@ -31,6 +31,8 @@ export default {
     {
       k: 'bracketGap',
       g: 'bracket',
+      when: (o) => !!o.bracket,
+      why: 'Activez « Accolade à gauche » pour la régler.',
       t: 'select',
       label: 'Accolade : espace avant la liste',
       options: { normal: 'Normal', tight: 'Réduit', none: 'Aucun' },
@@ -38,6 +40,8 @@ export default {
     {
       k: 'bracketLink',
       g: 'bracket',
+      when: (o) => !!o.bracket,
+      why: 'Activez « Accolade à gauche » pour la régler.',
       t: 'number',
       label: 'Accolade : trait de liaison vers l’extérieur, longueur au-delà de la colonne (px, 0 = aucun)',
       min: 0,

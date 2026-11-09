@@ -38,7 +38,15 @@ export default {
     { k: 'shape', g: 'struct', t: 'select', label: 'Forme des cases', options: { square: 'Carrée', rounded: 'Arrondie', circle: 'Ronde' } },
     { k: 'gap', g: 'dims', t: 'number', label: 'Espace entre les cases (px)', min: 0, max: 12 },
     { k: 'legend', g: 'labels', t: 'bool', label: 'Afficher la légende' },
-    { k: 'legendPos', g: 'labels', t: 'select', label: 'Position de la légende', options: { bottom: 'En bas', top: 'En haut' } },
+    {
+      k: 'legendPos',
+      g: 'labels',
+      when: (o) => !!o.legend,
+      why: 'Activez « Afficher la légende » pour choisir sa position.',
+      t: 'select',
+      label: 'Position de la légende',
+      options: { bottom: 'En bas', top: 'En haut' },
+    },
   ],
   /* chaque catégorie a sa couleur et son repère (croix, point, coche ou une icône), choisis dans le tableau */
   data: {

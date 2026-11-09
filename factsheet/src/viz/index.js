@@ -137,14 +137,23 @@ function sideTokens(o, env) {
 const fill = (str, tk) => String(str ?? '').replace(/\{(pct|value|total|label)\}/g, (_, k) => (tk ? tk[k] : ''));
 export { fill as fillTokens };
 
+/* chiffre à côté : ses réglages n'ont de sens que s'il est affiché ; largeur et position verticale seulement à droite ou à gauche */
+const sideOn = (o) => !!o.pos && o.pos !== 'none';
+const sideSide = (o) => o.pos === 'right' || o.pos === 'left';
 /** Champs de la carte « Chiffre à côté » (dataviz, texte, carte) */
 export const SIDE_FIELDS = [
   { k: 'pos', t: 'select', label: 'Chiffre à côté', options: { none: 'Aucun', right: 'À droite', left: 'À gauche', top: 'Au-dessus' } },
-  { k: 'value', t: 'text', rich: true, label: 'Chiffre ({pct} = part de la 1re donnée)' },
-  { k: 'text', t: 'text', rich: true, label: 'Texte sous le chiffre (vide = libellé de la 1re donnée)' },
-  { k: 'share', t: 'number', label: 'Largeur du contenu (% de la largeur)', min: 25, max: 80 },
-  { k: 'scale', t: 'select', label: 'Taille du chiffre', options: { 1: 'Normal', 1.5: 'Grand', 2: 'Très grand' } },
-  { k: 'align', t: 'select', label: 'Position verticale du chiffre', options: { top: 'En haut', center: 'Centré', bottom: 'En bas' } },
+  { k: 'value', when: sideOn, t: 'text', rich: true, label: 'Chiffre ({pct} = part de la 1re donnée)' },
+  { k: 'text', when: sideOn, t: 'text', rich: true, label: 'Texte sous le chiffre (vide = libellé de la 1re donnée)' },
+  { k: 'share', when: sideSide, t: 'number', label: 'Largeur du contenu (% de la largeur)', min: 25, max: 80 },
+  { k: 'scale', when: sideOn, t: 'select', label: 'Taille du chiffre', options: { 1: 'Normal', 1.5: 'Grand', 2: 'Très grand' } },
+  {
+    k: 'align',
+    when: sideSide,
+    t: 'select',
+    label: 'Position verticale du chiffre',
+    options: { top: 'En haut', center: 'Centré', bottom: 'En bas' },
+  },
 ];
 /** Chiffre à côté d'un texte ou d'une carte : pas de donnée à lire, le chiffre est saisi */
 export const newColSide = () => ({ pos: 'none', value: '14 %', text: '', share: 60, align: 'top', scale: '1.5' });

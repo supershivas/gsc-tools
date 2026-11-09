@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.79.0 — 2026-11-09
+- Éditeur de dataviz : les réglages qui n'ont pas d'effet sont grisés avec une phrase qui explique quoi activer (position de la légende, valeurs dans les barres, accolade, décimales et unité…)
+- Les réglages qui ne concernent qu'un autre mode disparaissent (angle de l'anneau selon l'orientation, réglages du « Chiffre à côté » tant qu'il est sur « Aucun »)
+- Un réglage se met à jour sur place quand on bascule son interrupteur : le focus clavier ne saute plus
+
 ## 1.78.0 — 2026-11-09
 - Éditeur de dataviz : mêmes cartes dans le même ordre pour tous les types (Structure, Dimensions, Étiquettes, Couleurs, Accolade et liaison, Chiffre à côté) ; « Options » et « Évolution » disparaissent
 - Chaque réglage est rangé dans la carte qui correspond à son rôle et dans le même ordre d'un type à l'autre ; la carte ouverte au départ est Structure (ou Étiquettes), et l'éditeur se souvient de la dernière carte ouverte pour chaque type

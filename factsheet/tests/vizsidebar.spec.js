@@ -56,8 +56,8 @@ test.describe('sidebar de l’éditeur de dataviz', () => {
   test('un clic sur le libellé met le focus dans le champ', async ({ page }) => {
     await pickType(page, /^Bars \(/);
     await page.locator('.ve-form .pp-q').fill(' ');
-    await page.locator('.ve-form .f label', { hasText: 'Value decimals' }).click();
-    expect(await page.evaluate(() => document.activeElement.tagName)).toBe('INPUT');
+    await page.locator('.ve-form .f label', { hasText: 'Bar thickness' }).click();
+    expect(await page.evaluate(() => document.activeElement.tagName)).toBe('SELECT');
   });
 
   test('Échap : vide la recherche, confirme avant d’abandonner, ne ferme pas une modale par erreur', async ({ page }) => {
@@ -144,5 +144,75 @@ test.describe('squelette de cartes', () => {
     expect(line.filter((n) => /^(Options|Trend)$/.test(n))).toEqual([]);
     expect(line.indexOf('Structure')).toBeLessThan(line.indexOf('Labels'));
     expect(line.indexOf('Figure beside')).toBeGreaterThan(line.indexOf('Colours'));
+  });
+});
+
+/* Dépendances entre champs (lot 3 de l'audit) : un enfant se grise (avec sa phrase) ou se masque sur place, sans reconstruire le panneau. */
+test.describe('dépendances entre champs', () => {
+  let errors;
+  test.beforeEach(async ({ page }) => {
+    errors = watchErrors(page);
+    await openApp(page, 'default');
+    await openEditor(page);
+    await page.locator('.ve-form .pp-q').fill(' '); // ouvre toutes les cartes
+  });
+  test.afterEach(() => expect(errors).toEqual([]));
+
+  test('légende éteinte : la position est grisée avec sa phrase, le focus reste sur l’interrupteur', async ({ page }) => {
+    await pickType(page, /^Bars \(/);
+    await page.locator('.ve-form .pp-q').fill(' ');
+    const sw = page.locator('.ve-form label.row', { hasText: /^Show legend/ }).locator('input');
+    const pos = page.locator('.ve-form .f', { hasText: 'Legend position' });
+    await expect(pos).not.toHaveAttribute('aria-disabled', 'true');
+    await sw.focus();
+    await page.keyboard.press('Space');
+    await expect(sw).not.toBeChecked();
+    await expect(pos).toHaveAttribute('aria-disabled', 'true');
+    await expect(page.locator('.ve-form .dep-why', { hasText: 'Turn on “Show legend”' })).toBeVisible();
+    expect(await sw.evaluate((n) => n === document.activeElement)).toBe(true); // pas de reconstruction du panneau
+    const opacity = await pos.evaluate((n) => getComputedStyle(n).opacity);
+    expect(opacity).toBe('0.55');
+    // reste focalisable en lecture, mais ne change plus
+    const sel = pos.locator('select');
+    await sel.focus();
+    expect(await sel.evaluate((n) => n === document.activeElement)).toBe(true);
+    await page.keyboard.press('ArrowDown');
+    expect(await sel.inputValue()).toBe('bottom');
+    await sw.focus();
+    await page.keyboard.press('Space');
+    await expect(pos).not.toHaveAttribute('aria-disabled', 'true');
+  });
+
+  test('anneau : l’orientation masque ou affiche le bon angle', async ({ page }) => {
+    await pickType(page, /^Donut/);
+    await page.locator('.ve-form .pp-q').fill(' ');
+    const largest = page.locator('.ve-form .f', { hasText: 'Largest segment angle' });
+    const start = page.locator('.ve-form .f', { hasText: 'Start angle of the 1st segment' });
+    await expect(largest).toBeVisible();
+    await expect(start).toBeHidden();
+    await page.locator('.ve-form .f', { hasText: 'Ring orientation' }).locator('select').selectOption('manual');
+    await expect(largest).toBeHidden();
+    await expect(start).toBeVisible();
+    await page.locator('.ve-form .f', { hasText: 'Ring orientation' }).locator('select').selectOption('first');
+    await expect(largest).toBeHidden();
+    await expect(start).toBeHidden();
+  });
+
+  test('« Chiffre à côté : Aucun » masque ses réglages', async ({ page }) => {
+    await pickType(page, /^Bars \(/);
+    await page.locator('.ve-form .pp-q').fill(' ');
+    const card = page.locator('.ve-form .pp-card', { has: page.locator('b', { hasText: /^Figure beside/ }) });
+    const width = card.locator('.f', { hasText: 'Content width' });
+    const size = card.locator('.f', { hasText: 'Figure size' });
+    await expect(size).toBeHidden();
+    await expect(width).toBeHidden();
+    await card.locator('select').first().selectOption('right');
+    await expect(size).toBeVisible();
+    await expect(width).toBeVisible();
+    await card.locator('select').first().selectOption('top');
+    await expect(size).toBeVisible();
+    await expect(width).toBeHidden();
+    await card.locator('select').first().selectOption('none');
+    await expect(size).toBeHidden();
   });
 });
