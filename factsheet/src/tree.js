@@ -102,7 +102,7 @@ export function buildTree(root, ctx) {
       row(`sec:${si}`, 'sec-row', [
         grip('Glisser pour réordonner ou changer de page', { kind: 'sec', id: sec.id }),
         dot,
-        h('strong', { class: 'tn-lab', textContent: sec.title || 'Section sans titre' }),
+        h('strong', { class: 'tn-lab', title: sec.title || 'Section sans titre', textContent: sec.title || 'Section sans titre' }),
         h('span', { class: 'tn-sub', textContent: String(sec.subs.length) }),
         tog(key),
       ]),
@@ -117,7 +117,7 @@ export function buildTree(root, ctx) {
           row(`sub:${si}:${bi}`, 'sub-row', [
             grip('Glisser la sous-section (autre section possible)', { kind: 'sub', id: sub.id }),
             ico('columns'),
-            h('span', { class: 'tn-lab', textContent: sub.title || 'Sous-section' }),
+            h('span', { class: 'tn-lab', title: sub.title || 'Sous-section', textContent: sub.title || 'Sous-section' }),
             h('span', { class: 'tn-sub', textContent: sub.layout }),
             tog(sk),
           ]),
@@ -128,7 +128,7 @@ export function buildTree(root, ctx) {
               row(`col:${si}:${bi}:${ci}`, 'col-row', [
                 grip('Glisser le contenu sur une autre colonne pour l’échanger', { kind: 'col', from: { si, bi, ci } }),
                 ico(ICON[col.type] || 'text-size'),
-                h('span', { class: 'tn-lab', textContent: colLabel(col) }),
+                h('span', { class: 'tn-lab', title: colLabel(col), textContent: colLabel(col) }),
               ]),
             ),
           );

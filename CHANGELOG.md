@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.71.2 — 2026-11-09
+- Interface du Factsheet creator : couleurs, tailles de texte et arrondis harmonisés ; espacement sélectionné et jauges de remplissage en neutre (orange/rouge seulement si la page déborde)
+- L'espacement « Actuel » devient « Normal »
+- Barre latérale : le texte complet d'un titre tronqué s'affiche au survol
+
 ## 1.71.1 — 2026-11-09
 - Cmd/Ctrl + P ouvre la fenêtre d'export PDF au lieu de l'impression du navigateur (raccourci indiqué dans le menu Fichier)
 

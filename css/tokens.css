@@ -24,4 +24,25 @@
   --line: #e2e2e0;
   --ink: #1C1C1E;
   --mute: #6b6b70;
+
+  /* Locaux au Factsheet creator (absents des tokens partagés, proposés au design system) */
+  --handle: #F28C28;                                   /* poignées, cadres de sélection, cibles de dépôt */
+  --handle-soft: color-mix(in srgb, var(--handle) 8%, transparent);
+  --handle-mid: color-mix(in srgb, var(--handle) 33%, transparent);
+  --danger: #b91c1c;                                   /* dépassement, suppression */
+  --sel-faint: #f3f8ff;                                /* fond d'une cible ou d'un choix actif, du plus léger au plus marqué */
+  --sel-soft: #eef2ff;
+  --sel-strong: #e3ecff;
+  --shade: #0003;                                      /* ombres et contours de pastilles */
+  --shade-strong: #0004;
+  --shadow-pop: 0 12px 40px var(--shade-strong);       /* fenêtres et panneaux flottants */
+  --shadow-bar: 0 3px 14px var(--shade);
+  --radius-xs: 4px;                                    /* petites pastilles, puces */
+  --radius-doc: 3px;                                   /* même coin que les cadres du document (STROKE.radius) */
+  --radius-pill: 999px;
+  --fs-xs: 11px;                                       /* échelle de l'interface : 11 / 12 / 13 / 15 / 20 */
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+  --fs-xl: 20px;
 }

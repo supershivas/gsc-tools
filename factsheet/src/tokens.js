@@ -56,7 +56,7 @@ export const GAP = Object.freeze({
    Les écarts entre sections, sous-sections et colonnes sont multipliés puis arrondis à la grille de 3 px ; marges de page,
    retraits d'encadrés et textes ne bougent pas. GAP reste la valeur « normale » : les écarts d'un document se lisent dans
    `densityGaps(doc.density)` (contexte de rendu `rc.gap`, voir renderctx.js), jamais dans une variable modifiée. */
-export const DENSITIES = { tight: { label: 'Serré', f: 0.75 }, normal: { label: 'Actuel', f: 1 }, loose: { label: 'Large', f: 1.25 } };
+export const DENSITIES = { tight: { label: 'Serré', f: 0.75 }, normal: { label: 'Normal', f: 1 }, loose: { label: 'Large', f: 1.25 } };
 const DENSE_KEYS = ['sectionBefore', 'sectionTitle', 'subsectionBefore', 'subsectionTitle', 'columns', 'bandPad'];
 const GAPS_BY_DENSITY = Object.fromEntries(
   Object.entries(DENSITIES).map(([key, { f }]) => [
