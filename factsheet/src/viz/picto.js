@@ -5,6 +5,7 @@ import { reorderHit, s, el, SW, colorRef, pxOf, fmt, SANS, drawLegend, fitText, 
 import { ICONS, customList, customChoices, ctxIcons } from './icons.js';
 import { iconSelect } from '../iconselect.js';
 import { t } from '../i18n.js';
+import { alertBox } from '../dialogs.js';
 
 /* ---------- pictogrammes pleins ---------- */
 export const PICTOS = {
@@ -142,7 +143,7 @@ export async function importSvgFile(file, icons) {
     icons.push(c);
     return c;
   } catch (e) {
-    alert(t('Image illisible ou trop lourde.'));
+    alertBox(t('Image illisible ou trop lourde.'));
     return null;
   }
 }

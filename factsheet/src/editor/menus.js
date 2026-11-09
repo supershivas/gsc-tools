@@ -39,8 +39,6 @@ export function declareMenus({ ctx, history, historyUi, preview, spacing, hand, 
           { label: 'Enregistrer (.json)', icon: 'device-floppy', run: project.save },
           { label: 'Ouvrir…', icon: 'folder-open', run: project.open },
           { label: 'Exporter PDF…', icon: 'file-type-pdf', hint: MOD + 'P', run: () => exporter.openExport() },
-          '-',
-          { label: 'Atelier', icon: 'brush', href: 'atelier.html' },
         ],
       },
       {

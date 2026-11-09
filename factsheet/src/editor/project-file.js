@@ -1,11 +1,18 @@
 import { migrate, blankDoc } from '../state.js';
 import { h } from '../render.js';
 import { t } from '../i18n.js';
+import { alertBox, confirmBox } from '../dialogs.js';
 
 /* Menu Fichier : nouvelle factsheet vierge, enregistrer et ouvrir un projet (.json). `fileStem` : nom des fichiers (export-ui.js). */
 export function createProjectFile(ctx, fileStem) {
-  const newBlank = () => {
-    if (!confirm(t('Créer une factsheet vierge ? Le document actuel sera remplacé : enregistrez-le d’abord (.json) si besoin.'))) return;
+  const newBlank = async () => {
+    if (
+      !(await confirmBox(t('Créer une factsheet vierge ? Le document actuel sera remplacé : enregistrez-le d’abord (.json) si besoin.'), {
+        ok: t('Créer'),
+        danger: true,
+      }))
+    )
+      return;
     ctx.setDoc(blankDoc(), true);
     ctx.restructure();
   };
@@ -29,7 +36,7 @@ export function createProjectFile(ctx, fileStem) {
       ctx.setDoc(migrate(j), true);
       ctx.restructure();
     } catch (e) {
-      alert(t('Fichier de projet invalide.'));
+      alertBox(t('Fichier de projet invalide.'));
     }
   });
   return { newBlank, save, open: () => file.click() };

@@ -6,6 +6,7 @@ import { THEMES, paletteOf, colorLabel, tintOf } from './tokens.js';
 import { openColorEditor } from './colorpicker.js';
 import { paletteCmyk } from './cmyk.js';
 import { extraColorKeys, addColor, removeColor, canAddColor } from './state.js';
+import { confirmBox } from './dialogs.js';
 
 /** redraw : redessine l'appelant après un changement de structure (ajout, suppression, retour au thème) */
 export function buildPalette(ctx, redraw) {
@@ -75,8 +76,10 @@ export function buildPalette(ctx, redraw) {
               class: 'mini danger',
               title: t('Supprimer'),
               'aria-label': t('Supprimer'),
-              onclick: () => {
-                if (confirm(t('Supprimer cette couleur ? Ce qui l’utilise passera en bleu.'))) {
+              onclick: async () => {
+                if (
+                  await confirmBox(t('Supprimer cette couleur ? Ce qui l’utilise passera en bleu.'), { ok: t('Supprimer'), danger: true })
+                ) {
                   removeColor(doc, k);
                   ctx.changed();
                   redraw();

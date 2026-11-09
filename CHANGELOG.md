@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.71.3 — 2026-11-09
+- Les alertes, confirmations et saisies du navigateur sont remplacées par des modales aux couleurs de l'app
+- Le menu Fichier n'a plus de lien vers l'Atelier : il reste accessible depuis la roue crantée des réglages
+
 ## 1.71.2 — 2026-11-09
 - Interface du Factsheet creator : couleurs, tailles de texte et arrondis harmonisés ; espacement sélectionné et jauges de remplissage en neutre (orange/rouge seulement si la page déborde)
 - L'espacement « Actuel » devient « Normal »

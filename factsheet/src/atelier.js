@@ -4,6 +4,7 @@
 import { initI18n, t } from './i18n.js';
 import { docImages } from './state.js';
 import { REPO, getToken, setToken, checkAccess, listDir, readText, commitFiles, textToBase64, splitDataUrl, assetName } from './github.js';
+import { confirmBox } from './dialogs.js';
 
 const DOC_KEY = 'factsheet-creator-v1';
 const loadDoc = () => { try { return JSON.parse(localStorage.getItem(DOC_KEY)); } catch (e) { return null; } };
@@ -114,9 +115,9 @@ function draw() {
 
   const lib = sec('Images publiées', loadError ? el('p', { class: 'err', textContent: loadError }) : null,
     published.length ? el('div', { class: 'grid' }, published.map(f => el('figure', {}, el('img', { src: `assets/${f.name}`, alt: '', loading: 'lazy' }),
-      el('figcaption', {}, el('span', { textContent: f.name }), el('button', { type: 'button', class: 'icon', title: 'Supprimer', disabled: busy || !connected, onclick: () => {
+      el('figcaption', {}, el('span', { textContent: f.name }), el('button', { type: 'button', class: 'icon', title: 'Supprimer', disabled: busy || !connected, onclick: async () => {
         const used = doc && JSON.stringify(doc).includes('assets/' + f.name);
-        if (!confirm(used ? t('Cette image est utilisée par le document en cours. La supprimer quand même ?') : t('Supprimer cette image ?'))) return;
+        if (!(await confirmBox(used ? t('Cette image est utilisée par le document en cours. La supprimer quand même ?') : t('Supprimer cette image ?'), { ok: t('Supprimer'), danger: true }))) return;
         run(async () => { await commitFiles([{ path: f.path, remove: true }], `Supprime l’image ${f.name} depuis l’Atelier`); say(t('Image supprimée'), 'ok'); });
       } }, icon('trash'))))))
       : el('p', { class: 'hint', textContent: 'Aucune image publiée.' }));
@@ -126,8 +127,8 @@ function draw() {
     el('div', { class: 'row' }, nameInput, btn('Publier le projet en cours', 'cloud-upload', () => run(() => publishProject(nameInput.value)), 'primary')),
     projects.length ? el('ul', { class: 'files plist' }, projects.filter(p => /\.json$/.test(p.name)).map(p => el('li', {}, icon('file-code'), el('span', { textContent: p.name.replace(/\.json$/, '') }),
       el('span', { class: 'sp' }),
-      btn('Ouvrir dans l’éditeur', 'folder-open', () => { if (confirm(t('Remplacer le projet en cours dans ce navigateur ?'))) run(() => openProject(p)); }),
-      el('button', { type: 'button', class: 'icon', title: 'Supprimer', disabled: busy || !connected, onclick: () => { if (confirm(t('Supprimer ce projet ?'))) run(async () => { await commitFiles([{ path: p.path, remove: true }], `Supprime le projet ${p.name} depuis l’Atelier`); say(t('Projet supprimé'), 'ok'); }); } }, icon('trash')))))
+      btn('Ouvrir dans l’éditeur', 'folder-open', async () => { if (await confirmBox(t('Remplacer le projet en cours dans ce navigateur ?'), { ok: t('Remplacer'), danger: true })) run(() => openProject(p)); }),
+      el('button', { type: 'button', class: 'icon', title: 'Supprimer', disabled: busy || !connected, onclick: async () => { if (await confirmBox(t('Supprimer ce projet ?'), { ok: t('Supprimer'), danger: true })) run(async () => { await commitFiles([{ path: p.path, remove: true }], `Supprime le projet ${p.name} depuis l’Atelier`); say(t('Projet supprimé'), 'ok'); }); } }, icon('trash')))))
       : el('p', { class: 'hint', textContent: 'Aucun projet publié.' }));
   [...proj.querySelectorAll('.row .btn')].forEach(b => { b.disabled = busy || !connected; });
 

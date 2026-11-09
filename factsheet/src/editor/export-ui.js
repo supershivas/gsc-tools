@@ -2,6 +2,7 @@ import { h } from '../render.js';
 import { EXPORT_MODES, PDF_PROFILES } from '../export.js';
 import { t } from '../i18n.js';
 import { rasterizeDocument } from '../raster.js';
+import { alertBox, confirmBox } from '../dialogs.js';
 
 /* Export : nom des fichiers, fenêtre d'export PDF (CMJN ou RVB, tous écrits par pdfexport.js) et aperçu 3D
    (les pages sont dessinées ici, la scène three.js est dans viewer3d.js, chargé à la première ouverture).
@@ -47,7 +48,7 @@ export function createExport(ctx) {
     try {
       viewer = await loadViewer();
     } catch (e) {
-      alert(t('Impossible de générer l’aperçu 3D dans ce navigateur.'));
+      alertBox(t('Impossible de générer l’aperçu 3D dans ce navigateur.'));
       return;
     }
     viewer.open({
@@ -118,13 +119,14 @@ export function createExport(ctx) {
       /* caractères absents des polices (symboles rares, alphabets non latins hors grec et cyrillique) : ils ne seraient pas imprimés */
       if (
         missing.length &&
-        !confirm(
+        !(await confirmBox(
           t('Ces caractères n’existent pas dans les polices du document et n’apparaîtront pas dans le PDF :') +
             '\n\n' +
             missing.join('  ') +
             '\n\n' +
             t('Télécharger quand même ?'),
-        )
+          { ok: t('Télécharger') },
+        ))
       )
         return;
       const name = fileStem((exportMode === 'net' ? '' : '-' + exportMode) + PDF_PROFILES[exportProfile].suffix) + '.pdf';
@@ -136,7 +138,7 @@ export function createExport(ctx) {
       dlg.close();
     } catch (err) {
       console.error(err);
-      alert(t('Impossible de générer le PDF.') + ' ' + ((err && err.message) || ''));
+      alertBox(t('Impossible de générer le PDF.') + ' ' + ((err && err.message) || ''));
     } finally {
       btn.disabled = false;
       btn.textContent = label;

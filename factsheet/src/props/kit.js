@@ -8,6 +8,7 @@ import { openPalette } from '../palette.js';
 import { cardEl } from '../cards.js';
 import { helpBtn } from '../help.js';
 import { paletteOptions, readImage, richEditor } from '../editor.js';
+import { alertBox } from '../dialogs.js';
 
 const shut = new Set(); // cartes repliées (gardées d'une sélection à l'autre)
 export const search = { q: '', focus: false }; // recherche de réglage (gardée d'une sélection à l'autre)
@@ -178,7 +179,7 @@ export function createKit(root, ctx, doc, kind) {
           set(await readImage(f, max));
           ctx.restructure();
         } catch (e) {
-          alert(t('Image illisible.'));
+          alertBox(t('Image illisible.'));
         }
       },
     });

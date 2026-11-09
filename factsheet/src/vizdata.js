@@ -7,6 +7,7 @@ import { colorSelect } from './colorselect.js';
 import { iconSelect } from './iconselect.js';
 import { pictoChoices } from './viz/picto.js';
 import { ctxIcons } from './viz/icons.js';
+import { alertBox } from './dialogs.js';
 
 const num = (c) => {
   const n = parseFloat(String(c).replace(/\s/g, '').replace(',', '.'));
@@ -201,7 +202,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data' } = {}) {
       try {
         apply(fileToMatrix(f.name, await f.text()));
       } catch (e) {
-        alert(t('Fichier illisible.'));
+        alertBox(t('Fichier illisible.'));
       }
     },
   });
@@ -235,7 +236,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data' } = {}) {
     try {
       apply(fileToMatrix(f.name, await f.text()));
     } catch (x) {
-      alert(t('Fichier illisible.'));
+      alertBox(t('Fichier illisible.'));
     }
   });
 

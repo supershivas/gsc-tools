@@ -12,6 +12,7 @@ import { FONT, TYPE } from './tokens.js';
 import { GRID, THEMES, paletteKeys, sectionBgs, colorLabel } from './tokens.js';
 import { COL_TYPES, IMAGE_RATIOS, LOCALES, newCol, newSub, newSection, uid, moveSection, stepSection } from './state.js';
 import { VIZ_TYPES, VIZ_OPTIONS, newViz } from './viz/index.js';
+import { promptBox } from './dialogs.js';
 
 /* Lecture + réduction d'une image (PNG conservé pour la transparence des logos) */
 export function readImage(file, max = 1600) {
@@ -558,12 +559,13 @@ export function richEditor(value, onChange, opts = {}) {
       ib('ti-strikethrough', 'Barré', cmd('strikeThrough'), 'strikeThrough'),
       ib(h('span', { class: 're-sc', textContent: 'Aᴀ' }), 'Petites capitales', () => wrapSel('sc', '', true)),
       ib(h('span', { textContent: 'AA' }), 'Capitales', () => wrapSel('up', '', true)),
-      ib('ti-link', 'Lien', () => {
+      ib('ti-link', 'Lien', async () => {
         restore();
         const cur = (window.getSelection().anchorNode || {}).parentElement;
         const have = cur && cur.closest && cur.closest('span[data-f^="a:"]');
-        const url = window.prompt(t('Adresse du lien (https://…) — vide pour retirer'), have ? have.dataset.f.slice(2) : 'https://');
+        const url = await promptBox(t('Adresse du lien (https://…) — vide pour retirer'), have ? have.dataset.f.slice(2) : 'https://');
         if (url === null) return;
+        restore(); // la modale a pris le focus : on retrouve la sélection du texte
         wrapSel('a', /^(https?:\/\/|mailto:)\S+/i.test(url.trim()) && url.trim() !== 'https://' ? url.trim() : null);
       }),
       ib('ti-asterisk', 'Appel de note (le texte de la note suit entre accolades)', () => {

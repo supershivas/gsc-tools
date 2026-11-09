@@ -17,6 +17,7 @@ JS vanilla statique, hébergé sur GitHub Pages (push sur `main` = déploiement)
 
 - `index.html` : accueil, une carte par outil. Ajouter un outil = un dossier + une carte.
 - `js/shell.js` : coque commune (en-tête, réglages, mise à jour auto, toast, bandeau bureau). Chaque page l'appelle avec `initShell({ sub })`.
+- `js/dialog.js` : modales `alertModal` / `confirmModal` / `promptModal` (styles `.modal` dans `css/shell.css`). Jamais `alert`, `confirm` ni `prompt` du navigateur ; dans le Factsheet creator, passer par `factsheet/src/dialogs.js` (boutons traduits), toujours avec `await`.
 - `js/app-update.js`, `css/mobile.css`, `design-tokens.json` : synchronisés depuis le design system (ne pas modifier).
 - `css/tokens.css` : variables CSS dérivées de `design-tokens.json`, plus les variables locales de l'interface du Factsheet creator (poignées, rouge d'alerte, ombres, échelle de tailles `--fs-*`, arrondis `--radius-*`) ; `css/shell.css` : styles de la coque.
 - `version.json`, `CHANGELOG.md` : version (source unique).

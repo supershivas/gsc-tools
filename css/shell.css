@@ -28,6 +28,22 @@ dialog.settings::backdrop { background: var(--modal-overlay); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 @media (hover: hover) { .btn:hover { border-color: var(--accent); color: var(--accent); } .btn.primary:hover { background: var(--accent-hover); color: var(--accent-fg); } }
 
+/* Modales d'alerte / confirmation / saisie (js/dialog.js) */
+dialog.modal { width: min(var(--modal-max-width), calc(100vw - 24px)); margin: auto; padding: 0; border: 0; border-radius: var(--radius-lg); background: var(--panel); color: var(--ink); box-shadow: 0 12px 40px #0004; }
+dialog.modal::backdrop { background: var(--modal-overlay); }
+.modal-form { display: flex; flex-direction: column; }
+.modal-body { display: flex; gap: 14px; padding: var(--modal-padding); }
+.modal-body > .ti { flex: none; font-size: 28px; line-height: 1; color: var(--mute); }
+.modal-body > .ti.warn { color: var(--danger); }
+.modal-text { flex: 1; min-width: 0; }
+.modal-text h2 { margin: 0 0 6px; font-size: 16px; }
+.modal-text p { margin: 0; white-space: pre-line; overflow-wrap: anywhere; line-height: 1.5; }
+.modal-field { margin-top: 12px; }
+.modal-input { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--panel); color: var(--ink); font: inherit; }
+.modal-input:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px var(--modal-padding) var(--modal-padding); }
+.modal .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
 /* Toast */
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 100; padding: 12px 18px; border-radius: var(--radius-md); background: var(--dark); color: #fff; font-size: 14px; box-shadow: 0 6px 24px #0004; }
 

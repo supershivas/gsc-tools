@@ -4,6 +4,7 @@ import { t } from '../i18n.js';
 import { toneKeys } from '../tokens.js';
 import { LOGO_VARIANTS, DEFAULT_LOGOS, DEFAULT_IMAGE_ID, newHeaderImage } from '../state.js';
 import { readImage } from '../editor.js';
+import { alertBox, confirmBox, promptBox } from '../dialogs.js';
 
 /* Logo : 4 versions de même taille, une liste déroulante choisit celle qui s'affiche.
    Les logos d'origine (publiés dans le dépôt) ne se retirent pas : on peut charger une autre image à leur place, puis rétablir l'original. */
@@ -40,7 +41,7 @@ function logoPicker(k, H) {
         H.logos[v] = await readImage(f, 800);
         ctx.restructure();
       } catch (e) {
-        alert(t('Image illisible.'));
+        alertBox(t('Image illisible.'));
       }
     },
   });
@@ -87,18 +88,18 @@ function imageLibrary(k, H) {
       H.imageId = e.img.id;
       ctx.restructure();
     } catch (x) {
-      alert(t('Image illisible.'));
+      alertBox(t('Image illisible.'));
     }
   };
-  const rename = (img) => () => {
-    const n = prompt(t('Nom de l’image :'), img.name);
+  const rename = (img) => async () => {
+    const n = await promptBox(t('Nom de l’image :'), img.name);
     if (n && n.trim()) {
       img.name = n.trim();
       ctx.restructure();
     }
   };
-  const remove = (img) => () => {
-    if (!confirm(t('Supprimer cette image ?'))) return;
+  const remove = (img) => async () => {
+    if (!(await confirmBox(t('Supprimer cette image ?'), { ok: t('Supprimer'), danger: true }))) return;
     H.images.splice(H.images.indexOf(img), 1);
     if (H.imageId === img.id) H.imageId = H.images[0].id;
     ctx.restructure();

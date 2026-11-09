@@ -1,9 +1,8 @@
 {
-  "version": "1.71.2",
+  "version": "1.71.3",
   "date": "2026-11-09",
   "changes": [
-    "Interface du Factsheet creator : couleurs, tailles de texte et arrondis harmonisés ; espacement sélectionné et jauges de remplissage en neutre (orange/rouge seulement si la page déborde)",
-    "L'espacement « Actuel » devient « Normal »",
-    "Barre latérale : le texte complet d'un titre tronqué s'affiche au survol"
+    "Les alertes, confirmations et saisies du navigateur sont remplacées par des modales aux couleurs de l'app",
+    "Le menu Fichier n'a plus de lien vers l'Atelier : il reste accessible depuis la roue crantée des réglages"
   ]
 }

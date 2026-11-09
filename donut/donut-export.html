@@ -1003,8 +1003,8 @@ document.getElementById('addSeg').addEventListener('click', () => {
   renderSegs(); changed();
 });
 document.getElementById('firstBig').addEventListener('click', () => { largestFirst(S); renderSegs(); changed(); });
-document.getElementById('reset').addEventListener('click', () => {
-  if (!confirm('Réinitialiser tous les champs et réglages ?')) return;
+document.getElementById('reset').addEventListener('click', async () => {
+  if (!(await window.gscDialog.confirmModal('Réinitialiser tous les champs et réglages ?', { ok: 'Réinitialiser', danger: true }))) return;
   S = structuredClone(DEFAULTS); setVersion(S.tab, true); save(); buildUI(); schedule();
 });
 
@@ -1025,7 +1025,7 @@ projFile.addEventListener('change', async () => {
     if (!j || !Array.isArray(j.segs)) throw new Error('format');
     S = fromStored(j); setVersion(['B', 'C'].includes(S.tab) ? S.tab : 'A', true);
     save(); buildUI(); schedule();
-  } catch (e) { alert('Fichier de projet invalide.'); }
+  } catch (e) { window.gscDialog.alertModal('Fichier de projet invalide.'); }
 });
 
 /* ---------- Export (avec métadonnée de résolution) ---------- */
@@ -1083,6 +1083,8 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
 </script>
 <script type="module">
 import { initShell } from '../js/shell.js';
+import { alertModal, confirmModal } from '../js/dialog.js';
+window.gscDialog = { alertModal, confirmModal }; // modales de la coque, utilisées par le script principal
 initShell({ sub: 'Donut export' });
 </script>
 </body>
