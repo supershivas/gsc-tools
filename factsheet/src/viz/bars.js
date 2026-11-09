@@ -134,6 +134,7 @@ export default {
       when: (o) => !!(o.callout && o.callout.on),
       why: 'Activez l’accolade pour régler ce texte.',
       t: 'text',
+      fmt: 'plain',
       label: 'Valeur de l’accolade (ex. +64 %)',
     },
     {
@@ -142,6 +143,7 @@ export default {
       when: (o) => !!(o.callout && o.callout.on),
       why: 'Activez l’accolade pour régler ce texte.',
       t: 'text',
+      fmt: 'basic',
       label: 'Texte de l’accolade',
     },
     { t: 'table', k: 'rows', series: 'series', maxSeries: 4, label: 'Données', icons: true },

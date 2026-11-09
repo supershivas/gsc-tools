@@ -145,8 +145,8 @@ export default {
       fields: [
         { k: 'color', t: 'color', label: 'Couleur' },
         { k: 'value', t: 'number', label: 'Valeur', min: 0, step: 'any' },
-        { k: 'title', t: 'text', label: 'Titre (gras)' },
-        { k: 'text', t: 'area', label: 'Texte' },
+        { k: 'title', t: 'text', fmt: 'basic', label: 'Titre (gras)' },
+        { k: 'text', t: 'area', fmt: 'basic', label: 'Texte' },
         { k: 'side', t: 'select', label: 'Côté du libellé', options: { auto: 'Auto', left: 'Gauche', right: 'Droite' } },
         { k: 'link', t: 'bool', label: 'Trait de liaison vers l’extérieur (jusqu’au bord de la colonne et au-delà)' },
       ],

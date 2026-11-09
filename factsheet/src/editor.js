@@ -86,7 +86,13 @@ export function linkShortcut() {
   document.addEventListener('keydown', (e) => {
     if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey || e.key.toLowerCase() !== 'k') return;
     const el = e.target;
-    if (!el || !(el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && el.type === 'text')) || el.closest('.modal, dialog')) return;
+    if (
+      !el ||
+      !(el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && el.type === 'text')) ||
+      el.closest('.modal, dialog') ||
+      el.dataset.plain
+    )
+      return;
     e.preventDefault();
     insertLink(el);
   });
@@ -295,7 +301,9 @@ let galleryOpen = false,
   moreOpen = false; // la galerie de styles reste ouverte d'un éditeur à l'autre (le temps de la session)
 export function richEditor(value, onChange, opts = {}) {
   const ed = h('div', { class: 're', contentEditable: 'true', spellcheck: 'true', innerHTML: mkToHtml(value, opts.typo) });
-  const full = opts.bullets !== false;
+  /* niveaux de mise en forme : 'full' (styles de paragraphe, listes, tout le balisage en ligne), 'inline' (tout le balisage en ligne, sans paragraphes : le dessin passe par inlineMk), 'basic' (gras, italique, souligné : ce que savent rendre les textes dessinés dans un graphique) */
+  const level = opts.level || (opts.bullets === false ? 'inline' : 'full');
+  const full = level === 'full';
   const cmd = (c) => () => {
     ed.focus();
     document.execCommand(c);
@@ -361,8 +369,8 @@ export function richEditor(value, onChange, opts = {}) {
     mk('B', 'Gras', 'bold', { fontWeight: 800 }),
     mk('I', 'Italique', 'italic', { fontStyle: 'italic' }),
     mk('U', 'Souligné', 'underline', { textDecoration: 'underline' }),
-    mk('x²', 'Exposant', 'superscript'),
-    mk('x₂', 'Indice', 'subscript'),
+    level === 'basic' ? null : mk('x²', 'Exposant', 'superscript'),
+    level === 'basic' ? null : mk('x₂', 'Indice', 'subscript'),
     full
       ? (() => {
           const b = mk('', 'Liste à puces', 'insertUnorderedList');
@@ -557,6 +565,8 @@ export function richEditor(value, onChange, opts = {}) {
     const ob = mk('', t('Liste numérotée'), 'insertOrderedList');
     ob.append(ico('list-numbers'));
     bar.insertBefore(ob, bar.querySelector('[data-cmd=insertUnorderedList]').nextSibling);
+  }
+  if (level !== 'basic') {
     const ib = (icon, title, fn, cmd) =>
       h(
         'button',
@@ -723,6 +733,8 @@ const labelled = (h2, label, control) => {
   );
 };
 /** nombres gardés en champ numérique (petits entiers qu'on compte) ; les autres champs bornés deviennent un curseur */
+/** niveau de mise en forme d'un champ de texte : `fmt` explicite ('full' | 'inline' | 'basic' | 'plain'), sinon `rich` = inline, `area` = full ; null = champ simple */
+const fmtOf = (f) => (f.fmt === 'plain' ? null : f.fmt || (f.rich ? 'inline' : f.t === 'area' ? 'full' : null));
 const STEPPER_FIELDS = new Set(['cols', 'gridRows']);
 const AUTO_FIELDS = new Set(['perDot', 'perRow', 'total']);
 const NUMBER_FIELDS = new Set([...STEPPER_FIELDS, ...AUTO_FIELDS]);
@@ -779,23 +791,25 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
   for (const f of spec) {
     const start = out.length;
     if (f.t === 'node') out.push(f.build(root, ctx));
-    else if ((f.t === 'text' || f.t === 'lines') && f.rich)
+    else if ((f.t === 'text' || f.t === 'lines' || f.t === 'area') && fmtOf(f))
+      /* même rangée pour tous les champs de texte mis en forme ; seul le niveau change (voir `richEditor`) */
       out.push(
         h2(
           'div',
           { class: 'f' },
-          h2('div', { class: 'hint' }, f.label, helpBtn(f.label)),
+          h2('div', { class: 'hint pp-fh' }, f.label, helpBtn(f.label), h2('span', { class: 'pp-sp' })),
           richEditor(
             getP(obj, f.k) ?? '',
             (v) => {
               setP(obj, f.k, v);
               ctx.changed();
             },
-            { bullets: false, typo: ctxTypo(ctx) },
+            { level: fmtOf(f), typo: ctxTypo(ctx) },
           ),
         ),
       );
     else if (f.t === 'text') {
+      const plain = f.fmt === 'plain' || f.k === 'suffix'; // texte dessiné tel quel : ni lien ni mise en forme
       const field =
         f.k === 'suffix' || f.single
           ? h2('input', { type: 'text', value: getP(obj, f.k) ?? '', oninput: live((t) => setP(obj, f.k, t.value)) })
@@ -803,6 +817,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
               setP(obj, f.k, e.target.value);
               ctx.changed();
             });
+      if (plain) field.dataset.plain = '1';
       out.push(
         h2(
           'div',
@@ -813,7 +828,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
             f.label,
             helpBtn(f.label),
             h2('span', { class: 'pp-sp' }),
-            f.k === 'suffix' ? null : linkButton(() => field),
+            plain ? null : linkButton(() => field),
           ),
           field,
           f.k === 'suffix'
@@ -824,23 +839,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
             : null,
         ),
       );
-    } else if (f.t === 'area')
-      out.push(
-        h2(
-          'div',
-          { class: 'f' },
-          h2('div', { class: 'hint', textContent: f.label }),
-          richEditor(
-            getP(obj, f.k) ?? '',
-            (v) => {
-              setP(obj, f.k, v);
-              ctx.changed();
-            },
-            { typo: ctxTypo(ctx) },
-          ),
-        ),
-      );
-    else if (f.t === 'lines')
+    } else if (f.t === 'lines')
       out.push(
         h2(
           'label',

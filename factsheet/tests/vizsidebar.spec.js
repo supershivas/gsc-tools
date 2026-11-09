@@ -391,3 +391,38 @@ test.describe('confort', () => {
       ).toBeVisible();
   });
 });
+
+/* Champs de texte : un seul composant, la mise en forme proposée suit ce que le dessin sait rendre */
+test.describe('champs de texte', () => {
+  test.beforeEach(async ({ page }) => {
+    await openApp(page, 'default');
+    await openEditor(page);
+  });
+  test('trois niveaux : simple, de base (B I U), complet (barre en ligne et lien)', async ({ page }) => {
+    await pickType(page, /^Bars \(/);
+    await page.locator('.ve-form .pp-q').fill(' ');
+    const f = (name) => page.locator('.ve-form .f', { hasText: name });
+    // texte dessiné tel quel : champ simple, ni lien ni mise en forme
+    await expect(f('Bracket value').locator('.re')).toHaveCount(0);
+    await expect(f('Bracket value').locator('button[title*="lien" i], button[title*="link" i]')).toHaveCount(0);
+    // texte dessiné avec gras, italique, souligné : ces trois boutons seulement
+    await expect(f('Bracket text').locator('.re')).toHaveCount(1);
+    await expect(f('Bracket text').locator('button[data-cmd]')).toHaveCount(3);
+    await expect(f('Bracket text').locator('.re-more, [aria-label="More formatting"]')).toHaveCount(0);
+    // texte rendu par inlineMk : barre complète, avec la rangée « … » (couleur, lien…)
+    await page
+      .locator('.ve-form .pp-card', { has: page.locator('b', { hasText: /^Figure beside$/ }) })
+      .locator('select')
+      .first()
+      .selectOption('right');
+    const fig = f('Text under the figure');
+    await expect(fig.locator('button[data-cmd=superscript]')).toHaveCount(1);
+    await fig.locator('[aria-label="More formatting"]').click();
+    await expect(fig.locator('button[aria-label="Link"]')).toHaveCount(1);
+    // la source de la dataviz a la même barre
+    await page.locator('.ve-form .pp-q').fill('source');
+    const src = page.locator('.ve-form .f', { hasText: 'Dataviz source' });
+    await src.locator('button[aria-label="Formatting"]').click();
+    await expect(src.locator('[aria-label="More formatting"]')).toHaveCount(1);
+  });
+});

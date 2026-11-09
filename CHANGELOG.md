@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.83.0 — 2026-11-09
+- Champs de texte uniformisés : un seul composant, avec la mise en forme que le dessin sait vraiment rendre
+- Titre, source, chiffre à côté et liste à icônes ont tous la même barre complète (gras, italique, souligné, exposant, indice, puis couleur, surlignage, lien, notes) ; les textes dessinés dans les graphiques n'ont que gras, italique et souligné, ou rien du tout pour les titres d'axes et les valeurs
+- Fin du lien qui insérait du code visible dans les textes dessinés (accolade, titres d'axes, unités)
+
 ## 1.82.0 — 2026-11-09
 - Éditeur de dataviz : épaisseur des barres en vignettes, « + / − » pour les cases d'une grille, interrupteur « Auto » à la place du 0 magique, unités courantes (%, M€, Md€…) en un clic, listes à icônes (orientation, libellés, extrémités, alignement)
 - Chaque carte a un bouton ↺ « Rétablir la carte » dès qu'un de ses réglages a changé ; Maj + clic ouvre plusieurs cartes à la fois
