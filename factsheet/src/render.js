@@ -1,6 +1,7 @@
 /* Rendu du document en pages A4 (HTML). Aucune valeur de mise en page en dur :
    tout vient de tokens.js via les variables CSS (--s*, --gap-*, --t-*, --c-*). */
-import { PAGE, GRID, HEADER, GAP, cssVars, applyVars, colWidth, subColWidth, insetW, setDensity, paletteOf } from './tokens.js';
+import { PAGE, GRID, HEADER, GAP, cssVars, applyVars, subColWidth, insetW, densityGaps, paletteOf } from './tokens.js';
+import { renderCtx } from './renderctx.js';
 import { IMAGE_RATIOS } from './state.js';
 import { renderViz, composeSide } from './viz/index.js';
 import { inlineMk, s, setTypo, stripInline } from './viz/util.js';
@@ -297,7 +298,7 @@ function renderSub(sub, si, bi, env, W) {
   });
   let x = 0;
   sub.cols.forEach((c, i) => {
-    const cw = subColWidth(sub, i, W),
+    const cw = subColWidth(sub, i, env.rc.gutter, W),
       node = renderCol(c, cw, `col:${si}:${bi}:${i}`, env);
     node.style.gridColumn = custom ? 'span 1' : `span ${L.spans[i]}`;
     cols.append(node);
@@ -308,10 +309,10 @@ function renderSub(sub, si, bi, env, W) {
         h('div', {
           class: 'col-split',
           dataset: { split: i },
-          style: { position: 'absolute', top: '0', bottom: '0', left: x + 'px', width: GRID.gutter + 'px' },
+          style: { position: 'absolute', top: '0', bottom: '0', left: x + 'px', width: env.rc.gutter + 'px' },
         }),
       );
-      x += GRID.gutter;
+      x += env.rc.gutter;
     }
   });
   el.append(cols);
@@ -320,7 +321,6 @@ function renderSub(sub, si, bi, env, W) {
 
 /** Largeur réelle (px) de la colonne ci de la sous-section bi de la section si : tient compte des contours emboîtés */
 export function columnWidth(doc, si, bi, ci) {
-  setDensity(doc.density);
   const sec = doc.sections[si],
     sub = sec && sec.subs[bi],
     col = sub && sub.cols[ci];
@@ -328,7 +328,7 @@ export function columnWidth(doc, si, bi, ci) {
   let W = GRID.contentW;
   if (isBox(sec)) W = insetW(W);
   if (isBox(sub)) W = insetW(W);
-  const w = subColWidth(sub, ci, W);
+  const w = subColWidth(sub, ci, densityGaps(doc.density).columns, W);
   return isBox(col) && col.type !== 'card' ? insetW(w) : w;
 }
 
@@ -341,13 +341,14 @@ export const defaultRuleColor = (s) => (!isBand(s) || s.bg === 'white' ? 'tint-b
     d'une page va jusqu'au bord haut (ou colle au header), le dernier jusqu'au bord bas (voir measure()). */
 function renderSection(sec, si, env, pos) {
   const band = isBand(sec),
-    style = {};
-  const firstGap = pos.key === 'recto' ? GAP.headerToBody : PAGE.marginTop;
-  style.marginTop = (pos.first ? (band ? 0 : firstGap) : band && pos.prevBand ? 0 : GAP.sectionBefore) + 'px';
+    style = {},
+    gap = env.rc.gap;
+  const firstGap = pos.key === 'recto' ? gap.headerToBody : PAGE.marginTop;
+  style.marginTop = (pos.first ? (band ? 0 : firstGap) : band && pos.prevBand ? 0 : gap.sectionBefore) + 'px';
   if (band) {
     style.background = `var(--c-${sec.bg})`;
-    style.paddingTop = (pos.first ? firstGap : GAP.bandPad) + 'px';
-    style.paddingBottom = (pos.last ? PAGE.marginBottom : GAP.bandPad) + 'px';
+    style.paddingTop = (pos.first ? firstGap : gap.bandPad) + 'px';
+    style.paddingBottom = (pos.last ? PAGE.marginBottom : gap.bandPad) + 'px';
   }
   const cls = ['sec', band && 'sec-band', pos.first && 'sec-first', pos.last && 'sec-last', sec.subRules === false && 'sec-norules']
     .filter(Boolean)
@@ -357,7 +358,7 @@ function renderSection(sec, si, env, pos) {
   /* filet entre sections (vrai élément : l'export PDF le lit) : au milieu de l'écart entre deux sections sur fond blanc, ou à la jonction de deux bandes de couleur ;
      entre un fond blanc et une bande, le changement de fond sert déjà de séparation */
   if (!pos.first && sec.secRule !== false && band === pos.prevBand)
-    el.prepend(h('div', { class: 'sec-rule', style: { top: band ? '0px' : `calc(${-GAP.sectionBefore / 2}px - var(--stroke) / 2)` } }));
+    el.prepend(h('div', { class: 'sec-rule', style: { top: band ? '0px' : `calc(${-gap.sectionBefore / 2}px - var(--stroke) / 2)` } }));
   let host = el,
     W = GRID.contentW;
   if (isBox(sec)) {
@@ -374,10 +375,9 @@ function renderSection(sec, si, env, pos) {
 /** → { pages: [{el, key, content, top, max, used, overflow}], warnings: [] } */
 export function renderDocument(doc) {
   iconLib.list = doc.customIcons || (doc.customIcons = []); // icônes SVG importées, communes à tout le document
-  setDensity(doc.density);
   setTypo(doc);
-  const vars = cssVars(doc.theme, doc.colors);
-  const env = { locale: doc.locale || 'en-GB', pal: paletteOf(doc.theme, doc.colors), fills: [], page: '' };
+  const vars = cssVars(doc.theme, doc.colors, doc.density);
+  const env = { locale: doc.locale || 'en-GB', pal: paletteOf(doc.theme, doc.colors), fills: [], page: '', rc: renderCtx(doc) };
   const pages = [];
   for (const key of ['recto', 'verso']) {
     env.page = key;

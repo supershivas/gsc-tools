@@ -37,7 +37,7 @@ export const SPACE = {
 };
 
 /* Rôles : chaque espacement du document a un nom, jamais un nombre libre */
-export const GAP = {
+export const GAP = Object.freeze({
   headerPadX: PAGE.margin, // 52 — marges latérales du header (alignées sur la page)
   headerPadY: SPACE[12], // 36
   headerImgText: SPACE[6], // 18 — entre l'image et le bloc de texte
@@ -53,24 +53,26 @@ export const GAP = {
   paragraph: SPACE[2], // 6  — entre paragraphes / items de liste
   boxPad: SPACE[4], // 12 — padding des encadrés
   bandPad: SPACE[6], // 18 — haut/bas d'une section sur fond coloré
-};
+});
 
 /* ---------- Densité d'espacement (réglage du document) ----------
    Les écarts entre sections, sous-sections et colonnes sont multipliés puis arrondis à la grille de 3 px ; marges de page,
-   retraits d'encadrés et textes ne bougent pas. `setDensity` est appelé avant chaque rendu (renderDocument, columnWidth). */
+   retraits d'encadrés et textes ne bougent pas. GAP reste la valeur « normale » : les écarts d'un document se lisent dans
+   `densityGaps(doc.density)` (contexte de rendu `rc.gap`, voir renderctx.js), jamais dans une variable modifiée. */
 export const DENSITIES = { tight: { label: 'Serré', f: 0.75 }, normal: { label: 'Actuel', f: 1 }, loose: { label: 'Large', f: 1.25 } };
 const DENSE_KEYS = ['sectionBefore', 'sectionTitle', 'subsectionBefore', 'subsectionTitle', 'columns', 'bandPad'];
-const BASE_GAP = Object.fromEntries(DENSE_KEYS.map((k) => [k, GAP[k]]));
-export function setDensity(key) {
-  const f = (DENSITIES[key] || DENSITIES.normal).f;
-  for (const k of DENSE_KEYS) GAP[k] = Math.max(BASE, Math.round((BASE_GAP[k] * f) / BASE) * BASE);
-  GRID.gutter = GAP.columns;
-}
+const GAPS_BY_DENSITY = Object.fromEntries(
+  Object.entries(DENSITIES).map(([key, { f }]) => [
+    key,
+    Object.freeze({ ...GAP, ...Object.fromEntries(DENSE_KEYS.map((k) => [k, Math.max(BASE, Math.round((GAP[k] * f) / BASE) * BASE)])) }),
+  ]),
+);
+/** écarts du document (GAP avec les écarts de `DENSE_KEYS` mis à la densité) ; densité inconnue = normale. `.columns` = gouttière. */
+export const densityGaps = (key) => GAPS_BY_DENSITY[key] || GAPS_BY_DENSITY.normal;
 
 /* ---------- Grille ---------- */
-export const GRID = {
+export const GRID = Object.freeze({
   cols: 3,
-  gutter: GAP.columns,
   contentW: PAGE.w - 2 * PAGE.margin, // 690
   /* Gabarits de sous-section : grille de `cols` colonnes, chaque colonne occupe `spans[i]` */
   layouts: {
@@ -91,7 +93,7 @@ export const GRID = {
     '1-1-2': { label: '3 colonnes (1/4 + 1/4 + 1/2)', cols: 4, spans: [1, 1, 2] },
     custom: { label: 'Personnalisé (poignées entre les colonnes)', cols: 1, spans: [1], hidden: true, custom: true }, // largeurs libres : sub.widths = fractions (somme 1), réglées à la souris
   },
-};
+});
 
 /** gabarit « personnalisé » d'une sous-section (pour le schéma du menu) : une colonne par largeur, en centièmes */
 export const customLayoutOf = (sub) => ({
@@ -99,21 +101,22 @@ export const customLayoutOf = (sub) => ({
   cols: 100,
   spans: (sub.widths || [1]).map((f) => Math.max(1, Math.round(f * 100))),
 });
-/** largeur (px) de la colonne i d'une sous-section : gabarit, ou largeurs personnalisées (fractions de la place hors gouttières) */
-export function subColWidth(sub, i, W = GRID.contentW) {
+/** largeur (px) de la colonne i d'une sous-section : gabarit, ou largeurs personnalisées (fractions de la place hors gouttières) ;
+    gutter = gouttière du document (`densityGaps(doc.density).columns`, ou `rc.gutter` pendant un rendu) */
+export function subColWidth(sub, i, gutter, W = GRID.contentW) {
   if (sub.layout === 'custom' && Array.isArray(sub.widths) && sub.widths[i] != null) {
     const sum = sub.widths.reduce((a, b) => a + b, 0) || 1;
-    return ((W - (sub.widths.length - 1) * GRID.gutter) * sub.widths[i]) / sum;
+    return ((W - (sub.widths.length - 1) * gutter) * sub.widths[i]) / sum;
   }
-  return colWidth(sub.layout, i, W);
+  return colWidth(sub.layout, i, gutter, W);
 }
 
-/** largeur (px) de la colonne i d'un gabarit — sert aux dataviz */
-export function colWidth(layoutKey, i, W = GRID.contentW) {
+/** largeur (px) de la colonne i d'un gabarit — sert aux dataviz ; gutter : voir subColWidth */
+export function colWidth(layoutKey, i, gutter, W = GRID.contentW) {
   const L = GRID.layouts[layoutKey] || GRID.layouts['1'];
-  const unit = (W - (L.cols - 1) * GRID.gutter) / L.cols;
+  const unit = (W - (L.cols - 1) * gutter) / L.cols;
   const s = L.spans[i] || 1;
-  return s * unit + (s - 1) * GRID.gutter;
+  return s * unit + (s - 1) * gutter;
 }
 
 /* ---------- Typographie ----------
@@ -247,12 +250,13 @@ export function colorLabel(doc, key) {
 }
 
 /* ---------- Application en variables CSS ---------- */
-export function cssVars(themeKey, colors) {
+/** density : densité du document (`doc.density`) pour les variables --gap-* ; absente = normale */
+export function cssVars(themeKey, colors, density) {
   const th = THEMES[themeKey] || THEMES[DEFAULT_THEME];
   const pal = paletteOf(themeKey, colors);
   const v = {};
   for (const [k, n] of Object.entries(SPACE)) v[`--s${k}`] = n + 'px';
-  for (const [k, val] of Object.entries(GAP)) v[`--gap-${k}`] = val + 'px';
+  for (const [k, val] of Object.entries(densityGaps(density))) v[`--gap-${k}`] = val + 'px';
   for (const [k, t] of Object.entries(TYPE)) {
     v[`--t-${k}-size`] = t.size + 'pt';
     v[`--t-${k}-lh`] = t.lh + 'px';

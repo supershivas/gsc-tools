@@ -2,7 +2,7 @@
    survolé (colonne → sous-section → section, ou header). Elle vit hors des pages : jamais exportée. */
 import { h, ico, columnWidth, vizChartH, matchTarget, matchColTarget } from './render.js';
 import { VIZ_TYPES } from './viz/index.js';
-import { PAGE, TYPE, GAP, GRID, THEMES, sectionBgs, paletteKeys, colorLabel, cssVars, applyVars } from './tokens.js';
+import { PAGE, TYPE, GRID, THEMES, sectionBgs, paletteKeys, colorLabel, cssVars, applyVars, densityGaps } from './tokens.js';
 import { t } from './i18n.js';
 import { COL_TYPES, newCol, newSub, newSection, stepSection, refreshAutoCards } from './state.js';
 import { readImage } from './editor.js';
@@ -401,10 +401,11 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
       clearTimeout(timer);
       const pr = pageEl.getBoundingClientRect(),
         sc = pr.width / PAGE.w,
-        hd = pageEl.querySelector('.hd');
-      const top = hd ? hd.getBoundingClientRect().bottom + GAP.headerToBody * sc : pr.top + PAGE.marginTop * sc,
+        hd = pageEl.querySelector('.hd'),
+        gap = densityGaps(getDoc().density);
+      const top = hd ? hd.getBoundingClientRect().bottom + gap.headerToBody * sc : pr.top + PAGE.marginTop * sc,
         hh = Math.min(
-          (TYPE.section.lh + GAP.sectionTitle + TYPE.subsection.lh + GAP.subsectionTitle + TYPE.body.lh) * sc,
+          (TYPE.section.lh + gap.sectionTitle + TYPE.subsection.lh + gap.subsectionTitle + TYPE.body.lh) * sc,
           pr.bottom - PAGE.marginBottom * sc - top,
         );
       bar.style.display = out.style.display = addSubBtn.style.display = 'none';
@@ -439,7 +440,7 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
       else grip.style.display = 'none';
     }
     const doc = getDoc();
-    applyVars(bar, cssVars(doc.theme, doc.colors));
+    applyVars(bar, cssVars(doc.theme, doc.colors, doc.density));
     bar.innerHTML = '';
     bar.append(...groups(chain, doc));
     bar.style.display = 'flex';
@@ -463,9 +464,10 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
         pageEl = secIt.el.closest('.page'),
         pr = pageEl.getBoundingClientRect(),
         sc = pr.width / PAGE.w,
-        limit = pr.bottom - PAGE.marginBottom * sc;
-      const subH = TYPE.subsection.lh + GAP.subsectionTitle + TYPE.body.lh,
-        secH = TYPE.section.lh + GAP.sectionTitle + subH;
+        limit = pr.bottom - PAGE.marginBottom * sc,
+        gap = densityGaps(doc.density);
+      const subH = TYPE.subsection.lh + gap.subsectionTitle + TYPE.body.lh,
+        secH = TYPE.section.lh + gap.sectionTitle + subH;
       const place = (b, it, inset, top, want) => {
         const hh = Math.min(want * sc, limit - top);
         if (hh < 20) return 0;
@@ -485,9 +487,9 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
       if (lastSec) {
         if (subIt && subIt.bi === sec.subs.length - 1) {
           const sb = subIt.el.getBoundingClientRect();
-          y = place(addSubBtn, subIt, 0, sb.bottom + GAP.subsectionBefore * sc, subH) || y;
+          y = place(addSubBtn, subIt, 0, sb.bottom + gap.subsectionBefore * sc, subH) || y;
         }
-        place(addSecBtn, secIt, PAGE.margin * sc, y + GAP.sectionBefore * sc, secH);
+        place(addSecBtn, secIt, PAGE.margin * sc, y + gap.sectionBefore * sc, secH);
       }
     }
     /* même forme que le cadre de sélection : 3 px d'air, coins de 3 px ; une section sur toute sa largeur, marges comprises */

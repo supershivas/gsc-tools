@@ -7,7 +7,8 @@ import { h, ico } from './render.js';
 import { HAS_PREFIX } from './textstyles.js';
 import { openPalette } from './palette.js';
 import { buildFields, paletteOptions, richEditor } from './editor.js';
-import { colWidth, subColWidth, cssVars, applyVars, paletteOf } from './tokens.js';
+import { colWidth, subColWidth, cssVars, applyVars, paletteOf, densityGaps } from './tokens.js';
+import { renderCtx } from './renderctx.js';
 import { VIZ_TYPES, VIZ_FAMILIES, switchKind, renderVizFull } from './viz/index.js';
 import { cardEl, searchBox, applyFilter } from './cards.js';
 import { helpBtn } from './help.js';
@@ -122,7 +123,8 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
   if (current) return;
   const doc = ctx.getDoc();
   const snapshot = JSON.stringify(col.viz);
-  const baseW = colW || subColWidth(sub, ci);
+  const gutter = densityGaps(doc.density).columns;
+  const baseW = colW || subColWidth(sub, ci, gutter);
   const ui = { sel: -1, drag: null };
   let width = baseW,
     zoom = 'fit',
@@ -130,7 +132,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     svgW = baseW;
 
   const root = h('div', { class: 've' });
-  applyVars(root, cssVars(doc.theme, doc.colors));
+  applyVars(root, cssVars(doc.theme, doc.colors, doc.density));
   const sheet = h('div', { class: 'page viz-sheet', style: { background: bg && bg !== 'none' ? `var(--c-${bg})` : '#fff' } });
   const holder = h('div', { class: 'col col-viz' });
   sheet.append(holder);
@@ -183,7 +185,13 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
     return Math.max(0.1, Math.min(2, aw / (width + 48), ah / Math.max(1, sheet.offsetHeight)));
   }
   function draw() {
-    const r = renderVizFull(col.viz, width, { locale: doc.locale || 'en-GB', ui, pal: paletteOf(doc.theme, doc.colors), fillH: availH });
+    const r = renderVizFull(col.viz, width, {
+      locale: doc.locale || 'en-GB',
+      ui,
+      pal: paletteOf(doc.theme, doc.colors),
+      fillH: availH,
+      rc: renderCtx(doc),
+    });
     holder.innerHTML = '';
     if (r && r.node) {
       holder.append(r.node);
@@ -208,7 +216,12 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
   }
   /* Aperçu réduit du panneau de l'onglet Données : la dataviz à la largeur choisie, mise à l'échelle du panneau */
   function drawMini() {
-    const r = renderVizFull(col.viz, width, { locale: doc.locale || 'en-GB', pal: paletteOf(doc.theme, doc.colors), fillH: availH });
+    const r = renderVizFull(col.viz, width, {
+      locale: doc.locale || 'en-GB',
+      pal: paletteOf(doc.theme, doc.colors),
+      fillH: availH,
+      rc: renderCtx(doc),
+    });
     miniHold.innerHTML = '';
     if (!r || !r.node) return;
     const k = Math.min(1, 270 / (width + 48)),
@@ -286,12 +299,12 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
   const palCtx = {
     getDoc: ctx.getDoc,
     changed: () => {
-      applyVars(root, cssVars(doc.theme, doc.colors));
+      applyVars(root, cssVars(doc.theme, doc.colors, doc.density));
       draw();
       ctx.changed();
     },
     restructure: () => {
-      applyVars(root, cssVars(doc.theme, doc.colors));
+      applyVars(root, cssVars(doc.theme, doc.colors, doc.density));
       buildForm();
       draw();
     },
@@ -672,7 +685,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx }) {
       ['1-1', '1/2'],
       ['2-1', '2/3'],
       ['1', 'Pleine largeur'],
-    ].map(([k, l]) => [colWidth(k, 0), `${l} (${Math.round(colWidth(k, 0))} px)`]),
+    ].map(([k, l]) => [colWidth(k, 0, gutter), `${l} (${Math.round(colWidth(k, 0, gutter))} px)`]),
   ];
   const wSel = h(
     'select',

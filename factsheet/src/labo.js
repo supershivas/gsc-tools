@@ -4,7 +4,8 @@
    adresse #sujet-LETTRE ; flèches du clavier et balayage pour changer de variante. */
 import { initI18n, t } from './i18n.js';
 import { h } from './render.js';
-import { cssVars, applyVars, colWidth, insetW, DEFAULT_THEME, paletteOf } from './tokens.js';
+import { cssVars, applyVars, colWidth, insetW, DEFAULT_THEME, paletteOf, GAP } from './tokens.js';
+import { renderCtx } from './renderctx.js';
 import { renderCard } from './card.js';
 import { CARD_DEFAULTS, CARD_CHECKS } from './cardmodel.js';
 import { renderFigure, FIGURE_DEFAULTS } from './figure.js';
@@ -31,7 +32,7 @@ const VALIGN_FLEX = { top: 'flex-start', center: 'center', bottom: 'flex-end' };
 const vizVariant = kind => { const ty = VIZ_TYPES[kind]; return { title: ty.label, desc: VIZ_DESC[kind] || '', opts: { kind, viz: ty.defaults(), head: { title: '', source: '' }, boxH: 0, valign: 'top' } }; };
 
 
-const WIDTHS = { '1/3': colWidth('1-1-1', 0), '1/2': colWidth('1-1', 0), '2/3': colWidth('2-1', 0), 'full': colWidth('1', 0) };
+const WIDTHS = { '1/3': colWidth('1-1-1', 0, GAP.columns), '1/2': colWidth('1-1', 0, GAP.columns), '2/3': colWidth('2-1', 0, GAP.columns), 'full': colWidth('1', 0, GAP.columns) };
 
 const cardControls = [
   { type: 'radio', k: 'layout', label: 'Position de l’image', choices: { vertical: 'En haut', left: 'À gauche', right: 'À droite' } },
@@ -182,7 +183,7 @@ const optCard = (id, icon, name, nodes) => {
 function renderVizTopic(o, W, paint) {
   const ty = VIZ_TYPES[o.kind], opts = o.viz, ui = (o.__ui ||= { sel: -1, drag: null });
   if (ty.heights && o.boxH) Object.assign(opts, { hmode: 'fixed', hfixed: o.boxH, valign: o.valign }); else if (ty.heights) { delete opts.hmode; delete opts.hfixed; }
-  const r = renderVizFull({ kind: o.kind, opts, head: o.head }, W, { locale: 'en-GB', pal: paletteOf(DEFAULT_THEME, {}), ui });
+  const r = renderVizFull({ kind: o.kind, opts, head: o.head }, W, { locale: 'en-GB', pal: paletteOf(DEFAULT_THEME, {}), ui, rc: renderCtx({}) });
   const box = h('div', { class: 'labo-vizbox' + (o.boxH ? ' fixed' : ''), style: { width: W + 'px', minHeight: o.boxH ? o.boxH + 'px' : null, display: 'flex', alignItems: VALIGN_FLEX[o.valign] || 'flex-start' } });
   box.append(r ? r.node : h('div', { textContent: 'Rendu impossible' }));
   /* réordonner à la souris : les autres éléments se réajustent en direct (vizreorder.js) */

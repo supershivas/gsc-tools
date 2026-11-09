@@ -165,7 +165,7 @@ export async function rasterizeDocument(doc, scale = 2) {
     await inlineImages(stage);
     const out = [];
     for (const p of result.pages) {
-      const vars = Object.entries(cssVars(doc.theme, doc.colors))
+      const vars = Object.entries(cssVars(doc.theme, doc.colors, doc.density))
         .map(([k, v]) => `${k}:${v}`)
         .join(';')
         .replace(/&/g, '&amp;')

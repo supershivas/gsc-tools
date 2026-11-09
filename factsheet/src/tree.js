@@ -33,7 +33,7 @@ export function buildTree(root, ctx) {
     mark = previewing ? ctx.previewMark() : null,
     collapsed = ctx.collapsed;
   root.innerHTML = '';
-  applyVars(root, cssVars(doc.theme, doc.colors));
+  applyVars(root, cssVars(doc.theme, doc.colors, doc.density));
   const row = (path, cls, kids) =>
     h(
       'div',

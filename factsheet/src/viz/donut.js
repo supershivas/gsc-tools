@@ -1,7 +1,7 @@
 /* Anneau : segments proportionnels, total au centre (Source Serif 4),
    libellés autour de l'anneau avec traits de repère (colonnes larges)
    ou en légende sous l'anneau (colonnes étroites). Logique reprise de donut-export. */
-import { VIZ, TYPE, GAP } from '../tokens.js';
+import { VIZ, TYPE } from '../tokens.js';
 import { s, SW, colorRef, pxOf, fmt, mw, SERIF, SANS, round3, textLines, drawLines } from './util.js';
 import { t } from '../i18n.js';
 
@@ -410,7 +410,7 @@ export default {
         cy = Ro + SW,
         svg = s('svg', { width: W, height: 10, style: { display: 'block', overflow: 'visible' } });
       svg.append(...ringNodes(cx, cy), centerNode(cx, cy), ...linkNodes(cx, cy));
-      let y = cy + Ro + GAP.subsectionTitle * 2;
+      let y = cy + Ro + env.rc.gap.subsectionTitle * 2;
       const sw = VIZ.legendSwatch,
         tx = sw + VIZ.iconGap;
       for (const p of bare ? [] : arcs.filter((q) => hasLabel(q.g))) {

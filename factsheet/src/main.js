@@ -93,7 +93,7 @@ const ctx = {
     saveDoc(doc);
     ctx.schedule();
     drawTree();
-    const v = cssVars(doc.theme, doc.colors);
+    const v = cssVars(doc.theme, doc.colors, doc.density);
     applyVars(propsEl, v);
     applyVars(treeEl, v);
   },
