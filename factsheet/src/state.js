@@ -492,6 +492,8 @@ export function removeCol(doc, si, bi, ci) {
 
 /* ---------- Duplication d'une colonne ---------- */
 const EQUAL_LAYOUT = { 1: '1', 2: '1-1', 3: '1-1-1', 4: '1-1-1-1', 5: '1-1-1-1-1' };
+/** Gabarit à colonnes égales pour n colonnes */
+export const equalLayout = (n) => EQUAL_LAYOUT[n] || '1';
 /** Nombre maximal de colonnes proposées par les gabarits */
 export const MAX_COLS = 5;
 /** Une colonne « libre » ne contient rien à perdre : texte vide ou texte d'origine, image sans fichier */

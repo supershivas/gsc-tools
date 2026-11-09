@@ -481,3 +481,46 @@ test.describe('dupliquer une colonne', () => {
     await expect.poll(async () => (await layouts(page)).flat()).toContain('1-1-1:text,viz,viz');
   });
 });
+
+/* Réduire le nombre de colonnes : le contenu des colonnes en trop n'est jamais perdu sans question */
+test.describe('réduire les colonnes', () => {
+  let errors;
+  const sections = (page) =>
+    page.evaluate(() =>
+      JSON.parse(localStorage.getItem('factsheet-creator-v1')).sections[0].subs.map(
+        (b) => b.layout + ':' + b.cols.map((c) => c.type).join(','),
+      ),
+    );
+  test.beforeEach(async ({ page }) => {
+    errors = watchErrors(page);
+    await openApp(page, 'default');
+    await page.locator('#tree .col-row').first().click();
+    await page.locator('.crumbs a').nth(1).click(); // la sous-section « 3 chiffres clés »
+  });
+  test.afterEach(() => expect(errors).toEqual([]));
+  const pick = async (page) => {
+    await page.locator('.ls-btn').click();
+    await page.locator('.ls-pop .cs-opt', { hasText: /^2 columns$/ }).click();
+  };
+  test('annuler : rien ne change', async ({ page }) => {
+    await pick(page);
+    await expect(page.locator('dialog[open]')).toContainText('would be lost');
+    await page.locator('dialog[open]').getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.locator('.ls-btn')).toContainText('3 columns');
+    await page.waitForTimeout(800);
+    expect((await sections(page))[0]).toBe('1-1-1:figure,figure,figure');
+  });
+  test('déplacer dans une nouvelle sous-section', async ({ page }) => {
+    await pick(page);
+    await page.locator('dialog[open]').getByText('Move it to a new subsection').click();
+    await page.locator('dialog[open] button.primary').click();
+    await expect.poll(async () => (await sections(page)).slice(0, 2)).toEqual(['1-1:figure,figure', '1:figure']);
+  });
+  test('supprimer le contenu', async ({ page }) => {
+    await pick(page);
+    await page.locator('dialog[open]').getByText('Delete it').click();
+    await page.locator('dialog[open] button.primary').click();
+    await expect.poll(async () => (await sections(page))[0]).toBe('1-1:figure,figure');
+    expect((await sections(page)).length).toBe(2);
+  });
+});

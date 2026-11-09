@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.84.1 — 2026-11-09
+- Réduire le nombre de colonnes d'une sous-section ne perd plus rien en silence : si les colonnes retirées contiennent quelque chose, une fenêtre propose de les déplacer dans une nouvelle sous-section en dessous, de les supprimer, ou d'annuler
+- Le changement est annulable avec le bouton « Annuler le changement de gabarit »
+
 ## 1.84.0 — 2026-11-09
 - Nouveau bouton « Dupliquer la colonne » dans les propriétés d'une colonne
 - La copie prend la colonne suivante si elle est vide, s'ajoute à droite s'il n'y a pas de colonne suivante ; si la colonne suivante est déjà remplie, une fenêtre propose d'insérer une colonne (les colonnes deviennent égales), de remplacer la suivante ou de copier dans une nouvelle sous-section
