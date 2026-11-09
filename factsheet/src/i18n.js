@@ -241,8 +241,11 @@ const EN = {
   'Sans profil incorporé ; les liens restent cliquables (lecture à l’écran).': 'No embedded profile; links stay clickable (for on-screen reading).',
   'Ces caractères n’existent pas dans les polices du document et n’apparaîtront pas dans le PDF :': 'These characters do not exist in the document fonts and will not appear in the PDF:',
   'Télécharger quand même ?': 'Download anyway?',
+  /* traductions ajoutées par le contrôle de l'interface anglaise (tests/i18n.spec.js) */
+  'italique': 'italic', 'capitales': 'capitals', 'RVB écran': 'screen RGB', 'Labo du Factsheet creator': 'Factsheet creator Labo',
+  'Propriétés': 'Properties', 'Sélection': 'Selection', 'Éditeur dataviz': 'Dataviz editor', 'Panneau colonne': 'Column panel', 'Styles de texte': 'Text styles', 'Barre de texte': 'Text bar', 'Panneau texte': 'Text panel', 'Pistes à ajouter': 'Ideas to add',
 };
-const DICT = { en: EN };
+export const DICT = { en: EN };   // exporté pour scripts/check-i18n.mjs
 
 /* Motifs à valeurs variables */
 const PATTERNS = [

@@ -2,7 +2,7 @@
 
 Éditeur de fiche A4 recto-verso à design system strict (Source Sans 3 / Source Serif 4).
 Ouvrir `index.html` via un serveur local ou GitHub Pages — le code est empaqueté dans `app.js`, les polices sont locales (`fonts/`).
-Après modification de `src/` : `npm install` (une fois) puis `npm run build` pour régénérer `app.js` et `viewer3d.js`.
+Après modification de `src/` : `npm install` (une fois) puis `npm run build` pour régénérer les bundles (`app.js`, `viewer3d.js`, `atelier.js`, `labo.js`, `pdfexport.js`, tous minifiés) ; ils se commitent avec les sources. Le champ `version` de `package.json` (`0.0.0-private`) ne veut rien dire : la version de l'app est dans `../version.json`.
 
 ## Architecture
 - `src/tokens.js` — **seule source des valeurs de mise en page** : base 3 px, espacements nommés, grille, typo (pt + interlignes multiples de 3), trait 0,5 pt, header, dataviz, thèmes/palettes.
@@ -85,3 +85,33 @@ Interactions pour les autres types (barres : glisser les valeurs…) · 6 finiti
 
 ## Export PDF CMJN
 `src/pdf/pdf.js` (bundle `pdfexport.js`) : le document est rendu hors écran puis relu élément par élément et réécrit en PDF vectoriel DeviceCMYK avec pdf-lib. Couleurs : valeurs CMJN de la palette (`THEMES.eu.cmyk`, `doc.cmyk` pour celles saisies dans l'onglet CMJN du sélecteur), conversion simple pour les couleurs hors palette et les pixels des images ; noir et gris = noir seul. Texte : polices incorporées (`fonts/pdf/`), chaque mot posé à la position mesurée dans le navigateur. Modes : A4 net, fond perdu 3 mm, fond perdu + traits de coupe (TrimBox, BleedBox). L'export par l'impression du navigateur (RVB) est conservé dans la même boîte de dialogue.
+
+## Tests de non-régression
+Filet de sécurité avant de toucher au rendu ou à l'export : `tests/` (Playwright, Chromium). À lancer avant chaque push, depuis `factsheet/` :
+
+```bash
+npm ci                              # une fois (puis « npx playwright install chromium » si le navigateur manque)
+npm run check                       # traductions, compilation sans avertissement, bundles identiques au dépôt
+npm test                            # tests Playwright (≈ 30 s)
+```
+
+`npm test` lit les bundles du dépôt : après une modification de `src/`, lancer `npm run build` d'abord (`npm run check` le fait).
+
+**Ce qui est vérifié**
+- `npm run check` (`scripts/check.mjs`) : dictionnaire EN de `src/i18n.js` sans clé en double ni espace en bordure (`scripts/check-i18n.mjs`) ; `npm run build` sans aucune ligne `[WARNING]` d'esbuild ; `git diff --exit-code` sur les cinq bundles (un bundle oublié ou compilé à la main est refusé — pensez à `git add` avant de relancer).
+- `tests/visual.spec.js` : une capture par page de l'aperçu, pour 5 documents de référence (document par défaut ; « caractères » avec latin étendu, grec et cyrillique ; trois documents qui contiennent ensemble les 17 types de dataviz, 3 par page), comparée à `tests/references/`.
+- `tests/pdf.spec.js` : export PDF CMJN (`window.FSPDF.build`) de chaque document, en modes net / bleed / marks et profils none / x4 / x1a : nombre de pages, MediaBox / TrimBox / BleedBox, version d'en-tête (1.4 en x1a, 1.6 en x4), OutputIntent FOGRA39 et `/ID`, aucune transparence en x1a, aucun caractère manquant pour le document « caractères ». Fond perdu : la limite header / 1re bande est à 180 pt + le fond perdu du bord (lue sur le rendu `pdftoppm` ; sans `pdftoppm`, sur la capture de la page). Sécurité : une icône SVG importée avec un `onerror` n'exécute rien.
+- `tests/console.spec.js` : aucune erreur de console au chargement de `index.html`, `labo.html` et `atelier.html`.
+- `tests/i18n.spec.js` : interface en anglais, panneaux et fenêtres ouverts (menus, réglages, historique, propriétés de chaque sorte de colonne, styles de texte, export, couleurs, médias, éditeur de dataviz, Atelier, Labo à l'ouverture) : échoue sur tout texte visible qui contient encore du français (lettre accentuée, mot courant ou mot présent seulement dans les clés françaises du dictionnaire). Le changelog des réglages (français par convention) est ignoré. L'aperçu 3D et les variantes du Labo ne sont pas parcourus. Faux positif rare : l'ajouter à `ENGLISH_TOO` dans le fichier, avec la raison.
+
+**Organisation** : `tests/server.js` (serveur statique en Node, sans dépendance, sert la racine du dépôt) ; `tests/entry.js` + `tests/docs.js` (compilés par `tests/global-setup.js` en `tests/entry.bundle.js`, ignoré par git) exposent `defaultDoc`, `newSection`, `newSub`, `newCol`, `newViz`, `VIZ_TYPES` et fabriquent les documents ; `tests/helpers.js` (réseau externe coupé : polices Google et icônes Tabler ne sont pas chargées, le rendu ne dépend donc que du dépôt).
+
+**Captures de référence** (`tests/references/*-linux.png`) : générées sous Linux avec le Chromium de Playwright, comme en CI. Tolérance (`playwright.config.js`) : 0,5 % de pixels différents au plus et 0,2 d'écart de couleur par pixel — de quoi absorber le crénelage du texte, pas un décalage, un fond ou un texte qui change. Une capture qui change est une régression, sauf changement voulu du rendu : dans ce cas seulement, regarder l'image (`test-results/…-diff.png`), puis la mettre à jour et commiter :
+
+```bash
+npm run test:update                 # réécrit tests/references/ ; relire « git diff --stat » et les images
+```
+
+Sans Linux : lancer le workflow « Tests du Factsheet creator » à la main (onglet Actions, « Régénérer les captures de référence »), télécharger l'artefact `references` et le copier dans `tests/references/`.
+
+**CI** : `.github/workflows/tests.yml` (`npm ci`, `npm run check`, `npx playwright install --with-deps chromium`, tests) à chaque push et pull request ; `pages.yml` n'est pas touché. En cas d'échec, les captures obtenues, les différences et le rapport sont joints en artefact `tests-en-echec`.

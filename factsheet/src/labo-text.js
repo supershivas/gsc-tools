@@ -8,6 +8,7 @@
    - « Pistes à ajouter »    : styles et options qui manquent, à retenir ou non.
    Les variantes A reproduisent l'état actuel. Les glisseurs modifient le paragraphe sans tout redessiner (refresh). */
 import { h } from './render.js';
+import { t } from './i18n.js';
 
 const ic = n => h('i', { class: 'ti ti-' + n });
 const FAM = { sans: '"Source Sans 3", "Source Sans Pro", sans-serif', serif: '"Source Serif 4", "Source Serif Pro", serif' };
@@ -32,7 +33,7 @@ const ST = {
   figsm:  { n: 'Chiffre clé (petit)', g: 'Chiffres',  f: 'serif', s: 18, lh: 24, w: 700 },
 };
 const CURRENT = ['body', 'h1', 'h2', 'cap', 'fig', 'figsm'];          // les six styles d'aujourd'hui
-const specOf = k => { const s = ST[k]; return `${s.s} / ${fmt(s.lh / PX)} pt${s.it ? ' · italique' : ''}${s.up ? ' · capitales' : ''}${s.f === 'serif' ? ' · serif' : ''}`; };
+const specOf = k => { const s = ST[k]; return `${s.s} / ${fmt(s.lh / PX)} pt${s.it ? ' · ' + t('italique') : ''}${s.up ? ' · ' + t('capitales') : ''}${s.f === 'serif' ? ' · serif' : ''}`; };
 
 /* style CSS d'un paragraphe : le style + ses réglages propres (p.o) */
 function cssOf(p, scale = 1) {

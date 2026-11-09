@@ -1,9 +1,7 @@
 {
-  "version": "1.70.0",
+  "version": "1.70.1",
   "date": "2026-11-09",
   "changes": [
-    "Export PDF : choix du profil avant l'export — PDF/X-4 ou PDF/X-1a (profil d'impression FOGRA39 incorporé), ou CMJN sans norme",
-    "Export PDF : les lettres accentuées d'Europe centrale, le grec et le cyrillique sortent ; avertissement si un caractère manque aux polices",
-    "Corrige le fond perdu qui recouvrait le bas du header, l'opacité des textes (sources) dans le PDF, et un risque de code caché dans un SVG importé"
+    "Interface en anglais : traduit les derniers textes restés en français (styles de paragraphe, infobulles des couleurs du document, lien et sujets du Labo)"
   ]
 }

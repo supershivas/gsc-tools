@@ -3,6 +3,7 @@
    « @clé » = les autres styles (chapeau, gras, petit, citation, étiquette, source, note). Les classes CSS sont `p-<clé>` (doc.css).
    Réglages avancés d'un bloc : `obj.adv = { lh (px), ls (‰ em), kern ('none'), indent (px), before, after (px), align }`. */
 import { TYPE, FONT } from './tokens.js';
+import { t } from './i18n.js';
 
 export const PSTYLES = [
   { k: 'h1',     n: 'Titre 1',             g: 'Titres',      hash: 1, type: 'section' },
@@ -40,7 +41,7 @@ export const prefixOf = k => { const p = styleOf(k); return p.k === 'body' ? '' 
 const fmt = n => String(+(+n).toFixed(2)).replace('.', ',');
 export function specOf(k) {
   const p = styleOf(k), ty = TYPE[p.type];
-  return `${ty.size} / ${fmt(ty.lh * 0.75)} pt${p.italic ? ' · italique' : ''}${p.upper ? ' · capitales' : ''}${ty.family === 'serif' ? ' · serif' : ''}`;
+  return `${ty.size} / ${fmt(ty.lh * 0.75)} pt${p.italic ? ' · ' + t('italique') : ''}${p.upper ? ' · ' + t('capitales') : ''}${ty.family === 'serif' ? ' · serif' : ''}`;
 }
 
 /** Applique les réglages avancés d'un bloc à un paragraphe ou un élément de liste. `plain` : texte courant (sans style de paragraphe),

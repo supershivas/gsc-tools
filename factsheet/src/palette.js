@@ -25,7 +25,7 @@ export function buildPalette(ctx, redraw) {
     } });
     const chip = h('i', { class: 'pal2-tint', title: t('Ton léger (20 %)'), style: { background: tintOf(pal[k]) } });
     return h('div', { class: 'pal2-row', dataset: { key: k } }, sw, chip, name,
-      h('span', { class: 'pal2-hex', textContent: cmTxt(k).replace(/ · /g, '·'), title: `CMJN ${cmTxt(k)} — RVB écran ${pal[k].toUpperCase()}` }),
+      h('span', { class: 'pal2-hex', textContent: cmTxt(k).replace(/ · /g, '·'), title: `${t('CMJN')} ${cmTxt(k)} — ${t('RVB écran')} ${pal[k].toUpperCase()}` }),
       isExtra ? h('button', { type: 'button', class: 'mini danger', title: t('Supprimer'), 'aria-label': t('Supprimer'), onclick: () => { if (confirm(t('Supprimer cette couleur ? Ce qui l’utilise passera en bleu.'))) { removeColor(doc, k); ctx.changed(); redraw(); } } }, ico('x'))
         : recolored || renamed ? h('button', { type: 'button', class: 'mini', title: t('Rétablir la couleur du thème'), 'aria-label': t('Rétablir la couleur du thème'), onclick: () => { delete doc.colors[k]; if (doc.cmyk) delete doc.cmyk[k]; delete doc.colorNames[k]; ctx.changed(); redraw(); } }, ico('restore')) : h('span'));
   };

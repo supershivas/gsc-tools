@@ -1,1 +1,4 @@
 node_modules/
+factsheet/tests/entry.bundle.js
+factsheet/test-results/
+factsheet/playwright-report/

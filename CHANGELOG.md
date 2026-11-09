@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.70.1 — 2026-11-09
+- Interface en anglais : traduit les derniers textes restés en français (styles de paragraphe, infobulles des couleurs du document, lien et sujets du Labo)
+
 ## 1.70.0 — 2026-11-09
 - Export PDF : choix du profil avant l'export — PDF/X-4 ou PDF/X-1a (profil d'impression FOGRA39 incorporé), ou CMJN sans norme
 - Export PDF : les lettres accentuées d'Europe centrale, le grec et le cyrillique sortent ; avertissement si un caractère manque aux polices

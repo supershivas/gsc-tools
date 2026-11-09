@@ -1,12 +1,16 @@
 {
   "name": "factsheet-creator",
-  "version": "0.3.0",
+  "version": "0.0.0-private",
   "private": true,
   "scripts": {
-    "build": "esbuild src/main.js --bundle --format=iife --outfile=app.js && esbuild src/viewer3d.js --bundle --minify --format=iife --outfile=viewer3d.js && esbuild src/atelier.js --bundle --minify --format=iife --outfile=atelier.js && esbuild src/labo.js --bundle --minify --format=iife --outfile=labo.js && esbuild src/pdf/pdf.js --bundle --minify --format=iife --outfile=pdfexport.js"
+    "build": "esbuild src/main.js --bundle --minify --format=iife --outfile=app.js && esbuild src/viewer3d.js --bundle --minify --format=iife --outfile=viewer3d.js && esbuild src/atelier.js --bundle --minify --format=iife --outfile=atelier.js && esbuild src/labo.js --bundle --minify --format=iife --outfile=labo.js && esbuild src/pdf/pdf.js --bundle --minify --format=iife --outfile=pdfexport.js",
+    "check": "node scripts/check.mjs",
+    "test": "playwright test",
+    "test:update": "playwright test --update-snapshots"
   },
   "devDependencies": {
     "@pdf-lib/fontkit": "^1.1.1",
+    "@playwright/test": "^1.63.0",
     "d3-hierarchy": "^3.1.3",
     "d3-sankey": "^0.12.3",
     "esbuild": "^0.25.0",

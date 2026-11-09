@@ -1,0 +1,51 @@
+name: Tests du Factsheet creator
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      update_snapshots:
+        description: "Régénérer les captures de référence (elles sont jointes en artefact « references », à commiter)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: factsheet
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: factsheet/package-lock.json
+      - run: npm ci
+      # traductions, compilation sans avertissement, bundles identiques à ceux du dépôt
+      - run: npm run check
+      - run: npx playwright install --with-deps chromium
+      - name: Tests Playwright
+        run: npx playwright test ${{ inputs.update_snapshots && '--update-snapshots' || '' }}
+        env:
+          CI: "true"
+      - name: Captures et rapport des tests en échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-en-echec
+          path: |
+            factsheet/test-results/
+            factsheet/playwright-report/
+          if-no-files-found: ignore
+      - name: Captures de référence régénérées
+        if: inputs.update_snapshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: references
+          path: factsheet/tests/references/
