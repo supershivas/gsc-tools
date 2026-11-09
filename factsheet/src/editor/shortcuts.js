@@ -1,7 +1,14 @@
 /* Raccourcis clavier de l'éditeur, inactifs pendant une saisie ou quand une fenêtre est ouverte.
    Suppr / Retour arrière : supprime l'élément sélectionné.
-   Cmd/Ctrl + Z : annuler ; + Maj (ou Ctrl + Y) : rétablir — un champ de saisie garde son propre annuler. */
-export function initShortcuts(ctx, history) {
+   Cmd/Ctrl + Z : annuler ; + Maj (ou Ctrl + Y) : rétablir — un champ de saisie garde son propre annuler.
+   Cmd/Ctrl + P : fenêtre d'export PDF, partout (l'impression du navigateur ne donne pas le document). */
+export function initShortcuts(ctx, history, exporter) {
+  window.addEventListener('keydown', (e) => {
+    if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey || e.key.toLowerCase() !== 'p') return;
+    e.preventDefault();
+    /* une fenêtre, l'éditeur de dataviz ou l'aperçu 3D est ouvert : on ne superpose pas l'export */
+    if (!document.querySelector('dialog[open], .ve, .v3d, .ce')) exporter.openExport();
+  });
   window.addEventListener('keydown', (e) => {
     if (e.key !== 'Delete' && e.key !== 'Backspace') return;
     const a = document.activeElement,

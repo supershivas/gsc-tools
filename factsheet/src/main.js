@@ -181,9 +181,9 @@ ctx.hover = initHover({
 initHandles(ctx, { handOn: hand.on });
 createZoom(ctx, preview, selection);
 const dnd = createDnd(ctx);
-initShortcuts(ctx, history);
-
 const exporter = createExport(ctx);
+initShortcuts(ctx, history, exporter);
+
 const project = createProjectFile(ctx, exporter.fileStem);
 document.addEventListener('fs-natural', () => {
   saveDoc(doc);

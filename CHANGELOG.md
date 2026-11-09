@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.71.1 — 2026-11-09
+- Cmd/Ctrl + P ouvre la fenêtre d'export PDF au lieu de l'impression du navigateur (raccourci indiqué dans le menu Fichier)
+
 ## 1.71.0 — 2026-11-09
 - Export PDF : nouveau profil « RVB (écran) », pour envoyer le document par e-mail ou le lire à l'écran (couleurs de l'écran, liens cliquables, fond perdu et traits de coupe comme en CMJN)
 - Le bouton « PDF RVB (impression) », qui passait par la fenêtre d'impression du navigateur, est retiré : un seul bouton « Télécharger le PDF », quel que soit le profil

@@ -1,8 +1,7 @@
 {
-  "version": "1.71.0",
+  "version": "1.71.1",
   "date": "2026-11-09",
   "changes": [
-    "Export PDF : nouveau profil « RVB (écran) », pour envoyer le document par e-mail ou le lire à l'écran",
-    "Le bouton « PDF RVB (impression) », qui passait par la fenêtre d'impression du navigateur, est retiré : un seul bouton « Télécharger le PDF »"
+    "Cmd/Ctrl + P ouvre la fenêtre d'export PDF au lieu de l'impression du navigateur"
   ]
 }
