@@ -7,43 +7,52 @@
 
 export const BASE = 3;
 /** u(n) → n unités de base, en px */
-export const u = n => n * BASE;
+export const u = (n) => n * BASE;
 
 /* ---------- Page ---------- */
 export const PAGE = {
-  w: 794,                 // A4 largeur (px)
-  h: 1123,                // A4 hauteur (px)
-  margin: 52,             // marge latérale gauche/droite — valeur imposée (seule exception à la base de 3)
-  marginTop: u(12),       // 36 — marge haute (verso, ou recto sans header)
-  marginBottom: u(12),    // 36 — marge basse
-  bleed: 3 * 96 / 25.4,   // 3 mm exacts (11,34 px) — fond perdu à l'export
-  slug: 9 * 96 / 25.4,    // 9 mm — marge de repères autour du fond perdu (traits de coupe)
-  cropMark: u(3),         // longueur des traits de coupe
+  w: 794, // A4 largeur (px)
+  h: 1123, // A4 hauteur (px)
+  margin: 52, // marge latérale gauche/droite — valeur imposée (seule exception à la base de 3)
+  marginTop: u(12), // 36 — marge haute (verso, ou recto sans header)
+  marginBottom: u(12), // 36 — marge basse
+  bleed: (3 * 96) / 25.4, // 3 mm exacts (11,34 px) — fond perdu à l'export
+  slug: (9 * 96) / 25.4, // 9 mm — marge de repères autour du fond perdu (traits de coupe)
+  cropMark: u(3), // longueur des traits de coupe
 };
 
 /* ---------- Échelle d'espacement (multiples de 3) ---------- */
 export const SPACE = {
-  0: 0, 1: u(1), 2: u(2), 3: u(3), 4: u(4), 5: u(5), 6: u(6),
-  8: u(8), 10: u(10), 12: u(12), 16: u(16),
+  0: 0,
+  1: u(1),
+  2: u(2),
+  3: u(3),
+  4: u(4),
+  5: u(5),
+  6: u(6),
+  8: u(8),
+  10: u(10),
+  12: u(12),
+  16: u(16),
 };
 
 /* Rôles : chaque espacement du document a un nom, jamais un nombre libre */
 export const GAP = {
-  headerPadX: PAGE.margin,      // 52 — marges latérales du header (alignées sur la page)
-  headerPadY: SPACE[12],        // 36
-  headerImgText: SPACE[6],      // 18 — entre l'image et le bloc de texte
+  headerPadX: PAGE.margin, // 52 — marges latérales du header (alignées sur la page)
+  headerPadY: SPACE[12], // 36
+  headerImgText: SPACE[6], // 18 — entre l'image et le bloc de texte
   headerOverlineRule: SPACE[3], // 9  — surtitre → filet
-  headerRuleTitle: SPACE[3],    // 9  — filet → titre
-  headerTitleSub: SPACE[1],     // 3  — titre → sous-titre
-  headerToBody: SPACE[12],      // 36 — bas du header → 1re section (recto)
-  sectionBefore: SPACE[8],      // 24 — entre deux sections
-  sectionTitle: SPACE[4],       // 12 — titre de section → 1re sous-section
-  subsectionBefore: SPACE[6],   // 18 — entre deux sous-sections
-  subsectionTitle: SPACE[3],    // 9  — titre de sous-section → colonnes
-  columns: SPACE[6],            // 18 — gouttière entre colonnes
-  paragraph: SPACE[2],          // 6  — entre paragraphes / items de liste
-  boxPad: SPACE[4],             // 12 — padding des encadrés
-  bandPad: SPACE[6],            // 18 — haut/bas d'une section sur fond coloré
+  headerRuleTitle: SPACE[3], // 9  — filet → titre
+  headerTitleSub: SPACE[1], // 3  — titre → sous-titre
+  headerToBody: SPACE[12], // 36 — bas du header → 1re section (recto)
+  sectionBefore: SPACE[8], // 24 — entre deux sections
+  sectionTitle: SPACE[4], // 12 — titre de section → 1re sous-section
+  subsectionBefore: SPACE[6], // 18 — entre deux sous-sections
+  subsectionTitle: SPACE[3], // 9  — titre de sous-section → colonnes
+  columns: SPACE[6], // 18 — gouttière entre colonnes
+  paragraph: SPACE[2], // 6  — entre paragraphes / items de liste
+  boxPad: SPACE[4], // 12 — padding des encadrés
+  bandPad: SPACE[6], // 18 — haut/bas d'une section sur fond coloré
 };
 
 /* ---------- Densité d'espacement (réglage du document) ----------
@@ -51,10 +60,10 @@ export const GAP = {
    retraits d'encadrés et textes ne bougent pas. `setDensity` est appelé avant chaque rendu (renderDocument, columnWidth). */
 export const DENSITIES = { tight: { label: 'Serré', f: 0.75 }, normal: { label: 'Actuel', f: 1 }, loose: { label: 'Large', f: 1.25 } };
 const DENSE_KEYS = ['sectionBefore', 'sectionTitle', 'subsectionBefore', 'subsectionTitle', 'columns', 'bandPad'];
-const BASE_GAP = Object.fromEntries(DENSE_KEYS.map(k => [k, GAP[k]]));
+const BASE_GAP = Object.fromEntries(DENSE_KEYS.map((k) => [k, GAP[k]]));
 export function setDensity(key) {
   const f = (DENSITIES[key] || DENSITIES.normal).f;
-  for (const k of DENSE_KEYS) GAP[k] = Math.max(BASE, Math.round(BASE_GAP[k] * f / BASE) * BASE);
+  for (const k of DENSE_KEYS) GAP[k] = Math.max(BASE, Math.round((BASE_GAP[k] * f) / BASE) * BASE);
   GRID.gutter = GAP.columns;
 }
 
@@ -62,35 +71,39 @@ export function setDensity(key) {
 export const GRID = {
   cols: 3,
   gutter: GAP.columns,
-  contentW: PAGE.w - 2 * PAGE.margin,        // 690
+  contentW: PAGE.w - 2 * PAGE.margin, // 690
   /* Gabarits de sous-section : grille de `cols` colonnes, chaque colonne occupe `spans[i]` */
   layouts: {
-    '1':     { label: '1 colonne',              cols: 1, spans: [1] },
-    '1-1':   { label: '2 colonnes',             cols: 2, spans: [1, 1] },
-    '1-1-1': { label: '3 colonnes',             cols: 3, spans: [1, 1, 1] },
-    '2-1':   { label: '2 colonnes (2/3 + 1/3)', cols: 3, spans: [2, 1] },
-    '1-2':   { label: '2 colonnes (1/3 + 2/3)', cols: 3, spans: [1, 2] },
-    '1-1-1-1':     { label: '4 colonnes',                   cols: 4, spans: [1, 1, 1, 1] },
-    '1-1-1-1-1':   { label: '5 colonnes',                   cols: 5, spans: [1, 1, 1, 1, 1] },
-    '1-1-1-1-1-1': { label: '6 colonnes',                   cols: 6, spans: [1, 1, 1, 1, 1, 1], hidden: true },   // plus proposé (gardé pour les fichiers qui l'utilisent)
-    '3-1':   { label: '2 colonnes (3/4 + 1/4)', cols: 4, spans: [3, 1] },
-    '1-3':   { label: '2 colonnes (1/4 + 3/4)', cols: 4, spans: [1, 3] },
-    '3-2':   { label: '2 colonnes (3/5 + 2/5)', cols: 5, spans: [3, 2] },
-    '2-3':   { label: '2 colonnes (2/5 + 3/5)', cols: 5, spans: [2, 3] },
+    1: { label: '1 colonne', cols: 1, spans: [1] },
+    '1-1': { label: '2 colonnes', cols: 2, spans: [1, 1] },
+    '1-1-1': { label: '3 colonnes', cols: 3, spans: [1, 1, 1] },
+    '2-1': { label: '2 colonnes (2/3 + 1/3)', cols: 3, spans: [2, 1] },
+    '1-2': { label: '2 colonnes (1/3 + 2/3)', cols: 3, spans: [1, 2] },
+    '1-1-1-1': { label: '4 colonnes', cols: 4, spans: [1, 1, 1, 1] },
+    '1-1-1-1-1': { label: '5 colonnes', cols: 5, spans: [1, 1, 1, 1, 1] },
+    '1-1-1-1-1-1': { label: '6 colonnes', cols: 6, spans: [1, 1, 1, 1, 1, 1], hidden: true }, // plus proposé (gardé pour les fichiers qui l'utilisent)
+    '3-1': { label: '2 colonnes (3/4 + 1/4)', cols: 4, spans: [3, 1] },
+    '1-3': { label: '2 colonnes (1/4 + 3/4)', cols: 4, spans: [1, 3] },
+    '3-2': { label: '2 colonnes (3/5 + 2/5)', cols: 5, spans: [3, 2] },
+    '2-3': { label: '2 colonnes (2/5 + 3/5)', cols: 5, spans: [2, 3] },
     '2-1-1': { label: '3 colonnes (1/2 + 1/4 + 1/4)', cols: 4, spans: [2, 1, 1] },
     '1-2-1': { label: '3 colonnes (1/4 + 1/2 + 1/4)', cols: 4, spans: [1, 2, 1] },
     '1-1-2': { label: '3 colonnes (1/4 + 1/4 + 1/2)', cols: 4, spans: [1, 1, 2] },
-    custom:  { label: 'Personnalisé (poignées entre les colonnes)', cols: 1, spans: [1], hidden: true, custom: true },   // largeurs libres : sub.widths = fractions (somme 1), réglées à la souris
+    custom: { label: 'Personnalisé (poignées entre les colonnes)', cols: 1, spans: [1], hidden: true, custom: true }, // largeurs libres : sub.widths = fractions (somme 1), réglées à la souris
   },
 };
 
 /** gabarit « personnalisé » d'une sous-section (pour le schéma du menu) : une colonne par largeur, en centièmes */
-export const customLayoutOf = sub => ({ ...GRID.layouts.custom, cols: 100, spans: (sub.widths || [1]).map(f => Math.max(1, Math.round(f * 100))) });
+export const customLayoutOf = (sub) => ({
+  ...GRID.layouts.custom,
+  cols: 100,
+  spans: (sub.widths || [1]).map((f) => Math.max(1, Math.round(f * 100))),
+});
 /** largeur (px) de la colonne i d'une sous-section : gabarit, ou largeurs personnalisées (fractions de la place hors gouttières) */
 export function subColWidth(sub, i, W = GRID.contentW) {
   if (sub.layout === 'custom' && Array.isArray(sub.widths) && sub.widths[i] != null) {
     const sum = sub.widths.reduce((a, b) => a + b, 0) || 1;
-    return (W - (sub.widths.length - 1) * GRID.gutter) * sub.widths[i] / sum;
+    return ((W - (sub.widths.length - 1) * GRID.gutter) * sub.widths[i]) / sum;
   }
   return colWidth(sub.layout, i, W);
 }
@@ -110,73 +123,73 @@ export const FONT = {
   serif: '"Source Serif 4", "Source Serif Pro", serif',
 };
 export const TYPE = {
-  overline:   { family: 'sans',  size: 16, weight: 200, lh: u(9),  upper: true },
-  title:      { family: 'sans',  size: 30, weight: 600, lh: u(16) },
-  subtitle:   { family: 'sans',  size: 22, weight: 600, lh: u(10) },   // 30 : un sous-titre sur 2 lignes reste dans le header
-  section:    { family: 'sans',  size: 21, weight: 700, lh: u(11) },
-  subsection: { family: 'sans',  size: 14, weight: 700, lh: u(8)  },
-  body:       { family: 'sans',  size: 12, weight: 400, lh: u(7)  },
-  bodyBold:   { family: 'sans',  size: 12, weight: 700, lh: u(7)  },
-  figure:     { family: 'serif', size: 24, weight: 700, lh: u(12) },   // chiffres clés
-  figureSm:   { family: 'serif', size: 18, weight: 700, lh: u(8)  },
-  caption:    { family: 'sans',  size: 8,  weight: 600, lh: u(5)  },   // axes, légendes de dataviz
-  captionNum: { family: 'serif', size: 8,  weight: 700, lh: u(5)  },   // valeurs chiffrées des graphiques
-  callout:    { family: 'sans',  size: 16, weight: 700, lh: u(7)  },   // « +64 % » à côté d'un graphique
-  lead:       { family: 'serif', size: 14, weight: 400, lh: u(8)  },   // chapeau
-  small:      { family: 'sans',  size: 10, weight: 400, lh: u(5)  },
-  quote:      { family: 'sans',  size: 14, weight: 400, lh: u(8)  },   // citation (italique, filet à gauche)
-  label:      { family: 'sans',  size: 8,  weight: 700, lh: u(5)  },   // étiquette en capitales
-  source:     { family: 'sans',  size: 8,  weight: 400, lh: u(4)  },   // source : 8 pt, interlignage 9 pt (12 px), italique
-  note:       { family: 'sans',  size: 8,  weight: 400, lh: u(4)  },
+  overline: { family: 'sans', size: 16, weight: 200, lh: u(9), upper: true },
+  title: { family: 'sans', size: 30, weight: 600, lh: u(16) },
+  subtitle: { family: 'sans', size: 22, weight: 600, lh: u(10) }, // 30 : un sous-titre sur 2 lignes reste dans le header
+  section: { family: 'sans', size: 21, weight: 700, lh: u(11) },
+  subsection: { family: 'sans', size: 14, weight: 700, lh: u(8) },
+  body: { family: 'sans', size: 12, weight: 400, lh: u(7) },
+  bodyBold: { family: 'sans', size: 12, weight: 700, lh: u(7) },
+  figure: { family: 'serif', size: 24, weight: 700, lh: u(12) }, // chiffres clés
+  figureSm: { family: 'serif', size: 18, weight: 700, lh: u(8) },
+  caption: { family: 'sans', size: 8, weight: 600, lh: u(5) }, // axes, légendes de dataviz
+  captionNum: { family: 'serif', size: 8, weight: 700, lh: u(5) }, // valeurs chiffrées des graphiques
+  callout: { family: 'sans', size: 16, weight: 700, lh: u(7) }, // « +64 % » à côté d'un graphique
+  lead: { family: 'serif', size: 14, weight: 400, lh: u(8) }, // chapeau
+  small: { family: 'sans', size: 10, weight: 400, lh: u(5) },
+  quote: { family: 'sans', size: 14, weight: 400, lh: u(8) }, // citation (italique, filet à gauche)
+  label: { family: 'sans', size: 8, weight: 700, lh: u(5) }, // étiquette en capitales
+  source: { family: 'sans', size: 8, weight: 400, lh: u(4) }, // source : 8 pt, interlignage 9 pt (12 px), italique
+  note: { family: 'sans', size: 8, weight: 400, lh: u(4) },
 };
 
 /* ---------- Traits ---------- */
 export const STROKE = {
   pt: 0.5,
-  px: 0.5 * 96 / 72,       // 0,667 px
-  radius: u(1),            // 3 — coins des contours (sections, sous-sections, colonnes, encadrés)
+  px: (0.5 * 96) / 72, // 0,667 px
+  radius: u(1), // 3 — coins des contours (sections, sous-sections, colonnes, encadrés)
 };
 
 /** Largeur utile à l'intérieur d'un élément à contour : retrait = padding des encadrés + trait, de chaque côté */
-export const insetW = W => W - 2 * (GAP.boxPad + STROKE.px);
+export const insetW = (W) => W - 2 * (GAP.boxPad + STROKE.px);
 
 /* ---------- Header ---------- */
 export const HEADER = {
-  h: u(80),                // 240
-  image: { w: u(32), h: u(44) },   // 96 × 132
-  logo:  { w: u(46), h: u(14) },   // 138 × 42
-  rule:  { w: u(8) },              // 24 — filet sous le surtitre
+  h: u(80), // 240
+  image: { w: u(32), h: u(44) }, // 96 × 132
+  logo: { w: u(46), h: u(14) }, // 138 × 42
+  rule: { w: u(8) }, // 24 — filet sous le surtitre
 };
 
 /* ---------- Dataviz (mêmes règles que les captures) ---------- */
 export const VIZ = {
-  ratios: { '2:1': 0.5, '16:9': 0.5625, '3:2': 2 / 3, '1:1': 1 },   // hauteur / largeur des graphiques à barres
-  barRadius: u(1),         // 3 — arrondi du haut des barres
-  barGap: u(1),            // 3 — espace entre barres groupées
-  barMaxW: u(10),          // 30 — largeur max d'une barre
-  pairOffset: 0.5,         // décalage de la barre arrière (× largeur de barre)
-  plotTop: u(6),           // 18 — réserve en haut (valeurs, accolade)
-  catH: u(6),              // 18 — ligne des catégories sous l'axe
-  legendH: u(5),           // 15 — ligne de légende
-  legendGap: u(2),         // 6  — axe/catégories → légende
-  legendSwatch: u(3),      // 9  — pastille de légende
-  calloutW: u(32),         // 96 — zone du « +64 % »
-  calloutGap: u(2),        // 6
-  ringPct: 0.16,           // épaisseur de l'anneau / rayon extérieur
-  ringMin: u(50),          // 150 — diamètre mini de l'anneau
-  ringMax: u(80),          // 240 — diamètre maxi
-  ringLegend: u(56),       // 168 — diamètre en mode légende (colonnes étroites)
-  aroundMinW: u(200),      // 600 — largeur mini pour des libellés autour de l'anneau (pleine largeur uniquement)
-  leaderGap: u(1),         // 3 — écart trait → texte
-  leaderRoom: u(8),        // 24 — place réservée aux traits entre anneau et libellés
-  blockGap: u(3),          // 9 — entre deux libellés
-  pointR: 4.5,             // rayon des points de courbe
-  hBar: u(4),              // 12 — épaisseur d'une barre horizontale
-  hRowGap: u(3),           // 9 — entre deux lignes de barres horizontales
-  iconCircle: u(9),        // 27 — pastille d'icône
-  iconGlyph: u(5),         // 15 — pictogramme dans la pastille
-  iconGap: u(3),           // 9
-  iconRowGap: u(3),        // 9
+  ratios: { '2:1': 0.5, '16:9': 0.5625, '3:2': 2 / 3, '1:1': 1 }, // hauteur / largeur des graphiques à barres
+  barRadius: u(1), // 3 — arrondi du haut des barres
+  barGap: u(1), // 3 — espace entre barres groupées
+  barMaxW: u(10), // 30 — largeur max d'une barre
+  pairOffset: 0.5, // décalage de la barre arrière (× largeur de barre)
+  plotTop: u(6), // 18 — réserve en haut (valeurs, accolade)
+  catH: u(6), // 18 — ligne des catégories sous l'axe
+  legendH: u(5), // 15 — ligne de légende
+  legendGap: u(2), // 6  — axe/catégories → légende
+  legendSwatch: u(3), // 9  — pastille de légende
+  calloutW: u(32), // 96 — zone du « +64 % »
+  calloutGap: u(2), // 6
+  ringPct: 0.16, // épaisseur de l'anneau / rayon extérieur
+  ringMin: u(50), // 150 — diamètre mini de l'anneau
+  ringMax: u(80), // 240 — diamètre maxi
+  ringLegend: u(56), // 168 — diamètre en mode légende (colonnes étroites)
+  aroundMinW: u(200), // 600 — largeur mini pour des libellés autour de l'anneau (pleine largeur uniquement)
+  leaderGap: u(1), // 3 — écart trait → texte
+  leaderRoom: u(8), // 24 — place réservée aux traits entre anneau et libellés
+  blockGap: u(3), // 9 — entre deux libellés
+  pointR: 4.5, // rayon des points de courbe
+  hBar: u(4), // 12 — épaisseur d'une barre horizontale
+  hRowGap: u(3), // 9 — entre deux lignes de barres horizontales
+  iconCircle: u(9), // 27 — pastille d'icône
+  iconGlyph: u(5), // 15 — pictogramme dans la pastille
+  iconGap: u(3), // 9
+  iconRowGap: u(3), // 9
 };
 
 /* ---------- Thèmes (palettes) ----------
@@ -187,36 +200,44 @@ export const THEMES = {
   eu: {
     label: 'Bleu UE',
     colors: {
-      blue:     '#003399',   // texte, traits, fond de header, séries principales — Reflex Blue, CMJN 100/80/0/0
-      sky:      '#A8CBEF',   // séries claires — CMJN 35/12/0/0
-      yellow:   '#FFCC00',   // CMJN 0/0/100/0
-      slate:    '#5E6566',
-      grey:     '#DADDE3',   // gris clair : fonds et séries neutres
+      blue: '#003399', // texte, traits, fond de header, séries principales — Reflex Blue, CMJN 100/80/0/0
+      sky: '#A8CBEF', // séries claires — CMJN 35/12/0/0
+      yellow: '#FFCC00', // CMJN 0/0/100/0
+      slate: '#5E6566',
+      grey: '#DADDE3', // gris clair : fonds et séries neutres
     },
     /* valeurs CMJN d'imprimeur (0–100) : celles du PDF exporté ; le RVB ci-dessus est l'équivalent écran */
     cmyk: { blue: [100, 80, 0, 0], sky: [35, 12, 0, 0], yellow: [0, 0, 100, 0], slate: [62, 48, 47, 30], grey: [14, 9, 7, 0] },
     names: { blue: 'Bleu', sky: 'Bleu ciel', yellow: 'Jaune', slate: 'Ardoise', grey: 'Gris clair' },
-    text: 'blue',            // couleur des textes et traits par défaut
+    text: 'blue', // couleur des textes et traits par défaut
   },
 };
 export const DEFAULT_THEME = 'eu';
 export const WHITE = '#FFFFFF';
-export const MAX_EXTRA_COLORS = 7;       // 5 couleurs du thème + 7 ajoutées au plus
-export const TINT = 0.2;                 // part de couleur dans une teinte (fond de section)
+export const MAX_EXTRA_COLORS = 7; // 5 couleurs du thème + 7 ajoutées au plus
+export const TINT = 0.2; // part de couleur dans une teinte (fond de section)
 
-const hex2rgb = h => { const n = parseInt(h.replace('#', ''), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
-const rgb2hex = (r, g, b) => '#' + [r, g, b].map(x => Math.round(x).toString(16).padStart(2, '0')).join('').toUpperCase();
+const hex2rgb = (h) => {
+  const n = parseInt(h.replace('#', ''), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+const rgb2hex = (r, g, b) =>
+  '#' +
+  [r, g, b]
+    .map((x) => Math.round(x).toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase();
 /** teinte claire d'une couleur : mélange avec du blanc */
-export const tintOf = hex => rgb2hex(...hex2rgb(hex).map(c => c * TINT + 255 * (1 - TINT)));
+export const tintOf = (hex) => rgb2hex(...hex2rgb(hex).map((c) => c * TINT + 255 * (1 - TINT)));
 
 /** palette effective d'un document : couleurs du thème (éventuellement modifiées) + couleurs ajoutées */
 export const paletteOf = (themeKey, colors) => Object.assign({}, (THEMES[themeKey] || THEMES[DEFAULT_THEME]).colors, colors || {});
 /** clés de couleur proposées (sans les teintes) ; `white` ajoute le blanc */
 export const paletteKeys = (doc, white = true) => [...Object.keys(paletteOf(doc.theme, doc.colors)), ...(white ? ['white'] : [])];
 /** fonds de section proposés : une teinte par couleur */
-export const sectionBgs = doc => Object.keys(paletteOf(doc.theme, doc.colors)).map(k => 'tint-' + k);
+export const sectionBgs = (doc) => Object.keys(paletteOf(doc.theme, doc.colors)).map((k) => 'tint-' + k);
 /** palette à deux tons : chaque couleur pleine, le blanc, puis la teinte légère (20 %) de chaque couleur — c'est la seule liste proposée pour un fond, un contour ou un texte */
-export const toneKeys = doc => [...paletteKeys(doc), ...sectionBgs(doc)];
+export const toneKeys = (doc) => [...paletteKeys(doc), ...sectionBgs(doc)];
 /** libellé (clé française, à passer par t()) d'une couleur ou d'une teinte */
 export function colorLabel(doc, key) {
   const th = THEMES[doc.theme] || THEMES[DEFAULT_THEME];
@@ -238,7 +259,10 @@ export function cssVars(themeKey, colors) {
     v[`--t-${k}-weight`] = t.weight;
     v[`--t-${k}-family`] = FONT[t.family];
   }
-  for (const [k, c] of Object.entries(pal)) { v[`--c-${k}`] = c; v[`--c-tint-${k}`] = tintOf(c); }
+  for (const [k, c] of Object.entries(pal)) {
+    v[`--c-${k}`] = c;
+    v[`--c-tint-${k}`] = tintOf(c);
+  }
   v['--c-white'] = WHITE;
   for (const [k, val] of Object.entries(VIZ)) if (typeof val === 'number') v[`--viz-${k}`] = val + 'px';
   v['--c-text'] = pal[th.text];

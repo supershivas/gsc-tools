@@ -12,14 +12,14 @@ const CONTENT_FIELDS = [
   { k: 'figure', t: 'text', rich: true, label: 'Chiffre' },
   { k: 'text', t: 'area', label: 'Texte' },
   { k: 'bullets', t: 'lines', rich: true, label: 'Puces (une par ligne)' },
-  { k: 'link', t: 'text', rich: true, label: 'Lien' }
+  { k: 'link', t: 'text', rich: true, label: 'Lien' },
 ];
 
 export function cardEditor(k, col, W) {
   const { ctx, palOpts, field, imgPicker } = k;
   const C = col.card || (col.card = newCard(W)),
     ct = C.content;
-  const chosen = fn => {
+  const chosen = (fn) => {
     fn();
     C.auto = false;
     ctx.restructure();
@@ -31,23 +31,23 @@ export function cardEditor(k, col, W) {
       h('input', {
         type: 'checkbox',
         checked: !!C[key],
-        onchange: e =>
+        onchange: (e) =>
           chosen(() => {
             C[key] = e.target.checked;
-          })
+          }),
       }),
-      label
+      label,
     );
   const sel = (key, label, opts) => {
     const s = h(
       'select',
       {
-        onchange: e =>
+        onchange: (e) =>
           chosen(() => {
             C[key] = e.target.value;
-          })
+          }),
       },
-      Object.entries(opts).map(([v, l]) => h('option', { value: v, textContent: l }))
+      Object.entries(opts).map(([v, l]) => h('option', { value: v, textContent: l })),
     );
     s.value = C[key];
     return field(label, s);
@@ -62,11 +62,11 @@ export function cardEditor(k, col, W) {
         options: { ...ICON_OPTIONS, ...customChoices() },
         text: true,
         refresh: () => ctx.restructure(),
-        onChange: v =>
+        onChange: (v) =>
           chosen(() => {
             C.iconName = v;
-          })
-      })
+          }),
+      }),
     );
 
   return h(
@@ -77,10 +77,10 @@ export function cardEditor(k, col, W) {
       ? imgPicker(
           'Image de la carte',
           () => C.src,
-          v => {
+          (v) => {
             C.src = v;
           },
-          1200
+          1200,
         )
       : null,
     h(
@@ -93,18 +93,18 @@ export function cardEditor(k, col, W) {
         h('input', {
           type: 'checkbox',
           checked: !!C.auto,
-          onchange: e => {
+          onchange: (e) => {
             C.auto = e.target.checked;
             if (C.auto) Object.assign(C, cardPresetFor(W));
             ctx.restructure();
-          }
+          },
         }),
-        'Type de carte selon la largeur de la colonne'
+        'Type de carte selon la largeur de la colonne',
       ),
       sel('layout', 'Position de l’image', { vertical: t('En haut'), left: t('À gauche'), right: t('À droite') }),
       sel('align', 'Alignement', { left: t('Gauche'), center: t('Centré') }),
       C.icon ? iconChoice() : null,
-      CARD_CHECKS.map(check)
-    )
+      CARD_CHECKS.map(check),
+    ),
   );
 }

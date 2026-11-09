@@ -17,11 +17,11 @@ const FIRST = { doc: 'doc-main', header: 'hd-text', sec: 'sec-main', sub: 'sub-m
 export function createKit(root, ctx, doc, kind) {
   const acc = (accs[kind] ||= { cur: null, first: FIRST[kind] });
   const palOpts = paletteOptions(doc);
-  const live = fn => e => {
+  const live = (fn) => (e) => {
     fn(e.target.value, e);
     ctx.changed();
   };
-  const struct = fn => () => {
+  const struct = (fn) => () => {
     fn();
     ctx.restructure();
   };
@@ -35,23 +35,23 @@ export function createKit(root, ctx, doc, kind) {
       h('div', { class: 'hint' }, label, helpBtn(label)),
       richEditor(
         obj[key] || '',
-        v => {
+        (v) => {
           obj[key] = v;
           ctx.changed();
         },
-        { bullets: false }
-      )
+        { bullets: false },
+      ),
     );
   const select = (obj, key, label, opts, onSet) => {
     const s = h(
       'select',
       {
-        onchange: e => {
+        onchange: (e) => {
           obj[key] = e.target.value;
           onSet ? onSet() : ctx.changed();
-        }
+        },
       },
-      Object.entries(opts).map(([v, l]) => h('option', { value: v, textContent: l }))
+      Object.entries(opts).map(([v, l]) => h('option', { value: v, textContent: l })),
     );
     s.value = obj[key];
     return field(label, s);
@@ -77,10 +77,10 @@ export function createKit(root, ctx, doc, kind) {
               obj[key] = v;
               onSet ? onSet() : ctx.changed();
             },
-            textContent: l
-          })
-        )
-      )
+            textContent: l,
+          }),
+        ),
+      ),
     );
   };
   /* Choix d'alignement : boutons à icônes (une valeur parmi plusieurs) */
@@ -105,20 +105,20 @@ export function createKit(root, ctx, doc, kind) {
               onclick: () => {
                 obj[key] = v;
                 ctx.restructure();
-              }
+              },
             },
-            ico(ic)
-          )
-        )
-      )
+            ico(ic),
+          ),
+        ),
+      ),
     );
   };
 
   /* Deux tons par couleur : la ligne du haut en pleine, celle du dessous en légère (alignées) */
   const swatches = (label, obj, key, keys, withNone) => {
-    const light = keys.filter(c => c.startsWith('tint-')),
-      solid = keys.filter(c => !c.startsWith('tint-'));
-    const dot = c =>
+    const light = keys.filter((c) => c.startsWith('tint-')),
+      solid = keys.filter((c) => !c.startsWith('tint-'));
+    const dot = (c) =>
       h('button', {
         type: 'button',
         class: 'hv-sw' + (obj[key] === c ? ' on' : ''),
@@ -127,7 +127,7 @@ export function createKit(root, ctx, doc, kind) {
         style: { background: `var(--c-${c})` },
         onclick: struct(() => {
           obj[key] = c;
-        })
+        }),
       });
     const gap = () => h('span', { class: 'hv-sw ghost' });
     const none = h('button', {
@@ -137,7 +137,7 @@ export function createKit(root, ctx, doc, kind) {
       'aria-label': t('Aucun'),
       onclick: struct(() => {
         obj[key] = 'none';
-      })
+      }),
     });
     const pal = h(
       'button',
@@ -146,11 +146,11 @@ export function createKit(root, ctx, doc, kind) {
         class: 'hv-sw pal-btn',
         title: t('Modifier, renommer ou ajouter des couleurs'),
         'aria-label': t('Modifier, renommer ou ajouter des couleurs'),
-        onclick: e => openPalette(e.currentTarget, ctx)
+        onclick: (e) => openPalette(e.currentTarget, ctx),
       },
-      ico('plus')
+      ico('plus'),
     );
-    const lightRow = solid.map(c => {
+    const lightRow = solid.map((c) => {
       const tc = 'tint-' + c;
       return light.includes(tc) ? dot(tc) : gap();
     });
@@ -159,7 +159,7 @@ export function createKit(root, ctx, doc, kind) {
       { class: 'f' },
       h('div', { class: 'hint' }, label, helpBtn(label)),
       h('div', { class: 'swrow' }, withNone ? none : null, ...solid.map(dot), pal),
-      light.length ? h('div', { class: 'swrow' }, withNone ? gap() : null, ...lightRow) : null
+      light.length ? h('div', { class: 'swrow' }, withNone ? gap() : null, ...lightRow) : null,
     );
   };
 
@@ -179,7 +179,7 @@ export function createKit(root, ctx, doc, kind) {
         } catch (e) {
           alert(t('Image illisible.'));
         }
-      }
+      },
     });
     return h(
       'div',
@@ -191,8 +191,8 @@ export function createKit(root, ctx, doc, kind) {
         get() ? h('img', { class: 'thumb', src: get() }) : null,
         h('button', { type: 'button', textContent: get() ? 'Remplacer…' : 'Importer…', onclick: () => inp.click() }),
         get() ? h('button', { type: 'button', class: 'danger', textContent: 'Retirer', onclick: struct(() => set(null)) }) : null,
-        inp
-      )
+        inp,
+      ),
     );
   };
 
@@ -204,9 +204,10 @@ export function createKit(root, ctx, doc, kind) {
       'aria-checked': String(!!on),
       'aria-label': label,
       class: 'pp-switch' + (on ? ' on' : ''),
-      onclick: fn
+      onclick: fn,
     });
-  const switchRow = (label, on, fn) => h('div', { class: 'pp-switchrow' }, h('span', {}, label, helpBtn(label)), switchBtn(on, label, struct(fn)));
+  const switchRow = (label, on, fn) =>
+    h('div', { class: 'pp-switchrow' }, h('span', {}, label, helpBtn(label)), switchBtn(on, label, struct(fn)));
   /** toggle : { on, set } — l'interrupteur de l'en-tête affiche ou masque l'élément (la carte se replie quand il est éteint) */
   const card = (id, icon, name, nodes, toggle, sum) =>
     cardEl(id, icon, name, nodes, {
@@ -216,14 +217,16 @@ export function createKit(root, ctx, doc, kind) {
       toggle: toggle ? switchBtn(toggle.on, name, struct(toggle.set)) : null,
       acc,
       sum,
-      q: search.q
+      q: search.q,
     });
-  const btn = (icon, label, fn, cls = '') => h('button', { type: 'button', class: 'pp-btn ' + cls, onclick: fn }, ico(icon), h('span', { textContent: label }));
+  const btn = (icon, label, fn, cls = '') =>
+    h('button', { type: 'button', class: 'pp-btn ' + cls, onclick: fn }, ico(icon), h('span', { textContent: label }));
 
   /* Résumés affichés à droite du titre d'une carte */
-  const sumColor = c => (!c || c === 'none' ? t('Aucun') : t(colorLabel(doc, c)));
-  const sumBox = o =>
-    [o.fillColor && o.fillColor !== 'none' ? sumColor(o.fillColor) : null, o.stroke ? t('Contour') : null].filter(Boolean).join(' · ') || t('Aucun');
+  const sumColor = (c) => (!c || c === 'none' ? t('Aucun') : t(colorLabel(doc, c)));
+  const sumBox = (o) =>
+    [o.fillColor && o.fillColor !== 'none' ? sumColor(o.fillColor) : null, o.stroke ? t('Contour') : null].filter(Boolean).join(' · ') ||
+    t('Aucun');
   /* Fond (une couleur au choix, avec teintes) et contour (couleur au choix) : sections, sous-sections et colonnes */
   const boxControls = (obj, fillLabel = 'Fond') => [
     swatches(fillLabel, obj, 'fillColor', toneKeys(doc), true),
@@ -231,7 +234,7 @@ export function createKit(root, ctx, doc, kind) {
       obj.stroke = !obj.stroke;
     }),
     swatches('Hachures', obj, 'hatch', toneKeys(doc), true),
-    obj.stroke ? swatches('Couleur du contour', obj, 'strokeColor', toneKeys(doc)) : null
+    obj.stroke ? swatches('Couleur du contour', obj, 'strokeColor', toneKeys(doc)) : null,
   ];
 
   /* Tête collante : icône, fil d'Ariane, nom, type et actions d'élément (monter, dupliquer, supprimer…) toujours à portée */
@@ -251,24 +254,46 @@ export function createKit(root, ctx, doc, kind) {
               ? h(
                   'div',
                   { class: 'crumbs' },
-                  crumbs.flatMap(([l, p], i) => [i ? ' › ' : '', h('a', { textContent: l, onclick: () => ctx.select(p) })])
+                  crumbs.flatMap(([l, p], i) => [i ? ' › ' : '', h('a', { textContent: l, onclick: () => ctx.select(p) })]),
                 )
               : null,
             h('h2', { textContent: name }),
-            o.pill ? h('span', { class: 'pr-pill', textContent: o.pill }) : null
-          )
+            o.pill ? h('span', { class: 'pr-pill', textContent: o.pill }) : null,
+          ),
         ),
         o.acts && o.acts.length
           ? h(
               'div',
               { class: 'pr-acts' },
               o.acts.map(([i, l, fn, cls]) =>
-                h('button', { type: 'button', class: 'pr-ib ' + (cls || ''), title: l, 'aria-label': l, onclick: fn }, ico(i))
-              )
+                h('button', { type: 'button', class: 'pr-ib ' + (cls || ''), title: l, 'aria-label': l, onclick: fn }, ico(i)),
+              ),
             )
-          : null
-      )
+          : null,
+      ),
     );
 
-  return { root, ctx, doc, palOpts, live, struct, field, text, select, fieldDiv, pair, segmented, swatches, imgPicker, switchRow, card, btn, sumColor, sumBox, boxControls, title };
+  return {
+    root,
+    ctx,
+    doc,
+    palOpts,
+    live,
+    struct,
+    field,
+    text,
+    select,
+    fieldDiv,
+    pair,
+    segmented,
+    swatches,
+    imgPicker,
+    switchRow,
+    card,
+    btn,
+    sumColor,
+    sumBox,
+    boxControls,
+    title,
+  };
 }

@@ -13,17 +13,17 @@ export function textEditor(k, col) {
       h('div', { class: 'hint', textContent: 'Texte' }),
       richEditor(
         col.text,
-        v => {
+        (v) => {
           col.text = v;
           ctx.changed();
         },
-        { gallery: true, adv: col, advChange: () => ctx.changed(), palette: toneKeys(doc) }
-      )
-    )
+        { gallery: true, adv: col, advChange: () => ctx.changed(), palette: toneKeys(doc) },
+      ),
+    ),
   ];
 }
 
-const advClean = a => {
+const advClean = (a) => {
   for (const key of Object.keys(a)) if (a[key] == null || a[key] === '' || a[key] === false || a[key] === 0) delete a[key];
 };
 
@@ -35,29 +35,29 @@ export function fontCard(k, col) {
   const fam = h(
     'select',
     {
-      onchange: e => {
+      onchange: (e) => {
         if (e.target.value) a.f = e.target.value;
         else delete a.f;
         ctx.changed();
-      }
+      },
     },
     [
       ['', 'Source Sans 3'],
-      ['serif', 'Source Serif 4']
-    ].map(([v, l]) => h('option', { value: v, textContent: l, selected: (a.f || '') === v }))
+      ['serif', 'Source Serif 4'],
+    ].map(([v, l]) => h('option', { value: v, textContent: l, selected: (a.f || '') === v })),
   );
   const sz = h(
     'select',
     {
-      onchange: e => {
+      onchange: (e) => {
         if (+e.target.value) a.s = +e.target.value;
         else delete a.s;
         ctx.changed();
-      }
+      },
     },
-    [['', t('Selon le style')], ...FONT_SIZES.map(n => [String(n), n + ' pt'])].map(([v, l]) =>
-      h('option', { value: v, textContent: l, selected: String(a.s || '') === v })
-    )
+    [['', t('Selon le style')], ...FONT_SIZES.map((n) => [String(n), n + ' pt'])].map(([v, l]) =>
+      h('option', { value: v, textContent: l, selected: String(a.s || '') === v }),
+    ),
   );
   return card(
     'col-font',
@@ -69,12 +69,12 @@ export function fontCard(k, col) {
       h('p', {
         class: 'hint',
         textContent: t(
-          'La taille s’applique au texte courant et aux listes ; les styles de paragraphe (titres, source…) gardent leur corps. L’interlignage suit (130 %, grille de 3 px) sauf réglage dans l’icône burger.'
-        )
-      })
+          'La taille s’applique au texte courant et aux listes ; les styles de paragraphe (titres, source…) gardent leur corps. L’interlignage suit (130 %, grille de 3 px) sauf réglage dans l’icône burger.',
+        ),
+      }),
     ],
     null,
-    `${a.f === 'serif' ? 'Serif' : 'Sans'} · ${a.s ? a.s + ' pt' : t('Style')}`
+    `${a.f === 'serif' ? 'Serif' : 'Sans'} · ${a.s ? a.s + ' pt' : t('Style')}`,
   );
 }
 
@@ -86,7 +86,7 @@ export function paraCard(k, col) {
       a[key] = key === 'cols' ? (a.cols > 1 ? 0 : 2) : !a[key];
       advClean(a);
     });
-  const n = ['hyph', 'cols', 'ruleTop', 'ruleBottom', 'tabnum'].filter(key => a[key]).length;
+  const n = ['hyph', 'cols', 'ruleTop', 'ruleBottom', 'tabnum'].filter((key) => a[key]).length;
   return card(
     'col-para',
     'align-justified',
@@ -99,10 +99,12 @@ export function paraCard(k, col) {
       row('Chiffres tabulaires', 'tabnum', !!a.tabnum),
       h('p', {
         class: 'hint',
-        textContent: t('Justifié : « Disposition ». Interlignage, tracking, kerning, retrait et espaces : icône burger de la barre de texte.')
-      })
+        textContent: t(
+          'Justifié : « Disposition ». Interlignage, tracking, kerning, retrait et espaces : icône burger de la barre de texte.',
+        ),
+      }),
     ],
     null,
-    n ? String(n) : t('Aucun')
+    n ? String(n) : t('Aucun'),
   );
 }

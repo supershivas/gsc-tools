@@ -7,7 +7,7 @@ import { richEditor } from '../editor.js';
 const PLACEMENTS = [
   ['free', 'Libre (glisser dans l’aperçu)'],
   ['above', 'Au-dessus du contenu'],
-  ['below', 'En dessous du contenu']
+  ['below', 'En dessous du contenu'],
 ];
 
 export function freeTexts(k, col) {
@@ -22,22 +22,22 @@ export function freeTexts(k, col) {
         max,
         step: 1,
         value: tx[key] ?? 0,
-        oninput: e => {
+        oninput: (e) => {
           tx[key] = +e.target.value || 0;
           ctx.changed();
-        }
-      })
+        },
+      }),
     );
-  const placement = tx => {
+  const placement = (tx) => {
     const sl = h(
       'select',
       {
-        onchange: e => {
+        onchange: (e) => {
           tx.mode = e.target.value;
           ctx.restructure();
-        }
+        },
       },
-      PLACEMENTS.map(([v, l]) => h('option', { value: v, textContent: t(l) }))
+      PLACEMENTS.map(([v, l]) => h('option', { value: v, textContent: t(l) })),
     );
     sl.value = tx.mode || 'free';
     return field('Placement', sl);
@@ -59,18 +59,18 @@ export function freeTexts(k, col) {
             onclick: () => {
               arr.splice(i, 1);
               ctx.restructure();
-            }
+            },
           },
-          ico('x')
-        )
+          ico('x'),
+        ),
       ),
       richEditor(
         tx.text || '',
-        v => {
+        (v) => {
           tx.text = v;
           ctx.changed();
         },
-        { gallery: true, adv: tx, advChange: () => ctx.changed(), palette: toneKeys(doc) }
+        { gallery: true, adv: tx, advChange: () => ctx.changed(), palette: toneKeys(doc) },
       ),
       placement(tx),
       (tx.mode || 'free') === 'free'
@@ -79,9 +79,9 @@ export function freeTexts(k, col) {
             { class: 'row' },
             num('X (% de la colonne)', tx, 'x', 0, 100),
             num('Largeur (%)', tx, 'w', 10, 100),
-            tx.y == null ? null : num('Y (px)', tx, 'y', 0, 2000)
+            tx.y == null ? null : num('Y (px)', tx, 'y', 0, 2000),
           )
-        : null
+        : null,
     );
   const add = () => {
     arr.push({ x: 0, y: arr.length * 30, w: 50, text: 'Texte libre' });
@@ -93,8 +93,8 @@ export function freeTexts(k, col) {
     h('p', {
       class: 'hint',
       textContent: t(
-        'Glisser un texte « libre » dans l’aperçu pour le placer où l’on veut dans la colonne ; « au-dessus » ou « en dessous » le met dans le flux, avant ou après le contenu.'
-      )
-    })
+        'Glisser un texte « libre » dans l’aperçu pour le placer où l’on veut dans la colonne ; « au-dessus » ou « en dessous » le met dans le flux, avant ou après le contenu.',
+      ),
+    }),
   ];
 }

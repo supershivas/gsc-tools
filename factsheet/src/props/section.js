@@ -16,7 +16,7 @@ export function sectionPanel(k, { si, sec }) {
     },
     set ruleColor(v) {
       sec.ruleColor = v;
-    }
+    },
   };
 
   title(sec.title || 'Section', [], {
@@ -25,8 +25,8 @@ export function sectionPanel(k, { si, sec }) {
     acts: [
       ['arrow-up', t('Monter'), struct(() => stepSection(doc, si, -1))],
       ['arrow-down', t('Descendre'), struct(() => stepSection(doc, si, 1))],
-      ['trash', t('Supprimer'), () => ctx.remove(`sec:${si}`), 'danger']
-    ]
+      ['trash', t('Supprimer'), () => ctx.remove(`sec:${si}`), 'danger'],
+    ],
   });
   root.append(
     card('sec-main', 'layout-rows', t('Section'), [
@@ -35,7 +35,7 @@ export function sectionPanel(k, { si, sec }) {
       switchRow(t('Filet au-dessus de la section'), sec.secRule !== false, flip(sec, 'secRule')),
       switchRow(t('Filet entre les sous-sections'), sec.subRules !== false, flip(sec, 'subRules')),
       sec.subRules !== false ? swatches('Couleur du filet', ruleColor, 'ruleColor', toneKeys(doc)) : null,
-      pair('Page', sec, 'page', { recto: t('Recto'), verso: t('Verso') }, () => ctx.restructure())
+      pair('Page', sec, 'page', { recto: t('Recto'), verso: t('Verso') }, () => ctx.restructure()),
     ]),
     card(
       'sec-bg',
@@ -43,7 +43,7 @@ export function sectionPanel(k, { si, sec }) {
       t('Fond et contour'),
       [swatches('Fond', sec, 'bg', toneKeys(doc), true), ...boxControls(sec, 'Fond du cadre')],
       null,
-      [sumColor(sec.bg), sumBox(sec)].filter(x => x !== t('Aucun')).join(' · ') || t('Aucun')
-    )
+      [sumColor(sec.bg), sumBox(sec)].filter((x) => x !== t('Aucun')).join(' · ') || t('Aucun'),
+    ),
   );
 }

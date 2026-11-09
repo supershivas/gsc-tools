@@ -7,7 +7,7 @@ import { newCol, moveSub, refreshAutoCards } from '../state.js';
 
 export function subPanel(k, { si, bi, sec, sub }) {
   const { doc, ctx, root, title, card, field, text, switchRow, boxControls, sumBox, struct } = k;
-  const swapWith = j => () => {
+  const swapWith = (j) => () => {
     if (j >= 0 && j < sec.subs.length) [sec.subs[bi], sec.subs[j]] = [sec.subs[j], sec.subs[bi]];
   };
   const duplicate = () => {
@@ -15,29 +15,31 @@ export function subPanel(k, { si, bi, sec, sub }) {
     c.id = (sub.id || 'sub') + 'c' + (Date.now() % 1e5);
     sec.subs.splice(bi + 1, 0, c);
   };
-  const setLayout = v => {
+  const setLayout = (v) => {
     sub.layout = v;
     const n = GRID.layouts[v].spans.length;
     sub.cols = sub.cols.slice(0, n);
     while (sub.cols.length < n) sub.cols.push(newCol('text'));
-    refreshAutoCards(sub, i => columnWidth(doc, si, bi, i));
+    refreshAutoCards(sub, (i) => columnWidth(doc, si, bi, i));
     ctx.restructure();
   };
   const moveSelect = () => {
     const s = h(
       'select',
       {
-        onchange: e => {
+        onchange: (e) => {
           if (!e.target.value) return;
           const to = +e.target.value;
           ctx.moved(() => {
             const n = moveSub(doc, { si, bi }, { si: to, bi: null });
             return `sub:${n.si}:${n.bi}`;
           });
-        }
+        },
       },
       h('option', { value: '', textContent: '—' }),
-      doc.sections.map((x, i) => h('option', { value: i, textContent: `${x.title || t('Section')} (${x.page === 'recto' ? t('Recto') : t('Verso')})` }))
+      doc.sections.map((x, i) =>
+        h('option', { value: i, textContent: `${x.title || t('Section')} (${x.page === 'recto' ? t('Recto') : t('Verso')})` }),
+      ),
     );
     s.value = '';
     return s;
@@ -50,8 +52,8 @@ export function subPanel(k, { si, bi, sec, sub }) {
       ['arrow-up', t('Monter'), struct(swapWith(bi - 1))],
       ['arrow-down', t('Descendre'), struct(swapWith(bi + 1))],
       ['copy', t('Dupliquer'), struct(duplicate)],
-      ['trash', t('Supprimer'), () => ctx.remove(`sub:${si}:${bi}`), 'danger']
-    ]
+      ['trash', t('Supprimer'), () => ctx.remove(`sub:${si}:${bi}`), 'danger'],
+    ],
   });
   const mv = moveSelect();
   root.append(
@@ -60,9 +62,12 @@ export function subPanel(k, { si, bi, sec, sub }) {
       switchRow(t('Afficher le titre'), sub.showTitle !== false, () => {
         sub.showTitle = sub.showTitle === false;
       }),
-      field('Colonnes', layoutSelect({ value: sub.layout, layouts: { ...GRID.layouts, custom: customLayoutOf(sub) }, onChange: setLayout })),
-      field('Déplacer vers la section', mv)
+      field(
+        'Colonnes',
+        layoutSelect({ value: sub.layout, layouts: { ...GRID.layouts, custom: customLayoutOf(sub) }, onChange: setLayout }),
+      ),
+      field('Déplacer vers la section', mv),
     ]),
-    card('sub-box', 'border-all', t('Fond et contour'), boxControls(sub), null, sumBox(sub))
+    card('sub-box', 'border-all', t('Fond et contour'), boxControls(sub), null, sumBox(sub)),
   );
 }

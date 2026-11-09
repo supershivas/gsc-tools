@@ -15,18 +15,18 @@ function logoPicker(k, H) {
   const sel = h(
     'select',
     {
-      onchange: e => {
+      onchange: (e) => {
         H.logoVariant = e.target.value;
         ctx.restructure();
-      }
+      },
     },
     Object.entries(LOGO_VARIANTS).map(([key, l]) =>
       h('option', {
         value: key,
         textContent: `${t(l)} — ${t(H.logos[key] !== DEFAULT_LOGOS()[key] ? 'personnalisé' : 'original')}`,
-        selected: v === key
-      })
-    )
+        selected: v === key,
+      }),
+    ),
   );
   const inp = h('input', {
     type: 'file',
@@ -42,7 +42,7 @@ function logoPicker(k, H) {
       } catch (e) {
         alert(t('Image illisible.'));
       }
-    }
+    },
   });
   return h(
     'div',
@@ -63,13 +63,13 @@ function logoPicker(k, H) {
               textContent: 'Rétablir l’original',
               onclick: struct(() => {
                 H.logos[v] = orig;
-              })
+              }),
             })
           : null,
-        inp
-      )
+        inp,
+      ),
     ),
-    h('p', { class: 'hint', textContent: 'Les 4 versions ont la même taille (138 × 42 px). PNG transparent ou SVG.' })
+    h('p', { class: 'hint', textContent: 'Les 4 versions ont la même taille (138 × 42 px). PNG transparent ou SVG.' }),
   );
 }
 
@@ -77,7 +77,7 @@ function logoPicker(k, H) {
 function imageLibrary(k, H) {
   const { ctx } = k;
   const cur = headerImage(H);
-  const pick = e => async () => {
+  const pick = (e) => async () => {
     const inp = e.input;
     const f = inp.files[0];
     inp.value = '';
@@ -90,20 +90,20 @@ function imageLibrary(k, H) {
       alert(t('Image illisible.'));
     }
   };
-  const rename = img => () => {
+  const rename = (img) => () => {
     const n = prompt(t('Nom de l’image :'), img.name);
     if (n && n.trim()) {
       img.name = n.trim();
       ctx.restructure();
     }
   };
-  const remove = img => () => {
+  const remove = (img) => () => {
     if (!confirm(t('Supprimer cette image ?'))) return;
     H.images.splice(H.images.indexOf(img), 1);
     if (H.imageId === img.id) H.imageId = H.images[0].id;
     ctx.restructure();
   };
-  const tile = img => {
+  const tile = (img) => {
     const inp = h('input', { type: 'file', accept: 'image/*', hidden: true });
     inp.addEventListener('change', pick({ input: inp, img }));
     return h(
@@ -118,9 +118,9 @@ function imageLibrary(k, H) {
           onclick: () => {
             H.imageId = img.id;
             ctx.restructure();
-          }
+          },
         },
-        img.src ? h('img', { src: img.src, alt: '' }) : h('span', { textContent: 'Pas d’image' })
+        img.src ? h('img', { src: img.src, alt: '' }) : h('span', { textContent: 'Pas d’image' }),
       ),
       h('div', { class: 'imgtile-name', textContent: img.id === DEFAULT_IMAGE_ID ? t('Image par défaut') : img.name }),
       img.id === DEFAULT_IMAGE_ID
@@ -128,11 +128,15 @@ function imageLibrary(k, H) {
         : h(
             'div',
             { class: 'row imgtile-act' },
-            h('button', { type: 'button', class: 'mini', title: img.src ? 'Remplacer…' : 'Importer…', onclick: () => inp.click() }, ico('upload')),
+            h(
+              'button',
+              { type: 'button', class: 'mini', title: img.src ? 'Remplacer…' : 'Importer…', onclick: () => inp.click() },
+              ico('upload'),
+            ),
             h('button', { type: 'button', class: 'mini', title: 'Renommer', onclick: rename(img) }, ico('pencil')),
-            h('button', { type: 'button', class: 'mini danger', title: 'Supprimer', onclick: remove(img) }, ico('x'))
+            h('button', { type: 'button', class: 'mini danger', title: 'Supprimer', onclick: remove(img) }, ico('x')),
           ),
-      inp
+      inp,
     );
   };
   const add = () => {
@@ -149,8 +153,8 @@ function imageLibrary(k, H) {
       'div',
       { class: 'imggrid' },
       H.images.map(tile),
-      h('button', { type: 'button', class: 'imgtile-add', onclick: add }, ico('plus'), h('span', { textContent: 'Ajouter une image' }))
-    )
+      h('button', { type: 'button', class: 'imgtile-add', onclick: add }, ico('plus'), h('span', { textContent: 'Ajouter une image' })),
+    ),
   );
 }
 
@@ -159,26 +163,30 @@ export function headerPanel(k) {
   const H = doc.header;
   title('Header', [], { icon: 'layout-navbar', pill: t('En-tête') });
   root.append(
-    card('hd-text', 'typography', t('Texte'), [text(H, 'overline', 'Surtitre'), text(H, 'title', 'Titre du header'), text(H, 'subtitle', 'Sous-titre du header')]),
+    card('hd-text', 'typography', t('Texte'), [
+      text(H, 'overline', 'Surtitre'),
+      text(H, 'title', 'Titre du header'),
+      text(H, 'subtitle', 'Sous-titre du header'),
+    ]),
     card(
       'hd-colors',
       'palette',
       t('Couleurs'),
       [swatches('Couleur de fond', H, 'bg', toneKeys(doc)), swatches('Couleur du texte', H, 'fg', toneKeys(doc))],
       null,
-      sumColor(H.bg)
+      sumColor(H.bg),
     ),
     card('hd-image', 'photo', t('Image'), [imageLibrary(k, H)], {
       on: H.showImage,
       set: () => {
         H.showImage = !H.showImage;
-      }
+      },
     }),
     card('hd-logo', 'certificate', t('Logo'), [logoPicker(k, H)], {
       on: H.showLogo,
       set: () => {
         H.showLogo = !H.showLogo;
-      }
-    })
+      },
+    }),
   );
 }

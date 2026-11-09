@@ -7,58 +7,109 @@ import { loadFonts } from './viz/util.js';
 
 const MM = 96 / 25.4;
 export const A4 = { w: 210, h: 297 };
-export const BLEED_MM = 3, SLUG_MM = 9;
+export const BLEED_MM = 3,
+  SLUG_MM = 9;
 export const EXPORT_MODES = {
-  net:   { label: 'A4 net — 210 × 297 mm', note: 'Sans fond perdu ni repères.', offset: 0, bleed: false, marks: false },
-  bleed: { label: 'Fond perdu 3 mm — 216 × 303 mm', note: 'Les fonds colorés débordent de 3 mm sur les 4 côtés.', offset: BLEED_MM, bleed: true, marks: false },
-  marks: { label: 'Fond perdu 3 mm + traits de coupe — 228 × 315 mm', note: 'Pour l’imprimeur : fond perdu et repères de coupe (feuille de 228 × 315 mm).', offset: SLUG_MM, bleed: true, marks: true },
+  net: { label: 'A4 net — 210 × 297 mm', note: 'Sans fond perdu ni repères.', offset: 0, bleed: false, marks: false },
+  bleed: {
+    label: 'Fond perdu 3 mm — 216 × 303 mm',
+    note: 'Les fonds colorés débordent de 3 mm sur les 4 côtés.',
+    offset: BLEED_MM,
+    bleed: true,
+    marks: false,
+  },
+  marks: {
+    label: 'Fond perdu 3 mm + traits de coupe — 228 × 315 mm',
+    note: 'Pour l’imprimeur : fond perdu et repères de coupe (feuille de 228 × 315 mm).',
+    offset: SLUG_MM,
+    bleed: true,
+    marks: true,
+  },
 };
 
 /* Profils du PDF CMJN (choisis avant l'export). Profil de sortie : FOGRA39 (ISO 12647-2:2004, offset, papier couché), profil ECI
    « ISO Coated v2 300 % » incorporé (icc/, librement diffusable). PDF/X-4 garde les transparences, PDF/X-1a les aplatit. */
-const FOGRA39 = { icc: 'icc/ISOcoated_v2_300_eci.icc', iccName: 'ISO Coated v2 300% (ECI)', condition: 'FOGRA39', conditionText: 'Offset commercial, papier couché (ISO 12647-2:2004, FOGRA39)' };
+const FOGRA39 = {
+  icc: 'icc/ISOcoated_v2_300_eci.icc',
+  iccName: 'ISO Coated v2 300% (ECI)',
+  condition: 'FOGRA39',
+  conditionText: 'Offset commercial, papier couché (ISO 12647-2:2004, FOGRA39)',
+};
 export const PDF_PROFILES = {
-  x4:   { label: 'PDF/X-4 — FOGRA39 (ISO Coated v2 300 %)', note: 'Recommandé : transparences conservées, profil d’impression incorporé. Liens non cliquables.', suffix: '-x4', ...FOGRA39 },
-  x1a:  { label: 'PDF/X-1a — FOGRA39 (ISO Coated v2 300 %)', note: 'Pour un imprimeur qui refuse la transparence : chaque transparence est remplacée par l’aplat équivalent sur son fond. Liens non cliquables.', suffix: '-x1a', ...FOGRA39 },
+  x4: {
+    label: 'PDF/X-4 — FOGRA39 (ISO Coated v2 300 %)',
+    note: 'Recommandé : transparences conservées, profil d’impression incorporé. Liens non cliquables.',
+    suffix: '-x4',
+    ...FOGRA39,
+  },
+  x1a: {
+    label: 'PDF/X-1a — FOGRA39 (ISO Coated v2 300 %)',
+    note: 'Pour un imprimeur qui refuse la transparence : chaque transparence est remplacée par l’aplat équivalent sur son fond. Liens non cliquables.',
+    suffix: '-x1a',
+    ...FOGRA39,
+  },
   none: { label: 'CMJN sans norme', note: 'Sans profil incorporé ; les liens restent cliquables (lecture à l’écran).', suffix: '' },
 };
 
-export function sheetSize(mode) { const m = EXPORT_MODES[mode]; return { w: A4.w + 2 * m.offset, h: A4.h + 2 * m.offset }; }
+export function sheetSize(mode) {
+  const m = EXPORT_MODES[mode];
+  return { w: A4.w + 2 * m.offset, h: A4.h + 2 * m.offset };
+}
 
 function cropMarks(offset) {
   // deux traits par coin, à 3 mm du format fini (au bord du fond perdu), longs de 3 mm, 0,25 pt
-  const g = h('div', { class: 'marks' }), L = 3, gap = BLEED_MM;
+  const g = h('div', { class: 'marks' }),
+    L = 3,
+    gap = BLEED_MM;
   const line = (x, y, w, hh) => g.append(h('i', { style: { left: x + 'mm', top: y + 'mm', width: w + 'mm', height: hh + 'mm' } }));
-  const X = [offset, offset + A4.w], Y = [offset, offset + A4.h];
-  for (const [xi, x] of X.entries()) for (const [yi, y] of Y.entries()) {
-    const sx = xi ? 1 : -1, sy = yi ? 1 : -1;
-    line(sx < 0 ? x - gap - L : x + gap, y, L, 0);      // horizontal
-    line(x, sy < 0 ? y - gap - L : y + gap, 0, L);      // vertical
-  }
+  const X = [offset, offset + A4.w],
+    Y = [offset, offset + A4.h];
+  for (const [xi, x] of X.entries())
+    for (const [yi, y] of Y.entries()) {
+      const sx = xi ? 1 : -1,
+        sy = yi ? 1 : -1;
+      line(sx < 0 ? x - gap - L : x + gap, y, L, 0); // horizontal
+      line(x, sy < 0 ? y - gap - L : y + gap, 0, L); // vertical
+    }
   return g;
 }
 
 /** Construit #print-root + la règle @page. Retourne une fonction de nettoyage. */
 export async function preparePrint(doc, mode) {
-  const m = EXPORT_MODES[mode] || EXPORT_MODES.net, size = sheetSize(mode);
+  const m = EXPORT_MODES[mode] || EXPORT_MODES.net,
+    size = sheetSize(mode);
   await loadFonts();
   cleanupPrint();
   const root = h('div', { id: 'print-root', class: m.bleed ? 'print-bleed' : '' });
   // mesure hors écran (les dernières sections colorées descendent jusqu'au bas de page)
   Object.assign(root.style, { display: 'block', position: 'absolute', left: '-20000px', top: '0' });
   const result = renderDocument(doc);
-  const k = (A4.w * MM) / PAGE.w;                         // 793,7 px réels pour 210 mm
+  const k = (A4.w * MM) / PAGE.w; // 793,7 px réels pour 210 mm
   for (const p of result.pages) {
-    const holder = h('div', { class: 'print-page', style: { left: m.offset + 'mm', top: m.offset + 'mm', transform: `scale(${k})` } }, p.el);
-    root.append(h('div', { class: 'print-sheet', style: { width: size.w + 'mm', height: size.h + 'mm' } }, holder, m.marks ? cropMarks(m.offset) : null));
+    const holder = h(
+      'div',
+      { class: 'print-page', style: { left: m.offset + 'mm', top: m.offset + 'mm', transform: `scale(${k})` } },
+      p.el,
+    );
+    root.append(
+      h(
+        'div',
+        { class: 'print-sheet', style: { width: size.w + 'mm', height: size.h + 'mm' } },
+        holder,
+        m.marks ? cropMarks(m.offset) : null,
+      ),
+    );
   }
   document.body.append(root);
   measure(result);
-  root.removeAttribute('style');                          // retour au CSS : visible seulement à l'impression
+  root.removeAttribute('style'); // retour au CSS : visible seulement à l'impression
   const st = h('style', { id: 'print-page-style', textContent: `@page{size:${size.w}mm ${size.h}mm;margin:0}` });
   document.head.append(st);
   return { cleanup: cleanupPrint, size, result };
 }
 export function cleanupPrint() {
-  for (const id of ['print-root', 'print-page-style']) { const n = document.getElementById(id); if (n) n.remove(); }
+  for (const id of ['print-root', 'print-page-style']) {
+    const n = document.getElementById(id);
+    if (n) n.remove();
+  }
 }

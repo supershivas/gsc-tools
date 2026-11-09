@@ -14,7 +14,7 @@ export function buildProps(root, ctx) {
     path = ctx.getSel();
   root.innerHTML = '';
   const append = root.append.bind(root);
-  root.append = (...nodes) => append(...nodes.filter(x => x != null && x !== false)); // les champs absents (null) ne s'affichent pas
+  root.append = (...nodes) => append(...nodes.filter((x) => x != null && x !== false)); // les champs absents (null) ne s'affichent pas
   applyVars(root, cssVars(doc.theme, doc.colors));
 
   const P = (path || '').split(':'),
