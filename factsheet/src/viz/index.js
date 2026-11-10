@@ -15,6 +15,7 @@ import scatter from './scatter.js';
 import survey from './survey.js';
 import waffle from './waffle.js';
 import timeline from './timeline.js';
+import heatmap from './heatmap.js';
 import { pictoTypes } from './picto.js';
 import { el, s, heightOf, fmt, inlineMk } from './util.js';
 import { renderFigure } from '../figure.js';
@@ -24,6 +25,7 @@ export const VIZ_TYPES = {
   donut,
   bars,
   hbars,
+  heatmap,
   line,
   timeline,
   scatter,

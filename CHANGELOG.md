@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.89.0 — 2026-11-10
+- Factsheet creator : nouvelle dataviz « Heatmap » — un tableau de cases dont la couleur dit l'écart à une colonne de référence (ou à la colonne précédente), en classes de couleur (baisses, hausses, gris pour zéro)
+- Chaque case affiche la valeur, l'écart en % et l'écart absolu ; une cellule vide est dessinée « en attente » (contour en tirets) ; export PDF compris
+
 ## 1.88.1 — 2026-11-10
 - PEC organigramme : plus aucun texte d'exemple, le gabarit de départ garde la structure et les styles mais tous les champs sont vides (« Repartir du gabarit » efface aussi les textes)
 

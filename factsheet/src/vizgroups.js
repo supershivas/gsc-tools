@@ -19,16 +19,16 @@ export const VALID_G = new Set([...CARDS.map((c) => c.g), 'data', 'ratio']);
 export const FIELD_ORDER = [
   // Structure
   'style', 'orient', 'largestAngle', 'startAngle', 'ringAlign', 'orientation', 'alternate', 'tail', 'align', 'shape',
-  'cols', 'gridRows', 'total', 'perIcon', 'perDot', 'perRow', 'circle', 'parents', 'curve', 'points', 'area',
+  'cols', 'gridRows', 'total', 'perIcon', 'perDot', 'perRow', 'circle', 'parents', 'curve', 'points', 'area', 'refCol', 'compareTo', 'colorBy',
   // Dimensions
-  'barSize', 'groupSpace', 'rowSpace', 'serSpace', 'rowGap', 'scale', 'pad', 'gap', 'nodeW', 'nodePad', 'maxR', 'hole', 'lineWidth', 'pointSize',
+  'barSize', 'groupSpace', 'rowSpace', 'serSpace', 'rowGap', 'scale', 'pad', 'gap', 'corners', 'nodeW', 'nodePad', 'maxR', 'hole', 'lineWidth', 'pointSize',
   // Axes et grille
-  'grid', 'gridStyle', 'gridTone', 'segments', 'axisValues', 'baseline', 'xTitle', 'yTitle', 'zero', 'zeroX', 'zeroY', 'scaleMax', 'gridCount',
+  'grid', 'gridStyle', 'gridTone', 'segments', 'axisValues', 'baseline', 'xTitle', 'yTitle', 'showRowNames', 'showColNames', 'zero', 'zeroX', 'zeroY', 'scaleMax', 'gridCount',
   // Étiquettes
-  'legend', 'legendPos', 'showPercent', 'showValues', 'valuesIn', 'labelIn', 'showLabels', 'groupLabels', 'showDates', 'showTotal',
-  'layout', 'leading', 'totalTpl', 'decimals', 'suffix',
+  'legend', 'legendPos', 'showPercent', 'showValues', 'showPct', 'showDelta', 'valuesIn', 'labelIn', 'showLabels', 'groupLabels', 'showDates', 'showTotal',
+  'layout', 'leading', 'totalTpl', 'refText', 'pendingText', 'decimals', 'suffix',
   // Couleurs
-  'color',
+  'color', 'color2', 'classes',
   // Accolade et liaison
   'callout.on', 'callout.value', 'callout.text', 'bracket', 'bracketGap', 'bracketLink', 'linkExtra', 'linkColor',
 ]; // prettier-ignore
@@ -66,12 +66,12 @@ export const SUBS = {
 };
 const SUB_OF = {
   legend: 'legend', legendPos: 'legend', showPercent: 'legend',
-  showValues: 'values', valuesIn: 'values', showTotal: 'values',
-  showLabels: 'names', groupLabels: 'names', showDates: 'names', layout: 'names', leading: 'names', totalTpl: 'names',
+  showValues: 'values', valuesIn: 'values', showTotal: 'values', showPct: 'values', showDelta: 'values',
+  showLabels: 'names', groupLabels: 'names', showDates: 'names', layout: 'names', leading: 'names', totalTpl: 'names', refText: 'names', pendingText: 'names',
   labelIn: 'inbars', decimals: 'numbers', suffix: 'numbers',
   style: 'shape', orient: 'orient', largestAngle: 'orient', startAngle: 'orient', ringAlign: 'position',
   grid: 'grid', gridStyle: 'grid', gridTone: 'grid', segments: 'grid',
-  axisValues: 'axis', baseline: 'axis', xTitle: 'axis', yTitle: 'axis',
+  axisValues: 'axis', baseline: 'axis', xTitle: 'axis', yTitle: 'axis', showRowNames: 'axis', showColNames: 'axis',
   zero: 'scale', zeroX: 'scale', zeroY: 'scale', scaleMax: 'scale', gridCount: 'scale',
 }; // prettier-ignore
 const SUB_RANK = Object.keys(SUBS);
