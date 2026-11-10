@@ -28,7 +28,9 @@ export function docChars() {
 
 /** 3. Trois documents qui contiennent ensemble les 17 types de dataviz, 3 par page (recto et verso). */
 export function docsViz() {
-  const kinds = Object.keys(VIZ_TYPES);
+  /* types ajoutés après les captures de référence : testés à part (tests/heatmap.spec.js), pour ne pas décaler les 17 types des captures */
+  const LATER = ['heatmap'];
+  const kinds = Object.keys(VIZ_TYPES).filter((k) => !LATER.includes(k));
   const docs = [];
   for (let i = 0; i < kinds.length; i += 6) {
     const chunk = kinds.slice(i, i + 6),

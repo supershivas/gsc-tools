@@ -62,10 +62,13 @@ export const hasHeader = (m, numericCols) =>
 export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
   const rows = obj[f.k],
     series = obj[f.series],
-    max = f.maxSeries || 4;
+    max = f.maxSeries || 4,
+    blank = !!f.blank, // heatmap : une cellule vide reste vide (null = « en attente »), au lieu de 0
+    cell = (x) => (blank && (x === null || x === undefined || x === '') ? null : +x || 0),
+    serName = t(f.serLabel || 'Série');
   const fix = () =>
     rows.forEach((r) => {
-      r.v = Array.from({ length: series.length }, (_, j) => +(r.v || [])[j] || 0);
+      r.v = Array.from({ length: series.length }, (_, j) => cell((r.v || [])[j]));
     });
   const ns = series.length,
     iconCol = f.icons ? [{ name: t('Icône'), type: 'text', isIcon: true, select: { none: t('Aucune'), ...pictoChoices(obj, icons) } }] : [];
@@ -77,7 +80,7 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
         name: sr.name || '',
         type: 'number',
         color: sr.color,
-        palOpts,
+        palOpts: f.noColor ? null : palOpts, // heatmap : la couleur vient de l'échelle, pas de la colonne
         onColor: (v) => {
           sr.color = v;
         },
@@ -102,32 +105,32 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
       ...iconCol,
     ],
     rows: () => rows.length,
-    get: (i, j) => (j === 0 ? rows[i].label || '' : j > ns ? rows[i].icon || 'none' : String((rows[i].v || [])[j - 1] ?? 0)),
+    get: (i, j) => (j === 0 ? rows[i].label || '' : j > ns ? rows[i].icon || 'none' : String((rows[i].v || [])[j - 1] ?? (blank ? '' : 0))),
     set(i, j, v) {
       if (j === 0) rows[i].label = v;
       else if (j > ns) rows[i].icon = v;
       else {
         const n = num(v);
-        (rows[i].v || (rows[i].v = []))[j - 1] = n === null ? 0 : n;
+        (rows[i].v || (rows[i].v = []))[j - 1] = n === null ? (blank ? null : 0) : n;
       }
     },
-    addRow: () => rows.push({ label: '', v: series.map(() => 0) }),
+    addRow: () => rows.push({ label: '', v: series.map(() => (blank ? null : 0)) }),
     delRow: (i) => {
       if (rows.length > 1) rows.splice(i, 1);
     },
     addCol:
       series.length < max
         ? () => {
-            series.push({ name: `${t('Série')} ${series.length + 1}`, color: SERIES_COLORS[series.length % SERIES_COLORS.length] });
+            series.push({ name: `${serName} ${series.length + 1}`, color: SERIES_COLORS[series.length % SERIES_COLORS.length] });
             fix();
           }
         : null,
-    colLabel: t('+ Série'),
+    colLabel: '+ ' + serName,
     load(m, head) {
       const body = head ? m.slice(1) : m,
         nser = Math.min(max, Math.max(1, ...body.map((c) => c.length - 1)));
       const ns = Array.from({ length: nser }, (_, j) => ({
-        name: (head && m[0][j + 1]) || (series[j] && series[j].name) || `${t('Série')} ${j + 1}`,
+        name: (head && m[0][j + 1]) || (series[j] && series[j].name) || `${serName} ${j + 1}`,
         color: (series[j] && series[j].color) || SERIES_COLORS[j % SERIES_COLORS.length],
         ...(series[j] && series[j].dash ? { dash: series[j].dash } : {}),
       }));
@@ -135,13 +138,13 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
       rows.splice(
         0,
         rows.length,
-        ...body.map((c) => ({ label: c[0] || '', v: Array.from({ length: nser }, (_, j) => num(c[j + 1]) ?? 0) })),
+        ...body.map((c) => ({ label: c[0] || '', v: Array.from({ length: nser }, (_, j) => num(c[j + 1]) ?? (blank ? null : 0)) })),
       );
     },
     numericCols: Array.from({ length: Math.max(0, series.length) }, (_, j) => j + 1),
     toMatrix: () => [
       ['', ...series.map((s) => s.name || '')],
-      ...rows.map((r) => [r.label || '', ...series.map((_, j) => (r.v || [])[j] ?? 0)]),
+      ...rows.map((r) => [r.label || '', ...series.map((_, j) => (r.v || [])[j] ?? (blank ? '' : 0))]),
     ],
   };
 }

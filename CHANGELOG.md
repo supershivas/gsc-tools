@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.90.0 — 2026-11-10
+- Factsheet creator : nouvelle dataviz « Heatmap » — un tableau de cases dont la couleur dit l'écart à une colonne de référence (ou à la colonne précédente), en classes de couleur (baisses, hausses, gris pour zéro)
+- Chaque case affiche la valeur, l'écart en % et l'écart absolu ; une cellule vide est dessinée « en attente » (contour en tirets) ; export PDF compris
+
 ## 1.89.0 — 2026-11-10
 - PEC organigramme : chaque cadre a un réglage « Lien avec le niveau du dessus » : relié au niveau du dessus (automatique), à un cadre précis ou à aucun, trait plein ou en tirets (PDF compris)
 - On clique un trait dans l'aperçu pour le sélectionner (ses réglages s'ouvrent dans le panneau) et on glisse le trait horizontal pour régler sa hauteur ; Échap désélectionne
