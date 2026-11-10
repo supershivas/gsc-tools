@@ -213,6 +213,8 @@ export function migrate(j) {
         const k = Object.assign(newCol(c.type || 'text'), c);
         if (k.type === 'figure' && !k.figure) k.figure = FIGURE_DEFAULTS();
         if (k.type === 'card' && !k.card) k.card = newCard();
+        if (k.src && !safeImgSrc(k.src)) k.src = null;
+        if (k.card && k.card.src && !safeImgSrc(k.card.src)) k.card.src = null;
         if (k.type === 'viz') {
           if (!k.viz) k.viz = newViz('bars');
           else if (!k.viz.opts) k.viz = newViz(k.viz.kind);
@@ -290,15 +292,23 @@ export function stepSection(doc, si, d) {
   return j;
 }
 
+/** Une image n'est acceptée que si elle est incorporée (`data:image/…`) ou locale (chemin relatif du dépôt, ex. `assets/…`) :
+    une adresse distante (`https://…`, `//…`, `javascript:`…) ferait charger un site tiers à l'ouverture d'un projet reçu. */
+export const safeImgSrc = (v) => {
+  if (typeof v !== 'string') return false;
+  if (/^data:image\//i.test(v)) return true;
+  const w = v.replace(/[\u0000-\u0020]/g, ''); // le navigateur ignore espaces, tabulations et retours en début d'adresse ou dans le schéma
+  return !(/^[a-z][a-z0-9+.-]*:/i.test(w) || /^[\\/]{2}/.test(w));
+};
 /** Anciens fichiers : une seule image (`image`) et un seul logo (`logo`) → bibliothèque d'images et 4 versions du logo */
 function migrateHeader(H, src) {
-  if (src.image && !Array.isArray(src.images)) {
+  if (safeImgSrc(src.image) && !Array.isArray(src.images)) {
     const n = { ...newHeaderImage(1), src: src.image };
     H.images = [n];
     H.imageId = n.id;
   }
   delete H.image;
-  if (src.logo && !src.logos) H.logos.default = src.logo;
+  if (safeImgSrc(src.logo) && !src.logos) H.logos.default = src.logo;
   delete H.logo;
   // une version vide reprend le logo publié (document créé avant la publication, autre appareil)
   const def = DEFAULT_LOGOS(),
@@ -306,10 +316,10 @@ function migrateHeader(H, src) {
   // les logos « défaut » et « mono » avaient été publiés à l'envers : on remet les bons fichiers
   if (cur.default === def.mono) cur.default = def.default;
   if (cur.mono === def.default) cur.mono = def.mono;
-  H.logos = Object.assign({}, def, Object.fromEntries(Object.entries(cur).filter(([, v]) => v)));
+  H.logos = Object.assign({}, def, Object.fromEntries(Object.entries(cur).filter(([, v]) => v && safeImgSrc(v))));
   if (!LOGO_VARIANTS[H.logoVariant]) H.logoVariant = 'default';
   H.images = (H.images || [])
-    .filter((i) => i && typeof i === 'object' && i.src && i.id !== DEFAULT_IMAGE_ID)
+    .filter((i) => i && typeof i === 'object' && i.src && safeImgSrc(i.src) && i.id !== DEFAULT_IMAGE_ID)
     .map((i, k) => ({ id: i.id || uid('img'), name: i.name || `${t('Image')} ${k + 1}`, src: i.src }));
   H.images.unshift(defaultHeaderImage()); // l'image par défaut reste toujours la première
   if (!H.images.some((i) => i.id === H.imageId)) H.imageId = H.images[0].id;

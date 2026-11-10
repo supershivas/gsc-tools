@@ -1,7 +1,7 @@
 {
-  "version": "1.91.0",
+  "version": "1.91.1",
   "date": "2026-11-10",
   "changes": [
-    "Nouvelle page « Batch Logo Export » : le script Illustrator d'export des logos par langue, à télécharger, avec son mode d'emploi (installation, préparation du fichier, options, dépannage)"
+    "Sécurité : l'ouverture d'un projet refuse les images distantes ; seules les images incorporées ou celles du dépôt sont gardées"
   ]
 }
