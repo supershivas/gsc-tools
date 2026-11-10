@@ -5,7 +5,7 @@ import { startUpdateCheck, loadVersion, loadChangelog, downloadJSON } from './ap
 const ROOT = new URL('../', import.meta.url);
 const VERSION_URL = new URL('version.json', ROOT).href;
 const CHANGELOG_URL = new URL('CHANGELOG.md', ROOT).href;
-const DATA_PREFIX = 'factsheet-creator';
+const DATA_PREFIXES = ['factsheet-creator', 'pec-organigramme'];
 
 const el = (tag, props = {}, ...kids) => {
   const e = document.createElement(tag);
@@ -25,7 +25,7 @@ function exportData(version) {
   const data = {};
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (!k.startsWith(DATA_PREFIX)) continue;
+    if (!DATA_PREFIXES.some(p => k.startsWith(p))) continue;
     try { data[k] = JSON.parse(localStorage.getItem(k)); } catch { data[k] = localStorage.getItem(k); }
   }
   downloadJSON({ app: 'gsc-tools', version, exportedAt: new Date().toISOString(), data }, 'gsc-tools-export.json');

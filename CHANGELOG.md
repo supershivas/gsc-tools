@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.87.0 — 2026-11-10
+- Nouvel outil « PEC organigramme » : un organigramme A4 au gabarit PEC (EU Blue), édité en direct, avec autant de niveaux, cadres, sous-sections et personnes que voulu
+- Logo en haut à gauche et image en haut à droite (import ou glisser-déposer), réduction automatique pour tenir dans la page, annulation, mode sombre
+- Export PDF CMJN (EU Blue 100-80-0-0, polices incorporées, profil FOGRA39) et enregistrement / import du fichier JSON
+
 ## 1.86.0 — 2026-11-10
 - Nouvelle carte « Axes et grille » dans l'éditeur de dataviz (barres, barres horizontales, courbes, nuage de points) : grille (style plein, tirets ou pointillé ; intensité discrète, normale ou marquée), valeurs de l'axe, ligne de base, titres d'axes, départ à zéro, maximum de l'échelle (pour comparer plusieurs graphiques) et nombre de lignes
 - Les nouvelles barres et courbes ont une grille discrète ; les fiches existantes ne changent pas d'aspect

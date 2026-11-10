@@ -26,6 +26,9 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: factsheet/package-lock.json
+      - name: Vérifications communes (structure, version, PEC organigramme)
+        run: node scripts/verifier.mjs
+        working-directory: .
       - run: npm ci
       # traductions, compilation sans avertissement, bundles identiques à ceux du dépôt
       - run: npm run check

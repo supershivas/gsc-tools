@@ -1,0 +1,6 @@
+Copies figées (ne pas éditer ; seule la ligne sourceMappingURL finale a été retirée) :
+- pdf-lib-1.17.1.min.js        : pdf-lib 1.17.1 (MIT), dist/pdf-lib.min.js du paquet npm
+- fontkit-1.1.1.umd.min.js     : @pdf-lib/fontkit 1.1.1 (MIT), dist/fontkit.umd.min.js du paquet npm
+Chargées à la demande par ../js/pdf.js, au premier export PDF.
+Mise à jour : npm pack pdf-lib@<version> @pdf-lib/fontkit@<version>, recopier les deux fichiers
+avec leur numéro de version dans le nom, puis corriger les noms dans ../js/pdf.js et scripts/verifier.mjs.

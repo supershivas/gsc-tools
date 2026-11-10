@@ -158,6 +158,9 @@ Le motif est simple, lisible à 16 px, dans les couleurs des tokens.
 - Stockage : Supabase. Ne crée pas de nouveau projet Supabase sans me demander.
   Réutilise un projet existant avec des tables préfixées par le nom de l'app.
 - Les clés et secrets ne sont jamais commités.
+- Tout ce que l'app stocke ou exporte porte un numéro de format
+  (`schemaVersion`) : à la lecture, l'app migre les anciens formats au lieu
+  de casser ou de les ignorer, et un export se réimporte sans perte.
 
 ## 8. Interface
 
@@ -185,6 +188,15 @@ Le motif est simple, lisible à 16 px, dans les couleurs des tokens.
   téléphone sans rien casser : un bandeau discret, refermable, indique
   « Cette app est prévue pour un écran d'ordinateur ». Ne l'optimise pas pour
   le mobile sans ma demande.
+- Masquage fiable : `[hidden] { display: none !important; }` est déclaré avant
+  toute autre règle `display`. Sinon une classe comme `.panneau { display: flex }`
+  l'emporte et l'élément « masqué » reste affiché.
+- Une `<dialog>` (ou un tiroir) ne reçoit une règle `display` que sous `[open]`
+  (`dialog.tiroir[open] { display: flex }`) : le navigateur la masque fermée par
+  un `display: none` que toute règle `display` sans `[open]` écrase.
+- Le toast est un `popover` (`popover="manual"`, ouvert par `showPopover()`) : il
+  passe ainsi dans la couche supérieure, devant les `<dialog>` ouvertes, que
+  aucun `z-index` ne permet de dépasser.
 
 ## 8 bis. Jeux
 

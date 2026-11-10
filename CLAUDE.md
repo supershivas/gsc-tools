@@ -4,7 +4,7 @@
 
 ## Description
 
-Regroupe les différents outils de design développés pour le GSC. Premier outil : le Factsheet creator (éditeur de fiche A4 recto-verso, dataviz, export PDF).
+Regroupe les différents outils de design développés pour le GSC. Premier outil : le Factsheet creator (éditeur de fiche A4 recto-verso, dataviz, export PDF). Autres outils : Europa 3D, Donut export, PEC organigramme (organigramme A4 au gabarit PEC, PDF CMJN).
 URL de production : https://supershivas.github.io/gsc-tools/
 Catégorie : **secondaire**.
 Cible : **uniquement bureau** (bandeau refermable « Cette app est prévue pour un écran d'ordinateur » sur téléphone, pas d'optimisation mobile).
@@ -23,12 +23,28 @@ JS vanilla statique, hébergé sur GitHub Pages (push sur `main` = déploiement)
 - `version.json`, `CHANGELOG.md` : version (source unique).
 - `europa/europa-3d.html` : maquette 3D de la lanterne de l'Europa building (fichier autonome, three.js via CDN). Détails dans `europa/README.md`.
 - `donut/donut-export.html` : export d'un graphique en anneau (PNG/JPG, versions A/B/C), fichier autonome branché sur la coque ; ses styles sont limités à `.app` ; fichiers exportés nommés `UA_AAMMJJ_nom` ; données dans `localStorage` clé `donut-export-v1`, hors export des réglages.
+- `organigramme/` : **PEC organigramme** (sans build, modules ES). Détail dans la section « PEC organigramme » plus bas.
+- `scripts/verifier.mjs` : vérifications rapides (fichiers de la structure, version = tête du changelog, règles de PEC organigramme, pas de version flottante) ; lancé aussi par le workflow de tests.
 - `factsheet/` : le Factsheet creator. Sources dans `factsheet/src/` (`main.js` = état du document, `ctx` et assemblage ; un module par responsabilité dans `src/editor/`, `src/props/`, `src/viz/`, `src/pdf/`). Les bundles `app.js`, `viewer3d.js`, `atelier.js`, `labo.js` et `pdfexport.js` sont générés : après toute modification des sources, `cd factsheet && npm install && npm run build` et commiter les cinq. Pages : `index.html` (éditeur), `labo.html`, `atelier.html`.
 - **Documentation détaillée du Factsheet creator** : `factsheet/README.md` (phases, format du texte, dataviz, tests) et `factsheet/docs/architecture.md` (une description par fonctionnalité : espacement, glisser-déposer, historique, texte riche, dataviz, couleurs, export PDF, aperçu 3D…). La lire avant de toucher à une fonctionnalité ; la mettre à jour quand une décision durable est prise.
+
+## PEC organigramme (`organigramme/`)
+
+Un seul écran : panneau d'édition à gauche, aperçu A4 en direct à droite, export PDF CMJN. Interface en français, mode sombre (`prefers-color-scheme`), la feuille reste blanche.
+
+- `index.html` + `boot.js` : `boot.js` lit `version.json`, pose une **import map** (`org/…` → `organigramme/js/…?v=<version>`, `gsc/…` → `js/…?v=<version>`) puis charge CSS et `js/main.js`. Les modules s'importent donc par `org/x.js` / `gsc/x.js`, jamais par chemin relatif ; **tout nouveau module s'ajoute à `MODULES` dans `boot.js`** (le vérificateur le contrôle).
+- `js/model.js` : schéma, gabarit par défaut (`defaultDoc`), `migrate`, `fileStem`. `js/layout.js` : mise en page pure (cotes du gabarit dans `T`, en points) qui rend une liste d'éléments ; `js/render.js` (aperçu SVG + mesure du texte) et `js/pdf.js` (pdf-lib) dessinent **la même liste** : ne jamais dessiner dans l'un sans l'autre. `js/theme.js` : couleurs (CMJN + écran) et polices. `js/store.js` : `localStorage`, historique, fichiers JSON. `js/main.js` : état et interface.
+- `fonts/` : polices statiques officielles d'Adobe (Source Sans 3 Bold, Source Serif 4 It / SemiboldIt, OFL), celles du gabarit, servies à l'écran et incorporées au PDF. Ne pas les remplacer par `factsheet/fonts/pdf` (autre taille optique, sans crénage : les largeurs ne correspondent plus au gabarit).
+- `vendor/` : pdf-lib 1.17.1 et @pdf-lib/fontkit 1.1.1 (copies figées, approuvées par le propriétaire, chargées au premier export). Profil ICC : celui du Factsheet creator (`factsheet/icc/`).
+- **Données** : `localStorage` clé `pec-organigramme-v1` = `{ schemaVersion: 1, savedAt, doc }`, incluse dans l'export des réglages (préfixes dans `js/shell.js`). `doc` = `{ schemaVersion, title, page: { orientation, fit, equalHeights }, logo, image, assets, levels[] }` ; `levels[].boxes[]` = `{ id, title, tone: dark|mid, align: left|center, lead: { name, role } | null, groups[] }` ; `groups[]` = `{ id, title (vide = sans barre), people[] }` ; `people[]` = `{ id, name, role, emph }`. `logo` / `image` = `{ asset, name, ratio, w (points), x, y }` avec `x`/`y` nuls = placement automatique (logo en haut à gauche, image en haut à droite) ; `assets` = data URL par clé. Fichier enregistré : `{ app: 'pec-organigramme', schemaVersion, exportedAt, doc }`. Toute lecture passe par `migrate` ; ne jamais renommer une clé.
+- **Règles** : couleurs du document uniquement par `COLORS` (EU Blue 100-80-0-0 et ses teintes 60 % / 25 %, blanc), en `DeviceCMYK` dans le PDF ; toute modification passe par `commit()` (historique, enregistrement, aperçu) ; pas d'`innerHTML` ; « ajuster à la page » réduit corps et hauteurs, pas les largeurs.
+- **Limites connues** : logo et image sont incorporés tels quels (un PNG reste RVB, un JPEG CMJN reste CMJN, un SVG est converti en PNG à ~600 ppp) ; le PDF déclare le profil FOGRA39 mais n'est pas certifié PDF/X.
+- **Vérifier** : `node scripts/verifier.mjs`, puis l'outil ouvert en 1280 px et 375 px sans erreur de console, et un export PDF comparé au gabarit.
 
 ## Exceptions aux conventions
 
 - L'aperçu du document (A4) garde son propre système de design (Source Sans 3 / Source Serif 4, `factsheet/src/tokens.js`) : c'est le produit, pas l'interface de l'app.
+- PEC organigramme : neutres du mode sombre définis dans `organigramme/css/organigramme.css` (absents des tokens partagés) ; boutons d'icône de 32 px à la souris, 44 px au toucher (`pointer: coarse`), pour garder des lignes de personnes denses.
 - Neutres de l'interface (`--bg`, `--line`, `--ink`…) et variables locales (`--handle`, `--danger`, `--fs-*`, `--radius-xs`…) définis dans `css/tokens.css` faute d'équivalent dans les tokens partagés. Pas de valeur de couleur, de taille de police ou d'arrondi en dur dans `factsheet/css/app.css`, `sel.css`, `labo.css` : utiliser ces variables.
 - Interface du Factsheet creator : **anglais par défaut**, français en option (sélecteur dans la barre), à la demande du propriétaire ; déroge à « interface en français ». Le reste de la coque (en-tête, réglages) reste en français. Les textes du code sont en français et servent de clés : dictionnaire FR → EN dans `factsheet/src/i18n.js` (toute nouvelle chaîne d'interface doit y être ajoutée ; une valeur créée dans le document doit passer par `t()`). Clé sans espace au début ni à la fin, jamais en double (esbuild avertit : `Duplicate key`).
 - **Atelier** (`factsheet/atelier.html`) : publie les images et les projets dans `factsheet/assets/` et `factsheet/projects/` par un commit sur `main` (API Git de GitHub, `src/github.js`). Jeton personnel à droits fins gardé dans le `localStorage` sous `gsc-tools-github-token` (hors du préfixe `factsheet-creator`, donc jamais exporté).

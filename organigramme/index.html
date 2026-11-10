@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr" class="booting">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>PEC organigramme — GSC tools</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono&family=Inter:wght@400;500;600&family=Playfair+Display:wght@700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>.booting body { visibility: hidden; }</style>
+<script src="boot.js"></script>
+</head>
+<body class="org">
+<header id="app-header"></header>
+<main class="work">
+  <aside id="panel" class="panel" aria-label="Contenu de l’organigramme"></aside>
+  <section class="view">
+    <div class="bar">
+      <input id="title" class="in title" type="text" aria-label="Nom du document" placeholder="Nom du document" autocomplete="off" spellcheck="false">
+      <button id="undo" type="button" class="ib" title="Annuler (Ctrl + Z)" aria-label="Annuler"><i class="ti ti-arrow-back-up" aria-hidden="true"></i></button>
+      <button id="redo" type="button" class="ib" title="Rétablir (Ctrl + Maj + Z)" aria-label="Rétablir"><i class="ti ti-arrow-forward-up" aria-hidden="true"></i></button>
+      <div id="status" class="status" role="status"></div>
+      <span class="grow"></span>
+      <button id="reset" type="button" class="ib" title="Repartir du gabarit" aria-label="Repartir du gabarit"><i class="ti ti-restore" aria-hidden="true"></i></button>
+      <button id="open" type="button" class="btn slim"><i class="ti ti-folder-open" aria-hidden="true"></i>Importer</button>
+      <button id="save" type="button" class="btn slim" title="Enregistrer le fichier JSON (Ctrl + S)"><i class="ti ti-device-floppy" aria-hidden="true"></i>Enregistrer</button>
+      <button id="pdf" type="button" class="btn slim primary" title="Exporter le PDF (Ctrl + P)"><i class="ti ti-file-type-pdf" aria-hidden="true"></i>Exporter le PDF</button>
+      <input id="open-file" type="file" accept="application/json,.json" hidden>
+    </div>
+    <div id="stage" class="stage">
+      <div class="paper"><svg id="sheet" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Aperçu de l’organigramme"></svg></div>
+    </div>
+  </section>
+</main>
+<div id="toast" class="org-toast" popover="manual" role="status"></div>
+</body>
+</html>
