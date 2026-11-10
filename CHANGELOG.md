@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.91.0 — 2026-11-10
+- Nouvelle page « Batch Logo Export » : le script Illustrator d'export des logos par langue, à télécharger, avec son mode d'emploi (installation, préparation du fichier, options, dépannage)
+
 ## 1.90.1 — 2026-11-10
 - Heatmap : légende en barre de classes (cases jointives, libellés aux limites des classes ou aux extrémités si la place manque), en bas ou en haut
 - Heatmap : note automatique sous la légende (« Couleur pleine = plus grand écart du tableau… »), modifiable ; un clic sur une case choisit la couleur de sa classe

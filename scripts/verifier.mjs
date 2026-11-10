@@ -12,7 +12,7 @@ const must = (ok, msg) => ok || errors.push(msg);
 for (const p of [
   'index.html', 'version.json', 'CHANGELOG.md', 'design-tokens.json', 'js/shell.js', 'js/dialog.js', 'js/app-update.js',
   'css/tokens.css', 'css/shell.css', 'css/mobile.css', 'factsheet/index.html', 'donut/donut-export.html', 'europa/europa-3d.html',
-  'organigramme/index.html', 'organigramme/boot.js', 'organigramme/css/organigramme.css',
+  'illustrator/index.html', 'illustrator/batch-logo-export.jsx', 'organigramme/index.html', 'organigramme/boot.js', 'organigramme/css/organigramme.css',
   'organigramme/vendor/pdf-lib-1.17.1.min.js', 'organigramme/vendor/fontkit-1.1.1.umd.min.js',
   'organigramme/fonts/SourceSans3-Bold.ttf', 'organigramme/fonts/SourceSerif4-It.ttf', 'organigramme/fonts/SourceSerif4-SemiboldIt.ttf',
   'factsheet/icc/ISOcoated_v2_300_eci.icc',
@@ -44,7 +44,7 @@ for (const f of readdirSync(dir).filter((f) => f.endsWith('.js'))) {
 }
 
 // 4. Pas de version flottante sur un CDN (toujours @x.y.z).
-for (const p of ['index.html', 'organigramme/index.html', 'donut/donut-export.html', 'factsheet/index.html']) {
+for (const p of ['index.html', 'organigramme/index.html', 'donut/donut-export.html', 'factsheet/index.html', 'illustrator/index.html']) {
   for (const m of read(p).matchAll(/https:\/\/(?:cdn\.jsdelivr\.net\/npm|unpkg\.com)\/((?:@[^/@"']+\/)?[^/@"']+)(@[^/"']*)?/g)) {
     must(/^@\d+\.\d+\.\d+$/.test(m[2] || ''), `${p} : version flottante pour ${m[1]}${m[2] || ''}`);
   }

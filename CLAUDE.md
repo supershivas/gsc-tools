@@ -4,7 +4,7 @@
 
 ## Description
 
-Regroupe les différents outils de design développés pour le GSC. Premier outil : le Factsheet creator (éditeur de fiche A4 recto-verso, dataviz, export PDF). Autres outils : Europa 3D, Donut export, PEC organigramme (organigramme A4 au gabarit PEC, PDF CMJN).
+Regroupe les différents outils de design développés pour le GSC. Premier outil : le Factsheet creator (éditeur de fiche A4 recto-verso, dataviz, export PDF). Autres outils : Europa 3D, Donut export, PEC organigramme (organigramme A4 au gabarit PEC, PDF CMJN), Batch Logo Export (script Illustrator à télécharger, avec mode d'emploi).
 URL de production : https://supershivas.github.io/gsc-tools/
 Catégorie : **secondaire**.
 Cible : **uniquement bureau** (bandeau refermable « Cette app est prévue pour un écran d'ordinateur » sur téléphone, pas d'optimisation mobile).
@@ -23,6 +23,7 @@ JS vanilla statique, hébergé sur GitHub Pages (push sur `main` = déploiement)
 - `version.json`, `CHANGELOG.md` : version (source unique).
 - `europa/europa-3d.html` : maquette 3D de la lanterne de l'Europa building (fichier autonome, three.js via CDN). Détails dans `europa/README.md`.
 - `donut/donut-export.html` : export d'un graphique en anneau (PNG/JPG, versions A/B/C), fichier autonome branché sur la coque ; ses styles sont limités à `.app` ; fichiers exportés nommés `UA_AAMMJJ_nom` ; données dans `localStorage` clé `donut-export-v1`, hors export des réglages.
+- `illustrator/` : page statique du script Illustrator **Batch Logo Export** : `index.html` (mode d'emploi, branché sur la coque) et `batch-logo-export.jsx` (le script, téléchargeable ; ne pas le renommer sans mettre à jour le lien). Aucune donnée.
 - `organigramme/` : **PEC organigramme** (sans build, modules ES). Détail dans la section « PEC organigramme » plus bas.
 - `scripts/verifier.mjs` : vérifications rapides (fichiers de la structure, version = tête du changelog, règles de PEC organigramme, pas de version flottante) ; lancé aussi par le workflow de tests.
 - `factsheet/` : le Factsheet creator. Sources dans `factsheet/src/` (`main.js` = état du document, `ctx` et assemblage ; un module par responsabilité dans `src/editor/`, `src/props/`, `src/viz/`, `src/pdf/`). Les bundles `app.js`, `viewer3d.js`, `atelier.js`, `labo.js` et `pdfexport.js` sont générés : après toute modification des sources, `cd factsheet && npm install && npm run build` et commiter les cinq. Pages : `index.html` (éditeur), `labo.html`, `atelier.html`.

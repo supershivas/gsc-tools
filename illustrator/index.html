@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Batch Logo Export — GSC tools</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono&family=Inter:wght@400;500;600&family=Playfair+Display:wght@700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/mobile.css">
+<link rel="stylesheet" href="../css/shell.css">
+<style>
+[hidden] { display: none !important; }
+.doc { max-width: 820px; margin: 0 auto; padding: 32px 20px 64px; }
+.doc h1 { margin: 0 0 4px; font-family: var(--font-title); font-size: 32px; }
+.doc .lead { margin: 0 0 20px; color: var(--mute); }
+.doc h2 { margin: 36px 0 10px; font-size: 18px; }
+.doc p { margin: 0 0 10px; }
+.doc code { font: 13px var(--font-mono); padding: 1px 5px; border-radius: var(--radius-xs); background: var(--line); }
+.download { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--panel); }
+.download .meta { color: var(--mute); font-size: 13px; }
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 12px; }
+.steps li { counter-increment: s; position: relative; padding: 0 0 0 44px; min-height: 32px; }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); font: 13px var(--font-mono); }
+.steps b { display: block; }
+.steps span { color: var(--mute); }
+.tbl { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-md); font-size: 14px; }
+.tbl th, .tbl td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.tbl th { width: 34%; font-weight: 600; }
+.tbl tr:last-child th, .tbl tr:last-child td { border-bottom: 0; }
+.tbl td { color: var(--mute); }
+.tbl-wrap { overflow-x: auto; }
+.note { display: flex; gap: 10px; padding: 12px 14px; border-radius: var(--radius-md); background: var(--panel); border: 1px solid var(--line); color: var(--mute); }
+.note .ti { color: var(--ink); font-size: 20px; flex: none; }
+.tree { margin: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--panel); font: 13px/1.6 var(--font-mono); overflow-x: auto; }
+.ex { display: block; margin: 6px 0 14px; padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--panel); font: 13px var(--font-mono); overflow-x: auto; }
+</style>
+</head>
+<body>
+<header id="app-header"></header>
+<main class="doc">
+  <h1>Batch Logo Export</h1>
+  <p class="lead">Script Illustrator qui exporte les artboards d'un fichier de logos dans toutes les langues, en une seule opération : EPS et PDF pour un document CMJN, PNG et SVG pour un document RVB.</p>
+
+  <div class="download">
+    <a class="btn primary" href="batch-logo-export.jsx" download="batch_logo_export.jsx"><i class="ti ti-download"></i> Télécharger le script</a>
+    <span class="meta">batch_logo_export.jsx · v10 · Illustrator · interface FR / EN</span>
+  </div>
+
+  <h2>Installation</h2>
+  <ol class="steps">
+    <li><b>Télécharger le fichier</b><span>Enregistre <code>batch_logo_export.jsx</code> où tu veux (le Bureau convient).</span></li>
+    <li><b>Lancer sans installer</b><span>Dans Illustrator : <code>Fichier › Scripts › Autre script…</code> puis choisis le fichier. À refaire à chaque utilisation.</span></li>
+    <li><b>Ou l'installer dans le menu Scripts</b><span>Copie le fichier dans le dossier <code>Presets/fr_FR/Scripts</code> d'Illustrator (Mac : <code>/Applications/Adobe Illustrator …/Presets/fr_FR/Scripts</code>), puis redémarre Illustrator. Il apparaît dans <code>Fichier › Scripts</code>.</span></li>
+  </ol>
+
+  <h2>Préparer le fichier Illustrator</h2>
+  <p>Le script lit le fichier ouvert. Il faut :</p>
+  <ul>
+    <li><b>Un jeu de variables par langue</b>, nommé avec le code de la langue (EN, FR, ES…). Panneau <code>Variables › Capturer un jeu de données</code>. Tous les jeux du fichier sont proposés dans la fenêtre, tu décoches ceux à ignorer.</li>
+    <li><b>Des variables liées aux objets</b> (texte dynamique…) dans le panneau Variables, avec les valeurs de chaque langue enregistrées dans son jeu.</li>
+    <li><b>Des artboards au nom unique</b> : ce nom sert au fichier exporté. Éviter les caractères <code>/ \ : * ? " &lt; &gt; |</code>. Si le nom contient déjà <code>cmyk</code> ou <code>rgb</code>, le code est repris et aligné sur le mode du document.</li>
+    <li><b>Un mode colorimétrique cohérent</b> : CMYK pour EPS et PDF, RGB pour PNG et SVG. Le script grise les formats qui ne correspondent pas au document.</li>
+    <li><b>Le contenu de chaque artboard posé sur l'artboard</b> : ce qui est entièrement en dehors n'est pas exporté. Polices installées et images liées présentes.</li>
+  </ul>
+  <p>La fenêtre du script contient un cadre « Vérifications » qui signale les problèmes avant l'export (noms en double, variables absentes, images liées introuvables…). Le bouton <code>Prérequis…</code> rappelle cette liste dans Illustrator.</p>
+
+  <h2>Utilisation</h2>
+  <ol class="steps">
+    <li><b>Ouvre le fichier de logos</b><span>Le document doit être actif dans Illustrator.</span></li>
+    <li><b>Lance le script</b><span>La fenêtre d'options s'ouvre. Le cadre « Vérifications » signale ce qui cloche.</span></li>
+    <li><b>Compose le nom des fichiers</b><span>Préfixe, suffixe, code couleur, langue. L'exemple se met à jour en direct.</span></li>
+    <li><b>Choisis les formats</b><span>Selon le mode du document : EPS et PDF (CMJN) ou PNG et SVG (RVB).</span></li>
+    <li><b>Sélectionne langues et artboards</b><span>Plusieurs choix possibles ; « Tout » et « Aucun » pour aller vite.</span></li>
+    <li><b>Choisis le dossier</b><span>Et l'organisation des sous-dossiers.</span></li>
+    <li><b>Lance un test d'abord</b><span>Coche « Mode TEST » : une seule langue et un seul artboard sont exportés. Vérifie le fichier créé, puis relance sans le mode test.</span></li>
+    <li><b>Clique « Exporter »</b><span>Une barre de progression s'affiche. À la fin, un résumé indique le nombre de fichiers, les ignorés et les erreurs, et le dossier s'ouvre.</span></li>
+  </ol>
+  <p style="margin-top:14px">Ton document d'origine n'est jamais enregistré ni modifié : chaque fichier est créé depuis une copie de son artboard.</p>
+
+  <h2>Les options</h2>
+  <div class="tbl-wrap">
+  <table class="tbl">
+    <tr><th>Préfixe / Suffixe</th><td>Texte ajouté avant et après le nom de l'artboard (par défaut <code>pec_</code> en préfixe).</td></tr>
+    <tr><th>+ code couleur</th><td>Ajoute <code>_cmyk</code> ou <code>_rgb</code> selon le mode du document, sans doubler un code déjà présent.</td></tr>
+    <tr><th>+ langue</th><td>Ajoute <code>_en</code>, <code>_fr</code>… à la fin du nom, avant le suffixe. « Langue en minuscules » met EN en <code>en</code>.</td></tr>
+    <tr><th>EPS · PDF print</th><td>Document CMJN. Le PDF peut avoir des repères de coupe.</td></tr>
+    <tr><th>PNG</th><td>Document RVB. Fond transparent ou blanc, résolution 72, 144, 300 ou 600 ppi.</td></tr>
+    <tr><th>SVG</th><td>Document RVB. Texte converti en contours (recommandé) ou conservé comme police SVG.</td></tr>
+    <tr><th>Organisation</th><td>Un dossier par langue · langue puis un sous-dossier par format · tout dans un seul dossier (la langue doit alors figurer dans le nom).</td></tr>
+    <tr><th>Ignorer les fichiers déjà présents</th><td>Sinon les fichiers existants sont écrasés.</td></tr>
+    <tr><th>Rogner au contenu</th><td>L'artboard de chaque fichier est ajusté aux limites du dessin.</td></tr>
+    <tr><th>Casser le lien des symboles</th><td>Transforme les symboles en tracés simples dans les fichiers exportés. À tester : les variables ne pilotent pas toujours le contenu d'un symbole.</td></tr>
+    <tr><th>Mode TEST</th><td>Exporte uniquement la première langue et le premier artboard sélectionnés.</td></tr>
+    <tr><th>Ouvrir le dossier à la fin</th><td>Affiche le dossier d'export une fois terminé.</td></tr>
+  </table>
+  </div>
+  <p style="margin-top:10px;color:var(--mute)">Les réglages sont mémorisés d'une utilisation à l'autre (hors mode test et sélections). Le menu « Interface » de la fenêtre bascule entre français et anglais.</p>
+
+  <h2>Résultat</h2>
+  <p>Exemple avec le préfixe <code>pec_</code>, le code couleur et la langue activés, en organisation « langue puis format » :</p>
+  <pre class="tree">export/
+├── en/
+│   ├── eps/  pec_neg_v_cmyk_en.eps
+│   └── pdf/  pec_neg_v_cmyk_en.pdf
+├── fr/
+│   ├── eps/  pec_neg_v_cmyk_fr.eps
+│   └── pdf/  pec_neg_v_cmyk_fr.pdf
+└── export_log.txt</pre>
+  <p style="margin-top:10px"><code>export_log.txt</code>, écrit à la racine du dossier, liste chaque fichier créé, ignoré ou en erreur.</p>
+
+  <h2>Calques verrouillés et masqués</h2>
+  <div class="note"><i class="ti ti-lock"></i><div>Les calques et objets <b>verrouillés</b> sont exportés : le script les déverrouille le temps de l'export puis les reverrouille. Les calques et objets <b>masqués</b> ne sont pas exportés ; un artboard sans objet visible est signalé « vide » dans le journal.</div></div>
+
+  <h2>En cas de problème</h2>
+  <div class="tbl-wrap">
+  <table class="tbl">
+    <tr><th>« Aucun jeu de variables »</th><td>Le fichier n'a aucun dataset : crée-en un par langue dans le panneau Variables.</td></tr>
+    <tr><th>Le texte ne change pas d'une langue à l'autre</th><td>Aucune variable n'est liée aux objets : lie les textes dynamiques dans le panneau Variables.</td></tr>
+    <tr><th>Fichiers qui s'écrasent</th><td>Noms d'artboards en double, ou « tout dans un dossier » sans langue dans le nom. Renomme ou ajoute la langue.</td></tr>
+    <tr><th>Artboard « vide » dans le journal</th><td>Aucun objet visible sur l'artboard : calque masqué ou contenu hors de l'artboard.</td></tr>
+    <tr><th>Images manquantes</th><td>Images liées introuvables : relie-les avant l'export.</td></tr>
+    <tr><th>Un format est grisé</th><td>EPS et PDF demandent un document CMJN, PNG et SVG un document RVB (<code>Fichier › Mode colorimétrique du document</code>).</td></tr>
+  </table>
+  </div>
+</main>
+<script type="module">
+import { initShell } from '../js/shell.js';
+initShell({ sub: 'Illustrator' });
+</script>
+</body>
+</html>
