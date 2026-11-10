@@ -193,36 +193,88 @@ function layoutBox(box, bw, s, measure) {
   return { h, draw };
 }
 
-/* Traits de liaison entre le bas des cadres du haut et le haut des cadres du bas. */
-function connectors(ups, downs, y0, y1, items) {
-  const line = (d) => items.push({ t: 'path', d, stroke: 'blue', lw: T.stroke });
-  const xs = [...ups, ...downs];
+/* Liens entre deux niveaux, par groupe : un parent choisi (clé = son id) avec ses enfants, ou le groupe
+   « auto » (cadres sans parent choisi) relié à tous les cadres du dessus qui n'ont pas d'enfant choisi.
+   `link` marque chaque trait pour l'aperçu (sélection, glisser) ; il n'a aucun effet sur le PDF. */
+function groupsFor(level, prev) {
+  const explicit = new Map();
+  const auto = [];
+  level.boxes.forEach((b, i) => {
+    const to = b.link ? b.link.to : 'auto';
+    if (to === 'none') return;
+    const pi = to === 'auto' ? -1 : prev.ids.indexOf(to);
+    if (pi < 0) auto.push(i);
+    else if (explicit.has(pi)) explicit.get(pi).push(i);
+    else explicit.set(pi, [i]);
+  });
+  const out = [...explicit].map(([pi, kids]) => ({ key: prev.ids[pi], ups: [pi], kids }));
+  if (auto.length) {
+    const all = prev.ids.map((_, i) => i);
+    const free = all.filter((i) => !explicit.has(i));
+    out.push({ key: 'auto', ups: free.length ? free : all, kids: auto });
+  }
+  return out;
+}
+
+/* ups : [{ x, y }] (bas des cadres parents) ; downs : [{ x, dash, id }] ; y1 : haut des cadres enfants. */
+function linkGroup({ ups, downs, y1, frac, level, key }, items, links) {
+  const alike = (a, b) => Math.abs(a - b) < 0.5;
+  const line = (d, dash, link) => items.push({ t: 'path', d, stroke: 'blue', lw: T.stroke, dash, link });
+  const base = Math.max(...ups.map((u) => u.y));
+  const allDash = downs.every((c) => c.dash);
+  const group = { kind: 'group', level, key };
+  const xs = [...ups, ...downs].map((p) => p.x);
   const min = Math.min(...xs);
   const max = Math.max(...xs);
+  links.push({ level, key, base, y1 });
   if (max - min < 0.5) {
-    line([['M', ups[0], y0], ['L', ups[0], y1]]);
+    const c = downs[0];
+    line([['M', ups[0].x, ups[0].y], ['L', c.x, y1]], c.dash, { kind: 'box', level, box: c.id });
     return;
   }
-  const busY = y0 + (y1 - y0) * T.busAt;
-  const r = Math.min(T.busRadius, (max - min) / 2, Math.abs(busY - y0), Math.abs(y1 - busY));
-  const stub = (x, yEnd) => {
-    const dir = yEnd < busY ? -1 : 1; // le trait part vers le haut ou vers le bas
-    const edge = Math.abs(x - min) < 0.5 ? 1 : Math.abs(x - max) < 0.5 ? -1 : 0;
-    if (!edge) return line([['M', x, yEnd], ['L', x, busY]]);
-    line([['M', x, yEnd], ['L', x, busY + dir * r], ['C', x, busY + dir * r * (1 - K), x + edge * r * (1 - K), busY, x + edge * r, busY]]);
+  const busY = base + (y1 - base) * frac;
+  const r = Math.max(0, Math.min(T.busRadius, (max - min) / 2, busY - base, y1 - busY));
+  const through = (x) => ups.some((u) => alike(u.x, x)) && downs.some((c) => alike(c.x, x)); // parent et enfant alignés au bord : trait droit
+  const edgeOf = (x) => (alike(x, min) ? (through(min) ? 0 : 1) : alike(x, max) ? (through(max) ? 0 : -1) : 0);
+  const stub = (x, yEnd, dash, link) => {
+    const edge = edgeOf(x);
+    if (!edge || !r) return line([['M', x, yEnd], ['L', x, busY]], dash, link);
+    const dir = yEnd < busY ? -1 : 1;
+    line([['M', x, yEnd], ['L', x, busY + dir * r], ['C', x, busY + dir * r * (1 - K), x + edge * r * (1 - K), busY, x + edge * r, busY]], dash, link);
   };
-  ups.forEach((x) => stub(x, y0));
-  downs.forEach((x) => stub(x, y1));
-  line([['M', min + r, busY], ['L', max - r, busY]]);
+  ups.forEach((u) => stub(u.x, u.y, allDash, group));
+  downs.forEach((c) => stub(c.x, y1, c.dash, { kind: 'box', level, box: c.id }));
+
+  // Trait horizontal : plein là où au moins un lien plein passe, en tirets là où tous sont en tirets.
+  const nearest = (x) => ups.reduce((a, u) => (Math.abs(u.x - x) < Math.abs(a - x) ? u.x : a), ups[0].x);
+  const runs = downs.map((c) => ({ a: Math.min(c.x, nearest(c.x)), b: Math.max(c.x, nearest(c.x)), dash: c.dash }));
+  if (ups.length > 1) runs.push({ a: Math.min(...ups.map((u) => u.x)), b: Math.max(...ups.map((u) => u.x)), dash: allDash });
+  const pts = [...new Set(runs.flatMap((q) => [q.a, q.b]).map((v) => +v.toFixed(3)))].sort((p, q) => p - q);
+  const segs = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i];
+    const b = pts[i + 1];
+    const cover = runs.filter((q) => q.a <= (a + b) / 2 && (a + b) / 2 <= q.b);
+    if (!cover.length) continue;
+    const dash = cover.every((q) => q.dash);
+    const last = segs[segs.length - 1];
+    if (last && last.dash === dash && alike(last.b, a)) last.b = b;
+    else segs.push({ a, b, dash });
+  }
+  for (const sg of segs) {
+    const a = alike(sg.a, min) && !through(min) ? sg.a + r : sg.a;
+    const b = alike(sg.b, max) && !through(max) ? sg.b - r : sg.b;
+    if (b - a > 0.01) line([['M', a, busY], ['L', b, busY]], sg.dash, group);
+  }
 }
 
 function compute(doc, s, measure, W) {
   const items = [];
   const hits = [];
+  const links = [];
   const cw = W - 2 * T.marginX;
   let y = T.marginTop;
-  let prevCenters = null;
-  let prevBottom = 0;
+  let prev = null; // dernier niveau dessiné : { ids, centers, bottoms, bottom }
   for (const level of doc.levels) {
     const n = level.boxes.length;
     if (!n) continue;
@@ -231,18 +283,30 @@ function compute(doc, s, measure, W) {
     const x0 = T.marginX + (cw - total) / 2;
     const boxes = level.boxes.map((b) => layoutBox(b, bw, s, measure));
     const centers = boxes.map((_, i) => x0 + i * (bw + T.boxGap) + bw / 2);
-    if (prevCenters) {
-      const single = prevCenters.length === 1 && n === 1;
-      y = prevBottom + (single ? T.linkGap : T.busGap) * s;
-      connectors(prevCenters, centers, prevBottom, y, items);
+    if (prev) {
+      y = prev.bottom + (prev.ids.length === 1 && n === 1 ? T.linkGap : T.busGap) * s;
+      for (const g of groupsFor(level, prev)) {
+        linkGroup(
+          {
+            ups: g.ups.map((i) => ({ x: prev.centers[i], y: prev.bottoms[i] })),
+            downs: g.kids.map((i) => ({ x: centers[i], dash: !!(level.boxes[i].link && level.boxes[i].link.dash), id: level.boxes[i].id })),
+            y1: y,
+            frac: (level.rails && level.rails[g.key]) ?? T.busAt,
+            level: level.id,
+            key: g.key,
+          },
+          items,
+          links,
+        );
+      }
     }
     const maxH = Math.max(...boxes.map((b) => b.h));
-    boxes.forEach((b, i) => b.draw(x0 + i * (bw + T.boxGap), y, doc.page.equalHeights ? maxH : b.h, items, hits));
+    const heights = boxes.map((b) => (doc.page.equalHeights ? maxH : b.h));
+    boxes.forEach((b, i) => b.draw(x0 + i * (bw + T.boxGap), y, heights[i], items, hits));
     hits.push({ id: level.id, x: x0, y, w: total, h: maxH, level: true });
-    prevCenters = centers;
-    prevBottom = y + maxH;
+    prev = { ids: level.boxes.map((b) => b.id), centers, bottoms: heights.map((h) => y + h), bottom: y + maxH };
   }
-  return { items, hits, bottom: prevBottom || T.marginTop };
+  return { items, hits, links, bottom: prev ? prev.bottom : T.marginTop };
 }
 
 export function pageSize(doc) {
@@ -292,6 +356,7 @@ export function layout(doc, measure) {
     items: res.items,
     images,
     hits: res.hits,
+    links: res.links,
     bottom: res.bottom,
     limit,
     overflow: Math.max(0, res.bottom - limit),

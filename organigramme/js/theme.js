@@ -8,6 +8,9 @@ export const COLORS = {
   white: { cmyk: [0, 0, 0, 0], rgb: '#FFFFFF' },
 };
 
+/* Motif des traits en tirets (points PDF) : mêmes valeurs à l’écran et dans le PDF. */
+export const DASH = [2.5, 2];
+
 /* Polices statiques d’Adobe (organigramme/fonts, licence OFL), celles du gabarit : le même fichier sert
    à l’écran (@font-face, css/organigramme.css) et dans le PDF, donc mêmes dessins, largeurs et crénage.
    Celles de factsheet/fonts/pdf ne conviennent pas : autre taille optique, sans crénage. */

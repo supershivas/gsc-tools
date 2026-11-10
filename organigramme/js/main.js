@@ -1,7 +1,7 @@
 /* PEC organigramme : état, panneau d’édition et aperçu en direct. Un seul écran. */
 import { initShell } from 'gsc/shell.js';
 import { confirmModal, alertModal } from 'gsc/dialog.js';
-import { newPerson, newGroup, newBox, newLevel, cloneBox, defaultDoc, find, fileStem, uid } from 'org/model.js';
+import { newPerson, newGroup, newBox, newLevel, cloneBox, defaultDoc, find, fileStem, uid, linkSource } from 'org/model.js';
 import { layout, placedRect, pageSize, T } from 'org/layout.js';
 import { measure, loadFonts, renderSvg } from 'org/render.js';
 import { load, save, toFile, fromFile, createHistory } from 'org/store.js';
@@ -27,6 +27,8 @@ let history = createHistory(doc);
 let lay = null;
 let storageWarned = false;
 const closed = new Set(); // cadres repliés dans le panneau (état d’interface, non enregistré)
+let selection = null; // lien sélectionné dans l’aperçu : { kind: 'box', level, box } | { kind: 'group', level, key }
+let swallow = false; // le clic qui suit un glisser ou une sélection de trait ne doit rien viser d’autre
 
 const $ = (id) => document.getElementById(id);
 const panel = $('panel');
@@ -57,7 +59,7 @@ function hideToast() {
 /* ── Dessin ───────────────────────────────────────────────────────────── */
 function draw() {
   lay = layout(doc, measure);
-  renderSvg(svg, lay, doc);
+  renderSvg(svg, lay, doc, selection);
   svg.parentElement.style.aspectRatio = `${lay.W} / ${lay.H}`;
   fitSheet();
   const pct = Math.round(lay.scale * 100);
@@ -219,7 +221,61 @@ function groupCard(box, g, gi) {
   );
 }
 
-function boxCard(level, box, bi) {
+const RAIL_DEFAULT = 0.505;
+
+/* Lien d'un cadre avec le niveau du dessus : parent, trait, hauteur du trait horizontal. */
+function linkCard(level, li, box) {
+  const src = linkSource(doc, li);
+  if (!src) return null;
+  const to = box.link.to;
+  const cur = to === 'none' || src.some((b) => b.id === to) ? to : 'auto';
+  const key = cur === 'auto' ? 'auto' : cur;
+  const on = !!selection && selection.level === level.id && (selection.kind === 'box' ? selection.box === box.id : cur !== 'none' && selection.key === key);
+  const rails = level.rails || (level.rails = {});
+  const railK = `rail:${level.id}:${key}`;
+  return el(
+    'div',
+    { className: 'link' + (on ? ' on' : ''), data: { box: box.id } },
+    el('h4', {}, icon('git-merge'), 'Lien avec le niveau du dessus'),
+    el(
+      'label',
+      { className: 'row' },
+      el('span', { textContent: 'Relié à' }),
+      el(
+        'select',
+        { className: 'in', ariaLabel: 'Relié à', data: { k: box.id + ':link' }, onchange: (e) => ((box.link.to = e.target.value), commit()) },
+        el('option', { value: 'auto', textContent: 'Niveau du dessus (automatique)', selected: cur === 'auto' }),
+        src.map((b, i) => el('option', { value: b.id, textContent: `Cadre ${i + 1}${b.title ? ' — ' + b.title : ''}`, selected: cur === b.id })),
+        el('option', { value: 'none', textContent: 'Aucun lien', selected: cur === 'none' }),
+      ),
+    ),
+    cur === 'none'
+      ? null
+      : [
+          el('div', { className: 'row' }, el('span', { textContent: 'Trait' }), pair(box.link.dash ? 'dash' : 'solid', [['solid', 'Plein', 'minus'], ['dash', 'Tirets', 'line-dashed']], (v) => ((box.link.dash = v === 'dash'), commit()), 'Style du trait')),
+          el(
+            'div',
+            { className: 'row' },
+            el('span', { textContent: 'Hauteur' }),
+            el('input', {
+              type: 'range',
+              className: 'range',
+              min: 15,
+              max: 85,
+              step: 1,
+              value: Math.round((rails[key] ?? RAIL_DEFAULT) * 100),
+              ariaLabel: 'Hauteur du trait horizontal',
+              title: 'Hauteur du trait horizontal entre les deux niveaux (se règle aussi en le glissant dans l’aperçu)',
+              data: { k: railK },
+              oninput: (e) => ((rails[key] = +e.target.value / 100), commit({ key: railK, rebuild: false })),
+            }),
+            iconBtn('restore', 'Remettre à mi-hauteur', () => (delete rails[key], commit()), { disabled: rails[key] === undefined }),
+          ),
+        ],
+  );
+}
+
+function boxCard(level, li, box, bi) {
   const body = el(
     'div',
     { className: 'box-body' },
@@ -236,6 +292,7 @@ function boxCard(level, box, bi) {
       el('span', { textContent: 'Texte' }),
       pair(box.align, [['left', 'À gauche', 'align-left'], ['center', 'Centré', 'align-center']], (v) => ((box.align = v), commit()), 'Alignement du texte'),
     ),
+    linkCard(level, li, box),
     check(!!box.lead, 'Personne en tête du cadre (nom et fonction en grand)', (on) => {
       box.lead = on ? { name: '', role: '' } : null;
       commit({ focus: on ? box.id + ':leadName' : null });
@@ -314,7 +371,7 @@ function levelCard(level, li) {
         }),
       ),
     ),
-    level.boxes.map((b, bi) => boxCard(level, b, bi)),
+    level.boxes.map((b, bi) => boxCard(level, li, b, bi)),
     el(
       'button',
       {
@@ -483,11 +540,58 @@ const svgPoint = (e) => {
   return m ? new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse()) : { x: 0, y: 0 };
 };
 
+/* Un trait de lien : un clic le sélectionne (et ouvre ses réglages), le glisser du trait horizontal règle sa hauteur. */
+function revealLink() {
+  const t = panel.querySelector('.link.on');
+  if (!t) return;
+  const d = t.closest('details.box');
+  if (d && !d.open) d.open = true;
+  t.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+svg.addEventListener('pointerdown', (e) => {
+  swallow = false;
+  const h = e.target.closest('.link-hit');
+  if (!h || e.button !== 0) return;
+  e.preventDefault();
+  swallow = true;
+  const { kind, level: levelId, key, box } = h.dataset;
+  selection = kind === 'box' ? { kind, level: levelId, box } : { kind, level: levelId, key };
+  draw();
+  renderPanel();
+  revealLink();
+  const lvl = find(doc, levelId);
+  const rail = kind === 'group' && lay.links.find((l) => l.level === levelId && l.key === key);
+  if (!lvl || !rail) return;
+  const rails = lvl.node.rails || (lvl.node.rails = {});
+  const y0 = svgPoint(e).y;
+  let moved = false;
+  svg.setPointerCapture(e.pointerId);
+  const onMove = (ev) => {
+    const y = svgPoint(ev).y;
+    if (!moved && Math.abs(y - y0) < 2) return;
+    moved = true;
+    let f = Math.min(0.85, Math.max(0.15, (y - rail.base) / (rail.y1 - rail.base)));
+    if (Math.abs(f - RAIL_DEFAULT) < 0.02) f = RAIL_DEFAULT;
+    rails[key] = +f.toFixed(3);
+    draw();
+  };
+  const onUp = () => {
+    svg.removeEventListener('pointermove', onMove);
+    svg.removeEventListener('pointerup', onUp);
+    svg.removeEventListener('pointercancel', onUp);
+    if (moved) commit();
+  };
+  svg.addEventListener('pointermove', onMove);
+  svg.addEventListener('pointerup', onUp);
+  svg.addEventListener('pointercancel', onUp);
+});
+
 /* Glisser une image pour la déplacer, sa poignée pour la redimensionner ; un simple clic ne bouge rien. */
 svg.addEventListener('pointerdown', (e) => {
   const g = e.target.closest('.placed');
   if (!g || e.button !== 0) return;
   e.preventDefault();
+  swallow = true;
   const key = g.dataset.key;
   const p = doc[key];
   const start = svgPoint(e);
@@ -521,14 +625,21 @@ svg.addEventListener('pointerdown', (e) => {
 });
 
 /* Clic dans l’aperçu : ouvre et vise le champ correspondant dans le panneau. */
+function clearSelection() {
+  if (!selection) return;
+  selection = null;
+  draw();
+  renderPanel();
+}
 svg.addEventListener('click', (e) => {
+  if (swallow) return void (swallow = false);
   if (e.target.closest('.placed')) return;
   let id = e.target.dataset && e.target.dataset.id;
   let fieldName = e.target.dataset && e.target.dataset.field;
   if (!id) {
     const pt = svgPoint(e);
     const hit = lay.hits.find((h) => !h.level && pt.x >= h.x && pt.x <= h.x + h.w && pt.y >= h.y && pt.y <= h.y + h.h);
-    if (!hit) return;
+    if (!hit) return clearSelection();
     id = hit.id;
   }
   const f = find(doc, id);
@@ -631,6 +742,7 @@ $('reset').addEventListener('click', async () => {
 });
 
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && selection && !document.querySelector('dialog[open]')) return clearSelection();
   if (!(e.metaKey || e.ctrlKey) || document.querySelector('dialog[open]')) return;
   const k = e.key.toLowerCase();
   if (k === 'z') (e.preventDefault(), step(!e.shiftKey));

@@ -9,8 +9,16 @@ export const uid = (p = 'n') => `${p}${Date.now().toString(36)}${(seq++).toStrin
 
 export const newPerson = (name = '', role = '', emph = false) => ({ id: uid('p'), name, role, emph });
 export const newGroup = (title = '', people = [newPerson()]) => ({ id: uid('g'), title, people });
-export const newBox = (title = '', { tone = 'mid', align = 'left', lead = null, groups = [newGroup()] } = {}) => ({ id: uid('b'), title, tone, align, lead, groups });
-export const newLevel = (boxes = [newBox()]) => ({ id: uid('l'), boxes });
+/* link.to : 'auto' (niveau du dessus), 'none' (aucun trait) ou l'identifiant d'un cadre du niveau du dessus ; link.dash : trait en tirets. */
+export const newBox = (title = '', { tone = 'mid', align = 'left', lead = null, groups = [newGroup()], link = { to: 'auto', dash: false } } = {}) => ({ id: uid('b'), title, tone, align, lead, link, groups });
+/* rails : hauteur du trait horizontal des liens qui entrent dans ce niveau, par groupe (clé = id du cadre parent ou 'auto'), de 0 à 1 entre les deux niveaux. */
+export const newLevel = (boxes = [newBox()]) => ({ id: uid('l'), boxes, rails: {} });
+
+/* Cadres auxquels les cadres du niveau `li` peuvent être reliés : ceux du niveau non vide juste au-dessus. */
+export function linkSource(doc, li) {
+  for (let j = li - 1; j >= 0; j--) if (doc.levels[j].boxes.length) return doc.levels[j].boxes;
+  return null;
+}
 
 const many = (n, f) => Array.from({ length: n }, (_, i) => f(i));
 
@@ -71,6 +79,11 @@ export function migrate(raw) {
       .filter((l) => l && Array.isArray(l.boxes))
       .map((l) => ({
         id: str(l.id) || uid('l'),
+        rails: Object.fromEntries(
+          Object.entries(l.rails && typeof l.rails === 'object' ? l.rails : {})
+            .filter(([, v]) => Number.isFinite(+v))
+            .map(([k, v]) => [k, num(v, 0.505, 0.15, 0.85)]),
+        ),
         boxes: l.boxes
           .filter((b) => b && typeof b === 'object')
           .map((b) => ({
@@ -79,6 +92,7 @@ export function migrate(raw) {
             tone: oneOf(b.tone, ['dark', 'mid']),
             align: oneOf(b.align, ['left', 'center']),
             lead: b.lead && typeof b.lead === 'object' ? { name: str(b.lead.name), role: str(b.lead.role) } : null,
+            link: { to: (b.link && str(b.link.to)) || 'auto', dash: !!(b.link && b.link.dash) },
             groups: (Array.isArray(b.groups) ? b.groups : [])
               .filter((g) => g && typeof g === 'object')
               .map((g) => ({
@@ -107,6 +121,11 @@ export function migrate(raw) {
       }
     }
   }
+  // Un lien vers un cadre qui n'est plus au niveau du dessus redevient automatique.
+  doc.levels.forEach((l, li) => {
+    const ids = new Set((linkSource(doc, li) || []).map((b) => b.id));
+    for (const b of l.boxes) if (b.link.to !== 'auto' && b.link.to !== 'none' && !ids.has(b.link.to)) b.link.to = 'auto';
+  });
   return doc;
 }
 

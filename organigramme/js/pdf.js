@@ -1,7 +1,7 @@
 /* Export PDF : dessine la liste de layout.js avec pdf-lib (vendor/), en CMJN pur (DeviceCMYK),
    polices incorporées en sous-ensemble, crénage appliqué, profil de sortie FOGRA39 déclaré.
    Les bibliothèques ne sont chargées qu’au premier export. */
-import { COLORS, FONTS, FONT_DIR, ICC_URL, ICC_NAME } from 'org/theme.js';
+import { COLORS, FONTS, FONT_DIR, ICC_URL, ICC_NAME, DASH } from 'org/theme.js';
 
 const VENDOR = new URL('../vendor/', import.meta.url).href;
 const loaded = new Map();
@@ -85,6 +85,7 @@ export async function exportPdf(lay, doc) {
       ops.push(L.pushGraphicsState());
       if (it.fill) ops.push(fill(it.fill));
       if (it.stroke) ops.push(strokeC(it.stroke), L.setLineWidth(it.lw));
+      if (it.dash) ops.push(L.setDashPattern(DASH, 0));
       for (const c of it.d) {
         if (c[0] === 'M') ops.push(L.moveTo(c[1], Y(c[2])));
         else if (c[0] === 'L') ops.push(L.lineTo(c[1], Y(c[2])));

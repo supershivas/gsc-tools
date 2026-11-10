@@ -1,5 +1,5 @@
 /* Aperçu : dessine en SVG la liste produite par layout.js, et mesure le texte pour elle. */
-import { COLORS, FONTS } from 'org/theme.js';
+import { COLORS, FONTS, DASH } from 'org/theme.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const svgEl = (tag, attrs = {}) => {
@@ -32,20 +32,29 @@ export async function loadFonts() {
 
 const pathD = (d) => d.map((c) => c[0] + c.slice(1).map((n) => +n.toFixed(3)).join(' ')).join('');
 
-export function renderSvg(svg, lay, doc) {
+/* `sel` : lien sélectionné ({ kind: 'box', level, box } ou { kind: 'group', level, key }), surligné à l'écran seulement. */
+export function renderSvg(svg, lay, doc, sel = null) {
   svg.setAttribute('viewBox', `0 0 ${lay.W} ${lay.H}`);
   const nodes = [];
+  const hitLayer = [];
   for (const it of lay.items) {
     if (it.t === 'path') {
+      const d = pathD(it.d);
+      const lk = it.link;
+      const on = lk && sel && sel.level === lk.level && (lk.kind === 'box' ? sel.kind === 'box' && sel.box === lk.box : sel.kind === 'group' && sel.key === lk.key);
       nodes.push(
         svgEl('path', {
-          d: pathD(it.d),
+          d,
           fill: it.fill ? COLORS[it.fill].rgb : 'none',
           stroke: it.stroke ? COLORS[it.stroke].rgb : null,
           'stroke-width': it.stroke ? it.lw : null,
+          'stroke-dasharray': it.dash ? DASH.join(' ') : null,
+          class: on ? 'link-sel' : null,
           'data-id': it.id,
         }),
       );
+      // Zone de clic large et invisible (jamais exportée) : un trait de 0,5 pt est impossible à viser.
+      if (lk) hitLayer.push(svgEl('path', { d, class: 'link-hit', 'data-kind': lk.kind, 'data-level': lk.level, 'data-key': lk.key, 'data-box': lk.box }));
     } else if (it.t === 'text') {
       const t = svgEl('text', {
         x: +it.x.toFixed(3),
@@ -61,6 +70,7 @@ export function renderSvg(svg, lay, doc) {
       nodes.push(t);
     }
   }
+  nodes.push(...hitLayer);
   for (const im of lay.images) {
     const g = svgEl('g', { class: 'placed', 'data-key': im.key });
     g.append(
