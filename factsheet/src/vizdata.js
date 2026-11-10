@@ -84,6 +84,13 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
         onRename: (v) => {
           sr.name = v;
         },
+        dash: f.dash ? sr.dash === 'dashed' : null, // courbes : trait plein ou en tirets
+        onDash: f.dash
+          ? (on) => {
+              if (on) sr.dash = 'dashed';
+              else delete sr.dash;
+            }
+          : null,
         onDelete:
           series.length > 1
             ? () => {
@@ -122,6 +129,7 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
       const ns = Array.from({ length: nser }, (_, j) => ({
         name: (head && m[0][j + 1]) || (series[j] && series[j].name) || `${t('Série')} ${j + 1}`,
         color: (series[j] && series[j].color) || SERIES_COLORS[j % SERIES_COLORS.length],
+        ...(series[j] && series[j].dash ? { dash: series[j].dash } : {}),
       }));
       series.splice(0, series.length, ...ns);
       rows.splice(
@@ -283,6 +291,27 @@ export function gridEditor(ad, ctx, { downloadName = 'data' } = {}) {
                       ctx.changed();
                     },
                   })
+                : null,
+              c.onDash
+                ? h(
+                    'button',
+                    {
+                      type: 'button',
+                      class: 'mini' + (c.dash ? ' on' : ''),
+                      title: t('Trait en tirets'),
+                      'aria-label': t('Trait en tirets'),
+                      'aria-pressed': String(!!c.dash),
+                      onclick: (e) => {
+                        const on = !c.dash;
+                        c.dash = on;
+                        c.onDash(on);
+                        e.currentTarget.classList.toggle('on', on);
+                        e.currentTarget.setAttribute('aria-pressed', String(on));
+                        ctx.changed();
+                      },
+                    },
+                    ico('line-dashed'),
+                  )
                 : null,
               h('input', {
                 type: 'text',

@@ -183,10 +183,13 @@ export function fmt(v, locale, decimals) {
 }
 export const typePx = (k) => ({ size: pxOf(TYPE[k].size), lh: TYPE[k].lh, weight: TYPE[k].weight });
 
-/** Légende commune (pastille arrondie 0,5 pt + libellé), posée à la hauteur y */
-export function drawLegend(svg, series, y, W = Infinity) {
+/** Légende commune (pastille arrondie 0,5 pt + libellé), posée à la hauteur y.
+    `line` = { dashOf(série) → tirets ou null, w } : légende de courbes avec au moins une série en tirets, la pastille devient un trait (même tirets, même épaisseur)
+    traversé d'un point de la couleur de la série, comme dans le graphique */
+export function drawLegend(svg, series, y, W = Infinity, line = null) {
   const base = pxOf(TYPE.caption.size),
-    fixed = VIZ.legendSwatch + VIZ.barGap * 2,
+    swW = line ? VIZ.legendSwatch * 2.4 : VIZ.legendSwatch,
+    fixed = swW + VIZ.barGap * 2,
     gap = VIZ.legendH * 1.2;
   const names = series.map((sr) => sr.name || '');
   const need = (size) =>
@@ -201,18 +204,41 @@ export function drawLegend(svg, series, y, W = Infinity) {
   const g = s('g', { class: 'lg', 'data-y': y, 'data-reserve': VIZ.legendH + VIZ.legendGap }); // groupe repéré : « légende en haut » le déplace (viz/index.js)
   let x = 0;
   series.forEach((sr, i) => {
-    g.append(
-      s('rect', {
-        x: x + SW / 2,
-        y: y + (VIZ.legendH - VIZ.legendSwatch) / 2 + SW / 2,
-        width: VIZ.legendSwatch - SW,
-        height: VIZ.legendSwatch - SW,
-        rx: VIZ.barRadius,
-        fill: colorRef(sr.color),
-        stroke: 'currentColor',
-        'stroke-width': SW,
-      }),
-    );
+    if (line) {
+      const cy = y + VIZ.legendH / 2,
+        dash = line.dashOf(sr);
+      g.append(
+        s('line', {
+          x1: x,
+          y1: cy,
+          x2: x + swW,
+          y2: cy,
+          stroke: 'currentColor',
+          'stroke-width': line.w,
+          'stroke-dasharray': dash || null,
+        }),
+        s('circle', {
+          cx: x + swW / 2,
+          cy,
+          r: VIZ.legendSwatch / 2 - SW / 2,
+          fill: colorRef(sr.color),
+          stroke: 'currentColor',
+          'stroke-width': SW,
+        }),
+      );
+    } else
+      g.append(
+        s('rect', {
+          x: x + SW / 2,
+          y: y + (VIZ.legendH - VIZ.legendSwatch) / 2 + SW / 2,
+          width: VIZ.legendSwatch - SW,
+          height: VIZ.legendSwatch - SW,
+          rx: VIZ.barRadius,
+          fill: colorRef(sr.color),
+          stroke: 'currentColor',
+          'stroke-width': SW,
+        }),
+      );
     const lx = x + fixed,
       t = need(base) > W ? ellipsize(names[i], TYPE.caption.weight, SANS, capPx, room) : names[i];
     g.append(s('text', { x: lx, y: y + VIZ.legendH / 2 + 0.33 * capPx, 'font-size': capPx, 'font-weight': TYPE.caption.weight }, t));

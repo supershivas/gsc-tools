@@ -140,6 +140,27 @@ export function thumbsControl(h2, label, choices, current, commit) {
   return c;
 }
 
+/** Vignettes d'épaisseur de trait : un trait horizontal de plus en plus épais par choix (0,5 / 1 / 1,5 / 2,5 pt à l'échelle 2) */
+export function widthThumbsControl(h2, label, choices, current, commit) {
+  const c = segControl(h2, label, choices, current, commit);
+  c.node.classList.add('thumbs');
+  const NS = 'http://www.w3.org/2000/svg';
+  const W = [1, 2, 3, 5];
+  [...c.node.children].forEach((b, i) => {
+    const svg = document.createElementNS(NS, 'svg'),
+      ln = document.createElementNS(NS, 'line');
+    svg.setAttribute('viewBox', '0 0 28 8');
+    svg.setAttribute('class', 'th-width');
+    svg.setAttribute('aria-hidden', 'true');
+    Object.entries({ x1: 0, y1: 4, x2: 28, y2: 4, stroke: 'currentColor', 'stroke-width': W[i] ?? 1 }).forEach(([k, v]) =>
+      ln.setAttribute(k, v),
+    );
+    svg.append(ln);
+    b.replaceChildren(h2('i', { class: 'th-ico', 'aria-hidden': 'true' }, svg), h2('span', { textContent: choices[i][1] }));
+  });
+  return c;
+}
+
 /** Vignettes de style de ligne (plein, tirets, pointillé) : un vrai trait SVG par choix, au-dessus du libellé */
 export function lineThumbsControl(h2, label, choices, current, commit) {
   const c = segControl(h2, label, choices, current, commit);

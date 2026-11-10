@@ -13,6 +13,7 @@ import {
   resetButton,
   thumbsControl,
   lineThumbsControl,
+  widthThumbsControl,
   stepperControl,
   autoControl,
   unitChips,
@@ -755,6 +756,7 @@ function choiceKind(f) {
   const v = Object.values(f.options);
   if (STEPS_KEYS.has(f.k) && v.length === 4) return 'steps';
   if (f.k === 'barSize') return 'thumbs';
+  if (f.k === 'lineWidth') return 'widths';
   if (f.k === 'gridStyle') return 'lines';
   if (f.k === 'gridCount') return 'seg'; // Auto, 3, 5, 10 : quatre valeurs courtes
   return v.length <= 3 && v.join('').length <= 32 ? 'seg' : null;
@@ -1023,11 +1025,13 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
         withReset(f, false, (id, commit) =>
           kind === 'lines'
             ? lineThumbsControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit)
-            : kind === 'thumbs'
-              ? thumbsControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit)
-              : kind === 'steps'
-                ? stepsControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit)
-                : segControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit),
+            : kind === 'widths'
+              ? widthThumbsControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit)
+              : kind === 'thumbs'
+                ? thumbsControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit)
+                : kind === 'steps'
+                  ? stepsControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit)
+                  : segControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit),
         ),
       );
     } else if (f.t === 'select') {

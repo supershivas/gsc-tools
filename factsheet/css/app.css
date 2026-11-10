@@ -549,7 +549,7 @@ textarea.dg-ml{display:block;width:100%;min-width:90px;border:0;border-radius:0;
 
 /* thumbs, stepper, Auto, unités (src/controls.js) */
 .seg.thumbs{display:flex}.seg.thumbs button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:48px;padding:4px 6px;font-size:var(--fs-sm)}
-.seg.thumbs .th-ico{display:flex;align-items:flex-end;gap:2px;height:18px}.seg.thumbs .th-line{width:28px;height:4px;align-self:center}.seg.thumbs .th-ico b{display:block;background:currentColor;border-radius:1px}
+.seg.thumbs .th-ico{display:flex;align-items:flex-end;gap:2px;height:18px}.seg.thumbs .th-line{width:28px;height:4px;align-self:center}.seg.thumbs .th-width{width:28px;height:8px;align-self:center}.seg.thumbs .th-ico b{display:block;background:currentColor;border-radius:1px}
 .pp-stepper{display:inline-flex;align-items:center;gap:6px}
 .pp-body .pp-stepper input[type=number].pp-num{width:60px;text-align:center}
 .pp-stepper .pp-step{width:32px;height:32px;padding:0;display:inline-flex;align-items:center;justify-content:center}

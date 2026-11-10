@@ -644,3 +644,85 @@ test.describe('axes et grille', () => {
     await expect(gridLines(page).first()).toBeAttached();
   });
 });
+
+test.describe('courbes : traits et points', () => {
+  let errors;
+  test.beforeEach(async ({ page }) => {
+    errors = watchErrors(page);
+    await openApp(page, 'default');
+    await openEditor(page);
+  });
+  test.afterEach(() => expect(errors).toEqual([]));
+  const card = (page, name) => page.locator('.ve-form .pp-card', { has: page.locator('b', { hasText: new RegExp(`^${name}$`) }) });
+  const field = (page, label) => page.locator('.ve-form .f', { hasText: label });
+  const pick = (page, label, choice) => field(page, label).locator('button', { hasText: choice }).click();
+  const lines = (page) => page.locator('#ve-stage svg path[stroke=currentColor][fill=none]');
+  const dots = (page) => page.locator('#ve-stage svg > circle'); // hors légende
+
+  test('chaque option est dessinée, exportée en PDF, et ↺ revient à l’aspect d’origine', async ({ page }) => {
+    // fiche par défaut : aspect d'avant les réglages (trait fin, tous les points, segments droits, plein, sans aire)
+    const nDots = await dots(page).count();
+    expect(nDots).toBeGreaterThan(2);
+    const w0 = +(await lines(page).first().getAttribute('stroke-width'));
+    expect(await lines(page).first().getAttribute('d')).not.toContain('C');
+    expect(await lines(page).first().getAttribute('stroke-dasharray')).toBeNull();
+    await expect(page.locator('#ve-stage svg path[fill-opacity]')).toHaveCount(0);
+    await page.locator('.ve-form .pp-q').fill(' '); // toutes les cartes ouvertes
+    // épaisseur
+    await pick(page, 'Line thickness', 'Extra thick');
+    expect(+(await lines(page).first().getAttribute('stroke-width'))).toBeCloseTo(w0 * 5, 1);
+    // points : dernier seulement, aucun (taille grisée)
+    await pick(page, 'Points', 'Last only');
+    expect(await dots(page).count()).toBe(await lines(page).count());
+    await pick(page, 'Points', 'None');
+    await expect(dots(page)).toHaveCount(0);
+    await expect(field(page, 'Point size')).toHaveAttribute('aria-disabled', 'true');
+    await pick(page, 'Points', 'All');
+    await pick(page, 'Point size', 'Large');
+    expect(+(await dots(page).first().getAttribute('r'))).toBeCloseTo(6.5, 1);
+    // forme du trait
+    await pick(page, 'Line shape', 'Smooth');
+    expect(await lines(page).first().getAttribute('d')).toContain('C');
+    await pick(page, 'Line shape', 'Stepped');
+    expect((await lines(page).first().getAttribute('d')).match(/L/g).length).toBeGreaterThan(8);
+    // aire
+    await page.locator('.ve-form .pp-switchrow', { hasText: 'Area under the curve' }).locator('button[role=switch]').click();
+    await expect(page.locator('#ve-stage svg path[fill-opacity="0.15"]')).toHaveCount(await lines(page).count());
+    // légende en bout de courbe : noms après le dernier point, plus de légende séparée
+    await pick(page, 'Legend position', 'At line end');
+    await expect(page.locator('#ve-stage svg g.lg')).toHaveCount(0);
+    // tirets sur la première série (onglet Données) ; la légende reprend le trait
+    await pick(page, 'Legend position', 'Bottom');
+    await page.locator('.ve-form .pp-q').fill('');
+    await page.locator('.ve-tab[data-tab=data]').click();
+    await page.locator('button[aria-label="Dashed line"]').first().click();
+    await page.locator('.ve-tab[data-tab=viz]').click();
+    expect(await lines(page).first().getAttribute('stroke-dasharray')).toMatch(/^[\d.]+ [\d.]+$/);
+    await expect(page.locator('#ve-stage svg g.lg line[stroke-dasharray]')).toHaveCount(1);
+    // enregistrer et exporter
+    await page.locator('.ve-bar button.primary').click();
+    await expect(page.locator('.ve-bar')).toHaveCount(0);
+    await page.waitForTimeout(300);
+    await addBundle(page, 'pdfexport.js');
+    const r = await page.evaluate(async (key) => {
+      const doc = JSON.parse(localStorage.getItem(key));
+      const viz = doc.sections.flatMap((s) => s.subs.flatMap((b) => b.cols)).find((c) => c.viz && c.viz.kind === 'line').viz;
+      const { bytes } = await window.FSPDF.build(doc, 'net', { profile: 'x1a' });
+      return { n: bytes.length, o: viz.opts, dash: viz.opts.series[0].dash };
+    }, DOC_KEY);
+    expect(r.n).toBeGreaterThan(1000);
+    expect(r.o).toMatchObject({ lineWidth: 'xthick', points: 'all', pointSize: 'large', curve: 'step', area: true });
+    expect(r.dash).toBe('dashed');
+    // ↺ des cartes Structure et Dimensions : aspect d'origine
+    await openEditor(page);
+    for (const name of ['Structure', 'Dimensions']) {
+      await card(page, name).locator('.pp-chev').click();
+      await card(page, name).locator('.pp-reset-card').click();
+    }
+    expect(+(await lines(page).first().getAttribute('stroke-width'))).toBeCloseTo(w0, 2);
+    expect(await lines(page).first().getAttribute('d')).not.toContain('C');
+    expect(await dots(page).count()).toBe(nDots);
+    expect(+(await dots(page).first().getAttribute('r'))).toBeCloseTo(4.5, 1);
+    await expect(page.locator('#ve-stage svg path[fill-opacity]')).toHaveCount(0);
+  });
+});

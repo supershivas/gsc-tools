@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.88.0 — 2026-11-10
+- Courbes : nouveaux réglages de traits et de points dans l'éditeur de dataviz — épaisseur du trait (fin, moyen, épais, très épais), points (tous, dernier seulement, aucun) et leur taille, forme du trait (droit, lissé sans dépassement des données, en escalier) et aire sous la courbe
+- Chaque série peut avoir un trait en tirets (bouton à côté de la couleur dans l'onglet Données) ; la légende reprend le trait
+- Nouvelle position de légende « En bout de courbe » : le nom de chaque série est écrit après son dernier point. Les fiches existantes ne changent pas d'aspect
+
 ## 1.87.0 — 2026-11-10
 - Nouvel outil « PEC organigramme » : un organigramme A4 au gabarit PEC (EU Blue), édité en direct, avec autant de niveaux, cadres, sous-sections et personnes que voulu
 - Logo en haut à gauche et image en haut à droite (import ou glisser-déposer), réduction automatique pour tenir dans la page, annulation, mode sombre
