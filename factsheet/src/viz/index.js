@@ -18,6 +18,7 @@ import timeline from './timeline.js';
 import { pictoTypes } from './picto.js';
 import { el, s, heightOf, fmt, inlineMk } from './util.js';
 import { renderFigure } from '../figure.js';
+import { axesOrigin } from './axes.js';
 
 export const VIZ_TYPES = {
   donut,
@@ -56,6 +57,12 @@ export const newSide = (kind) => ({
   align: 'top',
   scale: '1.5',
 });
+/** Aspect d'avant la carte « Axes et grille » (sans grille…) : fiche par défaut, documents de référence des tests ; `fill` = seulement les clés absentes (`migrate`) */
+export function withAxesOrigin(viz, fill = false) {
+  const o = viz.opts || (viz.opts = {});
+  for (const [k, v] of Object.entries(axesOrigin(VIZ_TYPES[viz.kind]))) if (!fill || o[k] === undefined) o[k] = v;
+  return viz;
+}
 export const newViz = (kind = 'bars') => ({ kind, opts: VIZ_TYPES[kind].defaults(), head: { title: '', source: '' }, side: newSide(kind) });
 
 /** Même dataviz dans un autre type : titre/source gardés, les données suivent quand les deux types partagent la même forme (tableau libellé × séries, ou mêmes colonnes) */

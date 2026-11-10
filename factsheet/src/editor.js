@@ -12,6 +12,7 @@ import {
   rangeControl,
   resetButton,
   thumbsControl,
+  lineThumbsControl,
   stepperControl,
   autoControl,
   unitChips,
@@ -736,7 +737,7 @@ const labelled = (h2, label, control) => {
 /** niveau de mise en forme d'un champ de texte : `fmt` explicite ('full' | 'inline' | 'basic' | 'plain'), sinon `rich` = inline, `area` = full ; null = champ simple */
 const fmtOf = (f) => (f.fmt === 'plain' ? null : f.fmt || (f.rich ? 'inline' : f.t === 'area' ? 'full' : null));
 const STEPPER_FIELDS = new Set(['cols', 'gridRows']);
-const AUTO_FIELDS = new Set(['perDot', 'perRow', 'total']);
+const AUTO_FIELDS = new Set(['perDot', 'perRow', 'total', 'scaleMax']);
 const NUMBER_FIELDS = new Set([...STEPPER_FIELDS, ...AUTO_FIELDS]);
 const unitOf = (label) => (/\bpx\b/.test(label) ? 'px' : label.includes('°') ? '°' : label.includes('%') ? '%' : '');
 /** choix de nature visuelle : liste déroulante riche, une icône par valeur */
@@ -745,6 +746,7 @@ const RICH_ICONS = {
   layout: { auto: 'wand', around: 'chart-donut-3', legend: 'list-details', none: 'circle' },
   tail: { dashed: 'line-dashed', solid: 'minus', none: 'point' },
   align: { justify: 'align-justified', left: 'align-left', right: 'align-right', center: 'align-center' },
+  grid: { none: 'border-none', h: 'border-horizontal', v: 'border-vertical', both: 'border-inner' },
 };
 const STEPS_KEYS = new Set(['groupSpace', 'serSpace', 'rowSpace']);
 /** liste → contrôle : 'steps' (4 crans d'espace), 'seg' (2–3 valeurs courtes), sinon null (liste déroulante) */
@@ -753,6 +755,8 @@ function choiceKind(f) {
   const v = Object.values(f.options);
   if (STEPS_KEYS.has(f.k) && v.length === 4) return 'steps';
   if (f.k === 'barSize') return 'thumbs';
+  if (f.k === 'gridStyle') return 'lines';
+  if (f.k === 'gridCount') return 'seg'; // Auto, 3, 5, 10 : quatre valeurs courtes
   return v.length <= 3 && v.join('').length <= 32 ? 'seg' : null;
 }
 /** valeur affichée d'un champ : celle du document, sinon sa valeur par défaut `def` (celle que le dessin applique), sinon la première option */
@@ -1017,11 +1021,13 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
       const kind = choiceKind(f);
       out.push(
         withReset(f, false, (id, commit) =>
-          kind === 'thumbs'
-            ? thumbsControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit)
-            : kind === 'steps'
-              ? stepsControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit)
-              : segControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit),
+          kind === 'lines'
+            ? lineThumbsControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit)
+            : kind === 'thumbs'
+              ? thumbsControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit)
+              : kind === 'steps'
+                ? stepsControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit)
+                : segControl(h2, f.label, orderedOptions(f.options), shown(f, obj, Object.keys(f.options)[0]), commit),
         ),
       );
     } else if (f.t === 'select') {

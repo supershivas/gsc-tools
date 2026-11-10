@@ -1,8 +1,32 @@
 /* Barres horizontales : libellés à gauche, valeur au bout de la barre. Groupées ou empilées. */
 import { VIZ, TYPE } from '../tokens.js';
-import { reorderHit, heightOf, s, SW, colorRef, pxOf, fmt, mw, SANS, SERIF, drawLegend, numVal, fitText, elColor } from './util.js';
+import {
+  reorderHit,
+  heightOf,
+  s,
+  SW,
+  colorRef,
+  pxOf,
+  fmt,
+  mw,
+  SANS,
+  drawLegend,
+  numVal,
+  fitText,
+  elColor,
+  ticks,
+  tickFmt,
+  gridOn,
+  gridN,
+  gridLine,
+  scaleTop,
+} from './util.js';
 import { iconNode, iconImportPanel } from './picto.js';
+import { axesFields } from './axes.js';
 import { t } from '../i18n.js';
+
+/** Aspect d'origine de la carte « Axes et grille » (barres horizontales d'avant la carte : ligne de base à gauche, sans grille) */
+const ORIGIN = { grid: false, gridStyle: 'solid', gridTone: 'light', axisValues: false, baseline: true };
 
 const hPath = (x, y, w, h, r) => {
   r = Math.max(0, Math.min(r, h / 2, w));
@@ -19,6 +43,13 @@ export default {
     showValues: true,
     decimals: 0,
     suffix: '%',
+    grid: true,
+    gridStyle: 'solid',
+    gridTone: 'light',
+    axisValues: false,
+    baseline: true,
+    scaleMax: 0,
+    gridCount: '0',
     series: [{ name: t('Valeur'), color: 'blue' }],
     rows: [
       { label: t('Premier critère'), v: [72] },
@@ -63,14 +94,13 @@ export default {
       t: 'bool',
       label: 'Valeurs dans les barres (si affichées ; sinon après la barre quand ça ne rentre pas)',
     },
-    {
-      k: 'segments',
-      g: 'struct',
-      t: 'number',
-      label: 'Graduations : nombre de segments dans la barre la plus longue (0 = aucune)',
-      min: 0,
-      max: 20,
-    },
+    ...axesFields(ORIGIN, {
+      baselineWhen: {
+        when: (o) => !o.labelIn,
+        why: 'Désactivez « Libellés dans les barres » pour afficher la ligne de base.',
+      },
+    }),
+    { k: 'segments', g: 'axes', t: 'number', label: 'Graduations dans les barres', min: 0, max: 20, def: 0 },
     { k: 'legend', g: 'labels', t: 'bool', label: 'Afficher la légende' },
     {
       k: 'legendPos',
@@ -85,8 +115,8 @@ export default {
     {
       k: 'decimals',
       g: 'labels',
-      when: (o) => !!o.showValues,
-      why: 'Activez « Afficher les valeurs » pour régler ce format.',
+      when: (o) => !!o.showValues || !!o.axisValues,
+      why: 'Activez « Afficher les valeurs » ou « Valeurs de l’axe » pour régler ce format.',
       t: 'number',
       label: 'Décimales des valeurs',
       min: 0,
@@ -95,8 +125,8 @@ export default {
     {
       k: 'suffix',
       g: 'labels',
-      when: (o) => !!o.showValues,
-      why: 'Activez « Afficher les valeurs » pour régler ce format.',
+      when: (o) => !!o.showValues || !!o.axisValues,
+      why: 'Activez « Afficher les valeurs » ou « Valeurs de l’axe » pour régler ce format.',
       t: 'text',
       label: 'Unité après la valeur (%, M€…)',
     },
@@ -138,6 +168,14 @@ export default {
       max = Math.max(max, stacked ? total(r) : Math.max(0, ...series.map((_, j) => numVal(r, j))));
     });
     if (!max) max = 1;
+    max = scaleTop(o, max);
+    /* graduations : grille (verticale) et valeurs de l'axe (sous les barres, réserve comptée dans la hauteur) */
+    const axV = !!o.axisValues,
+      grid = gridOn(o),
+      base = (o.baseline ?? ORIGIN.baseline) && !o.labelIn;
+    const tk = grid || axV ? ticks(0, max, gridN(o, Math.max(3, Math.floor(span / 80)))) : null,
+      tickTxt = (v) => tickFmt(v, tk, env.locale, o.decimals) + suffix,
+      axH = axV ? Math.round(capPx * 1.4 + 3) : 0;
     const GF = { none: 0, tight: 0.5, normal: 1, loose: 2 },
       rGap = VIZ.hRowGap * (GF[o.rowSpace] ?? 1),
       sGap = VIZ.barGap * (GF[o.serSpace] ?? 1);
@@ -148,15 +186,32 @@ export default {
     /* hauteur fixe ou « remplir » : les barres s'épaississent (ou s'amincissent) pour occuper la hauteur demandée ; automatique = hauteur naturelle */
     let bh = natBh;
     if (o.hmode === 'fixed' || o.hmode === 'fill' || o.hmode === 'match') {
-      const target = heightOf(o, W, env, natBody + legBlock),
-        f = Math.max(0.5, Math.min(4, (target - legBlock - gaps) / Math.max(1, natBody - gaps)));
+      const target = heightOf(o, W, env, natBody + axH + legBlock),
+        f = Math.max(0.5, Math.min(4, (target - legBlock - axH - gaps) / Math.max(1, natBody - gaps)));
       bh = Math.max(3, natBh * f);
     }
     const rh = stacked ? bh : k * bh + (k - 1) * sGap;
     const bodyH = rows.length * rh + gaps;
-    const H = bodyH + legBlock;
+    const H = bodyH + axH + legBlock;
     const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });
-    if (!o.labelIn) svg.append(s('line', { x1: x0, y1: 0, x2: x0, y2: bodyH, stroke: 'currentColor', 'stroke-width': SW }));
+    if (tk)
+      tk.out.forEach((v) => {
+        const x = x0 + (v / max) * span;
+        if (grid && !(base && v === 0)) svg.append(gridLine(o, x, 0, x, bodyH));
+        if (axV) {
+          const txt = tickTxt(v),
+            w = mw(txt, 400, SANS, capPx),
+            anchor = x + w / 2 > W ? 'end' : x - w / 2 < 0 ? 'start' : 'middle';
+          svg.append(
+            s(
+              'text',
+              { x: anchor === 'end' ? W : anchor === 'start' ? 0 : x, y: bodyH + 3 + capPx, 'text-anchor': anchor, 'font-size': capPx },
+              txt,
+            ),
+          );
+        }
+      });
+    if (base) svg.append(s('line', { x1: x0, y1: 0, x2: x0, y2: bodyH, stroke: 'currentColor', 'stroke-width': SW }));
     const nSeg = Math.max(0, Math.min(20, Math.floor(+o.segments || 0)));
     /* graduations (traits de séparation des segments) et libellé dans la barre */
     const NUMF = { 'font-size': numPx, 'font-weight': 700, style: { fontFamily: 'var(--t-captionNum-family)' } };

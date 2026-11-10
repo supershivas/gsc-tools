@@ -1,6 +1,10 @@
 /* Documents de référence des tests de non-régression (construits dans la page, avec les vrais modules de l'app). */
 import { defaultDoc, newSection, newSub, newCol } from '../src/state.js';
-import { newViz, VIZ_TYPES } from '../src/viz/index.js';
+import { newViz as freshViz, VIZ_TYPES, withAxesOrigin } from '../src/viz/index.js';
+
+/* Les captures de référence montrent l'aspect d'avant la carte « Axes et grille » (une fiche existante ne change pas) :
+   les dataviz des documents de test le gardent ; la grille des nouvelles dataviz est vérifiée par tests/vizsidebar.spec.js. */
+const newViz = (kind) => withAxesOrigin(freshViz(kind));
 
 /** 1. Le document par défaut. */
 export const docDefault = () => defaultDoc();

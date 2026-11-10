@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.86.0 — 2026-11-10
+- Nouvelle carte « Axes et grille » dans l'éditeur de dataviz (barres, barres horizontales, courbes, nuage de points) : grille (style plein, tirets ou pointillé ; intensité discrète, normale ou marquée), valeurs de l'axe, ligne de base, titres d'axes, départ à zéro, maximum de l'échelle (pour comparer plusieurs graphiques) et nombre de lignes
+- Les nouvelles barres et courbes ont une grille discrète ; les fiches existantes ne changent pas d'aspect
+- « Rétablir l'aspect d'origine » dans la carte Avancé remet tous les réglages d'apparence à leur valeur d'origine, sans toucher aux données
+
 ## 1.85.0 — 2026-11-09
 - Une page qui déborde ne cache plus rien : le contenu coupé s'affiche sous la page (estompé, hachuré) avec un trait rouge à la limite et « Dépasse de N px »
 - L'avertissement nomme chaque section touchée (entièrement hors de la page ou coupée) avec « Aller à la section » et « La déplacer sur l'autre page » (annulable) ; une pastille d'alerte marque aussi ces sections dans l'arbre

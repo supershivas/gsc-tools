@@ -52,6 +52,17 @@ export const HELP = {
   'Format du graphique': 'Proportion hauteur / largeur du graphique (en mode « Proportion »).',
   'Afficher la légende': 'Pastilles de couleur avec le nom des séries ou des groupes sous le graphique.',
   'Décimales des valeurs': 'Nombre de décimales affichées pour les valeurs.',
+  /* carte « Axes et grille » des dataviz */
+  Grille:
+    'Lignes fines derrière le graphique, sur les nombres ronds de l’axe des valeurs : horizontales pour les barres et les courbes, verticales pour les barres horizontales.',
+  Intensité: 'Teinte de l’encre du texte (discrète, normale ou marquée), sans couleur libre : la grille reste derrière les données.',
+  'Maximum de l’échelle':
+    'Auto : le haut de l’échelle suit la plus grande valeur. Donnez la même valeur à plusieurs graphiques d’une fiche pour les comparer ; une donnée plus grande l’emporte, rien n’est coupé.',
+  'Nombre de lignes de la grille':
+    'Nombre approximatif d’intervalles : les lignes tombent toujours sur des nombres ronds (1, 2 ou 5 × 10ⁿ) et restent régulières.',
+  'Graduations dans les barres':
+    'Traits qui découpent la barre la plus longue en segments égaux (0 = aucun), pour lire les valeurs sans axe.',
+  'Ligne de base (axe zéro)': 'Trait de 0,5 pt au pied des barres ou des courbes (le zéro de l’échelle).',
   'Unité après la valeur (%, M€…)': 'Texte ajouté après chaque valeur, par exemple « % » ou « M€ ».',
   'Texte du centre':
     'Une ligne par paragraphe. « ## » devant une ligne = titre 2, « ### » = texte courant, rien = titre 1. {total} = somme des valeurs.',

@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { openApp, watchErrors } = require('./helpers');
+const { openApp, watchErrors, addBundle, DOC_KEY } = require('./helpers');
 
 /* Panneau de l'éditeur de dataviz (onglet Visualisation) : le panneau dit la vérité, Échap ne fait pas perdre le travail,
    le clavier reste dans l'éditeur. Audit : docs/audit-sidebar-dataviz.md (lot 1). */
@@ -146,6 +146,7 @@ test.describe('squelette de cartes', () => {
       'Title and source',
       'Structure',
       'Dimensions',
+      'Axes and grid',
       'Labels',
       'Colours',
       'Bracket and link',
@@ -570,5 +571,76 @@ test.describe('dépassement de page', () => {
     await expect(page.locator('dialog.modal[open]')).toContainText('Export anyway?');
     await page.locator('dialog.modal[open]').getByRole('button', { name: 'Cancel' }).click();
     await expect(page.locator('#exportGo')).toBeEnabled();
+  });
+});
+
+/* Carte « Axes et grille » (lot 1 de l'audit des options) : nouvelle dataviz avec grille, export PDF, retour à l'aspect d'origine */
+test.describe('axes et grille', () => {
+  let errors;
+  test.beforeEach(async ({ page }) => {
+    errors = watchErrors(page);
+    await openApp(page, 'default');
+    await openEditor(page);
+  });
+  test.afterEach(() => expect(errors).toEqual([]));
+  const axesCard = (page) => page.locator('.ve-form .pp-card', { has: page.locator('b', { hasText: /^Axes and grid$/ }) });
+  const gridLines = (page) => page.locator('#ve-stage svg line[opacity]');
+
+  test('la fiche par défaut garde l’aspect d’origine : courbe sans grille, carte sans ↺', async ({ page }) => {
+    await expect(gridLines(page)).toHaveCount(0);
+    await axesCard(page).locator('.pp-chev').click();
+    await expect(axesCard(page).locator('.pp-reset-card')).toBeHidden();
+    expect(await axesCard(page).locator('.pp-sub').allTextContents()).toEqual(['Grid', 'Axis', 'Scale']);
+  });
+
+  test('grille activée, export PDF sans erreur, ↺ de la carte revient à l’aspect d’origine', async ({ page }) => {
+    await pickType(page, /^Bars \(/); // nouvelle dataviz : grille pleine, discrète
+    await expect(gridLines(page).first()).toBeAttached();
+    expect(await gridLines(page).first().getAttribute('opacity')).toBe('0.3');
+    await axesCard(page).locator('.pp-chev').click();
+    const card = axesCard(page);
+    // style en tirets, puis dix lignes et valeurs de l'axe
+    await card.locator('.f', { hasText: 'Line style' }).locator('button', { hasText: 'Dashed' }).click();
+    expect(await gridLines(page).first().getAttribute('stroke-dasharray')).toBe('4 3');
+    await card.locator('.pp-switchrow', { hasText: 'Axis values' }).locator('button[role=switch]').click();
+    await card.locator('.f', { hasText: 'Number of grid lines' }).locator('button', { hasText: /^10$/ }).click();
+    expect(await gridLines(page).count()).toBeGreaterThan(5);
+    // grille éteinte : style et intensité grisés avec leur phrase
+    await card.locator('.pp-switchrow', { hasText: /^Grid/ }).locator('button[role=switch]').click();
+    await expect(card.locator('.f', { hasText: 'Intensity' })).toHaveAttribute('aria-disabled', 'true');
+    await card.locator('.pp-switchrow', { hasText: /^Grid/ }).locator('button[role=switch]').click();
+    // enregistrer et exporter
+    await page.locator('.ve-bar button.primary').click();
+    await expect(page.locator('.ve-bar')).toHaveCount(0);
+    await page.waitForTimeout(300);
+    await addBundle(page, 'pdfexport.js');
+    const r = await page.evaluate(async (key) => {
+      const doc = JSON.parse(localStorage.getItem(key));
+      const viz = doc.sections.flatMap((s) => s.subs.flatMap((b) => b.cols)).find((c) => c.viz && c.viz.kind === 'bars').viz;
+      const { bytes } = await window.FSPDF.build(doc, 'net', { profile: 'x1a' });
+      return { n: bytes.length, grid: viz.opts.grid, style: viz.opts.gridStyle };
+    }, DOC_KEY);
+    expect(r).toEqual({ n: expect.any(Number), grid: true, style: 'dashed' });
+    expect(r.n).toBeGreaterThan(1000);
+    // ↺ de la carte : aspect d'origine (ni grille, ni valeurs d'axe), titres et données intacts
+    await openEditor(page);
+    await axesCard(page).locator('.pp-chev').click();
+    await axesCard(page).locator('.pp-reset-card').click();
+    await expect(gridLines(page)).toHaveCount(0);
+    await expect(page.locator('#ve-stage svg text[text-anchor=end]')).toHaveCount(0); // plus de valeurs d'axe
+    await expect(axesCard(page).locator('.pp-reset-card')).toBeHidden();
+  });
+
+  test('« Rétablir l’aspect d’origine » remet toutes les cartes d’apparence en un pas', async ({ page }) => {
+    await pickType(page, /^Bars \(/);
+    await page
+      .locator('.ve-form .pp-card', { has: page.locator('b', { hasText: /^Advanced settings$/ }) })
+      .locator('.pp-chev')
+      .click();
+    await page.getByRole('button', { name: 'Restore the original look' }).click();
+    await expect(page.locator('.ve-form [role=status]')).toContainText('Original look restored');
+    await expect(gridLines(page)).toHaveCount(0);
+    await page.keyboard.press('ControlOrMeta+z');
+    await expect(gridLines(page).first()).toBeAttached();
   });
 });

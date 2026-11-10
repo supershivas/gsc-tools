@@ -6,6 +6,7 @@
 export const CARDS = [
   { g: 'struct', id: 'dv-struct', icon: 'layout-2', name: 'Structure' },
   { g: 'dims', id: 'dv-dims', icon: 'ruler-2', name: 'Dimensions' },
+  { g: 'axes', id: 'dv-axes', icon: 'axis-y', name: 'Axes et grille' },
   { g: 'labels', id: 'dv-labels', icon: 'letter-case', name: 'Étiquettes' },
   { g: 'colors', id: 'dv-colors', icon: 'palette', name: 'Couleurs' },
   { g: 'bracket', id: 'dv-bracket', icon: 'brackets', name: 'Accolade et liaison' },
@@ -18,12 +19,14 @@ export const VALID_G = new Set([...CARDS.map((c) => c.g), 'data', 'ratio']);
 export const FIELD_ORDER = [
   // Structure
   'style', 'orient', 'largestAngle', 'startAngle', 'ringAlign', 'orientation', 'alternate', 'tail', 'align', 'shape',
-  'cols', 'gridRows', 'total', 'perIcon', 'perDot', 'perRow', 'segments', 'circle', 'parents', 'zero', 'zeroX', 'zeroY',
+  'cols', 'gridRows', 'total', 'perIcon', 'perDot', 'perRow', 'circle', 'parents',
   // Dimensions
   'barSize', 'groupSpace', 'rowSpace', 'serSpace', 'rowGap', 'scale', 'pad', 'gap', 'nodeW', 'nodePad', 'maxR', 'hole',
+  // Axes et grille
+  'grid', 'gridStyle', 'gridTone', 'segments', 'axisValues', 'baseline', 'xTitle', 'yTitle', 'zero', 'zeroX', 'zeroY', 'scaleMax', 'gridCount',
   // Étiquettes
   'legend', 'legendPos', 'showPercent', 'showValues', 'valuesIn', 'labelIn', 'showLabels', 'groupLabels', 'showDates', 'showTotal',
-  'layout', 'leading', 'totalTpl', 'xTitle', 'yTitle', 'decimals', 'suffix',
+  'layout', 'leading', 'totalTpl', 'decimals', 'suffix',
   // Couleurs
   'color',
   // Accolade et liaison
@@ -53,18 +56,23 @@ export const SUBS = {
   values: 'Valeurs',
   names: 'Noms et textes',
   inbars: 'Texte dans les barres',
-  axes: 'Axes',
   numbers: 'Nombres',
   shape: 'Forme',
   orient: 'Orientation',
   position: 'Position',
+  grid: 'Grille',
+  axis: 'Axe',
+  scale: 'Échelle',
 };
 const SUB_OF = {
   legend: 'legend', legendPos: 'legend', showPercent: 'legend',
   showValues: 'values', valuesIn: 'values', showTotal: 'values',
   showLabels: 'names', groupLabels: 'names', showDates: 'names', layout: 'names', leading: 'names', totalTpl: 'names',
-  labelIn: 'inbars', xTitle: 'axes', yTitle: 'axes', decimals: 'numbers', suffix: 'numbers',
+  labelIn: 'inbars', decimals: 'numbers', suffix: 'numbers',
   style: 'shape', orient: 'orient', largestAngle: 'orient', startAngle: 'orient', ringAlign: 'position',
+  grid: 'grid', gridStyle: 'grid', gridTone: 'grid', segments: 'grid',
+  axisValues: 'axis', baseline: 'axis', xTitle: 'axis', yTitle: 'axis',
+  zero: 'scale', zeroX: 'scale', zeroY: 'scale', scaleMax: 'scale', gridCount: 'scale',
 }; // prettier-ignore
 const SUB_RANK = Object.keys(SUBS);
 export const subOf = (f) => f.s || SUB_OF[f.k];

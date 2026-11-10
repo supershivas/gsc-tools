@@ -340,7 +340,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     cardEl(id, icon, name, nodes, { shut, refresh: refreshForm, acc: accs[col.viz.kind], sum, q: search.q, headExtra });
 
   /* ----- confort (audit lot 6) : rétablir une carte, copier / coller les réglages ----- */
-  const SETTINGS_G = new Set(['struct', 'dims', 'labels', 'colors', 'bracket']);
+  const SETTINGS_G = new Set(['struct', 'dims', 'axes', 'labels', 'colors', 'bracket']);
   const settingsOf = (ty) => (ty.fields || []).filter((f) => f.k && f.t !== 'node' && SETTINGS_G.has(groupOf(f)));
   /** champs d'une carte dont la valeur a quitté la valeur d'origine : [{ obj, f, v }] (valeur d'origine = réglages par défaut du type) */
   const changedIn = (list, obj, dflt) =>
@@ -387,6 +387,17 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     clip = { kind: col.viz.kind, label: ty.label, values, side: { ...(col.viz.side || {}) } };
     pasteMsg = `${t('Réglages copiés')} · ${Object.keys(values).length}`;
     buildForm();
+  };
+  /* Rétablir l'aspect d'origine : chaque réglage d'apparence revient à sa valeur d'origine (`def`, sinon `defaults()` du type) ;
+     les données et les textes saisis (titres d'axes, unité) ne bougent pas ; un seul pas d'historique */
+  const resetLook = () => {
+    const ty = VIZ_TYPES[col.viz.kind],
+      dflt = ty.defaults ? ty.defaults() : {},
+      list = settingsOf(ty).filter((f) => !['text', 'area', 'lines'].includes(f.t));
+    const mods = changedIn(list, col.viz.opts, dflt);
+    mods.forEach(({ obj, f, v }) => setP(obj, f.k, v));
+    pasteMsg = `${t('Aspect d’origine rétabli')} · ${mods.length}`;
+    fctx.restructure();
   };
   const pasteSettings = () => {
     if (!clip) return;
@@ -658,7 +669,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
             h('p', {
               class: 'hint',
               textContent: t(
-                'Copie les réglages de cette dataviz (Structure, Dimensions, Étiquettes, Couleurs, Accolade, Chiffre à côté) pour les coller dans une autre, même d’un autre type : seuls les réglages communs sont repris.',
+                'Copie les réglages de cette dataviz (Structure, Dimensions, Axes et grille, Étiquettes, Couleurs, Accolade, Chiffre à côté) pour les coller dans une autre, même d’un autre type : seuls les réglages communs sont repris.',
               ),
             }),
             h(
@@ -680,6 +691,18 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
             clip || pasteMsg
               ? h('p', { class: 'hint', role: 'status', textContent: pasteMsg || `${t('Réglages copiés depuis')} ${t(clip.label)}` })
               : null,
+            h('p', {
+              class: 'hint',
+              textContent: t(
+                'Remet tous les réglages d’apparence (Structure, Dimensions, Axes et grille, Étiquettes, Couleurs, Accolade) à leur valeur d’origine, sans toucher aux données ni aux textes saisis.',
+              ),
+            }),
+            h(
+              'button',
+              { type: 'button', class: 'pp-btn', onclick: resetLook },
+              ico('rotate-2'),
+              h('span', { textContent: t('Rétablir l’aspect d’origine') }),
+            ),
             h('p', {
               class: 'hint',
               textContent: t('Exporte la dataviz et les réglages du document (thème, couleurs, densité) pour le débogage.'),

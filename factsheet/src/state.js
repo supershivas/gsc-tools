@@ -2,7 +2,7 @@
    Les textes acceptent **gras**, une ligne = un paragraphe, "- " = puce. */
 import { DEFAULT_THEME, GRID, MAX_EXTRA_COLORS } from './tokens.js';
 import { newCard, cardPresetFor } from './cardmodel.js';
-import { newViz } from './viz/index.js';
+import { newViz, withAxesOrigin } from './viz/index.js';
 import { t } from './i18n.js';
 import { FIGURE_DEFAULTS } from './figure.js';
 
@@ -77,7 +77,7 @@ export function defaultDoc() {
     'Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna.';
   const list = '- Lorem ipsum dolor sit amet\n- Consectetuer adipiscing elit\n- Sed diam nonummy nibh euismod';
   const viz = (kind, opts, extra) => {
-    const v = newViz(kind);
+    const v = withAxesOrigin(newViz(kind)); // la fiche par défaut garde l'aspect d'avant la carte « Axes et grille » (sans grille)
     return { ...newCol('viz'), viz: { ...v, opts: { ...v.opts, ...(opts || {}) } }, ...(extra || {}) };
   };
   const fig = (value, icon, text, iconStyle = 'circle') => ({
@@ -216,6 +216,8 @@ export function migrate(j) {
         if (k.type === 'viz') {
           if (!k.viz) k.viz = newViz('bars');
           else if (!k.viz.opts) k.viz = newViz(k.viz.kind);
+          /* clés de « Axes et grille » absentes (fichier d'avant la carte) : écrites avec l'aspect d'alors, le panneau montre ce qui est dessiné */
+          withAxesOrigin(k.viz, true);
         }
         return k;
       });

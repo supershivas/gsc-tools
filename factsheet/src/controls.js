@@ -140,6 +140,26 @@ export function thumbsControl(h2, label, choices, current, commit) {
   return c;
 }
 
+/** Vignettes de style de ligne (plein, tirets, pointillé) : un vrai trait SVG par choix, au-dessus du libellé */
+export function lineThumbsControl(h2, label, choices, current, commit) {
+  const c = segControl(h2, label, choices, current, commit);
+  c.node.classList.add('thumbs');
+  const NS = 'http://www.w3.org/2000/svg';
+  const DASH = { solid: null, dashed: '4 3', dotted: '1 3' };
+  [...c.node.children].forEach((b, i) => {
+    const svg = document.createElementNS(NS, 'svg'),
+      ln = document.createElementNS(NS, 'line');
+    svg.setAttribute('viewBox', '0 0 28 4');
+    svg.setAttribute('class', 'th-line');
+    svg.setAttribute('aria-hidden', 'true');
+    Object.entries({ x1: 0, y1: 2, x2: 28, y2: 2, stroke: 'currentColor', 'stroke-width': 1.5 }).forEach(([k, v]) => ln.setAttribute(k, v));
+    if (DASH[choices[i][0]]) ln.setAttribute('stroke-dasharray', DASH[choices[i][0]]);
+    svg.append(ln);
+    b.replaceChildren(h2('i', { class: 'th-ico', 'aria-hidden': 'true' }, svg), h2('span', { textContent: choices[i][1] }));
+  });
+  return c;
+}
+
 /** Stepper − / valeur / + pour de petits entiers qu'on compte (cases d'une grille) */
 export function stepperControl(h2, id, label, { min = 0, max = 99 }, current, commit) {
   const n = h2('input', { type: 'number', id, class: 'pp-num', min, max, step: 1 });

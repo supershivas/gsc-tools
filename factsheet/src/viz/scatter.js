@@ -1,19 +1,28 @@
 /* Nuage de points / bulles : x, y, taille facultative, groupe facultatif (une couleur par groupe). */
 import { VIZ, TYPE } from '../tokens.js';
-import { s, SW, colorRef, pxOf, fmt, mw, SANS, layoutLegend, drawLegendWrap, fitText, heightOf, autoColor } from './util.js';
+import {
+  s,
+  SW,
+  colorRef,
+  pxOf,
+  mw,
+  SANS,
+  layoutLegend,
+  drawLegendWrap,
+  fitText,
+  heightOf,
+  autoColor,
+  ticks,
+  tickFmt,
+  gridN,
+  gridLine,
+  scaleTop,
+} from './util.js';
+import { axesFields, axisTitleFields } from './axes.js';
 import { t } from '../i18n.js';
 
-function ticks(lo, hi, n = 5) {
-  if (!(hi > lo)) hi = lo + 1;
-  const raw = (hi - lo) / n,
-    p = 10 ** Math.floor(Math.log10(raw)),
-    f = raw / p,
-    step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p;
-  const a = Math.ceil(lo / step - 1e-9) * step,
-    out = [];
-  for (let v = a; v <= hi + step * 1e-6; v += step) out.push(+v.toFixed(10));
-  return { out, step, lo: Math.min(lo, out[0] ?? lo), hi: Math.max(hi, out[out.length - 1] ?? hi) };
-}
+/** Aspect d'origine de la carte « Axes et grille » (nuage d'avant la carte : lignes horizontales en pointillé, valeurs et axes affichés) */
+const ORIGIN = { grid: 'h', gridStyle: 'dotted', gridTone: 'normal', axisValues: true, baseline: true };
 
 export default {
   label: 'Nuage de points',
@@ -30,6 +39,9 @@ export default {
     yTitle: 'Life expectancy',
     decimals: 0,
     suffix: '',
+    ...ORIGIN,
+    scaleMax: 0,
+    gridCount: '0',
     rows: [
       ['France', 'Europe', 38, 82.5, 67],
       ['Germany', 'Europe', 44, 81.1, 83],
@@ -50,10 +62,10 @@ export default {
       label: 'Format du graphique',
       options: { '2:1': '2:1 (large)', '16:9': '16:9', '3:2': '3:2', '1:1': '1:1 (carré)' },
     },
-    { k: 'xTitle', g: 'labels', t: 'text', fmt: 'plain', label: 'Titre de l’axe horizontal' },
-    { k: 'yTitle', g: 'labels', t: 'text', fmt: 'plain', label: 'Titre de l’axe vertical' },
-    { k: 'zeroX', g: 'struct', t: 'bool', label: 'Axe horizontal démarrant à zéro' },
-    { k: 'zeroY', g: 'struct', t: 'bool', label: 'Axe vertical démarrant à zéro' },
+    ...axesFields(ORIGIN, { sides: true }),
+    ...axisTitleFields(),
+    { k: 'zeroX', g: 'axes', t: 'bool', label: 'Axe horizontal démarrant à zéro' },
+    { k: 'zeroY', g: 'axes', t: 'bool', label: 'Axe vertical démarrant à zéro' },
     { k: 'maxR', g: 'dims', t: 'number', label: 'Rayon maximal des bulles (px)', min: 3, max: 40 },
     { k: 'showLabels', g: 'labels', t: 'bool', label: 'Afficher le nom des points' },
     { k: 'legend', g: 'labels', t: 'bool', label: 'Afficher la légende (groupes)' },
@@ -125,11 +137,16 @@ export default {
       yl -= pd;
       yh += pd;
     }
-    const X = ticks(xl, xh, Math.max(3, Math.floor(W / 80))),
-      Y = ticks(yl, yh, 5);
-    const f = (v, tk) => fmt(v, env.locale, Math.max(+o.decimals || 0, tk.step < 1 ? Math.min(3, Math.ceil(-Math.log10(tk.step))) : 0));
-    const ml = Math.max(...Y.out.map((v) => mw(f(v, Y), 400, SANS, capPx))) + 8,
-      mb = capPx * 1.4 + (o.xTitle ? capPx * 1.5 : 0) + 6,
+    yh = scaleTop(o, yh);
+    const grid = o.grid ?? ORIGIN.grid,
+      axV = o.axisValues ?? ORIGIN.axisValues,
+      base = o.baseline ?? ORIGIN.baseline;
+    const X = ticks(xl, xh, gridN(o, Math.max(3, Math.floor(W / 80)))),
+      Y = ticks(yl, yh, gridN(o, 5));
+    const f = (v, tk) => tickFmt(v, tk, env.locale, o.decimals);
+    const valsH = axV ? capPx * 1.4 : 0; // ligne des valeurs sous l'axe horizontal
+    const ml = axV ? Math.max(...Y.out.map((v) => mw(f(v, Y), 400, SANS, capPx))) + 8 : 6,
+      mb = valsH + (o.xTitle ? capPx * 1.5 : 0) + 6,
       mt = o.yTitle ? capPx * 1.7 : 6;
     const x0 = ml,
       x1 = W - 6,
@@ -137,36 +154,41 @@ export default {
       y0 = mt;
     const sx = (v) => x0 + ((v - X.lo) / (X.hi - X.lo)) * (x1 - x0),
       sy = (v) => y1 - ((v - Y.lo) / (Y.hi - Y.lo)) * (y1 - y0);
-    const grid = s('g');
+    const gridG = s('g'),
+      gO = { gridStyle: ORIGIN.gridStyle, gridTone: ORIGIN.gridTone, ...o };
+    const hLines = grid === 'h' || grid === 'both',
+      vLines = grid === 'v' || grid === 'both';
     Y.out.forEach((v) => {
       const y = sy(v);
-      grid.append(
-        s('line', { x1: x0, x2: x1, y1: y, y2: y, stroke: 'currentColor', 'stroke-width': SW, 'stroke-dasharray': '1 3', opacity: 0.55 }),
-        s('text', { x: x0 - 6, y: y + 0.33 * capPx, 'text-anchor': 'end', 'font-size': capPx }, f(v, Y)),
+      gridG.append(
+        hLines ? gridLine(gO, x0, y, x1, y) : null,
+        axV ? s('text', { x: x0 - 6, y: y + 0.33 * capPx, 'text-anchor': 'end', 'font-size': capPx }, f(v, Y)) : null,
       );
     });
     X.out.forEach((v) => {
       const x = sx(v);
-      grid.append(
-        s('line', { x1: x, x2: x, y1: y1, y2: y1 + 4, stroke: 'currentColor', 'stroke-width': SW }),
-        s('text', { x, y: y1 + 6 + capPx, 'text-anchor': 'middle', 'font-size': capPx }, f(v, X)),
+      gridG.append(
+        vLines ? gridLine(gO, x, y0, x, y1) : null,
+        axV ? s('line', { x1: x, x2: x, y1: y1, y2: y1 + 4, stroke: 'currentColor', 'stroke-width': SW }) : null,
+        axV ? s('text', { x, y: y1 + 6 + capPx, 'text-anchor': 'middle', 'font-size': capPx }, f(v, X)) : null,
       );
     });
-    grid.append(
-      s('line', { x1: x0, x2: x0, y1: y0, y2: y1, stroke: 'currentColor', 'stroke-width': SW }),
-      s('line', { x1: x0, x2: x1, y1: y1, y2: y1, stroke: 'currentColor', 'stroke-width': SW }),
-    );
+    if (base)
+      gridG.append(
+        s('line', { x1: x0, x2: x0, y1: y0, y2: y1, stroke: 'currentColor', 'stroke-width': SW }),
+        s('line', { x1: x0, x2: x1, y1: y1, y2: y1, stroke: 'currentColor', 'stroke-width': SW }),
+      );
     if (o.yTitle)
-      grid.append(s('text', { x: 0, y: capPx, 'font-size': capPx, 'font-weight': 700 }, fitText(o.yTitle, 700, SANS, capPx, W, 0.7).text));
+      gridG.append(s('text', { x: 0, y: capPx, 'font-size': capPx, 'font-weight': 700 }, fitText(o.yTitle, 700, SANS, capPx, W, 0.7).text));
     if (o.xTitle)
-      grid.append(
+      gridG.append(
         s(
           'text',
-          { x: (x0 + x1) / 2, y: y1 + 6 + capPx * 2.6, 'text-anchor': 'middle', 'font-size': capPx, 'font-weight': 700 },
+          { x: (x0 + x1) / 2, y: y1 + 6 + valsH + capPx * 1.2, 'text-anchor': 'middle', 'font-size': capPx, 'font-weight': 700 },
           fitText(o.xTitle, 700, SANS, capPx, W - ml, 0.7).text,
         ),
       );
-    svg.append(grid);
+    svg.append(gridG);
     const dots = s('g'),
       labs = s('g');
     [...pts]

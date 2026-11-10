@@ -19,7 +19,17 @@ import {
   fitText,
   mw,
   elColor,
+  ticks,
+  tickFmt,
+  gridOn,
+  gridN,
+  gridLine,
+  scaleTop,
 } from './util.js';
+import { axesFields, axisTitleFields } from './axes.js';
+
+/** Aspect d'origine de la carte « Axes et grille » (barres d'avant la carte : ni grille, ni valeurs d'axe, ni ligne de base) */
+const ORIGIN = { grid: false, gridStyle: 'solid', gridTone: 'light', axisValues: false, baseline: false };
 
 const barPath = (x, y, w, h, r) => {
   r = Math.max(0, Math.min(r, w / 2, h));
@@ -49,6 +59,13 @@ export default {
       { label: '2025', v: [82, 36] },
     ],
     callout: { on: true, value: '+64%', text: 'text to the figures' },
+    grid: true,
+    gridStyle: 'solid',
+    gridTone: 'light',
+    axisValues: false,
+    baseline: false,
+    scaleMax: 0,
+    gridCount: '0',
   }),
   heights: ['ratio', 'fixed', 'fill'],
   fields: [
@@ -65,6 +82,8 @@ export default {
       label: 'Format du graphique',
       options: { '2:1': '2:1 (large)', '16:9': '16:9', '3:2': '3:2', '1:1': '1:1 (carré)' },
     },
+    ...axesFields(ORIGIN),
+    ...axisTitleFields(),
     { k: 'legend', g: 'labels', t: 'bool', label: 'Afficher la légende' },
     {
       k: 'legendPos',
@@ -112,8 +131,8 @@ export default {
     {
       k: 'decimals',
       g: 'labels',
-      when: (o) => !!o.showValues,
-      why: 'Activez « Afficher les valeurs » pour régler ce format.',
+      when: (o) => !!o.showValues || !!o.axisValues,
+      why: 'Activez « Afficher les valeurs » ou « Valeurs de l’axe » pour régler ce format.',
       t: 'number',
       label: 'Décimales des valeurs',
       min: 0,
@@ -122,8 +141,8 @@ export default {
     {
       k: 'suffix',
       g: 'labels',
-      when: (o) => !!o.showValues,
-      why: 'Activez « Afficher les valeurs » pour régler ce format.',
+      when: (o) => !!o.showValues || !!o.axisValues,
+      why: 'Activez « Afficher les valeurs » ou « Valeurs de l’axe » pour régler ce format.',
       t: 'text',
       label: 'Unité après la valeur (%, M€…)',
     },
@@ -172,8 +191,12 @@ export default {
     const hasIcons = rows.some((r) => r.icon && r.icon !== 'none'),
       iconSz = 33,
       catH = (o.labelIn || !rows.some((r) => String(r.label || '').trim()) ? 6 : VIZ.catH) + (hasIcons ? iconSz + 6 : 0);
-    const baseY = H - (o.legend && !legIn ? VIZ.legendGap + VIZ.legendH : 0) - catH,
-      plotTop = VIZ.plotTop,
+    const capPx = pxOf(TYPE.caption.size),
+      numPx = pxOf(TYPE.captionNum.size);
+    const yT = o.yTitle ? capPx * 1.7 : 0, // titre de l'axe vertical, au-dessus du graphique
+      xT = o.xTitle ? capPx * 1.5 : 0; // titre de l'axe horizontal, sous les catégories
+    const baseY = H - (o.legend && !legIn ? VIZ.legendGap + VIZ.legendH : 0) - catH - xT,
+      plotTop = VIZ.plotTop + yT,
       plotH = baseY - plotTop;
     const total = (r) => series.reduce((a, _, j) => a + numVal(r, j), 0);
     const metric = (r) => (stacked ? total(r) : numVal(r, 0)); // valeur suivie par l'accolade
@@ -186,7 +209,16 @@ export default {
         });
     });
     if (!max) max = 1;
-    const slot = x1 / n;
+    max = scaleTop(o, max);
+    const suffix = o.suffix || '';
+    /* graduations : grille et valeurs de l'axe (à gauche, la réserve décale le graphique) */
+    const axV = !!o.axisValues,
+      grid = gridOn(o),
+      base = o.baseline ?? ORIGIN.baseline;
+    const tk = grid || axV ? ticks(0, max, gridN(o, 5)) : null,
+      tickTxt = (v) => tickFmt(v, tk, env.locale, o.decimals) + suffix;
+    const px0 = axV ? Math.max(0, ...tk.out.map((v) => mw(tickTxt(v), 400, SANS, capPx))) + 8 : 0;
+    const slot = (x1 - px0) / n;
     const sGap = VIZ.barGap * ({ none: 0, tight: 0.5, normal: 1, loose: 2 }[o.serSpace] ?? 1),
       wf = ({ thin: 0.7, thick: 1.3 }[o.barSize] ?? 1) * ({ tight: 1.2, loose: 0.8 }[o.groupSpace] ?? 1),
       capW = VIZ.barMaxW * Math.max(1, wf);
@@ -206,14 +238,28 @@ export default {
                   ? Math.min(slot * 0.44, VIZ.barMaxW)
                   : Math.min((slot * 0.72 - (k - 1) * sGap) / k, VIZ.barMaxW)),
           );
-    const capPx = pxOf(TYPE.caption.size),
-      numPx = pxOf(TYPE.captionNum.size);
     const yOf = (v) => baseY - (v / max) * plotH;
-    const suffix = o.suffix || '';
     const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });
+    if (tk)
+      tk.out.forEach((v) => {
+        const y = yOf(v);
+        if (grid && !(base && v === 0)) svg.append(gridLine(o, px0, y, x1, y));
+        if (axV) svg.append(s('text', { x: px0 - 6, y: y + 0.33 * capPx, 'text-anchor': 'end', 'font-size': capPx }, tickTxt(v)));
+      });
+    if (base) svg.append(s('line', { x1: px0, y1: baseY, x2: x1, y2: baseY, stroke: 'currentColor', 'stroke-width': SW }));
+    if (o.yTitle)
+      svg.append(s('text', { x: 0, y: capPx, 'font-size': capPx, 'font-weight': 700 }, fitText(o.yTitle, 700, SANS, capPx, W, 0.7).text));
+    if (o.xTitle)
+      svg.append(
+        s(
+          'text',
+          { x: (px0 + x1) / 2, y: baseY + catH + capPx * 1.2, 'text-anchor': 'middle', 'font-size': capPx, 'font-weight': 700 },
+          fitText(o.xTitle, 700, SANS, capPx, x1 - px0, 0.7).text,
+        ),
+      );
 
     const barX = rows.map((_, i) => {
-      const cx = slot * (i + 0.5),
+      const cx = px0 + slot * (i + 0.5),
         xs = [];
       if (stacked)
         series.forEach((_, j) => {
@@ -392,7 +438,7 @@ export default {
           s(
             'text',
             {
-              x: slot * (i + 0.5),
+              x: px0 + slot * (i + 0.5),
               y: baseY + (catH - VIZ.catH) + VIZ.catH / 2 + 0.33 * f.size + 1,
               'text-anchor': 'middle',
               'font-size': f.size,
@@ -405,10 +451,10 @@ export default {
     if (hasIcons)
       rows.forEach((r, i) => {
         if (r.icon && r.icon !== 'none')
-          svg.append(iconNode(o, r.icon, slot * (i + 0.5) - iconSz / 2, baseY + 6, iconSz, iconSz, 'blue', env.rc.icons));
+          svg.append(iconNode(o, r.icon, px0 + slot * (i + 0.5) - iconSz / 2, baseY + 6, iconSz, iconSz, 'blue', env.rc.icons));
       });
     if (o.legend && !legIn) drawLegend(svg, series, H - VIZ.legendH, W);
-    rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'x', slot * i, 0, slot, baseY + catH)));
+    rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'x', px0 + slot * i, 0, slot, baseY + catH)));
     return { node: svg };
   },
 };

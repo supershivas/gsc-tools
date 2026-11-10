@@ -244,8 +244,6 @@ const EN = {
   'Trait de liaison vers l’extérieur (jusqu’au bord de la colonne et au-delà)': 'Link line outwards (to the column edge and beyond)',
   'Au-dessus': 'Above',
   'Libellés dans les barres': 'Labels inside the bars',
-  'Graduations : nombre de segments dans la barre la plus longue (0 = aucune)':
-    'Graduations: number of segments in the longest bar (0 = none)',
   'Accolade à gauche': 'Bracket on the left',
   Hachures: 'Stripes',
   'Barre de progression sous le chiffre (% ; 0 = pas de barre)': 'Progress bar under the figure (%; 0 = no bar)',
@@ -718,8 +716,47 @@ const EN = {
   'Réglages copiés depuis': 'Settings copied from',
   Diminuer: 'Decrease',
   Augmenter: 'Increase',
-  'Copie les réglages de cette dataviz (Structure, Dimensions, Étiquettes, Couleurs, Accolade, Chiffre à côté) pour les coller dans une autre, même d’un autre type : seuls les réglages communs sont repris.':
-    'Copies this dataviz’s settings (Structure, Dimensions, Labels, Colours, Bracket, Figure beside) so you can paste them into another one, even of another type: only the shared settings are carried over.',
+  'Copie les réglages de cette dataviz (Structure, Dimensions, Axes et grille, Étiquettes, Couleurs, Accolade, Chiffre à côté) pour les coller dans une autre, même d’un autre type : seuls les réglages communs sont repris.':
+    'Copies this dataviz’s settings (Structure, Dimensions, Axes and grid, Labels, Colours, Bracket, Figure beside) so you can paste them into another one, even of another type: only the shared settings are carried over.',
+  'Axes et grille': 'Axes and grid',
+  Grille: 'Grid',
+  Axe: 'Axis',
+  Échelle: 'Scale',
+  'Les deux': 'Both',
+  'Style des lignes': 'Line style',
+  Plein: 'Solid',
+  Tirets: 'Dashed',
+  Pointillé: 'Dotted',
+  Intensité: 'Intensity',
+  Discrète: 'Light',
+  Marquée: 'Strong',
+  'Valeurs de l’axe': 'Axis values',
+  'Ligne de base (axe zéro)': 'Baseline (zero axis)',
+  'Maximum de l’échelle': 'Scale maximum',
+  'Nombre de lignes de la grille': 'Number of grid lines',
+  'Graduations dans les barres': 'Ticks inside the bars',
+  'Activez la grille pour régler ses lignes.': 'Turn on the grid to set its lines.',
+  'Activez la grille ou « Valeurs de l’axe » pour régler le nombre de lignes.':
+    'Turn on the grid or “Axis values” to set the number of lines.',
+  'Activez « Afficher les valeurs » ou « Valeurs de l’axe » pour régler ce format.':
+    'Turn on “Show values” or “Axis values” to set this format.',
+  'Désactivez « Libellés dans les barres » pour afficher la ligne de base.': 'Turn off “Labels inside the bars” to show the baseline.',
+  'Rétablir l’aspect d’origine': 'Restore the original look',
+  'Aspect d’origine rétabli': 'Original look restored',
+  'Remet tous les réglages d’apparence (Structure, Dimensions, Axes et grille, Étiquettes, Couleurs, Accolade) à leur valeur d’origine, sans toucher aux données ni aux textes saisis.':
+    'Puts every appearance setting (Structure, Dimensions, Axes and grid, Labels, Colours, Bracket) back to its original value, without touching the data or the text you typed.',
+  'Lignes fines derrière le graphique, sur les nombres ronds de l’axe des valeurs : horizontales pour les barres et les courbes, verticales pour les barres horizontales.':
+    'Thin lines behind the chart, on the round numbers of the value axis: horizontal for bars and lines, vertical for horizontal bars.',
+  'Teinte de l’encre du texte (discrète, normale ou marquée), sans couleur libre : la grille reste derrière les données.':
+    'Tint of the text ink (light, normal or strong), no free colour: the grid stays behind the data.',
+  'Auto : le haut de l’échelle suit la plus grande valeur. Donnez la même valeur à plusieurs graphiques d’une fiche pour les comparer ; une donnée plus grande l’emporte, rien n’est coupé.':
+    'Auto: the top of the scale follows the largest value. Give several charts of a factsheet the same value to compare them; a larger value wins, nothing is cut off.',
+  'Nombre approximatif d’intervalles : les lignes tombent toujours sur des nombres ronds (1, 2 ou 5 × 10ⁿ) et restent régulières.':
+    'Approximate number of intervals: lines always fall on round numbers (1, 2 or 5 × 10ⁿ) and stay evenly spaced.',
+  'Traits qui découpent la barre la plus longue en segments égaux (0 = aucun), pour lire les valeurs sans axe.':
+    'Ticks that cut the longest bar into equal segments (0 = none), to read values without an axis.',
+  'Trait de 0,5 pt au pied des barres ou des courbes (le zéro de l’échelle).':
+    'A 0.5 pt line at the foot of the bars or lines (the zero of the scale).',
   Valeurs: 'Values',
   'Texte dans les barres': 'Text in the bars',
   'Noms et textes': 'Names and text',

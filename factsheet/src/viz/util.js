@@ -411,3 +411,41 @@ export const stripMk = (t) =>
 
 /** Couleur d'un élément d'une dataviz à séries : la surcharge de la ligne (`rows[i].colors[j]`, pour mettre un élément en valeur) sinon la couleur de la série */
 export const elColor = (r, j, sr) => (r && r.colors && r.colors[j]) || (sr && sr.color);
+
+/* ---------- Axes et grille (carte « Axes et grille ») ---------- */
+/** Graduations « rondes » (pas de 1, 2 ou 5 × 10ⁿ) entre lo et hi, environ n intervalles réguliers */
+export function ticks(lo, hi, n = 5) {
+  if (!(hi > lo)) hi = lo + 1;
+  const raw = (hi - lo) / n,
+    p = 10 ** Math.floor(Math.log10(raw)),
+    f = raw / p,
+    step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p;
+  const a = Math.ceil(lo / step - 1e-9) * step,
+    out = [];
+  for (let v = a; v <= hi + step * 1e-6; v += step) out.push(+v.toFixed(10));
+  return { out, step, lo: Math.min(lo, out[0] ?? lo), hi: Math.max(hi, out[out.length - 1] ?? hi) };
+}
+/** Valeur d'une graduation : au moins les décimales demandées, plus celles qu'exige le pas (0,5 → 1 décimale) */
+export const tickFmt = (v, tk, locale, decimals) =>
+  fmt(v, locale, Math.max(+decimals || 0, tk.step < 1 ? Math.min(3, Math.ceil(-Math.log10(tk.step))) : 0));
+/** Grille affichée : interrupteur (barres, courbes) ou sens (nuage : none | h | v | both) */
+export const gridOn = (o) => o.grid === true || (typeof o.grid === 'string' && o.grid !== 'none');
+/** Nombre d'intervalles voulu : `gridCount` (« 0 » = automatique → `auto`) */
+export const gridN = (o, auto) => +o.gridCount || auto;
+/** Maximum de l'échelle : `scaleMax` s'il est posé (jamais sous le maximum des données, pour ne rien couper), sinon celui des données */
+export const scaleTop = (o, dataMax) => (+o.scaleMax > 0 ? Math.max(+o.scaleMax, dataMax) : dataMax);
+/** Intensité de la grille : opacité de l'encre du texte (la couleur reste celle du thème, passée par makeInk à l'export) */
+export const GRID_TONE = { light: 0.3, normal: 0.55, strong: 1 };
+export const GRID_DASH = { solid: null, dashed: '4 3', dotted: '1 3' };
+/** Ligne de grille : vrai <line> SVG, tirets par stroke-dasharray (lus par l'export PDF) */
+export const gridLine = (o, x1, y1, x2, y2) =>
+  s('line', {
+    x1,
+    y1,
+    x2,
+    y2,
+    stroke: 'currentColor',
+    'stroke-width': SW,
+    'stroke-dasharray': GRID_DASH[o.gridStyle] ?? null,
+    opacity: GRID_TONE[o.gridTone] ?? GRID_TONE.light,
+  });

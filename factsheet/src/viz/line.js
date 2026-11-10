@@ -1,7 +1,32 @@
 /* Courbes : trait 0,5 pt (design system), points remplis de la couleur de la série et cerclés 0,5 pt. */
 import { VIZ, TYPE } from '../tokens.js';
-import { reorderHit, heightOf, s, SW, colorRef, pxOf, fmt, round3, drawLegend, numVal, fitText, SANS, SERIF, elColor } from './util.js';
+import {
+  reorderHit,
+  heightOf,
+  s,
+  SW,
+  colorRef,
+  pxOf,
+  fmt,
+  drawLegend,
+  numVal,
+  fitText,
+  mw,
+  SANS,
+  SERIF,
+  elColor,
+  ticks,
+  tickFmt,
+  gridOn,
+  gridN,
+  gridLine,
+  scaleTop,
+} from './util.js';
+import { axesFields, axisTitleFields } from './axes.js';
 import { t } from '../i18n.js';
+
+/** Aspect d'origine de la carte « Axes et grille » (courbes d'avant la carte : ligne de base seule) */
+const ORIGIN = { grid: false, gridStyle: 'solid', gridTone: 'light', axisValues: false, baseline: true };
 
 export default {
   label: 'Courbes',
@@ -14,6 +39,13 @@ export default {
     decimals: 0,
     suffix: '',
     zero: true,
+    grid: true,
+    gridStyle: 'solid',
+    gridTone: 'light',
+    axisValues: true,
+    baseline: true,
+    scaleMax: 0,
+    gridCount: '0',
     series: [
       { name: `${t('Série')} 1`, color: 'blue' },
       { name: `${t('Série')} 2`, color: 'yellow' },
@@ -34,7 +66,9 @@ export default {
       label: 'Format du graphique',
       options: { '2:1': '2:1 (large)', '16:9': '16:9', '3:2': '3:2', '1:1': '1:1 (carré)' },
     },
-    { k: 'zero', g: 'struct', t: 'bool', label: 'Axe vertical démarrant à zéro' },
+    ...axesFields(ORIGIN),
+    ...axisTitleFields(),
+    { k: 'zero', g: 'axes', t: 'bool', label: 'Axe vertical démarrant à zéro' },
     { k: 'legend', g: 'labels', t: 'bool', label: 'Afficher la légende' },
     {
       k: 'legendPos',
@@ -49,8 +83,8 @@ export default {
     {
       k: 'decimals',
       g: 'labels',
-      when: (o) => !!o.showValues,
-      why: 'Activez « Afficher les valeurs » pour régler ce format.',
+      when: (o) => !!o.showValues || !!o.axisValues,
+      why: 'Activez « Afficher les valeurs » ou « Valeurs de l’axe » pour régler ce format.',
       t: 'number',
       label: 'Décimales des valeurs',
       min: 0,
@@ -59,8 +93,8 @@ export default {
     {
       k: 'suffix',
       g: 'labels',
-      when: (o) => !!o.showValues,
-      why: 'Activez « Afficher les valeurs » pour régler ce format.',
+      when: (o) => !!o.showValues || !!o.axisValues,
+      why: 'Activez « Afficher les valeurs » ou « Valeurs de l’axe » pour régler ce format.',
       t: 'text',
       label: 'Unité après la valeur (%, M€…)',
     },
@@ -71,8 +105,13 @@ export default {
       rows = o.rows || [],
       n = Math.max(1, rows.length);
     const H = Math.max(120, heightOf(o, W, env, null));
-    const baseY = H - (o.legend ? VIZ.legendGap + VIZ.legendH : 0) - VIZ.catH,
-      top = (o.showValues ? VIZ.plotTop : 0) + VIZ.pointR,
+    const capPx = pxOf(TYPE.caption.size),
+      numPx = pxOf(TYPE.captionNum.size),
+      suffix = o.suffix || '';
+    const yT = o.yTitle ? capPx * 1.7 : 0, // titre de l'axe vertical, au-dessus du graphique
+      xT = o.xTitle ? capPx * 1.5 : 0; // titre de l'axe horizontal, sous les catégories
+    const baseY = H - (o.legend ? VIZ.legendGap + VIZ.legendH : 0) - VIZ.catH - xT,
+      top = (o.showValues ? VIZ.plotTop : 0) + VIZ.pointR + yT,
       plotH = baseY - top - VIZ.pointR;
     const all = rows.flatMap((r) => series.map((_, j) => numVal(r, j)));
     let lo = o.zero === false ? Math.min(...all) : 0,
@@ -82,14 +121,35 @@ export default {
       lo -= pad;
       hi += pad;
     }
-    const slot = W / n,
-      capPx = pxOf(TYPE.caption.size),
-      numPx = pxOf(TYPE.captionNum.size),
-      suffix = o.suffix || '';
-    const xOf = (i) => slot * (i + 0.5),
+    hi = scaleTop(o, hi);
+    /* graduations : grille et valeurs de l'axe (à gauche, la réserve décale le graphique) */
+    const axV = !!o.axisValues,
+      grid = gridOn(o),
+      base = o.baseline ?? ORIGIN.baseline;
+    const tk = grid || axV ? ticks(lo, hi, gridN(o, 5)) : null,
+      tickTxt = (v) => tickFmt(v, tk, env.locale, o.decimals) + suffix;
+    const px0 = axV ? Math.max(0, ...tk.out.map((v) => mw(tickTxt(v), 400, SANS, capPx))) + 8 : 0;
+    const slot = (W - px0) / n;
+    const xOf = (i) => px0 + slot * (i + 0.5),
       yOf = (v) => baseY - VIZ.pointR - ((v - lo) / (hi - lo)) * plotH;
     const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });
-    svg.append(s('line', { x1: 0, y1: baseY, x2: W, y2: baseY, stroke: 'currentColor', 'stroke-width': SW }));
+    if (tk)
+      tk.out.forEach((v) => {
+        const y = yOf(v);
+        if (grid && !(base && v <= lo)) svg.append(gridLine(o, px0, y, W, y)); // la ligne de base remplace celle du bas de l'échelle
+        if (axV) svg.append(s('text', { x: px0 - 6, y: y + 0.33 * capPx, 'text-anchor': 'end', 'font-size': capPx }, tickTxt(v)));
+      });
+    if (base) svg.append(s('line', { x1: px0, y1: baseY, x2: W, y2: baseY, stroke: 'currentColor', 'stroke-width': SW }));
+    if (o.yTitle)
+      svg.append(s('text', { x: 0, y: capPx, 'font-size': capPx, 'font-weight': 700 }, fitText(o.yTitle, 700, SANS, capPx, W, 0.7).text));
+    if (o.xTitle)
+      svg.append(
+        s(
+          'text',
+          { x: (px0 + W) / 2, y: baseY + VIZ.catH + capPx * 1.2, 'text-anchor': 'middle', 'font-size': capPx, 'font-weight': 700 },
+          fitText(o.xTitle, 700, SANS, capPx, W - px0, 0.7).text,
+        ),
+      );
     series.forEach((sr, j) => {
       const d = rows.map((r, i) => `${i ? 'L' : 'M'}${xOf(i)},${yOf(numVal(r, j))}`).join('');
       svg.append(
@@ -146,7 +206,7 @@ export default {
       );
     });
     if (o.legend) drawLegend(svg, series, H - VIZ.legendH, W);
-    rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'x', slot * i, 0, slot, baseY + VIZ.catH)));
+    rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'x', px0 + slot * i, 0, slot, baseY + VIZ.catH)));
     return { node: svg };
   },
 };
