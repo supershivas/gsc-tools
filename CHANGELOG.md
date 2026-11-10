@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.91.1 — 2026-11-10
+- Sécurité : l'ouverture d'un projet refuse les images distantes (adresses `https://…`) ; seules les images incorporées ou celles du dépôt sont gardées, pour qu'un fichier reçu ne fasse jamais charger un site tiers
+
 ## 1.91.0 — 2026-11-10
 - Nouvelle page « Batch Logo Export » : le script Illustrator d'export des logos par langue, à télécharger, avec son mode d'emploi (installation, préparation du fichier, options, dépannage)
 
