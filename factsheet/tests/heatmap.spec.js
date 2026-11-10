@@ -81,6 +81,23 @@ test('rendu dans l’éditeur et export PDF', async ({ page }) => {
   await expect(stage.locator('text', { hasText: '−3.3%' })).toHaveCount(1);
   await expect(stage.locator('[data-reorder^="rows:"]')).toHaveCount(4);
   await page.screenshot({ path: test.info().outputPath('heatmap.png') });
+  // légende en barre de classes (en bas par défaut) et note automatique
+  await expect(stage.locator('g.lg')).toHaveCount(1);
+  await expect(stage.locator('g.lg text', { hasText: 'Full colour = largest gap' })).toHaveCount(1);
+  // clic sur une case : la couleur de sa classe (baisse = « color »)
+  const down = stage.locator('path.hm-cell[data-color="color"]').first();
+  await down.click({ force: true });
+  await expect(page.locator('.cpop')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.locator('.cpop').evaluateAll((n) => n.forEach((x) => x.remove()));
+  // légende en haut, sans note
+  await page.locator('.ve-form .pp-q').fill(' ');
+  await page.locator('.ve-form .f', { hasText: 'Legend position' }).locator('button', { hasText: 'Top' }).click();
+  expect(await stage.locator('g.lg').getAttribute('transform')).toContain('translate(0 -');
+  await page.locator('.ve-form .pp-switchrow', { hasText: 'Note under the legend' }).locator('button[role=switch]').click();
+  await expect(stage.locator('g.lg text', { hasText: 'Full colour' })).toHaveCount(0);
+  await page.screenshot({ path: test.info().outputPath('heatmap-top.png') });
+  await page.locator('.ve-form .pp-q').fill('');
   // coins droits, sans écart en % : le dessin suit
   await page.locator('.ve-form .pp-q').fill(' ');
   await page.locator('.ve-form .pp-switchrow', { hasText: 'Gap in %' }).locator('button[role=switch]').click();
@@ -104,4 +121,74 @@ test('rendu dans l’éditeur et export PDF', async ({ page }) => {
   expect(r.b).toBeGreaterThan(1000);
   expect(r).toMatchObject({ pending: null, showPct: false, corners: 'square' });
   expect(errors).toEqual([]);
+});
+
+test('légende en barre de classes et note', async ({ page }) => {
+  await page.goto('/factsheet/tests/blank.html');
+  const r = await page.evaluate(() => {
+    const { heatLegend, VIZ_TYPES, renderDocument } = window.FSTEST;
+    const o = VIZ_TYPES.heatmap.defaults();
+    const a = heatLegend(o, 'fr-FR');
+    const prev = heatLegend({ ...o, compareTo: 'prev', suffix: ' bn' }, 'fr-FR');
+    const three = heatLegend({ ...o, classes: '3' }, 'fr-FR');
+    const custom = heatLegend({ ...o, legendNoteText: 'Ma note' }, 'fr-FR');
+    const fixed = heatLegend({ ...o, scaleMax: 1000 }, 'fr-FR');
+    const value = heatLegend({ ...o, colorBy: 'value' }, 'fr-FR');
+    // un seul sens : toutes les valeurs montent
+    const up = heatLegend({ ...o, rows: [{ label: 'A', v: [10, 12, 15, null] }] }, 'fr-FR');
+    const empty = heatLegend({ ...o, rows: [{ label: 'A', v: [null, null, null, null] }] }, 'fr-FR');
+    return { a, prev, three: three.labels, customNote: custom.note, fixed: fixed.note, value, up: up.note, empty };
+  });
+  expect(r.a.cells).toHaveLength(7);
+  expect(r.a.labels).toHaveLength(8);
+  expect(r.a.cells[3].color).toBe('grey'); // classe centrale, gris neutre
+  expect(r.a.cells[0].alpha).toBe(1);
+  expect(r.a.cells[0].path).toBe('color');
+  expect(r.a.cells[6].path).toBe('color2');
+  expect(r.a.labels[0]).toMatch(/^−/);
+  expect(r.a.labels[7]).toMatch(/^\+/);
+  expect(r.a.note).toContain('largest gap in the table');
+  expect(r.prev.note).toContain('bn)');
+  expect(r.three).toHaveLength(4);
+  expect(r.customNote).toBe('Ma note');
+  expect(r.fixed).toContain('fixed maximum');
+  expect(r.value.cells).toHaveLength(7);
+  expect(r.value.labels[0]).not.toMatch(/^[+−]/);
+  expect(r.up).toContain('No decrease in the data.');
+  expect(r.empty).toBeNull();
+});
+
+test('légende rendue en colonne étroite et pleine largeur, en haut ou en bas', async ({ page }) => {
+  await page.goto('/factsheet/tests/blank.html');
+  const r = await page.evaluate(() => {
+    const { VIZ_TYPES } = window.FSTEST;
+    const out = {};
+    for (const W of [200, 600]) {
+      for (const pos of ['bottom', 'top']) {
+        const o = { ...VIZ_TYPES.heatmap.defaults(), legendPos: pos };
+        const res = VIZ_TYPES.heatmap.render(o, W, { locale: 'fr-FR', ui: true });
+        const host = document.createElement('div');
+        host.append(res.node);
+        document.body.append(host);
+        const lg = res.node.querySelector('g.lg');
+        const texts = [...lg.querySelectorAll('text')].map((t) => t.textContent);
+        out[`${W}-${pos}`] = {
+          cells: lg.querySelectorAll('path[data-color]').length,
+          texts: texts.length,
+          lgY: +lg.dataset.y,
+          h: +res.node.getAttribute('height'),
+          reserve: +lg.dataset.reserve,
+          cellsClickable: res.node.querySelectorAll('path.hm-cell[data-color]').length,
+        };
+        host.remove();
+      }
+    }
+    return out;
+  });
+  for (const k of Object.keys(r)) {
+    expect(r[k].cells).toBe(6); // 7 classes dont la centrale (grise, non modifiable)
+    expect(r[k].cellsClickable).toBeGreaterThan(0);
+    expect(r[k].lgY + r[k].reserve).toBeLessThanOrEqual(r[k].h + 6);
+  }
+  expect(r['600-bottom'].texts).toBeGreaterThan(r['200-bottom'].texts - 1); // étroit : libellés aux extrémités seulement, la note peut passer à la ligne
 });

@@ -5,7 +5,7 @@ import { newViz, VIZ_TYPES } from '../src/viz/index.js';
 import { DOCS, docEvilIcon } from './docs.js';
 import { renderDocument, measure } from '../src/render.js';
 import { groupOf, VALID_G } from '../src/vizgroups.js';
-import { heatCells } from '../src/viz/heatmap.js';
+import { heatCells, heatLegend } from '../src/viz/heatmap.js';
 
 window.FSTEST = {
   defaultDoc,
@@ -21,4 +21,5 @@ window.FSTEST = {
   groupOf,
   VALID_G: [...VALID_G],
   heatCells,
+  heatLegend,
 };

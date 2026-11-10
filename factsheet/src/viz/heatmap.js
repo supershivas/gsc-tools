@@ -4,7 +4,23 @@
    Une cellule vide est « en attente » : contour en tirets, sans fond. Données : tableau à séries (colonnes = séries), cellules vides gardées (`blank`). */
 import { VIZ, TYPE } from '../tokens.js';
 import { t } from '../i18n.js';
-import { s, SW, colorRef, pxOf, fmt, SANS, SERIF, fitText, mw, heightOf, inkOn, reorderHit, scaleTop } from './util.js';
+import {
+  s,
+  SW,
+  colorRef,
+  pxOf,
+  fmt,
+  SANS,
+  SERIF,
+  fitText,
+  mw,
+  heightOf,
+  inkOn,
+  reorderHit,
+  scaleTop,
+  drawLegend,
+  classBarHeight,
+} from './util.js';
 
 const NEUTRAL = 'grey'; // couleur neutre de la palette : cases de référence et écart nul
 const CLASSES = { 3: '3', 5: '5', 7: '7' };
@@ -67,10 +83,12 @@ export function heatCells(o) {
   );
   const flat = cells.flat().filter((c) => c.kind === 'val');
   const key = mode === 'pct' ? 'pct' : mode === 'abs' ? 'delta' : 'v';
+  const scale = { nc, lo: 0, hi: 0, dataTop: 0, up: false, down: false };
   if (mode === 'value') {
     const vs = flat.map((c) => c.v),
       lo = Math.min(0, ...vs),
       hi = scaleTop(o, Math.max(0, ...vs));
+    Object.assign(scale, { lo, hi, dataTop: Math.max(0, ...vs) });
     flat.forEach((c) => {
       const k = seqClass(c.v, lo, hi, nc);
       c.fill = o.color2 || LOOK.color2;
@@ -78,7 +96,15 @@ export function heatCells(o) {
       c.cls = k;
     });
   } else {
-    const M = scaleTop(o, Math.max(0, ...flat.map((c) => Math.abs(c[key] ?? 0))));
+    const dataM = Math.max(0, ...flat.map((c) => Math.abs(c[key] ?? 0))),
+      M = scaleTop(o, dataM);
+    Object.assign(scale, {
+      lo: -M,
+      hi: M,
+      dataTop: dataM,
+      up: flat.some((c) => c[key] > 0),
+      down: flat.some((c) => c[key] < 0),
+    });
     flat.forEach((c) => {
       const k = c[key] == null ? 0 : divClass(c[key], M, nc);
       c.cls = k;
@@ -91,7 +117,55 @@ export function heatCells(o) {
       }
     });
   }
-  return { cells, ref, mode };
+  return { cells, ref, mode, scale };
+}
+
+/** Légende en barre de classes (pure, réutilisée par les tests) : { cells, labels, note } ou null s'il n'y a rien à échelonner.
+    Libellés aux limites des classes ; note automatique (traduite) sauf `legendNoteText` rempli. */
+export function heatLegend(o, loc) {
+  const { cells, mode, scale: sc } = heatCells(o),
+    dec = o.decimals ?? 1,
+    nc = sc.nc,
+    h = (nc - 1) / 2;
+  if (!cells.flat().some((c) => c.kind === 'val') || !(sc.hi > sc.lo)) return null;
+  const pct = mode === 'pct',
+    unit = pct ? pctSign(loc) : o.suffix || '',
+    num = (x) => fmt(Math.abs(x), loc, dec) + unit;
+  const out = { cells: [], labels: [], note: '' };
+  const edge = (i) => sc.lo + (i * (sc.hi - sc.lo)) / nc;
+  for (let i = 0; i <= nc; i++) out.labels.push(mode === 'value' ? num(edge(i)) : signed(edge(i), num(edge(i))));
+  for (let i = 0; i < nc; i++) {
+    if (mode === 'value') out.cells.push({ color: o.color2 || LOOK.color2, alpha: classAlpha(i + 1, nc), path: 'color2' });
+    else {
+      const k = i - h;
+      out.cells.push(
+        k === 0
+          ? { color: NEUTRAL, alpha: 1 }
+          : k < 0
+            ? { color: o.color || LOOK.color, alpha: classAlpha(-k, h), path: 'color' }
+            : { color: o.color2 || LOOK.color2, alpha: classAlpha(k, h), path: 'color2' },
+      );
+    }
+  }
+  const custom = String(o.legendNoteText ?? '').trim();
+  if (custom) out.note = custom;
+  else {
+    const fixed = sc.hi > sc.dataTop + 1e-9 * Math.abs(sc.hi),
+      v = num(sc.hi),
+      txt =
+        mode === 'value'
+          ? fixed
+            ? t('Couleur pleine = valeur de {v} ou plus (maximum fixé).')
+            : t('Couleur pleine = plus grande valeur du tableau ({v}).')
+          : fixed
+            ? t('Couleur pleine = écart de {v} ou plus (maximum fixé).')
+            : t('Couleur pleine = plus grand écart du tableau ({v}).');
+    const parts = [txt.replace('{v}', v)];
+    if (mode !== 'value' && !sc.up) parts.push(t('Aucune hausse dans les données.'));
+    else if (mode !== 'value' && !sc.down) parts.push(t('Aucune baisse dans les données.'));
+    out.note = parts.join(' ');
+  }
+  return out;
 }
 
 const roundRect = (x, y, w, h, r) => {
@@ -113,6 +187,9 @@ export default {
     compareTo: 'ref',
     colorBy: 'abs',
     classes: '7',
+    legend: true,
+    legendPos: 'bottom',
+    legendNote: true,
     showPct: true,
     showDelta: true,
     showRowNames: true,
@@ -199,6 +276,35 @@ export default {
       when: hasRef,
       why: REF_WHY,
     },
+    { k: 'legend', g: 'labels', t: 'bool', label: 'Afficher la légende', def: true },
+    {
+      k: 'legendPos',
+      g: 'labels',
+      t: 'select',
+      label: 'Position de la légende',
+      options: { bottom: 'En bas', top: 'En haut' },
+      def: 'bottom',
+      when: (o) => o.legend !== false,
+      why: 'Activez « Afficher la légende » pour choisir sa position.',
+    },
+    {
+      k: 'legendNote',
+      g: 'labels',
+      t: 'bool',
+      label: 'Note sous la légende',
+      def: true,
+      when: (o) => o.legend !== false,
+      why: 'Activez « Afficher la légende » pour ajouter une note.',
+    },
+    {
+      k: 'legendNoteText',
+      g: 'labels',
+      t: 'text',
+      fmt: 'plain',
+      label: 'Texte de la note (vide = note automatique)',
+      when: (o) => o.legend !== false && o.legendNote !== false,
+      why: 'Activez la note sous la légende pour la modifier.',
+    },
     { k: 'decimals', g: 'labels', t: 'number', label: 'Décimales des valeurs', min: 0, max: 4 },
     { k: 'suffix', g: 'labels', t: 'text', label: 'Unité après la valeur (%, M€…)' },
     { k: 'refText', g: 'labels', t: 'text', fmt: 'plain', label: 'Texte des cases de référence', when: hasRef },
@@ -247,8 +353,11 @@ export default {
       : 0;
     const headH = colNames ? Math.round(capPx * 2) : 0;
     const H = Math.max(90, heightOf(o, W, env, null));
+    const lg = o.legend !== false ? heatLegend(o, loc) : null;
+    if (lg && o.legendNote === false) lg.note = '';
+    const lgH = lg ? classBarHeight(W, lg) + VIZ.legendGap : 0; // la légende est dessinée en bas ; « en haut » la remonte (legendTop)
     const cw = Math.max(4, (W - nameW - gap * (nc - 1)) / nc),
-      ch = Math.max(4, (H - headH - gap * (nr - 1)) / nr),
+      ch = Math.max(4, (H - lgH - headH - gap * (nr - 1)) / nr),
       x0 = nameW,
       y0 = headH;
     const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });
@@ -352,6 +461,7 @@ export default {
               'fill-opacity': alpha < 1 ? +alpha.toFixed(3) : null,
               class: c.kind === 'ref' ? 'hm-ref' : 'hm-cell',
               'data-cls': c.kind === 'ref' ? null : c.cls,
+              'data-color': env.ui && c.kind === 'val' && c.cls ? (c.cls < 0 ? 'color' : 'color2') : null,
             }),
           );
           ink = inkOn(env, key, alpha);
@@ -359,6 +469,7 @@ export default {
         svg.append(textBlock(linesOf(c), x + cw / 2, y + ch / 2, cw - 6, ch - 4, ink));
       });
     });
+    if (lg) drawLegend(svg, [], H - lgH + VIZ.legendGap, W, null, lg);
     rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'y', 0, y0 + i * (ch + gap) - gap / 2, W, ch + gap)));
     return { node: svg };
   },

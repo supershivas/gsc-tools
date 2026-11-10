@@ -25,7 +25,7 @@ export const FIELD_ORDER = [
   // Axes et grille
   'grid', 'gridStyle', 'gridTone', 'segments', 'axisValues', 'baseline', 'xTitle', 'yTitle', 'showRowNames', 'showColNames', 'zero', 'zeroX', 'zeroY', 'scaleMax', 'gridCount',
   // Étiquettes
-  'legend', 'legendPos', 'showPercent', 'showValues', 'showPct', 'showDelta', 'valuesIn', 'labelIn', 'showLabels', 'groupLabels', 'showDates', 'showTotal',
+  'legend', 'legendPos', 'legendNote', 'legendNoteText', 'showPercent', 'showValues', 'showPct', 'showDelta', 'valuesIn', 'labelIn', 'showLabels', 'groupLabels', 'showDates', 'showTotal',
   'layout', 'leading', 'totalTpl', 'refText', 'pendingText', 'decimals', 'suffix',
   // Couleurs
   'color', 'color2', 'classes',
@@ -65,7 +65,7 @@ export const SUBS = {
   scale: 'Échelle',
 };
 const SUB_OF = {
-  legend: 'legend', legendPos: 'legend', showPercent: 'legend',
+  legend: 'legend', legendPos: 'legend', legendNote: 'legend', legendNoteText: 'legend', showPercent: 'legend',
   showValues: 'values', valuesIn: 'values', showTotal: 'values', showPct: 'values', showDelta: 'values',
   showLabels: 'names', groupLabels: 'names', showDates: 'names', layout: 'names', leading: 'names', totalTpl: 'names', refText: 'names', pendingText: 'names',
   labelIn: 'inbars', decimals: 'numbers', suffix: 'numbers',

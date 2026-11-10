@@ -186,7 +186,8 @@ export const typePx = (k) => ({ size: pxOf(TYPE[k].size), lh: TYPE[k].lh, weight
 /** Légende commune (pastille arrondie 0,5 pt + libellé), posée à la hauteur y.
     `line` = { dashOf(série) → tirets ou null, w } : légende de courbes avec au moins une série en tirets, la pastille devient un trait (même tirets, même épaisseur)
     traversé d'un point de la couleur de la série, comme dans le graphique */
-export function drawLegend(svg, series, y, W = Infinity, line = null) {
+export function drawLegend(svg, series, y, W = Infinity, line = null, scale = null) {
+  if (scale) return drawClassBar(svg, y, W, scale);
   const base = pxOf(TYPE.caption.size),
     swW = line ? VIZ.legendSwatch * 2.4 : VIZ.legendSwatch,
     fixed = swW + VIZ.barGap * 2,
@@ -243,6 +244,95 @@ export function drawLegend(svg, series, y, W = Infinity, line = null) {
       t = need(base) > W ? ellipsize(names[i], TYPE.caption.weight, SANS, capPx, room) : names[i];
     g.append(s('text', { x: lx, y: y + VIZ.legendH / 2 + 0.33 * capPx, 'font-size': capPx, 'font-weight': TYPE.caption.weight }, t));
     x = lx + mw(t, TYPE.caption.weight, SANS, capPx) + gap;
+  });
+  svg.append(g);
+}
+
+/* ---------- Légende en « barre de classes » (heatmap) ----------
+   `scale` = { cells: [{ color, alpha, path? }], labels: [texte × (cells + 1)] (aux limites des classes), note?: texte }.
+   Une rangée de cases jointives, les libellés sous les limites de classe — ou aux deux extrémités seulement si la place manque —, puis la note. */
+function classBarLayout(W, scale) {
+  const base = pxOf(TYPE.caption.size),
+    px = base * 0.9,
+    n = scale.cells.length,
+    barW = Math.max(30, Math.min(W, n * 40)),
+    cw = barW / n,
+    barH = VIZ.legendSwatch,
+    lh = px * 1.25;
+  const lab = scale.labels.map((t) => String(t ?? ''));
+  const wide = lab.map((t) => mw(t, TYPE.caption.weight, SANS, px));
+  const span = (i) => (i === 0 ? [0, wide[0]] : i === n ? [barW - wide[n], barW] : [i * cw - wide[i] / 2, i * cw + wide[i] / 2]);
+  let all = true;
+  for (let i = 0; i < n; i++) if (span(i)[1] + 8 > span(i + 1)[0]) all = false;
+  const shown = all ? lab.map((_, i) => i) : [0, n];
+  let note = [];
+  const nt = String(scale.note || '').trim();
+  if (nt) {
+    let cur = '';
+    for (const word of nt.split(/\s+/)) {
+      const tryLine = cur ? cur + ' ' + word : word;
+      if (cur && mw(tryLine, 400, SANS, px) > W) {
+        note.push(cur);
+        cur = word;
+      } else cur = tryLine;
+    }
+    if (cur) note.push(cur);
+  }
+  const h = barH + 3 + lh + (note.length ? 4 + note.length * lh : 0);
+  return { px, n, barW, cw, barH, lh, lab, shown, note, h };
+}
+/** Hauteur de la légende en barre de classes (note comprise), pour réserver la place avant de dessiner le reste */
+export const classBarHeight = (W, scale) => classBarLayout(W, scale).h;
+function drawClassBar(svg, y, W, scale) {
+  const L = classBarLayout(W, scale),
+    g = s('g', { class: 'lg', 'data-y': y, 'data-reserve': L.h + VIZ.legendGap });
+  scale.cells.forEach((c, i) => {
+    const d = `M${i * L.cw},${y}h${L.cw}v${L.barH}h${-L.cw}Z`;
+    g.append(s('path', { d, fill: '#FFFFFF' })); // case opaque : la teinte ne se mélange pas au fond de la section
+    g.append(
+      s('path', {
+        d,
+        fill: colorRef(c.color),
+        'fill-opacity': c.alpha < 1 ? +c.alpha.toFixed(3) : null,
+        'data-color': c.path || null,
+      }),
+    );
+  });
+  g.append(
+    s('rect', {
+      x: SW / 2,
+      y: y + SW / 2,
+      width: L.barW - SW,
+      height: L.barH - SW,
+      rx: VIZ.barRadius,
+      fill: 'none',
+      stroke: 'currentColor',
+      'stroke-width': SW,
+    }),
+  );
+  const ty = y + L.barH + 3 + L.px;
+  L.shown.forEach((i) => {
+    const first = i === 0,
+      last = i === L.n,
+      f = fitText(L.lab[i], TYPE.caption.weight, SANS, L.px, L.shown.length === 2 ? L.barW / 2 - 4 : L.cw - 4, 0.6);
+    g.append(
+      s(
+        'text',
+        {
+          x: first ? 0 : last ? L.barW : i * L.cw,
+          y: ty - L.px * 0.2,
+          'text-anchor': first ? 'start' : last ? 'end' : 'middle',
+          'font-size': f.size,
+          'font-weight': TYPE.caption.weight,
+        },
+        f.text,
+      ),
+    );
+  });
+  const ny = y + L.barH + 3 + L.lh + 4;
+  L.note.forEach((line, k) => {
+    const f = fitText(line, 400, SANS, L.px, W, 0.6);
+    g.append(s('text', { x: 0, y: ny + k * L.lh + L.px, 'font-size': f.size, 'font-weight': 400 }, f.text));
   });
   svg.append(g);
 }

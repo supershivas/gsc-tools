@@ -1,8 +1,8 @@
 {
-  "version": "1.90.0",
+  "version": "1.90.1",
   "date": "2026-11-10",
   "changes": [
-    "Factsheet creator : nouvelle dataviz « Heatmap » — un tableau de cases dont la couleur dit l'écart à une colonne de référence (ou à la colonne précédente), en classes de couleur (baisses, hausses, gris pour zéro)",
-    "Chaque case affiche la valeur, l'écart en % et l'écart absolu ; une cellule vide est dessinée « en attente » (contour en tirets) ; export PDF compris"
+    "Heatmap : légende en barre de classes (cases jointives, libellés aux limites des classes ou aux extrémités si la place manque), en bas ou en haut",
+    "Heatmap : note automatique sous la légende (« Couleur pleine = plus grand écart du tableau… »), modifiable ; un clic sur une case choisit la couleur de sa classe"
   ]
 }
