@@ -7,49 +7,27 @@ export const APP_ID = 'pec-organigramme';
 let seq = 0;
 export const uid = (p = 'n') => `${p}${Date.now().toString(36)}${(seq++).toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
-export const newPerson = (name = 'Xxxx XXXXXX', role = 'Xxxxxxxx', emph = false) => ({ id: uid('p'), name, role, emph });
+export const newPerson = (name = '', role = '', emph = false) => ({ id: uid('p'), name, role, emph });
 export const newGroup = (title = '', people = [newPerson()]) => ({ id: uid('g'), title, people });
-export const newBox = (title = 'Section', { tone = 'mid', align = 'left', lead = null, groups = [newGroup()] } = {}) => ({ id: uid('b'), title, tone, align, lead, groups });
+export const newBox = (title = '', { tone = 'mid', align = 'left', lead = null, groups = [newGroup()] } = {}) => ({ id: uid('b'), title, tone, align, lead, groups });
 export const newLevel = (boxes = [newBox()]) => ({ id: uid('l'), boxes });
 
 const many = (n, f) => Array.from({ length: n }, (_, i) => f(i));
 
-/* Reprend le gabarit fourni (2025_2143_PEC_organigram). */
+/* Gabarit de départ : la structure et les styles du PEC (3 niveaux, EU Blue, sous-sections, 3 colonnes),
+   sans aucun texte : tous les champs sont vides, et rien n'est dessiné tant qu'ils le sont. */
 export function defaultDoc() {
   return {
     schemaVersion: SCHEMA_VERSION,
-    title: 'PEC organigram',
+    title: '',
     page: { orientation: 'landscape', fit: true, equalHeights: true },
     logo: null,
     image: null,
     assets: {},
     levels: [
-      newLevel([
-        newBox('President', {
-          tone: 'dark',
-          align: 'center',
-          lead: { name: 'Xxxx XXXXX', role: 'President' },
-          groups: [newGroup('', many(2, () => newPerson('Xxxx XXXXXX', 'Personal Assistant to the President')))],
-        }),
-      ]),
-      newLevel([
-        newBox('Cabinet of the President', {
-          tone: 'dark',
-          groups: [
-            newGroup('Sub section 1', [
-              newPerson('Xxxx XXXXXX', 'Head of Cabinet', true),
-              newPerson('Xxxx XXXXXX', 'Personal Assistant to the Head of Cabinet'),
-              ...many(4, () => newPerson()),
-            ]),
-            newGroup('Sub section 2', [newPerson('Xxxx XXXXXX', 'Xxxxxxxx', true), ...many(6, () => newPerson())]),
-          ],
-        }),
-      ]),
-      newLevel([
-        newBox('Section 1', { groups: [newGroup('', many(6, () => newPerson()))] }),
-        newBox('Section 2', { groups: [newGroup('', many(6, () => newPerson()))] }),
-        newBox('Section 3', { groups: [newGroup('', many(8, () => newPerson()))] }),
-      ]),
+      newLevel([newBox('', { tone: 'dark', align: 'center', lead: { name: '', role: '' } })]),
+      newLevel([newBox('', { tone: 'dark', groups: [newGroup(), newGroup()] })]),
+      newLevel([newBox(), newBox(), newBox()]),
     ],
   };
 }
@@ -84,7 +62,7 @@ export function migrate(raw) {
   const page = raw.page || {};
   const doc = {
     schemaVersion: SCHEMA_VERSION,
-    title: str(raw.title, 'Organigramme'),
+    title: str(raw.title),
     page: { orientation: oneOf(page.orientation, ['landscape', 'portrait']), fit: page.fit !== false, equalHeights: page.equalHeights !== false },
     logo: cleanPlaced(raw.logo, assets),
     image: cleanPlaced(raw.image, assets),

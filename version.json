@@ -1,9 +1,7 @@
 {
-  "version": "1.88.0",
+  "version": "1.88.1",
   "date": "2026-11-10",
   "changes": [
-    "Courbes : nouveaux réglages de traits et de points dans l'éditeur de dataviz — épaisseur du trait (fin, moyen, épais, très épais), points (tous, dernier seulement, aucun) et leur taille, forme du trait (droit, lissé sans dépassement des données, en escalier) et aire sous la courbe",
-    "Chaque série peut avoir un trait en tirets (bouton à côté de la couleur dans l'onglet Données) ; la légende reprend le trait",
-    "Nouvelle position de légende « En bout de courbe » : le nom de chaque série est écrit après son dernier point. Les fiches existantes ne changent pas d'aspect"
+    "PEC organigramme : plus aucun texte d'exemple, le gabarit de départ garde la structure et les styles mais tous les champs sont vides (« Repartir du gabarit » efface aussi les textes)"
   ]
 }

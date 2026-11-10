@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.88.1 — 2026-11-10
+- PEC organigramme : plus aucun texte d'exemple, le gabarit de départ garde la structure et les styles mais tous les champs sont vides (« Repartir du gabarit » efface aussi les textes)
+
 ## 1.88.0 — 2026-11-10
 - Courbes : nouveaux réglages de traits et de points dans l'éditeur de dataviz — épaisseur du trait (fin, moyen, épais, très épais), points (tous, dernier seulement, aucun) et leur taille, forme du trait (droit, lissé sans dépassement des données, en escalier) et aire sous la courbe
 - Chaque série peut avoir un trait en tirets (bouton à côté de la couleur dans l'onglet Données) ; la légende reprend le trait

@@ -174,7 +174,7 @@ const moveBtns = (list, index, [prevIc, nextIc], [prevLabel, nextLabel]) => [
 
 function personRow(group, p, i) {
   const addAfter = () => {
-    const np = newPerson('', '');
+    const np = newPerson();
     group.people.splice(i + 1, 0, np);
     commit({ focus: np.id + ':name' });
   };
@@ -195,7 +195,7 @@ function personRow(group, p, i) {
 
 function groupCard(box, g, gi) {
   const addPerson = () => {
-    const np = newPerson('', '');
+    const np = newPerson();
     g.people.push(np);
     commit({ focus: np.id + ':name' });
   };
@@ -237,7 +237,7 @@ function boxCard(level, box, bi) {
       pair(box.align, [['left', 'À gauche', 'align-left'], ['center', 'Centré', 'align-center']], (v) => ((box.align = v), commit()), 'Alignement du texte'),
     ),
     check(!!box.lead, 'Personne en tête du cadre (nom et fonction en grand)', (on) => {
-      box.lead = on ? { name: 'Xxxx XXXXX', role: box.title || 'Fonction' } : null;
+      box.lead = on ? { name: '', role: '' } : null;
       commit({ focus: on ? box.id + ':leadName' : null });
     }),
     box.lead
@@ -255,7 +255,7 @@ function boxCard(level, box, bi) {
         type: 'button',
         className: 'add',
         onclick: () => {
-          const g = newGroup('Sub section', [newPerson('', '')]);
+          const g = newGroup('', [newPerson()]);
           box.groups.push(g);
           commit({ focus: g.id + ':title' });
         },
@@ -321,7 +321,7 @@ function levelCard(level, li) {
         type: 'button',
         className: 'add',
         onclick: () => {
-          const b = newBox(`Section ${level.boxes.length + 1}`, { tone: level.boxes.length ? level.boxes[level.boxes.length - 1].tone : 'mid' });
+          const b = newBox('', { tone: level.boxes.length ? level.boxes[level.boxes.length - 1].tone : 'mid' });
           level.boxes.push(b);
           commit({ focus: b.id + ':title' });
         },
@@ -429,7 +429,7 @@ function renderPanel(focusKey = null) {
         type: 'button',
         className: 'add big',
         onclick: () => {
-          const l = newLevel([newBox('Section 1')]);
+          const l = newLevel([newBox()]);
           doc.levels.push(l);
           commit({ focus: l.boxes[0].id + ':title' });
         },
