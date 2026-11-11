@@ -1,9 +1,9 @@
 {
-  "version": "1.96.0",
+  "version": "1.97.0",
   "date": "2026-11-11",
   "changes": [
-    "Bulles, treemap et sunburst : contour (Aucun / Fin / Moyen / Épais) et intensité des teintes (Légère / Normale / Marquée)",
-    "Treemap : coins arrondis ou droits ; Sunburst : séparation des anneaux (Aucune / Fine / Large)",
-    "Liste à icônes : trait du cercle et des icônes ; les fiches existantes gardent leur aspect, ↺ y ramène"
+    "Heatmap : contour des cases (Aucun / Fin / Moyen), motif des cases « en attente » (Tirets / Pointillés / Trait plein)",
+    "Heatmap : intensité des teintes (Légère / Normale / Marquée, légende comprise) et taille du texte des cases",
+    "Les fiches existantes gardent leur aspect ; ↺ et « Rétablir l'aspect d'origine » y ramènent"
   ]
 }

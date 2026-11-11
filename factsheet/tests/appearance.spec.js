@@ -399,3 +399,86 @@ test('export PDF avec les réglages d’apparence (lot 5c), sans erreur', async 
   sizes.forEach((n) => expect(n).toBeGreaterThan(1000));
   expect(errors).toEqual([]);
 });
+
+/* Apparence (lot 5d) : heatmap. Sans clé, le dessin est celui d'avant. */
+const hm = (svg) => ({
+  cells: [...svg.querySelectorAll('path.hm-cell')].map((p) => ({
+    d: p.getAttribute('d'),
+    op: +(p.getAttribute('fill-opacity') ?? 1),
+    stroke: p.getAttribute('stroke'),
+    sw: +p.getAttribute('stroke-width'),
+  })),
+  pending: [...svg.querySelectorAll('path.hm-pending')].map((p) => p.getAttribute('stroke-dasharray')),
+  legend: [...svg.querySelectorAll('g.lg path[fill-opacity]')].map((r) => +r.getAttribute('fill-opacity')),
+  size: Math.max(...[...svg.querySelectorAll('g[fill] text')].map((t) => +t.getAttribute('font-size'))),
+});
+const withPending = (o) => ({
+  ...o,
+  rows: [
+    { label: 'A', v: [10, 12, null, 9] },
+    { label: 'B', v: [20, 18, 25, null] },
+  ],
+});
+
+test('heatmap : contour des cases, cases en attente, intensité, taille du texte', async ({ page }) => {
+  const base = await probe(page, 'heatmap', {}, hm);
+  expect(base.cells.length).toBeGreaterThan(3);
+  expect(base.cells.every((c) => c.stroke === null)).toBe(true);
+  expect(await probe(page, 'heatmap', { cellLine: 'none', pendingStyle: 'dashed', fillTone: 'normal', valueSize: 'normal' }, hm)).toEqual(
+    base,
+  );
+
+  const line = await probe(page, 'heatmap', { cellLine: 'medium' }, hm);
+  expect(line.cells.every((c) => c.stroke === 'currentColor' && c.sw > 0)).toBe(true);
+  const thin = await probe(page, 'heatmap', { cellLine: 'thin' }, hm);
+  expect(line.cells[0].sw).toBeCloseTo(thin.cells[0].sw * 2, 5);
+
+  const light = await probe(page, 'heatmap', { fillTone: 'light' }, hm);
+  const strong = await probe(page, 'heatmap', { fillTone: 'strong' }, hm);
+  base.cells.forEach((c, i) => {
+    expect(light.cells[i].op).toBeLessThanOrEqual(c.op);
+    expect(strong.cells[i].op).toBeGreaterThanOrEqual(c.op);
+    expect(strong.cells[i].op).toBeLessThanOrEqual(1);
+  });
+  expect(light.cells.some((c, i) => c.op < base.cells[i].op)).toBe(true);
+  expect(strong.cells.some((c, i) => c.op > base.cells[i].op)).toBe(true);
+  expect(light.legend.some((a, i) => a < base.legend[i])).toBe(true); // la légende suit les cases
+
+  expect((await probe(page, 'heatmap', { valueSize: 'small' }, hm)).size).toBeLessThan(base.size);
+  expect((await probe(page, 'heatmap', { valueSize: 'large' }, hm)).size).toBeGreaterThan(base.size);
+
+  const pend = async (o) => (await probe(page, 'heatmap', withPending(o), hm)).pending;
+  expect(await pend({})).toEqual(['3 2', '3 2']);
+  expect(await pend({ pendingStyle: 'dashed' })).toEqual(['3 2', '3 2']);
+  expect(await pend({ pendingStyle: 'dotted' })).toEqual(['1 3', '1 3']);
+  expect(await pend({ pendingStyle: 'solid' })).toEqual([null, null]);
+});
+
+test('export PDF avec les réglages d’apparence de la heatmap (lot 5d), sans erreur', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await page.addScriptTag({ url: '/factsheet/tests/entry.bundle.js' });
+  await addBundle(page, 'pdfexport.js');
+  const sizes = await page.evaluate(async (key) => {
+    const base = JSON.parse(localStorage.getItem(key));
+    const out = [];
+    for (const opts of [
+      { cellLine: 'medium', fillTone: 'strong', valueSize: 'large', pendingStyle: 'dotted' },
+      { cellLine: 'thin', fillTone: 'light', valueSize: 'small', pendingStyle: 'solid' },
+    ]) {
+      const doc = JSON.parse(JSON.stringify(base));
+      const col = doc.sections.flatMap((s) => s.subs.flatMap((b) => b.cols)).find((c) => c.viz);
+      col.viz = window.FSTEST.newViz('heatmap');
+      Object.assign(col.viz.opts, opts);
+      col.viz.opts.rows = [
+        { label: 'A', v: [10, 12, null, 9] },
+        { label: 'B', v: [20, 18, 25, null] },
+      ];
+      const { bytes } = await window.FSPDF.build(doc, 'net', { profile: 'x1a' });
+      out.push(bytes.length);
+    }
+    return out;
+  }, DOC_KEY);
+  sizes.forEach((n) => expect(n).toBeGreaterThan(1000));
+  expect(errors).toEqual([]);
+});

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.97.0 — 2026-11-11
+- Heatmap : contour des cases (Aucun / Fin / Moyen), motif des cases « en attente » (Tirets / Pointillés / Trait plein)
+- Heatmap : intensité des teintes (Légère / Normale / Marquée, légende comprise) et taille du texte des cases
+- Les fiches existantes gardent leur aspect ; ↺ et « Rétablir l'aspect d'origine » y ramènent
+
 ## 1.96.0 — 2026-11-11
 - Bulles, treemap et sunburst : contour (Aucun / Fin / Moyen / Épais) et intensité des teintes (Légère / Normale / Marquée)
 - Treemap : coins arrondis ou droits ; Sunburst : séparation des anneaux (Aucune / Fine / Large)

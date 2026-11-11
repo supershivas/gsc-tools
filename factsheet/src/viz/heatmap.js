@@ -24,7 +24,25 @@ import {
 
 const NEUTRAL = 'grey'; // couleur neutre de la palette : cases de référence et écart nul
 const CLASSES = { 3: '3', 5: '5', 7: '7' };
-const LOOK = { refCol: '0', compareTo: 'ref', colorBy: 'abs', classes: '7', color: 'yellow', color2: 'blue', gap: 3, corners: 'round' };
+const LOOK = {
+  refCol: '0',
+  compareTo: 'ref',
+  colorBy: 'abs',
+  classes: '7',
+  color: 'yellow',
+  color2: 'blue',
+  gap: 3,
+  corners: 'round',
+  cellLine: 'none',
+  pendingStyle: 'dashed',
+  fillTone: 'normal',
+  valueSize: 'normal',
+};
+/** contour des cases en multiples de 0,5 pt ; motif des cases « en attente » (mêmes tirets que la grille) ; intensité des teintes ; taille du texte */
+const LINE_K = { none: 0, thin: 1, medium: 2 };
+const PENDING_DASH = { dashed: '3 2', dotted: '1 3', solid: null };
+const TONE_K = { light: 0.75, normal: 1, strong: 1.25 };
+const SIZE_K = { small: 0.85, normal: 1, large: 1.2 };
 
 /** Cellule : nombre, ou null si vide (« en attente ») */
 export const cellVal = (r, j) => {
@@ -40,6 +58,8 @@ export const refIndex = (o, n) => {
 };
 /** Opacité de la teinte de la classe k (1…h) : de 0,2 (la plus pâle) à 1 (la couleur pleine) */
 export const classAlpha = (k, h) => (h <= 1 ? 0.6 : 0.2 + (0.8 * (k - 1)) / (h - 1));
+/** Teinte de la classe k selon l'intensité choisie (`fillTone`) : celle de `classAlpha`, ×0,75 / ×1,25, jamais au-delà de 1 */
+const toneAlpha = (o, k, h) => Math.min(1, classAlpha(k, h) * (TONE_K[o.fillTone] ?? 1));
 /** Classe d'un écart d sur une échelle divergente de n classes (impair) : −h…h, 0 = classe neutre autour de zéro */
 export function divClass(d, M, n) {
   const h = (n - 1) / 2;
@@ -92,7 +112,7 @@ export function heatCells(o) {
     flat.forEach((c) => {
       const k = seqClass(c.v, lo, hi, nc);
       c.fill = o.color2 || LOOK.color2;
-      c.alpha = classAlpha(k, nc);
+      c.alpha = toneAlpha(o, k, nc);
       c.cls = k;
     });
   } else {
@@ -113,7 +133,7 @@ export function heatCells(o) {
         c.alpha = 1;
       } else {
         c.fill = k < 0 ? o.color || LOOK.color : o.color2 || LOOK.color2;
-        c.alpha = classAlpha(Math.abs(k), (nc - 1) / 2);
+        c.alpha = toneAlpha(o, Math.abs(k), (nc - 1) / 2);
       }
     });
   }
@@ -135,15 +155,15 @@ export function heatLegend(o, loc) {
   const edge = (i) => sc.lo + (i * (sc.hi - sc.lo)) / nc;
   for (let i = 0; i <= nc; i++) out.labels.push(mode === 'value' ? num(edge(i)) : signed(edge(i), num(edge(i))));
   for (let i = 0; i < nc; i++) {
-    if (mode === 'value') out.cells.push({ color: o.color2 || LOOK.color2, alpha: classAlpha(i + 1, nc), path: 'color2' });
+    if (mode === 'value') out.cells.push({ color: o.color2 || LOOK.color2, alpha: toneAlpha(o, i + 1, nc), path: 'color2' });
     else {
       const k = i - h;
       out.cells.push(
         k === 0
           ? { color: NEUTRAL, alpha: 1 }
           : k < 0
-            ? { color: o.color || LOOK.color, alpha: classAlpha(-k, h), path: 'color' }
-            : { color: o.color2 || LOOK.color2, alpha: classAlpha(k, h), path: 'color2' },
+            ? { color: o.color || LOOK.color, alpha: toneAlpha(o, -k, h), path: 'color' }
+            : { color: o.color2 || LOOK.color2, alpha: toneAlpha(o, k, h), path: 'color2' },
       );
     }
   }
@@ -255,6 +275,22 @@ export default {
     },
     { k: 'gap', g: 'dims', t: 'number', label: 'Espace entre les cases (px)', min: 0, max: 12, def: LOOK.gap },
     { k: 'corners', g: 'dims', t: 'select', label: 'Coins des cases', options: { round: 'Arrondis', square: 'Droits' }, def: LOOK.corners },
+    {
+      k: 'cellLine',
+      g: 'dims',
+      t: 'select',
+      label: 'Contour des cases',
+      options: { none: 'Aucun', thin: 'Fin', medium: 'Moyen' },
+      def: LOOK.cellLine,
+    },
+    {
+      k: 'pendingStyle',
+      g: 'dims',
+      t: 'select',
+      label: 'Contour des cases en attente',
+      options: { dashed: 'Tirets', dotted: 'Pointillés', solid: 'Trait plein' },
+      def: LOOK.pendingStyle,
+    },
     { k: 'showRowNames', g: 'axes', t: 'bool', label: 'Noms des lignes', def: true },
     { k: 'showColNames', g: 'axes', t: 'bool', label: 'Noms des colonnes', def: true },
     { k: 'scaleMax', g: 'axes', t: 'number', label: 'Maximum de l’échelle', min: 0, def: 0 },
@@ -305,6 +341,14 @@ export default {
       when: (o) => o.legend !== false && o.legendNote !== false,
       why: 'Activez la note sous la légende pour la modifier.',
     },
+    {
+      k: 'valueSize',
+      g: 'labels',
+      t: 'select',
+      label: 'Taille du texte des cases',
+      options: { small: 'Petit', normal: 'Normal', large: 'Grand' },
+      def: LOOK.valueSize,
+    },
     { k: 'decimals', g: 'labels', t: 'number', label: 'Décimales des valeurs', min: 0, max: 4 },
     { k: 'suffix', g: 'labels', t: 'text', label: 'Unité après la valeur (%, M€…)' },
     { k: 'refText', g: 'labels', t: 'text', fmt: 'plain', label: 'Texte des cases de référence', when: hasRef },
@@ -319,6 +363,14 @@ export default {
       why: 'Sans référence ou en couleur selon la valeur, seule la couleur des hausses sert.',
     },
     { k: 'color2', g: 'colors', t: 'color', label: 'Couleur des hausses (et des valeurs)', def: LOOK.color2 },
+    {
+      k: 'fillTone',
+      g: 'colors',
+      t: 'select',
+      label: 'Intensité des teintes',
+      options: { light: 'Légère', normal: 'Normale', strong: 'Marquée' },
+      def: LOOK.fillTone,
+    },
     { k: 'classes', g: 'colors', t: 'select', label: 'Nombre de classes de couleur', options: CLASSES, def: LOOK.classes },
     {
       t: 'table',
@@ -340,9 +392,10 @@ export default {
       nr = Math.max(1, rows.length);
     const { cells, ref } = heatCells(o);
     const capPx = pxOf(TYPE.caption.size),
-      numPx = pxOf(TYPE.captionNum.size),
+      numBase = pxOf(TYPE.captionNum.size),
       gap = Math.max(0, +(o.gap ?? LOOK.gap) || 0),
       radius = (o.corners || LOOK.corners) === 'square' ? 0 : VIZ.barRadius,
+      lw = SW * (LINE_K[o.cellLine] ?? 0),
       dec = o.decimals ?? 1,
       suffix = o.suffix || '',
       loc = env.locale;
@@ -395,7 +448,9 @@ export default {
         out.push({ txt: signed(c.delta, fmt(Math.abs(c.delta), loc, dec) + suffix), small: true });
       return out;
     };
-    const smallPx = capPx * 0.9;
+    const sizeK = SIZE_K[o.valueSize] ?? 1,
+      numPx = numBase * sizeK,
+      smallPx = capPx * 0.9 * sizeK;
     const textBlock = (lines, cx, cy, maxW, maxH, fill) => {
       const need = (ls, k) => ls.reduce((a, l) => a + (l.num ? numPx : smallPx) * k * 1.25, 0);
       let ls = lines.slice(),
@@ -446,17 +501,19 @@ export default {
               fill: 'none',
               stroke: 'currentColor',
               'stroke-width': SW,
-              'stroke-dasharray': '3 2',
+              'stroke-dasharray': o.pendingStyle in PENDING_DASH ? PENDING_DASH[o.pendingStyle] : PENDING_DASH.dashed,
               class: 'hm-pending',
             }),
           );
         } else {
           const key = c.kind === 'ref' ? NEUTRAL : c.fill,
             alpha = c.kind === 'ref' ? 1 : c.alpha;
-          svg.append(s('path', { d, fill: '#FFFFFF' })); // case opaque : la teinte ne se mélange pas au fond de la section
+          const dc = lw ? roundRect(x + lw / 2, y + lw / 2, cw - lw, ch - lw, Math.max(0, radius - lw / 2)) : d; // le contour reste dans la case
+          svg.append(s('path', { d: dc, fill: '#FFFFFF' })); // case opaque : la teinte ne se mélange pas au fond de la section
           svg.append(
             s('path', {
-              d,
+              d: dc,
+              ...(lw ? { stroke: 'currentColor', 'stroke-width': lw } : {}),
               fill: colorRef(key),
               'fill-opacity': alpha < 1 ? +alpha.toFixed(3) : null,
               class: c.kind === 'ref' ? 'hm-ref' : 'hm-cell',
