@@ -7,7 +7,7 @@ import { colorSelect } from './colorselect.js';
 import { iconSelect } from './iconselect.js';
 import { pictoChoices } from './viz/picto.js';
 import { ctxIcons } from './viz/icons.js';
-import { alertBox } from './dialogs.js';
+import { alertBox, confirmBox } from './dialogs.js';
 import { num, parseMatrix, fileToMatrix, padMatrix, headerRows, autoRoles, readImport, decimalOf } from './dataparse.js';
 
 export { parseMatrix, fileToMatrix, num };
@@ -189,6 +189,34 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
           }
         : null,
     colLabel: '+ ' + serName,
+    /* inverser lignes et colonnes : les libellés deviennent les noms de séries et inversement ; masquage gardé, niveaux, types, groupes et couleurs perdus */
+    transpose: {
+      blocked: () =>
+        rows.length > max ? t('Inverser donnerait {n} colonnes : {max} au plus.').replace('{n}', rows.length).replace('{max}', max) : '',
+      lossy: () => rows.some((r) => r.kind || r.fmt || r.level) || series.some((x) => x.group),
+      run() {
+        const oldRows = rows.slice(),
+          oldSeries = series.slice();
+        series.splice(
+          0,
+          series.length,
+          ...oldRows.map((r, i) => ({
+            name: r.label || '',
+            color: SERIES_COLORS[i % SERIES_COLORS.length],
+            ...(f.hide && r.hidden ? { hidden: true } : {}),
+          })),
+        );
+        rows.splice(
+          0,
+          rows.length,
+          ...oldSeries.map((x, j) => ({
+            label: x.name || '',
+            v: oldRows.map((r) => cell((r.v || [])[j])),
+            ...(f.hide && x.hidden ? { hidden: true } : {}),
+          })),
+        );
+      },
+    },
     load(m, head, { groups } = {}) {
       const body = head ? m.slice(1) : m,
         nser = Math.min(max, Math.max(1, ...body.map((c) => c.length - 1)));
@@ -893,6 +921,31 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
           },
           ico('plus'),
           h('span', { textContent: ad.colLabel }),
+        )
+      : null,
+    ad.transpose
+      ? h(
+          'button',
+          {
+            type: 'button',
+            class: 'pp-btn',
+            title: t('Les lignes deviennent des colonnes et inversement'),
+            onclick: async () => {
+              const why = ad.transpose.blocked();
+              if (why) return alertBox(why);
+              if (
+                ad.transpose.lossy() &&
+                !(await confirmBox(t('Inverser fait perdre les niveaux, types de ligne et groupes de colonnes. Continuer ?'), {
+                  ok: t('Inverser'),
+                }))
+              )
+                return;
+              ad.transpose.run();
+              rebuild();
+            },
+          },
+          ico('arrows-exchange'),
+          h('span', { textContent: t('Inverser lignes et colonnes') }),
         )
       : null,
     ad.hide && (ad.hide.count().rows || ad.hide.count().cols)

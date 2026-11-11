@@ -1,8 +1,7 @@
 {
-  "version": "1.105.1",
+  "version": "1.106.0",
   "date": "2026-11-11",
   "changes": [
-    "Heatmap : chaque ligne se règle librement sur l'un des 4 niveaux (1 à 4), sans dépendre de la ligne du dessus ni de sa position",
-    "Couleur du texte réglable pour une section, une sous-section ou une colonne (carte « Couleur du texte »)"
+    "Dataviz à tableau (barres, courbes, heatmap) : bouton « Inverser lignes et colonnes » dans l'onglet Données"
   ]
 }

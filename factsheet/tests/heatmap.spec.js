@@ -761,3 +761,43 @@ test('masquer dans l’éditeur : œil de ligne et de colonne, « Tout réaffich
   await expect(page.locator('.ve-form .hm-hidden')).toBeHidden();
   expect(errors).toEqual([]);
 });
+
+test('inverser lignes et colonnes dans l’éditeur de données, deux fois = retour à l’état initial', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await page.evaluate((key) => {
+    const doc = JSON.parse(localStorage.getItem(key));
+    const col = doc.sections.flatMap((s) => s.subs.flatMap((b) => b.cols)).find((c) => c.viz);
+    col.viz = { kind: 'heatmap', opts: null, head: { title: '', source: '' }, side: { pos: 'none' } };
+    localStorage.setItem(key, JSON.stringify(doc));
+  }, DOC_KEY);
+  await page.reload();
+  await page.waitForSelector('#stage .page');
+  await page
+    .locator('#tree .col-row', { hasText: /Dataviz/ })
+    .first()
+    .click();
+  const open = page.locator('#props button.primary').first();
+  if (!(await open.count())) await page.locator('#props .pp-chev').first().click();
+  await open.click();
+  await page.locator('.ve-tab[data-tab=data]').click();
+  const grid = () => page.locator('table.dg').first();
+  const names = () =>
+    grid()
+      .locator('tbody tr input[data-c="0"]')
+      .evaluateAll((a) => a.map((i) => i.value));
+  const heads = () =>
+    grid()
+      .locator('thead input.dg-name, thead th input:not(.dg-group)')
+      .evaluateAll((a) => a.map((i) => i.value));
+  const before = await names();
+  const headsBefore = await heads();
+  const swap = page.locator('.dg-wrap button', { hasText: 'Swap rows and columns' });
+  await swap.click();
+  expect((await names()).length).toBe(4); // 4 colonnes d'origine → 4 lignes
+  expect(await names()).not.toEqual(before);
+  await swap.click();
+  expect(await names()).toEqual(before);
+  expect(await heads()).toEqual(headsBefore);
+  expect(errors).toEqual([]);
+});

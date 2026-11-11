@@ -478,6 +478,12 @@ const EN = {
   'Remonter d’un niveau (1 à 4)': 'Move up a level (1 to 4)',
   'Descendre d’un niveau (1 à 4)': 'Move down a level (1 to 4)',
   Niveau: 'Level',
+  'Inverser donnerait {n} colonnes : {max} au plus.': 'Swapping would give {n} columns: {max} at most.',
+  'Inverser fait perdre les niveaux, types de ligne et groupes de colonnes. Continuer ?':
+    'Swapping loses the levels, row types and column groups. Continue?',
+  Inverser: 'Swap',
+  'Les lignes deviennent des colonnes et inversement': 'Rows become columns and the other way round',
+  'Inverser lignes et colonnes': 'Swap rows and columns',
   'Aucun : le texte garde la couleur du niveau au-dessus. Une couleur choisie dans le texte l’emporte.':
     'None: the text keeps the colour of the level above. A colour chosen within the text takes precedence.',
   'Groupes de colonnes : {g}.': 'Column groups: {g}.',

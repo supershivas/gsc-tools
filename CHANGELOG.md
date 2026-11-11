@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.106.0 — 2026-11-11
+- Dataviz à tableau (barres, courbes, heatmap) : bouton « Inverser lignes et colonnes » dans l'onglet Données (les libellés deviennent les noms de colonnes et inversement ; refusé si le résultat dépasse le nombre de colonnes permis ; masquage gardé, niveaux, types de ligne et groupes demandent confirmation)
+
 ## 1.105.1 — 2026-11-11
 - Heatmap : chaque ligne se règle librement sur l'un des 4 niveaux (1 à 4), sans dépendre de la ligne du dessus ni de sa position
 - Couleur du texte réglable pour une section, une sous-section ou une colonne (carte « Couleur du texte »)
