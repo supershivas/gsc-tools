@@ -628,3 +628,91 @@ test('hiérarchie dans l’éditeur : boutons de retrait, Tab, groupe de colonne
   expect(opts.series.map((x) => x.group || '')).toEqual(['', 'Positions', 'Positions', '']);
   expect(errors).toEqual([]);
 });
+
+test('masquer : lignes et colonnes gardées dans les données, absentes du dessin et de l’échelle', async ({ page }) => {
+  await page.goto('/factsheet/tests/blank.html');
+  const r = await page.evaluate(() => {
+    const { VIZ_TYPES, heatCells, heatLegend } = window.FSTEST;
+    const ty = VIZ_TYPES.heatmap;
+    const o = ty.defaults();
+    const draw = (opts) => {
+      const res = ty.render(opts, 460, { locale: 'en-GB', ui: true });
+      const q = (sel) => [...res.node.querySelectorAll(sel)];
+      return {
+        refs: q('path.hm-ref').length,
+        cells: q('path.hm-cell').length,
+        pending: q('path.hm-pending').length,
+        names: q('text.hm-name').map((t) => t.textContent),
+        reorder: q('[data-reorder]').map((n) => n.getAttribute('data-reorder')),
+      };
+    };
+    const hid = JSON.parse(JSON.stringify(o));
+    hid.rows[0].hidden = true; // ligne de l'écart le plus fort (−32,2)
+    hid.series[3].hidden = true; // colonne « en attente »
+    const prev = JSON.parse(JSON.stringify(o));
+    prev.compareTo = 'prev';
+    prev.series[1].hidden = true;
+    const allHidden = JSON.parse(JSON.stringify(o));
+    allHidden.series.slice(1).forEach((s) => (s.hidden = true));
+    return {
+      base: draw(o),
+      hid: draw(hid),
+      dataKept: hid.rows.length === 4 && hid.series.length === 4,
+      maxBase: heatCells(o).scale.dataTop,
+      maxHid: heatCells(hid).scale.dataTop,
+      hiddenFlag: heatCells(hid).cells[0][1].hidden,
+      prevDelta: +heatCells(prev).cells[0][2].delta.toFixed(1), // 764,9 − 797,1 : la colonne masquée est sautée
+      legendNone: heatLegend(allHidden, 'en-GB'),
+    };
+  });
+  expect(r.base).toMatchObject({ refs: 4, cells: 8, pending: 4 });
+  expect(r.hid).toMatchObject({ refs: 3, cells: 6, pending: 0 });
+  expect(r.hid.names).toEqual(['Payments', 'Special instruments', 'Margins']);
+  expect(r.hid.reorder).toEqual(['rows:1', 'rows:2', 'rows:3']); // indices des données, pas de l'affichage
+  expect(r.dataKept).toBe(true);
+  expect(r.maxBase).toBeCloseTo(32.2, 1);
+  expect(r.maxHid).toBeLessThan(r.maxBase); // l'échelle ne compte que les cases visibles
+  expect(r.hiddenFlag).toBe(true);
+  expect(r.prevDelta).toBe(-32.2);
+  expect(r.legendNone).toBeNull();
+});
+
+test('masquer dans l’éditeur : œil de ligne et de colonne, « Tout réafficher »', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await page.evaluate((key) => {
+    const doc = JSON.parse(localStorage.getItem(key));
+    const col = doc.sections.flatMap((s) => s.subs.flatMap((b) => b.cols)).find((c) => c.viz);
+    col.viz = { kind: 'heatmap', opts: null, head: { title: '', source: '' }, side: { pos: 'none' } };
+    localStorage.setItem(key, JSON.stringify(doc));
+  }, DOC_KEY);
+  await page.reload();
+  await page.waitForSelector('#stage .page');
+  await page
+    .locator('#tree .col-row', { hasText: /Dataviz/ })
+    .first()
+    .click();
+  const open = page.locator('#props button.primary').first();
+  if (!(await open.count())) await page.locator('#props .pp-chev').first().click();
+  await open.click();
+  await expect(page.locator('.ve-bar')).toBeVisible();
+  await page.locator('.ve-tab[data-tab=data]').click();
+  const grid = () => page.locator('table.dg').first();
+  await grid().locator('tbody tr').nth(2).locator('button.dg-eye').click();
+  await grid().locator('thead th').nth(5).locator('button.dg-eye').click(); // 4e colonne (« en attente »)
+  await expect(grid().locator('tbody tr.dg-off')).toHaveCount(1);
+  await expect(grid().locator('thead th.dg-off')).toHaveCount(1);
+  await expect(grid().locator('tbody tr')).toHaveCount(4); // données gardées
+  await expect(page.locator('.dg-wrap button', { hasText: 'Show all (1 row, 1 column)' })).toHaveCount(1);
+  await page.locator('.ve-tab[data-tab=viz]').click();
+  const stage = page.locator('#ve-stage svg');
+  await expect(stage.locator('path.hm-ref')).toHaveCount(3);
+  await expect(stage.locator('path.hm-pending')).toHaveCount(0);
+  await expect(page.locator('.ve-form .hm-hidden')).toContainText('Hidden (data kept): 1 row, 1 column');
+  await page.screenshot({ path: test.info().outputPath('heatmap-hidden.png') });
+  await page.locator('.ve-form .hm-hidden button', { hasText: 'Show all' }).click();
+  await expect(stage.locator('path.hm-ref')).toHaveCount(4);
+  await expect(stage.locator('path.hm-pending')).toHaveCount(4);
+  await expect(page.locator('.ve-form .hm-hidden')).toBeHidden();
+  expect(errors).toEqual([]);
+});

@@ -20,7 +20,7 @@ export const VALID_G = new Set([...CARDS.map((c) => c.g), 'data', 'ratio']);
 export const FIELD_ORDER = [
   // Structure
   'style', 'orient', 'largestAngle', 'startAngle', 'ringAlign', 'orientation', 'alternate', 'tail', 'align', 'shape',
-  'cols', 'gridRows', 'total', 'perIcon', 'perDot', 'perRow', 'circle', 'parents', 'curve', 'points', 'area', 'refCol', 'compareTo', 'colorBy',
+  'cols', 'gridRows', 'total', 'perIcon', 'perDot', 'perRow', 'circle', 'parents', 'curve', 'points', 'area', 'refCol', 'compareTo', 'colorBy', 'hiddenInfo',
   // Dimensions
   'barSize', 'groupSpace', 'rowSpace', 'serSpace', 'rowGap', 'scale', 'pad', 'gap', 'corners', 'nodeW', 'nodePad', 'maxR', 'ringWidth', 'segGap', 'hole', 'lineWidth', 'cellLine', 'pendingStyle', 'nodeLine', 'circleWidth', 'iconStroke', 'ringGap', 'markSize', 'dotSize', 'iconGap', 'pointSize',
   // Axes et grille

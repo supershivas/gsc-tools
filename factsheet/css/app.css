@@ -136,6 +136,8 @@ table.dg{border-collapse:collapse;width:100%;font-size:var(--fs-md)}
 .dg .dg-n{width:28px;text-align:center;color:var(--ui-mute);font-size:var(--fs-xs);padding:0 2px}
 .dg-h{display:flex;gap:4px;align-items:center}.dg-h input{min-width:60px;width:100%;padding:3px 6px;font-size:var(--fs-sm)}.dg-color{width:44px!important;min-width:44px!important;padding:2px!important}
 .dg-tools{gap:8px}
+.dg tr.dg-off>td:not(.dg-acts),.dg td.dg-off,.dg th.dg-off .dg-h>:not(.dg-eye){opacity:.45}
+.dg .dg-acts{white-space:nowrap;width:auto}.dg-eye.on{color:var(--ui-ink)}
 .dg-h{flex-wrap:wrap}.dg-h input.dg-group{flex-basis:100%;font-weight:400;color:var(--ui-mute)}
 .dg-lvl{display:flex;align-items:center}.dg-lvl input{flex:1}
 .dg-lvl .dg-lvl-btn{flex:none;width:28px;min-height:28px;padding:0;border:0;background:none;color:var(--ui-mute)}

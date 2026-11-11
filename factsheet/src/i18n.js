@@ -478,6 +478,14 @@ const EN = {
   'Groupes de colonnes : {g}.': 'Column groups: {g}.',
   'Glisser une case pour changer l’ordre des lignes · glisser un nom vers la droite ou la gauche pour changer son niveau':
     'Drag a cell to reorder the rows · drag a name right or left to change its level',
+  /* heatmap : masquer des lignes ou des colonnes */
+  Masquer: 'Hide',
+  Réafficher: 'Show',
+  'Tout réafficher': 'Show all',
+  'Masquées (données gardées) : {n}': 'Hidden (data kept): {n}',
+  ligne: 'row',
+  lignes: 'rows',
+  colonne: 'column',
   /* aperçu avant import (vizdata.js) */
   'Aperçu de l’import': 'Import preview',
   'Lignes d’en-tête': 'Header rows',

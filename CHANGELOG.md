@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.105.0 — 2026-11-11
+- Heatmap : masquer une ligne ou une colonne (bouton œil dans l'onglet Données) ; les données restent et « Tout réafficher » les ramène, aussi depuis la carte Structure
+- Les cases masquées ne comptent plus dans l'échelle de couleur ni dans la légende
+
 ## 1.104.0 — 2026-11-11
 - Heatmap : lignes hiérarchisées sur 4 niveaux (retrait et graisse), réglées par boutons ou Tab dans Données, ou en glissant un nom dans l'aperçu ; colonnes regroupées sous un en-tête commun (champ « Groupe », repris d'une cellule fusionnée à l'import)
 - Heatmap : de 3 à 20 classes de couleur ; un nombre pair n'a pas de classe neutre (autant de baisses que de hausses)

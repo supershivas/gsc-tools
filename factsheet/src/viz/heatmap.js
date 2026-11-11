@@ -50,6 +50,8 @@ const PENDING_DASH = { dashed: '3 2', dotted: '1 3', solid: null };
 const TONE_K = { light: 0.75, normal: 1, strong: 1.25 };
 const SIZE_K = { small: 0.85, normal: 1, large: 1.2 };
 
+/** Ligne ou colonne masquée : gardée dans les données, absente du dessin et de l'échelle */
+export const isHidden = (x) => !!(x && x.hidden);
 /** Cellule : nombre, ou null si vide (« en attente ») */
 export const cellVal = (r, j) => {
   const x = (r && r.v ? r.v : [])[j];
@@ -95,21 +97,23 @@ export function heatCells(o) {
   const base = (r, j) => {
     if (ref < 0) return null;
     if (!prev) return cellVal(r, ref);
-    for (let q = j - 1; q >= 0; q--) if (cellVal(r, q) !== null) return cellVal(r, q);
+    for (let q = j - 1; q >= 0; q--) if (!isHidden(series[q]) && cellVal(r, q) !== null) return cellVal(r, q); // colonnes masquées sautées
     return null;
   };
+  /* ligne ou colonne masquée (`hidden`) : ses cases restent calculées (une référence masquée sert encore) mais sortent de l'échelle */
   const cells = rows.map((r) =>
-    series.map((_, j) => {
+    series.map((sr, j) => {
       const v = cellVal(r, j),
-        rv = base(r, j);
-      if (v === null) return { kind: 'pending' };
-      if (j === ref) return { kind: 'ref', v };
+        rv = base(r, j),
+        hid = isHidden(r) || isHidden(sr) ? { hidden: true } : null;
+      if (v === null) return { kind: 'pending', ...hid };
+      if (j === ref) return { kind: 'ref', v, ...hid };
       const delta = rv === null ? null : v - rv,
         pct = rv ? (delta / Math.abs(rv)) * 100 : null;
-      return { kind: 'val', v, delta, pct };
+      return { kind: 'val', v, delta, pct, ...hid };
     }),
   );
-  const flat = cells.flat().filter((c) => c.kind === 'val');
+  const flat = cells.flat().filter((c) => c.kind === 'val' && !c.hidden);
   const key = mode === 'pct' ? 'pct' : mode === 'abs' ? 'delta' : 'v';
   const scale = { nc, lo: 0, hi: 0, dataTop: 0, up: false, down: false };
   if (mode === 'value') {
@@ -157,7 +161,7 @@ export function heatLegend(o, loc) {
     nc = sc.nc,
     h = halfOf(nc),
     odd = nc % 2 === 1;
-  if (!cells.flat().some((c) => c.kind === 'val') || !(sc.hi > sc.lo)) return null;
+  if (!cells.flat().some((c) => c.kind === 'val' && !c.hidden) || !(sc.hi > sc.lo)) return null;
   const pct = mode === 'pct',
     unit = pct ? pctSign(loc) : o.suffix || '',
     num = (x) => fmt(Math.abs(x), loc, dec) + unit;
@@ -379,6 +383,33 @@ export default {
       def: LOOK.refCol,
     },
     {
+      t: 'node',
+      k: 'hiddenInfo',
+      g: 'struct',
+      when: (o) => (o.rows || []).some(isHidden) || (o.series || []).some(isHidden),
+      build: (opts, ctx) => {
+        const nr = (opts.rows || []).filter(isHidden).length,
+          nc = (opts.series || []).filter(isHidden).length,
+          parts = [nr ? `${nr} ${t(nr > 1 ? 'lignes' : 'ligne')}` : '', nc ? `${nc} ${t(nc > 1 ? 'colonnes' : 'colonne')}` : ''];
+        const wrap = document.createElement('div');
+        wrap.className = 'f hm-hidden';
+        const p = document.createElement('p');
+        p.className = 'hint';
+        p.textContent = t('Masquées (données gardées) : {n}').replace('{n}', parts.filter(Boolean).join(', '));
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'pp-btn';
+        b.textContent = t('Tout réafficher');
+        b.onclick = () => {
+          (opts.rows || []).forEach((r) => delete r.hidden);
+          (opts.series || []).forEach((x) => delete x.hidden);
+          ctx.restructure();
+        };
+        wrap.append(p, b);
+        return wrap;
+      },
+    },
+    {
       k: 'compareTo',
       g: 'struct',
       t: 'select',
@@ -566,6 +597,7 @@ export default {
       blank: true,
       noColor: true,
       rowFmt: true, // colonnes Type de ligne, Gras, Taille (row.kind, row.fmt)
+      hide: true, // masquer une ligne ou une colonne (row.hidden, series[j].hidden)
       levels: true, // niveau des lignes (row.level, boutons de retrait) et groupe des colonnes (series[j].group)
       serLabel: 'Colonne',
       label: 'Données',
@@ -574,11 +606,18 @@ export default {
   dataHint:
     'Une ligne par ligne du tableau, une colonne par colonne (12 au plus). Une cellule laissée vide est dessinée « en attente ». Les écarts sont calculés par rapport à la colonne de référence (Structure). Type de ligne : Titre ou Total mettent la ligne en gras sur un fond neutre léger ; Gras et Taille la règlent une à une.',
   render(o, W, env) {
-    const series = o.series || [],
-      rows = o.rows || [],
+    const all = heatCells(o),
+      ref = all.ref,
+      allRows = o.rows || [],
+      allSeries = o.series || [];
+    /* lignes et colonnes visibles (`hidden` = masquée) ; ri / cj = leurs indices dans les données */
+    const ri = allRows.map((r, i) => (isHidden(r) ? -1 : i)).filter((i) => i >= 0),
+      cj = allSeries.map((sr, j) => (isHidden(sr) ? -1 : j)).filter((j) => j >= 0);
+    const rows = ri.map((i) => allRows[i]),
+      series = cj.map((j) => allSeries[j]),
+      cells = ri.map((i) => cj.map((j) => all.cells[i][j])),
       nc = Math.max(1, series.length),
       nr = Math.max(1, rows.length);
-    const { cells, ref } = heatCells(o);
     const capPx = pxOf(TYPE.caption.size),
       numBase = pxOf(TYPE.captionNum.size),
       gap = Math.max(0, +(o.gap ?? LOOK.gap) || 0),
@@ -852,7 +891,7 @@ export default {
       });
     });
     if (lg) drawLegend(svg, [], H - lgH + VIZ.legendGap, W, null, lg);
-    rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'y', 0, ys[i] - gap / 2, W, chs[i] + gap)));
+    rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', ri[i], 'y', 0, ys[i] - gap / 2, W, chs[i] + gap)));
     /* éditeur : glisser un nom vers la droite ou la gauche change son niveau (au-dessus de la zone de réordonnancement) */
     if (env.ui && rowNames)
       rows.forEach((_, i) =>
@@ -863,7 +902,7 @@ export default {
             width: Math.max(1, nameW - 9),
             height: Math.max(1, chs[i]),
             fill: 'rgba(0,0,0,0)',
-            'data-hit': `level:${i}`,
+            'data-hit': `level:${ri[i]}`,
             style: { cursor: 'ew-resize' },
           }),
         ),

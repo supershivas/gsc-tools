@@ -102,6 +102,13 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
         name: sr.name || '',
         type: 'number',
         group: f.levels ? sr.group || '' : null, // heatmap : groupe de colonnes
+        hidden: f.hide ? !!sr.hidden : null, // heatmap : colonne masquée (gardée dans les données)
+        onHide: f.hide
+          ? (on) => {
+              if (on) sr.hidden = true;
+              else delete sr.hidden;
+            }
+          : null,
         onGroup: f.levels
           ? (v) => {
               if (v.trim()) sr.group = v;
@@ -144,6 +151,21 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
         (rows[i].v || (rows[i].v = []))[j - 1] = n === null ? (blank ? null : 0) : n;
       }
     },
+    /* heatmap : lignes et colonnes masquées (gardées dans les données, absentes du dessin) */
+    hide: f.hide
+      ? {
+          get: (i) => !!rows[i].hidden,
+          set: (i, on) => {
+            if (on) rows[i].hidden = true;
+            else delete rows[i].hidden;
+          },
+          count: () => ({ rows: rows.filter((r) => r.hidden).length, cols: series.filter((x) => x.hidden).length }),
+          showAll: () => {
+            rows.forEach((r) => delete r.hidden);
+            series.forEach((x) => delete x.hidden);
+          },
+        }
+      : null,
     /* heatmap : niveau des lignes (0 = donnée principale … 3), jamais plus d'un niveau sous la ligne du dessus */
     levels: f.levels
       ? {
@@ -177,12 +199,15 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
           color: (series[j] && series[j].color) || SERIES_COLORS[j % SERIES_COLORS.length],
           ...(series[j] && series[j].dash ? { dash: series[j].dash } : {}),
           ...(g ? { group: g } : {}),
+          ...(f.hide && series[j] && series[j].hidden ? { hidden: true } : {}),
         };
       });
       series.splice(0, series.length, ...ns);
       /* une ligne de même libellé garde sa mise en forme (type, gras, taille) */
       const keep = new Map(
-        rows.filter((r) => r.kind || r.fmt || r.level).map((r) => [r.label, { kind: r.kind, fmt: r.fmt, level: r.level }]),
+        rows
+          .filter((r) => r.kind || r.fmt || r.level || r.hidden)
+          .map((r) => [r.label, { kind: r.kind, fmt: r.fmt, level: r.level, hidden: r.hidden }]),
       );
       rows.splice(
         0,
@@ -196,6 +221,7 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
             ...(k && k.kind ? { kind: k.kind } : {}),
             ...(k && k.fmt ? { fmt: k.fmt } : {}),
             ...(k && k.level ? { level: k.level } : {}),
+            ...(k && k.hidden ? { hidden: true } : {}),
           };
         }),
       );
@@ -442,6 +468,27 @@ export function importPreview(m0, ad, locale) {
   });
 }
 
+/** « 2 lignes, 1 colonne » masquées */
+export const hiddenText = ({ rows, cols }) =>
+  [rows ? `${rows} ${rows > 1 ? t('lignes') : t('ligne')}` : '', cols ? `${cols} ${cols > 1 ? t('colonnes') : t('colonne')}` : '']
+    .filter(Boolean)
+    .join(', ');
+
+/** Bouton œil : masquer / réafficher une ligne ou une colonne (les données restent) */
+const eyeBtn = (hidden, onToggle) =>
+  h(
+    'button',
+    {
+      type: 'button',
+      class: 'mini dg-eye' + (hidden ? ' on' : ''),
+      title: hidden ? t('Réafficher') : t('Masquer'),
+      'aria-label': hidden ? t('Réafficher') : t('Masquer'),
+      'aria-pressed': String(hidden),
+      onclick: onToggle,
+    },
+    ico(hidden ? 'eye-off' : 'eye'),
+  );
+
 /* ---------- Interface ---------- */
 export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
   const rebuild = () => ctx.restructure();
@@ -591,6 +638,12 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
                   ctx.changed();
                 },
               }),
+              c.onHide
+                ? eyeBtn(c.hidden, () => {
+                    c.onHide(!c.hidden);
+                    rebuild();
+                  })
+                : null,
               c.onDelete
                 ? h(
                     'button',
@@ -609,6 +662,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
             )
           : h('span', { textContent: c.name }),
       );
+      if (c.hidden) th.classList.add('dg-off');
       return th;
     }),
     h('th', { class: 'dg-n' }),
@@ -773,12 +827,22 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
     body.append(
       h(
         'tr',
-        {},
+        { class: ad.hide && ad.hide.get(i) ? 'dg-off' : '' },
         h('td', { class: 'dg-n', textContent: String(i + 1) }),
-        ...ad.cols.map((_, j) => cell(i, j)),
+        ...ad.cols.map((_, j) => {
+          const td = cell(i, j);
+          if (ad.cols[j].hidden) td.classList.add('dg-off');
+          return td;
+        }),
         h(
           'td',
-          { class: 'dg-n' },
+          { class: 'dg-n dg-acts' },
+          ad.hide
+            ? eyeBtn(ad.hide.get(i), () => {
+                ad.hide.set(i, !ad.hide.get(i));
+                rebuild();
+              })
+            : null,
           ad.rows() > 1
             ? h(
                 'button',
@@ -828,6 +892,21 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
           },
           ico('plus'),
           h('span', { textContent: ad.colLabel }),
+        )
+      : null,
+    ad.hide && (ad.hide.count().rows || ad.hide.count().cols)
+      ? h(
+          'button',
+          {
+            type: 'button',
+            class: 'pp-btn',
+            onclick: () => {
+              ad.hide.showAll();
+              rebuild();
+            },
+          },
+          ico('eye'),
+          h('span', { textContent: `${t('Tout réafficher')} (${hiddenText(ad.hide.count())})` }),
         )
       : null,
   );
