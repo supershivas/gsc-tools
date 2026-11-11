@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.95.1 — 2026-11-11
+- Export SVG de la dataviz : le titre et la source sont inclus, en vrais textes modifiables
+- Fenêtre d'export : plus de « null » affiché quand la dataviz n'a ni titre ni source
+
 ## 1.95.0 — 2026-11-11
 - Éditeur de dataviz : nouveau bouton « Exporter » (PNG transparent, PNG avec fond, JPG, SVG vectoriel)
 - Images à 150 ou 300 dpi (taille d'impression enregistrée dans le fichier), titre et source en option

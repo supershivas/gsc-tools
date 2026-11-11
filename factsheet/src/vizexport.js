@@ -1,7 +1,7 @@
 /* Export de la dataviz ouverte dans l'éditeur : PNG (transparent ou avec le fond de la colonne), JPG et SVG.
    PNG et JPG passent par `rasterizeNode` (raster.js : même rendu que l'aperçu 3D, polices embarquées) à la résolution choisie
    (1 px CSS = 1/96 pouce, donc 300 dpi = ×3,125) ; la densité est écrite dans le fichier (pHYs / JFIF) pour que l'image se place à la bonne taille.
-   Le SVG est vectoriel : le graphique seul, styles résolus (couleurs, polices), sans titre, source ni chiffre à côté (du HTML). */
+   Le SVG est vectoriel : graphique, titre et source en vrais textes, styles résolus (couleurs, polices) ; sans le chiffre à côté (du HTML). */
 import { h, ico } from './render.js';
 import { cssVars } from './tokens.js';
 import { rasterizeNode, XML_BAD } from './raster.js';
@@ -20,7 +20,7 @@ const FORMATS = {
   jpg: { label: 'JPG', note: 'Image sans transparence, avec le fond de la colonne : léger, pour l’impression ou le web.', ext: 'jpg' },
   svg: {
     label: 'SVG vectoriel',
-    note: 'Graphique modifiable dans Illustrator ou Figma. Titre, source et chiffre à côté ne sont pas inclus.',
+    note: 'Graphique modifiable dans Illustrator ou Figma, titre et source en texte. Le chiffre à côté n’est pas inclus.',
     ext: 'svg',
   },
 };
@@ -96,7 +96,7 @@ const toBlob = (canvas, type, q) => new Promise((res, rej) => canvas.toBlob((b) 
 /* ---- SVG vectoriel : copie du <svg> rendu, styles calculés écrits en attributs (var(--c-…), currentColor et feuilles de style n'existent plus hors de l'app) ---- */
 const SHAPES = new Set(['path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon']);
 const TEXTS = new Set(['text', 'tspan']);
-function standaloneSvg(live, fill) {
+function svgClone(live) {
   const clone = live.cloneNode(true);
   const A = [live, ...live.querySelectorAll('*')],
     B = [clone, ...clone.querySelectorAll('*')];
@@ -143,14 +143,90 @@ function standaloneSvg(live, fill) {
   walk(clone);
   clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   clone.setAttribute('overflow', 'visible');
-  if (fill) {
-    const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    r.setAttribute('width', '100%');
-    r.setAttribute('height', '100%');
-    r.setAttribute('fill', fill);
-    clone.insertBefore(r, clone.firstChild);
+  return clone;
+}
+const NS = 'http://www.w3.org/2000/svg';
+const svgEl = (tag, attrs) => {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) if (v != null) e.setAttribute(k, v);
+  return e;
+};
+const ctx2d = document.createElement('canvas').getContext('2d');
+/** Texte HTML (titre, source) → <text> SVG : une ligne = un <text> positionné au pixel près d'après les rectangles du navigateur (retours à la ligne, exposants, gras, couleurs conservés ; soulignement, barré et surlignage redessinés). */
+function htmlTextToSvg(root, origin) {
+  const out = [],
+    walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT),
+    range = document.createRange();
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (!n.data.trim()) continue;
+    const cs = getComputedStyle(n.parentElement),
+      size = parseFloat(cs.fontSize);
+    ctx2d.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const asc = ctx2d.measureText('Hg').fontBoundingBoxAscent || size * 0.9;
+    const lines = [];
+    for (let i = 0; i < n.data.length; i++) {
+      range.setStart(n, i);
+      range.setEnd(n, i + 1);
+      const r = range.getClientRects()[0];
+      if (!r || (!r.width && n.data[i] !== ' ')) continue;
+      let L = lines[lines.length - 1];
+      if (!L || Math.abs(L.top - r.top) > size * 0.4)
+        lines.push((L = { top: r.top, left: r.left, right: r.right, bottom: r.bottom, s: '' }));
+      L.s += n.data[i];
+      L.right = r.right;
+    }
+    const up = cs.textTransform === 'uppercase';
+    for (const L of lines) {
+      let str = L.s.replace(/\s+/g, ' ').trim();
+      if (!str) continue;
+      if (up) str = str.toLocaleUpperCase();
+      const x = L.left - origin.left,
+        y = L.top - origin.top + asc,
+        w = L.right - L.left;
+      const bgc = cs.backgroundColor;
+      if (bgc && bgc !== 'rgba(0, 0, 0, 0)' && bgc !== 'transparent')
+        out.push(svgEl('rect', { x, y: L.top - origin.top, width: w, height: L.bottom - L.top, fill: bgc }));
+      const t = svgEl('text', {
+        x,
+        y,
+        fill: cs.color,
+        'font-family': cs.fontFamily,
+        'font-size': cs.fontSize,
+        'font-weight': cs.fontWeight,
+        'font-style': cs.fontStyle === 'normal' ? null : cs.fontStyle,
+        'letter-spacing': cs.letterSpacing === 'normal' ? null : cs.letterSpacing,
+      });
+      t.setAttribute('xml:space', 'preserve');
+      t.textContent = str;
+      out.push(t);
+      const deco = cs.textDecorationLine || '';
+      const line = (yy) => svgEl('line', { x1: x, x2: x + w, y1: yy, y2: yy, stroke: cs.color, 'stroke-width': Math.max(0.5, size / 16) });
+      if (deco.includes('underline')) out.push(line(y + size * 0.12));
+      if (deco.includes('line-through')) out.push(line(y - size * 0.3));
+    }
   }
-  return '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(clone).replace(XML_BAD, ' ');
+  return out;
+}
+/** SVG autonome d'une dataviz rendue : le graphique seul, ou — quand le rendu a un titre ou une source (`.viz-wrap`) — le tout dans un seul SVG (graphique imbriqué + textes). Le nœud doit être dans le document (styles calculés). */
+function vizToSvg(node) {
+  let body;
+  if (node.localName === 'svg') body = svgClone(node);
+  else {
+    const chart = node.querySelector('svg');
+    if (!chart) throw new Error('pas de dessin vectoriel');
+    const o = node.getBoundingClientRect(),
+      c = chart.getBoundingClientRect();
+    body = svgEl('svg', { xmlns: NS, width: o.width, height: o.height, viewBox: `0 0 ${o.width} ${o.height}`, overflow: 'visible' });
+    const inner = svgClone(chart);
+    inner.setAttribute('x', c.left - o.left);
+    inner.setAttribute('y', c.top - o.top);
+    body.append(inner);
+    for (const sel of ['.viz-title', '.viz-source']) {
+      const el = node.querySelector(sel);
+      if (el) body.append(...htmlTextToSvg(el, o));
+    }
+  }
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(body).replace(XML_BAD, ' ');
 }
 
 /** Ouvre la boîte d'export. `render(viz)` → { node } : rendu de l'éditeur (sans `ui`) à la largeur choisie ; `bg` : fond de la colonne (`var(--c-…)` ou blanc). */
@@ -174,40 +250,47 @@ export function openVizExport({ root, viz, doc, width, bgCss, render, fileStem }
   function build() {
     const f = FORMATS[p.format];
     dlg.replaceChildren(
-      h('h3', { textContent: t('Exporter la dataviz') }),
-      h('h4', { textContent: t('Format du fichier') }),
-      ...Object.entries(FORMATS).map(([k, o]) =>
-        h(
-          'label',
-          { class: 'opt' },
-          h('input', { type: 'radio', name: 'vexp-f', checked: k === p.format, onchange: () => ((p.format = k), savePref(p), build()) }),
-          ' ' + t(o.label),
-          h('small', { textContent: t(o.note) }),
-        ),
-      ),
-      ...(f.ext !== 'svg'
-        ? [
-            h('h4', { textContent: t('Résolution') }),
-            ...Object.entries(DPIS).map(([k, l]) =>
-              h(
-                'label',
-                { class: 'opt' },
-                h('input', { type: 'radio', name: 'vexp-d', checked: +k === p.dpi, onchange: () => ((p.dpi = +k), savePref(p), build()) }),
-                ' ' + t(l),
-              ),
-            ),
-          ]
-        : []),
-      hasHead && f.ext !== 'svg'
-        ? h(
+      ...[
+        h('h3', { textContent: t('Exporter la dataviz') }),
+        h('h4', { textContent: t('Format du fichier') }),
+        ...Object.entries(FORMATS).map(([k, o]) =>
+          h(
             'label',
             { class: 'opt' },
-            h('input', { type: 'checkbox', checked: p.head, onchange: (e) => ((p.head = e.target.checked), savePref(p)) }),
-            ' ' + t('Inclure le titre et la source'),
-          )
-        : null,
-      ((info.textContent = sizeNote()), info),
-      h('div', { class: 'row' }, h('button', { type: 'button', textContent: t('Annuler'), onclick: () => dlg.close() }), go),
+            h('input', { type: 'radio', name: 'vexp-f', checked: k === p.format, onchange: () => ((p.format = k), savePref(p), build()) }),
+            ' ' + t(o.label),
+            h('small', { textContent: t(o.note) }),
+          ),
+        ),
+        ...(f.ext !== 'svg'
+          ? [
+              h('h4', { textContent: t('Résolution') }),
+              ...Object.entries(DPIS).map(([k, l]) =>
+                h(
+                  'label',
+                  { class: 'opt' },
+                  h('input', {
+                    type: 'radio',
+                    name: 'vexp-d',
+                    checked: +k === p.dpi,
+                    onchange: () => ((p.dpi = +k), savePref(p), build()),
+                  }),
+                  ' ' + t(l),
+                ),
+              ),
+            ]
+          : []),
+        hasHead
+          ? h(
+              'label',
+              { class: 'opt' },
+              h('input', { type: 'checkbox', checked: p.head, onchange: (e) => ((p.head = e.target.checked), savePref(p)) }),
+              ' ' + t('Inclure le titre et la source'),
+            )
+          : null,
+        ((info.textContent = sizeNote()), info),
+        h('div', { class: 'row' }, h('button', { type: 'button', textContent: t('Annuler'), onclick: () => dlg.close() }), go),
+      ].filter(Boolean), // replaceChildren écrirait « null » pour une valeur vide
     );
     go.replaceChildren(ico('download'), h('span', { textContent: t('Télécharger') + ' ' + f.ext.toUpperCase() }));
   }
@@ -218,7 +301,7 @@ export function openVizExport({ root, viz, doc, width, bgCss, render, fileStem }
     go.textContent = t('Génération…');
     try {
       const v = { ...viz };
-      if (f.ext === 'svg' || !p.head) v.head = { ...(viz.head || {}), title: '', source: '' };
+      if (!p.head) v.head = { ...(viz.head || {}), title: '', source: '' };
       if (f.ext === 'svg' && viz.side) v.side = { ...viz.side, pos: 'none' };
       const r = render(v);
       if (!r || !r.node) throw new Error('rendu impossible');
@@ -241,9 +324,7 @@ export function openVizExport({ root, viz, doc, width, bgCss, render, fileStem }
         document.body.append(stage);
         let text;
         try {
-          const live = r.node.localName === 'svg' ? r.node : r.node.querySelector('svg');
-          if (!live) throw new Error('pas de dessin vectoriel');
-          text = standaloneSvg(live, null);
+          text = vizToSvg(r.node);
         } finally {
           stage.remove();
         }

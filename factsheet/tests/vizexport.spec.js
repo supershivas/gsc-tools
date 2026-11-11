@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { test, expect } = require('@playwright/test');
-const { openApp, watchErrors } = require('./helpers');
+const { openApp, watchErrors, DOC_KEY } = require('./helpers');
 
 /* Export de la dataviz depuis l'éditeur : PNG transparent, PNG avec fond, JPG 300 dpi, SVG vectoriel. */
 
@@ -20,6 +20,7 @@ async function exportAs(page, label, dpi) {
   await page.locator('.ve-exp').click();
   const dlg = page.locator('dialog.vexp');
   await expect(dlg).toBeVisible();
+  expect(await dlg.innerText()).not.toContain('null');
   await dlg.locator('label.opt', { hasText: label }).locator('input').check();
   if (dpi)
     await dlg
@@ -64,5 +65,41 @@ test('export PNG, JPG et SVG de la dataviz', async ({ page }) => {
   expect(text).not.toMatch(/var\(|currentColor|data-reorder/); // styles résolus : le fichier est autonome
   expect(text).toMatch(/font-family=/);
 
+  expect(errors).toEqual([]);
+});
+
+test('SVG : titre et source en vrais textes', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await page.evaluate((key) => {
+    const doc = JSON.parse(localStorage.getItem(key));
+    const col = doc.sections.flatMap((s) => s.subs.flatMap((b) => b.cols)).find((c) => c.viz);
+    col.viz.head = { title: '## Titre du graphique', source: 'Source : étude test' };
+    localStorage.setItem(key, JSON.stringify(doc));
+  }, DOC_KEY);
+  await page.reload();
+  await page.waitForSelector('#stage .page');
+  await page
+    .locator('#tree .col-row', { hasText: /Dataviz/ })
+    .first()
+    .click();
+  const open = page.locator('#props button.primary').first();
+  if (!(await open.count())) await page.locator('#props .pp-chev').first().click();
+  await open.click();
+  await page.locator('.ve-tab[data-tab=viz]').click();
+  const svg = await exportAs(page, 'Vector SVG');
+  const text = svg.bytes.toString('utf8');
+  expect(text).toMatch(/<text[^>]*>Titre du graphique<\/text>/);
+  expect(text).toMatch(/<text[^>]*>Source : étude test<\/text>/);
+  expect(text).not.toMatch(/foreignObject|var\(|currentColor/);
+  expect(text.match(/<svg/g).length).toBe(2); // le graphique est imbriqué dans le SVG de l'ensemble
+  // sans la case « titre et source » : le graphique seul
+  await page.locator('.ve-exp').click();
+  const dlg = page.locator('dialog.vexp');
+  await dlg.locator('label.opt', { hasText: 'Include the title' }).locator('input').uncheck();
+  const [dl] = await Promise.all([page.waitForEvent('download'), dlg.locator('button.primary').click()]);
+  const p2 = test.info().outputPath('sans-titre.svg');
+  await dl.saveAs(p2);
+  expect(fs.readFileSync(p2, 'utf8')).not.toContain('Titre du graphique');
   expect(errors).toEqual([]);
 });

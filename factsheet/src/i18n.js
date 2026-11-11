@@ -1070,8 +1070,8 @@ const EN = {
   'Image sans transparence, avec le fond de la colonne : léger, pour l’impression ou le web.':
     'Image without transparency, with the column background: light, for print or web.',
   'SVG vectoriel': 'Vector SVG',
-  'Graphique modifiable dans Illustrator ou Figma. Titre, source et chiffre à côté ne sont pas inclus.':
-    'Chart editable in Illustrator or Figma. Title, source and side figure are not included.',
+  'Graphique modifiable dans Illustrator ou Figma, titre et source en texte. Le chiffre à côté n’est pas inclus.':
+    'Chart editable in Illustrator or Figma, with title and source as text. The side figure is not included.',
   'Écran / bureautique · 150 dpi': 'Screen / office · 150 dpi',
   'Impression · 300 dpi': 'Print · 300 dpi',
   'Inclure le titre et la source': 'Include the title and source',
