@@ -67,20 +67,38 @@ export function withAxesOrigin(viz, fill = false) {
 }
 export const newViz = (kind = 'bars') => ({ kind, opts: VIZ_TYPES[kind].defaults(), head: { title: '', source: '' }, side: newSide(kind) });
 
-/** Même dataviz dans un autre type : titre/source gardés, les données suivent quand les deux types partagent la même forme (tableau libellé × séries, ou mêmes colonnes) */
+const clone = (x) => (x === undefined ? x : JSON.parse(JSON.stringify(x)));
+/** Comparaison de données entre deux types : une cellule vide (heatmap : « en attente ») vaut 0 dans les autres types */
+const sameData = (a, b) =>
+  JSON.stringify(a, (_, v) => (v === null || v === '' ? 0 : v)) === JSON.stringify(b, (_, v) => (v === null || v === '' ? 0 : v));
+/** Données que deux types partagent : couples [clé de départ, clé d'arrivée] — tableau libellé × séries, ou mêmes colonnes de `data` */
+function sharedKeys(from, fo, to, no) {
+  if (fo.rows && fo.series && no.rows && no.series)
+    return [
+      ['rows', 'rows'],
+      ['series', 'series'],
+    ];
+  const dk = (VIZ_TYPES[from] || {}).data,
+    nk = (VIZ_TYPES[to] || {}).data;
+  if (dk && nk && dk.k === nk.k && dk.cols.map((c) => c.k).join() === nk.cols.map((c) => c.k).join()) return [[dk.k, nk.k]];
+  return [];
+}
+
+/** Même dataviz dans un autre type : titre/source gardés, les données suivent quand les deux types partagent la même forme (tableau libellé × séries, ou mêmes colonnes).
+    Les réglages et données du type quitté sont rangés dans `viz.stash[type]` : y revenir les restaure (avec les données modifiées entre-temps si les types les partagent) */
 export function switchKind(viz, k) {
   const nv = newViz(k),
     o = viz.opts || {},
-    n = nv.opts,
-    dk = (VIZ_TYPES[viz.kind] || {}).data,
-    nk = VIZ_TYPES[k].data;
+    stash = { ...(viz.stash || {}) };
+  if (viz.kind && viz.opts) stash[viz.kind] = clone(viz.opts);
+  const back = stash[k];
+  delete stash[k];
+  if (back) nv.opts = clone(back);
+  const n = nv.opts;
   nv.head = viz.head || nv.head;
   if (viz.side) nv.side = { ...nv.side, ...viz.side, share: viz.side.share };
-  if (o.rows && o.series && n.rows && n.series) {
-    n.rows = o.rows;
-    n.series = o.series;
-  }
-  if (dk && nk && dk.k === nk.k && dk.cols.map((c) => c.k).join() === nk.cols.map((c) => c.k).join()) n[nk.k] = o[dk.k];
+  for (const [a, b] of sharedKeys(viz.kind, o, k, n)) if (!back || !sameData(o[a], n[b])) n[b] = clone(o[a]);
+  if (Object.keys(stash).length) nv.stash = stash;
   return nv;
 }
 

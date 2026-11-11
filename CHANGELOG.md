@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.101.1 — 2026-11-11
+- Dataviz : changer de type ne fait plus perdre les données ; revenir à un type déjà utilisé restaure ses réglages et ses données
+
 ## 1.101.0 — 2026-11-11
 - Plusieurs factsheets ouvertes à la fois, chacune dans un onglet (Alt+N : nouvel onglet, Alt+W : fermer) ; les onglets sont retrouvés à la réouverture
 - Chaque modification est gardée comme brouillon dans le navigateur ; un point signale ce qui a changé depuis le dernier « Enregistrer (.json) »

@@ -48,6 +48,63 @@ test('calculs : écarts, classes divergentes, référence et case en attente', a
   expect(r.fixedMax).toBeLessThan(3); // maximum de l'échelle fixé plus haut : teintes plus pâles
 });
 
+test('changer de type garde les données : retour au type d’origine, données partagées, stash migré', async ({ page }) => {
+  await page.goto('/factsheet/tests/blank.html');
+  const r = await page.evaluate(() => {
+    const { newViz, switchKind, migrate, defaultDoc } = window.FSTEST;
+    const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    const hm = newViz('heatmap');
+    hm.opts.rows = [
+      { label: 'Heading 1', v: [820, 1025, 25.1, null] },
+      { label: 'Agriculture', v: [282.5, null, 4, 261] },
+    ];
+    hm.opts.series[3].name = 'Accord';
+    hm.head.title = 'Titre';
+    const orig = JSON.parse(JSON.stringify(hm.opts));
+
+    // 1. type de même forme (barres) puis retour : réglages et cellules vides intacts
+    const bars = switchKind(hm, 'bars');
+    const back = switchKind(bars, 'heatmap');
+    // 2. type de forme différente (anneau) puis retour
+    const donut = switchKind(hm, 'donut');
+    const back2 = switchKind(donut, 'heatmap');
+    // 3. une donnée modifiée entre-temps dans l'autre type suit au retour
+    const bars3 = switchKind(hm, 'bars');
+    bars3.opts.rows[0].v[1] = 5;
+    const back3 = switchKind(bars3, 'heatmap');
+    // 4. migrate : stash invalide écarté, stash valide gardé
+    const doc = defaultDoc();
+    const col = doc.sections.flatMap((s) => s.subs.flatMap((b) => b.cols)).find((c) => c.viz);
+    col.viz = { ...col.viz, stash: { heatmap: { rows: [] }, nope: { a: 1 }, bars: 'x' } };
+    const m = migrate(JSON.parse(JSON.stringify(doc)));
+    const mc = m.sections.flatMap((s) => s.subs.flatMap((b) => b.cols)).find((c) => c.viz);
+    return {
+      barsData: bars.opts.rows.length,
+      barsStash: Object.keys(bars.stash || {}),
+      backSame: same(back.opts, orig),
+      backStash: Object.keys(back.stash || {}),
+      backHead: back.head.title,
+      back2Same: same(back2.opts, orig),
+      noSharedRef: bars.opts.rows !== hm.opts.rows,
+      origUntouched: same(hm.opts, orig),
+      edited: back3.opts.rows[0].v[1],
+      editedNull: back3.opts.rows[1].v[1],
+      stashKeys: Object.keys(mc.viz.stash || {}),
+    };
+  });
+  expect(r.barsData).toBe(2);
+  expect(r.barsStash).toEqual(['heatmap']);
+  expect(r.backSame).toBe(true);
+  expect(r.backStash).toEqual(['bars']); // les barres quittées sont à leur tour rangées
+  expect(r.backHead).toBe('Titre');
+  expect(r.back2Same).toBe(true);
+  expect(r.noSharedRef).toBe(true);
+  expect(r.origUntouched).toBe(true);
+  expect(r.edited).toBe(5);
+  expect(r.editedNull).toBeNull();
+  expect(r.stashKeys).toEqual(['heatmap']);
+});
+
 test('rendu dans l’éditeur et export PDF', async ({ page }) => {
   const errors = watchErrors(page);
   await openApp(page, 'default');

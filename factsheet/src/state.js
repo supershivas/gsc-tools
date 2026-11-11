@@ -2,7 +2,7 @@
    Les textes acceptent **gras**, une ligne = un paragraphe, "- " = puce. */
 import { DEFAULT_THEME, GRID, MAX_EXTRA_COLORS } from './tokens.js';
 import { newCard, cardPresetFor } from './cardmodel.js';
-import { newViz, withAxesOrigin } from './viz/index.js';
+import { newViz, withAxesOrigin, VIZ_TYPES } from './viz/index.js';
 import { t } from './i18n.js';
 import { FIGURE_DEFAULTS } from './figure.js';
 
@@ -258,6 +258,15 @@ export function migrate(j) {
           else if (!k.viz.opts) k.viz = newViz(k.viz.kind);
           /* clés de « Axes et grille » absentes (fichier d'avant la carte) : écrites avec l'aspect d'alors, le panneau montre ce qui est dessiné */
           withAxesOrigin(k.viz, true);
+          /* réglages des types quittés (`switchKind`) : on ne garde que les types connus, avec des réglages en objet */
+          if (k.viz.stash) {
+            const st = {};
+            if (typeof k.viz.stash === 'object' && !Array.isArray(k.viz.stash))
+              for (const [kind, op] of Object.entries(k.viz.stash))
+                if (kind !== k.viz.kind && VIZ_TYPES[kind] && op && typeof op === 'object' && !Array.isArray(op)) st[kind] = op;
+            if (Object.keys(st).length) k.viz.stash = st;
+            else delete k.viz.stash;
+          }
         }
         return k;
       });
