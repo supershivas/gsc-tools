@@ -125,3 +125,180 @@ test('export PDF avec les réglages d’apparence, sans erreur', async ({ page }
   sizes.forEach((n) => expect(n).toBeGreaterThan(1000));
   expect(errors).toEqual([]);
 });
+
+/* Apparence (lot 5b) : frise, waffle, pictogrammes, enquête, nuage de points. Sans clé, le dessin est celui d'avant. */
+
+/** Rend une dataviz seule et renvoie le SVG de la dataviz (celui qui a le plus d'éléments). */
+async function probe(page, kind, opts, fn) {
+  return page.evaluate(
+    ([kind, opts, fn]) => {
+      const { defaultDoc, newViz, newCol, renderDocument } = window.FSTEST;
+      const d = defaultDoc();
+      const viz = newViz(kind);
+      Object.assign(viz.opts, opts);
+      viz.head.title = 'PROBE';
+      d.sections.find((s) => s.page === 'recto').subs[1].cols[0] = { ...newCol('viz'), viz };
+      const r = renderDocument(d);
+      const host = document.createElement('div');
+      Object.assign(host.style, { position: 'absolute', left: '-30000px', top: '0' });
+      document.body.append(host);
+      r.pages.forEach((p) => host.append(p.el));
+      const svg = [...host.querySelectorAll('.viz-title')].find((n) => n.textContent.includes('PROBE')).parentElement.querySelector('svg');
+      const out = new Function('svg', 'host', 'return (' + fn + ')(svg, host)')(svg, host);
+      host.remove();
+      return out;
+    },
+    [kind, opts, fn.toString()],
+  );
+}
+const num = (e, a) => +e.getAttribute(a);
+
+test('frise : épaisseur du trait (0,5 pt d’origine) et taille des repères (rayon 5 d’origine)', async ({ page }) => {
+  const f = (svg) => ({
+    lw: Math.max(...[...svg.querySelectorAll('line')].map((l) => +l.getAttribute('stroke-width'))),
+    r: Math.max(...[...svg.querySelectorAll('circle')].map((c) => +c.getAttribute('r'))),
+  });
+  const none = await probe(page, 'timeline', {}, f);
+  expect(none.r).toBe(5);
+  const same = await probe(page, 'timeline', { lineWidth: 'thin', markSize: 'medium' }, f);
+  expect(same).toEqual(none);
+  const thick = await probe(page, 'timeline', { lineWidth: 'thick' }, f);
+  expect(thick.lw).toBeCloseTo(none.lw * 3, 5);
+  expect((await probe(page, 'timeline', { markSize: 'small' }, f)).r).toBeLessThan(5);
+  expect((await probe(page, 'timeline', { markSize: 'large' }, f)).r).toBeGreaterThan(5);
+  for (const orientation of ['vertical', 'horizontal'])
+    expect((await probe(page, 'timeline', { orientation, markSize: 'large', lineWidth: 'xthick' }, f)).r).toBe(7);
+});
+
+test('waffle : cases vides en contour seul (d’origine) ou en gris clair', async ({ page }) => {
+  const rows = [{ label: 'A', value: 30, color: 'blue', mark: 'none', markColor: 'yellow' }];
+  const f = (svg) => {
+    const cells = [...svg.querySelectorAll('rect')];
+    const empty = cells.slice(30);
+    return {
+      n: empty.length,
+      fills: [...new Set(empty.map((c) => c.getAttribute('fill')))],
+      strokes: [...new Set(empty.map((c) => c.getAttribute('stroke')))],
+    };
+  };
+  const none = await probe(page, 'waffle', { rows, total: 100 }, f);
+  const outline = await probe(page, 'waffle', { rows, total: 100, emptyStyle: 'outline' }, f);
+  const grey = await probe(page, 'waffle', { rows, total: 100, emptyStyle: 'grey' }, f);
+  expect(none.n).toBe(70);
+  expect(none.fills).toEqual(['none']);
+  expect(outline).toEqual(none);
+  expect(grey.fills).toEqual(['var(--c-grey)']);
+  expect(grey.strokes).toEqual(['currentColor']);
+});
+
+test('pictogrammes : non remplis estompés (d’origine) ou contour seul, et espace entre pictogrammes', async ({ page }) => {
+  for (const kind of ['pictoBars', 'pictoCols', 'pictoV', 'pictoH']) {
+    const f = (svg) => ({
+      faded: svg.querySelectorAll('g[opacity="0.22"]').length,
+      outlined: [...svg.querySelectorAll('path[fill="none"]')].filter((p) => p.getAttribute('stroke-width') === '1.2').length,
+    });
+    const none = await probe(page, kind, {}, f);
+    expect(none.faded, kind).toBeGreaterThan(0);
+    expect(none.outlined, kind).toBe(0);
+    expect(await probe(page, kind, { emptyStyle: 'faded' }, f), kind).toEqual(none);
+    const out = await probe(page, kind, { emptyStyle: 'outline' }, f);
+    expect(out.faded, kind).toBe(0);
+    expect(out.outlined, kind).toBe(none.faded);
+  }
+  /* trait : déjà un contour, le non-rempli reste estompé */
+  const stroke = await probe(
+    page,
+    'pictoV',
+    { emptyStyle: 'outline', icon: 'icon:check' },
+    (svg) => svg.querySelectorAll('g[opacity="0.22"]').length,
+  );
+  expect(stroke).toBeGreaterThan(0);
+  const gapOf = (axis) => (svg) => {
+    const n = [...svg.querySelectorAll('svg[viewBox="0 0 24 24"]')];
+    const ys = [...new Set(n.map((e) => +e.getAttribute('AXIS')))].sort((a, b) => a - b);
+    return { gap: Math.min(...ys.slice(1).map((v, i) => v - ys[i])), size: +n[0].getAttribute('width') };
+  };
+  for (const [kind, axis] of [
+    ['pictoBars', 'x'],
+    ['pictoCols', 'y'],
+  ]) {
+    const fn = gapOf().toString().replace('AXIS', axis);
+    const run = (o) => probe(page, kind, o, new Function('return ' + fn)());
+    const none = await run({});
+    const normal = await run({ iconGap: 'normal' });
+    const tight = await run({ iconGap: 'tight' });
+    const wide = await run({ iconGap: 'wide' });
+    expect(normal.gap - normal.size, kind).toBeCloseTo(3, 3);
+    expect(none, kind).toEqual(normal);
+    expect(tight.gap - tight.size, kind).toBeCloseTo(1, 3);
+    expect(wide.gap - wide.size, kind).toBeCloseTo(6, 3);
+  }
+});
+
+test('enquête : taille des points (86 % d’origine)', async ({ page }) => {
+  const r = (svg) => Math.max(...[...svg.querySelectorAll('circle')].map((c) => +c.getAttribute('r')));
+  const none = await probe(page, 'survey', {}, r);
+  expect(await probe(page, 'survey', { dotSize: 'normal' }, r)).toBeCloseTo(none, 6);
+  const small = await probe(page, 'survey', { dotSize: 'small' }, r);
+  const large = await probe(page, 'survey', { dotSize: 'large' }, r);
+  expect(small).toBeLessThan(none);
+  expect(large).toBeGreaterThan(none);
+  expect(large / none).toBeCloseTo(0.98 / 0.86, 3);
+});
+
+test('nuage de points : taille sans colonne « Taille », opacité', async ({ page }) => {
+  const noSize = [
+    { label: 'a', group: 'G', x: 1, y: 2, size: 0 },
+    { label: 'b', group: 'G', x: 3, y: 5, size: 0 },
+  ];
+  const f = (svg) => {
+    const c = [...svg.querySelectorAll('circle[fill-opacity]')];
+    return { r: +c[0].getAttribute('r'), op: +c[0].getAttribute('fill-opacity') };
+  };
+  const none = await probe(page, 'scatter', { rows: noSize }, f);
+  expect(none).toEqual({ r: 4.5 * 1.4, op: 1 });
+  expect(await probe(page, 'scatter', { rows: noSize, pointSize: 'medium', pointOpacity: 'opaque' }, f)).toEqual(none);
+  expect((await probe(page, 'scatter', { rows: noSize, pointSize: 'small' }, f)).r).toBeLessThan(none.r);
+  expect((await probe(page, 'scatter', { rows: noSize, pointSize: 'large' }, f)).r).toBeGreaterThan(none.r);
+  expect((await probe(page, 'scatter', { rows: noSize, pointOpacity: 'semi' }, f)).op).toBe(0.5);
+  /* avec une colonne « Taille » : pointSize sans effet, bulles à 0,8 d'origine */
+  const sized = [
+    { label: 'a', group: 'G', x: 1, y: 2, size: 5 },
+    { label: 'b', group: 'G', x: 3, y: 5, size: 20 },
+  ];
+  const withSize = await probe(page, 'scatter', { rows: sized }, f);
+  expect(withSize.op).toBe(0.8);
+  expect(await probe(page, 'scatter', { rows: sized, pointSize: 'large' }, f)).toEqual(withSize);
+  expect((await probe(page, 'scatter', { rows: sized, pointOpacity: 'semi' }, f)).op).toBe(0.5);
+});
+
+test('export PDF avec les réglages d’apparence (lot 5b), sans erreur', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await page.addScriptTag({ url: '/factsheet/tests/entry.bundle.js' });
+  await addBundle(page, 'pdfexport.js');
+  const sizes = await page.evaluate(async (key) => {
+    const base = JSON.parse(localStorage.getItem(key));
+    const out = [];
+    for (const [kind, opts] of [
+      ['timeline', { lineWidth: 'thick', markSize: 'large' }],
+      ['waffle', { emptyStyle: 'grey', total: 150 }],
+      ['pictoBars', { emptyStyle: 'outline', iconGap: 'wide' }],
+      ['pictoCols', { emptyStyle: 'outline', iconGap: 'tight' }],
+      ['pictoV', { emptyStyle: 'outline' }],
+      ['pictoH', { emptyStyle: 'outline' }],
+      ['survey', { dotSize: 'large' }],
+      ['scatter', { pointSize: 'large', pointOpacity: 'semi' }],
+    ]) {
+      const doc = JSON.parse(JSON.stringify(base));
+      const col = doc.sections.flatMap((s) => s.subs.flatMap((b) => b.cols)).find((c) => c.viz);
+      col.viz = window.FSTEST.newViz(kind);
+      Object.assign(col.viz.opts, opts);
+      const { bytes } = await window.FSPDF.build(doc, 'net', { profile: 'x1a' });
+      out.push(bytes.length);
+    }
+    return out;
+  }, DOC_KEY);
+  sizes.forEach((n) => expect(n).toBeGreaterThan(1000));
+  expect(errors).toEqual([]);
+});

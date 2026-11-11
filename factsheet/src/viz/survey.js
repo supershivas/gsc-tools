@@ -5,6 +5,8 @@ import { s, colorRef, pxOf, fmt, SANS, layoutLegend, drawLegendWrap, fitText, au
 import { t } from '../i18n.js';
 
 const SQ3 = Math.sqrt(3);
+/** diamètre d'un point en part de la case du réseau hexagonal ; « Normaux » = 86 %, la taille d'avant */
+const DOT_K = { small: 0.62, normal: 0.86, large: 0.98 };
 /** n points d'un réseau hexagonal d'espacement d, triés du centre vers l'extérieur */
 function hexDisc(n, d) {
   const R = Math.ceil(Math.sqrt(n / 2.6)) + 3,
@@ -48,6 +50,14 @@ export default {
   fields: [
     { k: 'perDot', g: 'struct', t: 'number', label: 'Répondants par point (0 = automatique)', min: 0, step: 'any' },
     { k: 'perRow', g: 'struct', t: 'number', label: 'Groupes par ligne (0 = automatique)', min: 0, max: 6 },
+    {
+      k: 'dotSize',
+      g: 'dims',
+      t: 'select',
+      label: 'Taille des points',
+      options: { small: 'Petits', normal: 'Normaux', large: 'Grands' },
+      def: 'normal',
+    },
     { k: 'groupLabels', g: 'labels', t: 'bool', label: 'Afficher le nom des groupes' },
     { k: 'legend', g: 'labels', t: 'bool', label: 'Afficher la légende' },
     {
@@ -125,7 +135,7 @@ export default {
     const cw = (W - gap * (per - 1)) / per,
       Rcell = cw / 2,
       d = Rcell * Math.sqrt((2 * Math.PI) / (SQ3 * nMax)) * 0.97,
-      dotR = (d / 2) * 0.86;
+      dotR = (d / 2) * (DOT_K[o.dotSize] ?? DOT_K.normal);
     const nameH = o.groupLabels && groups.some(Boolean) ? Math.ceil(capPx * 1.5) + 6 : 0,
       rowsN = Math.ceil(groups.length / per);
     const clusterR = Math.min(Rcell, d * Math.sqrt((nMax * SQ3) / (2 * Math.PI)) + d),

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.94.0 — 2026-11-11
+- Frise : épaisseur du trait (Fin → Très épais) et taille des repères ; Waffle : cases vides en contour seul ou en gris clair
+- Pictogrammes : non remplis estompés ou en contour seul, espace entre pictogrammes (Serré / Normal / Large) ; Enquête : taille des points
+- Nuage de points : taille des points (sans colonne « Taille ») et opacité ; les fiches existantes gardent leur aspect, ↺ y ramène
+
 ## 1.93.0 — 2026-11-11
 - Anneau : épaisseur (Fin / Normal / Épais) et séparation des segments (Aucune / Fine / Large) dans « Dimensions »
 - Barres et barres horizontales : coins arrondis ou droits ; Sankey : opacité des flux (Légère / Normale / Marquée)

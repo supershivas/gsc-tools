@@ -4,7 +4,10 @@ import { VIZ, TYPE } from '../tokens.js';
 import { reorderHit, s, SW, colorRef, pxOf, fmt, mw, SANS, SERIF, textLines, drawLines, heightOf } from './util.js';
 import { t } from '../i18n.js';
 
-const R = 5; // rayon du repère
+/** Valeurs d'origine : trait 0,5 pt, repères de 5 px de rayon */
+const LOOK = { lineWidth: 'thin', markSize: 'medium' };
+const WIDTH_K = { thin: 1, medium: 2, thick: 3, xthick: 5 }; // mêmes crans que les courbes, en multiples de 0,5 pt
+const MARK_R = { small: 3.5, medium: 5, large: 7 };
 
 export default {
   label: 'Frise chronologique',
@@ -38,6 +41,22 @@ export default {
         none: 'Aucune : la ligne commence au premier cercle',
       },
     },
+    {
+      k: 'lineWidth',
+      g: 'dims',
+      t: 'select',
+      label: 'Épaisseur du trait',
+      options: { thin: 'Fin', medium: 'Moyen', thick: 'Épais', xthick: 'Très épais' },
+      def: LOOK.lineWidth,
+    },
+    {
+      k: 'markSize',
+      g: 'dims',
+      t: 'select',
+      label: 'Taille des repères',
+      options: { small: 'Petit', medium: 'Moyen', large: 'Grand' },
+      def: LOOK.markSize,
+    },
   ],
   data: {
     k: 'rows',
@@ -56,6 +75,8 @@ export default {
       capPx = pxOf(TYPE.caption.size),
       lh = TYPE.caption.lh,
       numPx = pxOf(TYPE.captionNum.size);
+    const R = MARK_R[o.markSize] ?? MARK_R[LOOK.markSize],
+      lw = SW * (WIDTH_K[o.lineWidth] ?? WIDTH_K[LOOK.lineWidth]);
     const showDates = o.showDates !== false,
       horizontal = o.orientation === 'horizontal';
     const mk = (H) => s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });
@@ -88,7 +109,7 @@ export default {
     const tail = o.tail || 'dashed',
       TL = 24;
     const line = (svg, x1, y1, x2, y2, dash) =>
-      svg.append(s('line', { x1, y1, x2, y2, stroke: 'currentColor', 'stroke-width': SW, 'stroke-dasharray': dash || null }));
+      svg.append(s('line', { x1, y1, x2, y2, stroke: 'currentColor', 'stroke-width': lw, 'stroke-dasharray': dash || null }));
     const tailSeg = (svg, xa, ya, xb, yb) => {
       // a : côté du cercle, b : extrémité
       if (Math.hypot(xb - xa, yb - ya) < 1) return;

@@ -765,3 +765,29 @@ test('anneau : épaisseur en vignettes, ↺ ramène à Normal', async ({ page })
   await expect(f.locator('.seg button.on')).toHaveText('Normal');
   expect(errors).toEqual([]);
 });
+
+/* Apparence (lot 5b) : valeurs d'origine affichées, ↺, et taille des points du nuage grisée tant qu'une colonne « Taille » existe */
+test('apparence 5b : défauts affichés, ↺, taille du nuage grisée avec une colonne Taille', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await openEditor(page);
+  const shown = async (type, label) => {
+    await pickType(page, type);
+    await page.locator('.ve-form .pp-q').fill(' ');
+    return page.locator('.ve-form .f', { hasText: label });
+  };
+  let f = await shown(/^Timeline/, 'Marker size');
+  await expect(f.locator('.seg button.on')).toHaveText('Medium');
+  await f.locator('.seg button', { hasText: 'Large' }).click();
+  await page.locator('.ve-form .pp-q').fill(' ');
+  await expect(f.locator('.seg button.on')).toHaveText('Large');
+  await f.locator('.pp-reset').click();
+  await expect(f.locator('.seg button.on')).toHaveText('Medium');
+  f = await shown(/^Waffle|^Percentage grid/, 'Empty cells');
+  await expect(f.locator('.seg button.on')).toHaveText('Outline only');
+  f = await shown(/^Survey/, 'Point size');
+  await expect(f.locator('.seg button.on')).toHaveText('Normal');
+  f = await shown(/^Scatter/, 'Point size');
+  await expect(f).toHaveAttribute('aria-disabled', 'true'); // l'exemple a une colonne « Taille »
+  expect(errors).toEqual([]);
+});

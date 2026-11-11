@@ -63,7 +63,7 @@ export function sanitizeSvg(text, name = 'icon') {
 }
 
 /** Nœud <svg> imbriqué (x, y, w, h) contenant le pictogramme, de couleur `color` ; icons : bibliothèque du document (rc.icons) */
-export function iconNode(o, key, x, y, w, h, color, icons) {
+export function iconNode(o, key, x, y, w, h, color, icons, outline = false) {
   const [kind, id] = String(key || 'picto:person').split(':');
   let vb = [0, 0, 24, 24],
     inner = null;
@@ -99,7 +99,14 @@ export function iconNode(o, key, x, y, w, h, color, icons) {
       const tmp = cleanSvgTree(
         new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${c.markup}</svg>`, 'image/svg+xml').documentElement,
       );
-      if (o.recolor !== false)
+      if (outline) {
+        /* contour seul : plus de remplissage, le tracé prend la couleur (épaisseur ~1/20 de la hauteur de la vignette) */
+        svg.setAttribute('fill', 'none');
+        svg.setAttribute('stroke', col);
+        svg.setAttribute('stroke-width', Math.max(c.vb[2], c.vb[3]) / 20);
+        svg.setAttribute('stroke-linejoin', 'round');
+        tmp.querySelectorAll('*').forEach((n) => ['fill', 'stroke', 'style'].forEach((a) => n.removeAttribute(a)));
+      } else if (o.recolor !== false)
         tmp.querySelectorAll('*').forEach((n) => {
           const f = n.getAttribute('fill'),
             st = n.getAttribute('stroke');
@@ -111,9 +118,20 @@ export function iconNode(o, key, x, y, w, h, color, icons) {
     }
   } else {
     const p = PICTOS[id] || PICTOS.person;
-    svg.append(s('path', { d: p.d, fill: col }));
+    svg.append(
+      s('path', outline ? { d: p.d, fill: 'none', stroke: col, 'stroke-width': 1.2, 'stroke-linejoin': 'round' } : { d: p.d, fill: col }),
+    );
   }
   return svg;
+}
+/** le pictogramme peut-il se dessiner en contour seul ? Les pictogrammes pleins et les SVG recolorés, oui ; les icônes au trait
+    (déjà un contour) et les images importées, non : le non-rempli reste estompé */
+function outlinable(o, key, icons) {
+  const [kind, id] = String(key || 'picto:person').split(':');
+  if (kind === 'icon') return false;
+  if (kind !== 'custom') return true;
+  const c = customList(o, icons).find((k) => k.id === id);
+  return !!c && !c.img && o.recolor !== false;
 }
 /** pictogramme rempli à `frac` (0–1) : fond estompé + copie découpée ; dir = 'v' (de bas en haut) ou 'h' (de gauche à droite) ;
     env.rc : icônes du document et identifiant du clipPath */
@@ -121,7 +139,8 @@ function partial(o, key, x, y, w, h, color, frac, dir, env) {
   const icons = env.rc.icons;
   frac = Math.max(0, Math.min(1, frac));
   const g = s('g');
-  g.append(s('g', { opacity: 0.22 }, iconNode(o, key, x, y, w, h, color, icons)));
+  if (o.emptyStyle === 'outline' && outlinable(o, key, icons)) g.append(iconNode(o, key, x, y, w, h, color, icons, true));
+  else g.append(s('g', { opacity: 0.22 }, iconNode(o, key, x, y, w, h, color, icons)));
   if (frac <= 0) return g;
   if (frac >= 1) {
     g.append(iconNode(o, key, x, y, w, h, color, icons));
@@ -232,6 +251,9 @@ export function iconImportPanel(o, ctx) {
   return importParts(o, ctx);
 }
 
+/** écart entre pictogrammes en px ; « Normal » = 3, l'écart d'avant (les barres gardent 9 px entre deux lignes) */
+const ICON_GAP = { tight: 1, normal: 3, wide: 6 };
+
 const VARIANTS = {
   rows: { label: 'Pictogrammes · barres', icon: 'layout-list' },
   cols: { label: 'Pictogrammes · barres verticales', icon: 'layout-columns' },
@@ -274,12 +296,29 @@ function make(variant) {
         step: 'any',
       },
       { k: 'color', g: 'colors', t: 'color', label: 'Couleur des pictogrammes' },
+      {
+        k: 'emptyStyle',
+        g: 'colors',
+        t: 'select',
+        label: 'Pictogrammes non remplis',
+        options: { faded: 'Estompés', outline: 'Contour seul' },
+        def: 'faded',
+      },
       { k: 'showValues', g: 'labels', t: 'bool', label: 'Afficher les valeurs' },
       { k: 'decimals', g: 'labels', t: 'number', label: 'Décimales des valeurs', min: 0, max: 4 },
       { k: 'suffix', g: 'labels', t: 'text', label: 'Unité après la valeur (%, M€…)' },
     ].concat(
       multi
-        ? []
+        ? [
+            {
+              k: 'iconGap',
+              g: 'dims',
+              t: 'select',
+              label: 'Espace entre les pictogrammes',
+              options: { tight: 'Serré', normal: 'Normal', wide: 'Large' },
+              def: 'normal',
+            },
+          ]
         : [
             {
               k: 'ratio',
@@ -311,7 +350,7 @@ function make(variant) {
         numPx = pxOf(TYPE.captionNum.size),
         suffix = o.suffix || '',
         per = +o.perIcon > 0 ? +o.perIcon : 1,
-        G = 3;
+        G = ICON_GAP[o.iconGap] ?? ICON_GAP.normal; // écart entre pictogrammes (def 3 px)
       const val = (v) => fmt(v, env.locale, o.decimals) + suffix,
         valTxt = (x, y, v, anchor = 'start') =>
           s(
@@ -339,7 +378,7 @@ function make(variant) {
           perLine = Math.max(1, Math.floor((span + G) / (sz + G)));
         const lines = (r) => Math.max(1, Math.ceil(Math.ceil(r.value / per) / perLine)),
           rowH = (r) => lines(r) * (sz + G) - G;
-        const H = rows.reduce((a, r) => a + rowH(r), 0) + (rows.length - 1) * (G * 3);
+        const H = rows.reduce((a, r) => a + rowH(r), 0) + (rows.length - 1) * 9;
         const svg = mk(H);
         let y = 0;
         for (const r of rows) {
@@ -363,7 +402,7 @@ function make(variant) {
             );
           if (o.showValues) svg.append(valTxt(labW + Math.min(Math.ceil(n), perLine) * (sz + G) + 3, y + sz / 2 + 0.33 * numPx, r.value));
           svg.append(reorderHit(env, 'rows', rows.indexOf(r), 'y', 0, y - G, W, h + 2 * G));
-          y += h + G * 3;
+          y += h + 9;
         }
         return { node: svg };
       }

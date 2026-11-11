@@ -29,6 +29,10 @@ import { t } from '../i18n.js';
 /** Aspect d'origine de la carte « Axes et grille » (nuage d'avant la carte : lignes horizontales en pointillé, valeurs et axes affichés) */
 const ORIGIN = { grid: 'h', gridStyle: 'dotted', gridTone: 'normal', axisValues: true, baseline: true };
 
+/** rayon des points sans colonne « Taille » ; « Moyen » = VIZ.pointR × 1,4, le rayon d'avant */
+const POINT_R = { small: 4, medium: VIZ.pointR * 1.4, large: 9 };
+const sized = (o) => (o.rows || []).some((r) => +r.size > 0);
+
 export default {
   label: 'Nuage de points',
   icon: 'chart-dots',
@@ -79,6 +83,24 @@ export default {
     { k: 'zeroX', g: 'axes', t: 'bool', label: 'Axe horizontal démarrant à zéro' },
     { k: 'zeroY', g: 'axes', t: 'bool', label: 'Axe vertical démarrant à zéro' },
     { k: 'maxR', g: 'dims', t: 'number', label: 'Rayon maximal des bulles (px)', min: 3, max: 40 },
+    {
+      k: 'pointSize',
+      g: 'dims',
+      when: (o) => !sized(o),
+      why: 'Les points prennent la taille de la colonne « Taille » : videz-la pour régler leur taille ici.',
+      t: 'select',
+      label: 'Taille des points',
+      options: { small: 'Petit', medium: 'Moyen', large: 'Grand' },
+      def: 'medium',
+    },
+    {
+      k: 'pointOpacity',
+      g: 'colors',
+      t: 'select',
+      label: 'Opacité des points (« Opaque » : pleins, bulles à 80 %)',
+      options: { opaque: 'Opaque', semi: 'Semi-transparent' },
+      def: 'opaque',
+    },
     { k: 'showLabels', g: 'labels', t: 'bool', label: 'Afficher le nom des points' },
     { k: 'legend', g: 'labels', t: 'bool', label: 'Afficher la légende (groupes)' },
     {
@@ -130,7 +152,7 @@ export default {
     }
     const hasSize = pts.some((p) => p.size > 0),
       maxSize = Math.max(...pts.map((p) => p.size), 1),
-      rOf = (p) => (hasSize ? Math.max(3, Math.sqrt(p.size / maxSize) * (+o.maxR || 14)) : VIZ.pointR * 1.4);
+      rOf = (p) => (hasSize ? Math.max(3, Math.sqrt(p.size / maxSize) * (+o.maxR || 14)) : (POINT_R[o.pointSize] ?? POINT_R.medium));
     const xs = pts.map((p) => p.x),
       ys = pts.map((p) => p.y);
     const refX = refVal(o, 'refLineX', 'refX'),
@@ -218,7 +240,17 @@ export default {
           r = rOf(p),
           cx = sx(p.x),
           cy = sy(p.y);
-        dots.append(s('circle', { cx, cy, r, fill: c, 'fill-opacity': hasSize ? 0.8 : 1, stroke: 'currentColor', 'stroke-width': SW }));
+        dots.append(
+          s('circle', {
+            cx,
+            cy,
+            r,
+            fill: c,
+            'fill-opacity': o.pointOpacity === 'semi' ? 0.5 : hasSize ? 0.8 : 1,
+            stroke: 'currentColor',
+            'stroke-width': SW,
+          }),
+        );
         if (o.showLabels && p.label) {
           const ft = fitText(p.label, 400, SANS, capPx, 90, 0.7);
           labs.append(

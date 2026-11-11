@@ -37,6 +37,14 @@ export default {
     { k: 'total', g: 'struct', t: 'number', label: 'Valeur de la grille entière (0 = somme des valeurs)', min: 0, step: 'any' },
     { k: 'shape', g: 'struct', t: 'select', label: 'Forme des cases', options: { square: 'Carrée', rounded: 'Arrondie', circle: 'Ronde' } },
     { k: 'gap', g: 'dims', t: 'number', label: 'Espace entre les cases (px)', min: 0, max: 12 },
+    {
+      k: 'emptyStyle',
+      g: 'colors',
+      t: 'select',
+      label: 'Cases vides (hors des valeurs)',
+      options: { outline: 'Contour seul', grey: 'Gris clair' },
+      def: 'outline',
+    },
     { k: 'legend', g: 'labels', t: 'bool', label: 'Afficher la légende' },
     {
       k: 'legendPos',
@@ -113,6 +121,7 @@ export default {
     cnt.forEach((c, i) => {
       for (let k = 0; k < c; k++) owner.push(i);
     });
+    const grey = o.emptyStyle === 'grey'; // cases hors des valeurs : gris clair (def : contour seul, comme avant)
     const sw = SW * 1.5,
       rx = { square: 0.5, rounded: Math.min(VIZ.barRadius, size / 3), circle: size / 2 }[o.shape] ?? VIZ.barRadius,
       inset = size * 0.28;
@@ -163,8 +172,8 @@ export default {
           width: size - sw,
           height: size - sw,
           rx,
-          fill: on ? colorRef(c.color) : 'none',
-          stroke: on ? 'currentColor' : colorRef(cats[0] ? cats[0].color : 'blue'),
+          fill: on ? colorRef(c.color) : grey ? colorRef('grey') : 'none',
+          stroke: on || grey ? 'currentColor' : colorRef(cats[0] ? cats[0].color : 'blue'),
           'stroke-width': sw,
         }),
       );
