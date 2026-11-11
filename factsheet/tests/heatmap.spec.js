@@ -1,4 +1,6 @@
 const { test, expect } = require('@playwright/test');
+const { execFileSync, spawnSync } = require('child_process');
+const fs = require('fs');
 const { openApp, watchErrors, addBundle, DOC_KEY } = require('./helpers');
 
 /* Heatmap (lot 3a de l'audit des options) : calculs des écarts et des classes, rendu des cases (référence, en attente), export PDF. */
@@ -248,4 +250,191 @@ test('légende rendue en colonne étroite et pleine largeur, en haut ou en bas',
     expect(r[k].lgY + r[k].reserve).toBeLessThanOrEqual(r[k].h + 6);
   }
   expect(r['600-bottom'].texts).toBeGreaterThan(r['200-bottom'].texts - 1); // étroit : libellés aux extrémités seulement, la note peut passer à la ligne
+});
+
+/* ---------- Lot 2b : mise en forme des textes ---------- */
+const LONG = 'Heading 1 – Competitiveness, prosperity and security: single market, research, innovation, digital and space';
+test('textes : calculs inchangés, aspect d’origine sans les nouvelles clés, gras, retour à la ligne, ligne titre', async ({ page }) => {
+  await page.goto('/factsheet/tests/blank.html');
+  await page.evaluate(() => document.fonts.ready);
+  const r = await page.evaluate((LONG) => {
+    const { VIZ_TYPES, heatCells } = window.FSTEST;
+    const o = VIZ_TYPES.heatmap.defaults();
+    delete o.nameWrap;
+    delete o.headWrap;
+    o.rows[0].label = LONG;
+    const draw = (opts, W = 460) => {
+      const host = document.createElement('div');
+      const res = VIZ_TYPES.heatmap.render(opts, W, { locale: 'en-GB' });
+      host.append(res.node);
+      document.body.append(host);
+      const names = [...res.node.querySelectorAll('text.hm-name')].map((t) => ({
+        txt: t.textContent,
+        y: +t.getAttribute('y'),
+        size: +t.getAttribute('font-size'),
+        weight: t.getAttribute('font-weight'),
+        right: t.getBBox().x + t.getBBox().width,
+      }));
+      const cells = [...res.node.querySelectorAll('path.hm-ref')].map((p) => {
+        const b = p.getBBox();
+        return { x: b.x, y: b.y, width: b.width, height: b.height };
+      });
+      const heads = [...res.node.querySelectorAll('svg > text:not(.hm-name)')].map((t) => ({
+        txt: t.textContent,
+        weight: t.getAttribute('font-weight'),
+        size: +t.getAttribute('font-size'),
+      }));
+      const out = {
+        names,
+        cells,
+        heads,
+        bands: res.node.querySelectorAll('path.hm-band').length,
+        h: +res.node.getAttribute('height'),
+        html: res.node.outerHTML,
+      };
+      host.remove();
+      return out;
+    };
+    const legacy = draw(o);
+    const fmtRows = JSON.parse(JSON.stringify(o));
+    fmtRows.rows[0].kind = 'heading';
+    fmtRows.rows[3].kind = 'total';
+    fmtRows.rows[1].fmt = { bold: true, size: 'small' };
+    const wrapped = draw({ ...fmtRows, nameWrap: true });
+    const wide = draw({ ...o, nameWrap: true, nameWidth: '50' });
+    const heads = draw({
+      ...o,
+      headWrap: true,
+      headBold: true,
+      series: o.series.map((s, j) => ({ ...s, name: j === 1 ? 'A much longer column header that wraps' : s.name })),
+    });
+    const noHeads = draw({ ...o, series: o.series.map((s) => ({ ...s, name: '' })) });
+    return {
+      calcSame: JSON.stringify(heatCells(o)) === JSON.stringify(heatCells(fmtRows)),
+      legacy,
+      wrapped,
+      wide,
+      heads,
+      noHeads,
+    };
+  }, LONG);
+  expect(r.calcSame).toBe(true); // la mise en forme ne touche pas aux calculs
+  // aspect d'origine : une ligne par nom, réduite, graisse des libellés de graphique ; lignes de même hauteur
+  expect(r.legacy.names).toHaveLength(4);
+  expect(r.legacy.names[0].size).toBeLessThan(r.legacy.names[1].size);
+  expect(r.legacy.names.every((n) => n.weight === '600')).toBe(true);
+  expect(new Set(r.legacy.cells.map((c) => Math.round(c.height))).size).toBe(1);
+  expect(r.legacy.bands).toBe(0);
+  // retour à la ligne : le long nom tient sur plusieurs lignes à sa taille, la ligne grandit, les autres se partagent le reste
+  const first = r.wrapped.names.filter(
+    (n) => LONG.includes(n.txt) && n.txt.length > 3 && n.y < r.wrapped.cells[0].y + r.wrapped.cells[0].height,
+  );
+  expect(first.length).toBeGreaterThan(2);
+  expect(first.map((n) => n.txt).join(' ')).toBe(LONG);
+  expect(first[0].size).toBeGreaterThan(r.legacy.names[1].size); // ligne titre : plus grand, jamais réduit
+  expect(first.every((n) => n.weight === '700')).toBe(true);
+  expect(r.wrapped.cells[0].height).toBeGreaterThan(r.wrapped.cells[2].height);
+  expect(r.wrapped.bands).toBe(2); // titre et total sur fond neutre
+  const row2 = r.wrapped.names.find((n) => n.txt === 'Payments');
+  expect(row2.weight).toBe('700');
+  expect(row2.size).toBeLessThan(r.legacy.names[1].size);
+  const total = r.wrapped.names.find((n) => n.txt === 'Margins');
+  expect(total.weight).toBe('700');
+  expect(r.wrapped.h).toBeGreaterThanOrEqual(r.legacy.h);
+  // largeur des noms à 50 % : les cases commencent au milieu, aucun nom ne dépasse
+  expect(Math.round(r.wide.cells[0].x)).toBe(230);
+  expect(r.wide.names.every((n) => n.right <= 230 - 9 + 1)).toBe(true);
+  // en-têtes en gras sur plusieurs lignes ; sans en-tête, pas de bande vide en haut
+  expect(r.heads.heads.filter((t) => t.weight === '700').length).toBeGreaterThan(4);
+  expect(r.heads.cells[0].y).toBeGreaterThan(r.legacy.cells[0].y);
+  expect(r.noHeads.cells[0].y).toBe(0);
+});
+
+test('textes : réglages dans l’éditeur (carte Textes, colonnes de ligne), export PDF, aller-retour de type', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await page.evaluate(
+    ([key, LONG]) => {
+      const doc = JSON.parse(localStorage.getItem(key));
+      const col = doc.sections.flatMap((s) => s.subs.flatMap((b) => b.cols)).find((c) => c.viz);
+      col.viz = { kind: 'heatmap', opts: null, head: { title: '', source: '' }, side: { pos: 'none' } };
+      localStorage.setItem(key, JSON.stringify(doc));
+    },
+    [DOC_KEY, LONG],
+  );
+  await page.reload();
+  await page.waitForSelector('#stage .page');
+  await page
+    .locator('#tree .col-row', { hasText: /Dataviz/ })
+    .first()
+    .click();
+  const open = page.locator('#props button.primary').first();
+  if (!(await open.count())) await page.locator('#props .pp-chev').first().click();
+  await open.click();
+  await expect(page.locator('.ve-bar')).toBeVisible();
+  // onglet Données : le 1er nom devient long, la ligne devient un titre, la 2e en gras
+  await page.locator('.ve-tab[data-tab=data]').click();
+  const grid = page.locator('table.dg').first();
+  await expect(grid.locator('thead th', { hasText: 'Row type' })).toHaveCount(1);
+  await grid.locator('input[data-r="0"][data-c="0"]').fill(LONG);
+  const ns = await grid.locator('thead th').count(); // n°, libellé, 4 colonnes, type, gras, taille, n°
+  await grid.locator(`select[data-r="0"][data-c="${ns - 5}"]`).selectOption('heading');
+  await grid.locator(`select[data-r="1"][data-c="${ns - 4}"]`).selectOption('on');
+  await grid.locator(`select[data-r="3"][data-c="${ns - 5}"]`).selectOption('total');
+  // carte Textes : noms à 40 %, en-têtes en gras
+  await page.locator('.ve-tab[data-tab=viz]').click();
+  await page.locator('.ve-form .pp-q').fill(' ');
+  await expect(page.locator('.ve-form .pp-sub', { hasText: 'Row names' })).toHaveCount(1);
+  await page.locator('.ve-form .pp-switchrow', { hasText: 'Bold headers' }).locator('button[role=switch]').click();
+  await page.locator('.ve-form .pp-q').fill('');
+  const stage = page.locator('#ve-stage svg');
+  await expect(stage.locator('path.hm-band')).toHaveCount(2);
+  expect(await stage.locator('text.hm-name').count()).toBeGreaterThan(5);
+  await page.screenshot({ path: test.info().outputPath('heatmap-texts.png') });
+  await page.locator('.ve-bar button.primary').click();
+  await expect(page.locator('.ve-bar')).toHaveCount(0);
+  await page.waitForTimeout(300);
+  await addBundle(page, 'pdfexport.js');
+  const r = await page.evaluate(async (key) => {
+    const doc = JSON.parse(localStorage.getItem(key));
+    const viz = doc.sections.flatMap((s) => s.subs.flatMap((b) => b.cols)).find((c) => c.viz && c.viz.kind === 'heatmap').viz;
+    const { bytes, missing } = await window.FSPDF.build(doc, 'net', { profile: 'x4' });
+    const b64 = await new Promise((res) => {
+      const fr = new FileReader();
+      fr.onload = () => res(String(fr.result).split(',')[1]);
+      fr.readAsDataURL(new Blob([bytes]));
+    });
+    return { b64, missing, rows: viz.opts.rows, headBold: viz.opts.headBold, viz };
+  }, DOC_KEY);
+  expect(r.rows[0]).toMatchObject({ label: LONG, kind: 'heading' });
+  expect(r.rows[1].fmt).toEqual({ bold: true });
+  expect(r.rows[3].kind).toBe('total');
+  expect(r.headBold).toBe(true);
+  expect(r.missing).toEqual([]);
+  // PDF : le long nom passe à la ligne (mots sur plusieurs lignes), en plus grand que les autres noms
+  const file = test.info().outputPath('heatmap-texts.pdf');
+  fs.writeFileSync(file, Buffer.from(r.b64, 'base64'));
+  if (spawnSync('pdftotext', ['-v']).error === undefined) {
+    const html = execFileSync('pdftotext', ['-bbox', file, '-']).toString();
+    const words = [...html.matchAll(/<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">([^<]*)<\/word>/g)].map((m) => ({
+      y: +m[2],
+      h: +m[4] - +m[2],
+      w: m[5],
+    }));
+    const pick = (w) => words.find((x) => x.w === w);
+    for (const w of ['Competitiveness,', 'security:', 'innovation,', 'space']) expect(pick(w)).toBeTruthy();
+    expect(new Set(['Heading', 'security:', 'space'].map((w) => Math.round(pick(w).y))).size).toBe(3);
+    expect(pick('Heading').h).toBeGreaterThan(pick('Payments').h);
+  }
+  // aller-retour de type (stash) : `kind` et `fmt` des lignes sont conservés
+  await page.goto('/factsheet/tests/blank.html');
+  const back = await page.evaluate((viz) => {
+    const { switchKind } = window.FSTEST;
+    const bars = switchKind(viz, 'bars');
+    const donut = switchKind(bars, 'donut');
+    return switchKind(switchKind(donut, 'bars'), 'heatmap').opts.rows;
+  }, r.viz);
+  expect(back[0].kind).toBe('heading');
+  expect(back[1].fmt).toEqual({ bold: true });
+  expect(errors).toEqual([]);
 });

@@ -448,6 +448,28 @@ const EN = {
   Série: 'Series',
   'Coller un tableau': 'Paste a table',
   'Remplacer les données': 'Replace data',
+  /* heatmap : mise en forme des textes (lot 2b) */
+  Textes: 'Texts',
+  'Noms des lignes': 'Row names',
+  'En-têtes de colonnes': 'Column headers',
+  'Largeur des noms': 'Name width',
+  'Noms sur plusieurs lignes': 'Names on several lines',
+  'Taille des noms': 'Name size',
+  'Noms en gras': 'Bold names',
+  'Alignement des noms': 'Name alignment',
+  'En-têtes sur plusieurs lignes': 'Headers on several lines',
+  'Taille des en-têtes': 'Header size',
+  'En-têtes en gras': 'Bold headers',
+  'Affichez les noms des lignes (Axes et grille) pour les mettre en forme.': 'Show the row names (Axes and grid) to format them.',
+  'Affichez les noms des colonnes (Axes et grille) pour les mettre en forme.': 'Show the column names (Axes and grid) to format them.',
+  'Type de ligne': 'Row type',
+  Ligne: 'Row',
+  Total: 'Total',
+  Taille: 'Size',
+  Oui: 'Yes',
+  Non: 'No',
+  'Une ligne par ligne du tableau, une colonne par colonne (12 au plus). Une cellule laissée vide est dessinée « en attente ». Les écarts sont calculés par rapport à la colonne de référence (Structure). Type de ligne : Titre ou Total mettent la ligne en gras sur un fond neutre léger ; Gras et Taille la règlent une à une.':
+    'One row per table row, one column per column (12 at most). An empty cell is drawn as “pending”. Gaps are computed against the reference column (Structure). Row type: Title or Total make the row bold on a light neutral background; Bold and Size set each row individually.',
   /* aperçu avant import (vizdata.js) */
   'Aperçu de l’import': 'Import preview',
   'Lignes d’en-tête': 'Header rows',
@@ -826,7 +848,6 @@ const EN = {
   'Les points prennent la taille de la colonne « Taille » : videz-la pour régler leur taille ici.':
     'Points take the size of the “Size” column: empty it to set their size here.',
   Droits: 'Square',
-  'Noms des lignes': 'Row names',
   'Noms des colonnes': 'Column names',
   'Texte des cases de référence': 'Reference cell text',
   'Texte des cases vides (en attente)': 'Empty cell text (pending)',
@@ -855,8 +876,6 @@ const EN = {
   'Choisissez une colonne de référence pour afficher les écarts.': 'Choose a reference column to show the gaps.',
   'Sans référence ou en couleur selon la valeur, seule la couleur des hausses sert.':
     'Without a reference, or when colouring by value, only the increase colour is used.',
-  'Une ligne par ligne du tableau, une colonne par colonne (12 au plus). Une cellule laissée vide est dessinée « en attente ». Les écarts sont calculés par rapport à la colonne de référence (Structure).':
-    'One line per table row, one column per column (12 at most). An empty cell is drawn as “pending”. Gaps are computed against the reference column (Structure).',
   'Plusieurs séries': 'Multiple series',
   'Jumelées (2 séries qui se chevauchent)': 'Overlapping (2 series overlap)',
   'Côte à côte': 'Side by side',

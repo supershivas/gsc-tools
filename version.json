@@ -1,8 +1,9 @@
 {
-  "version": "1.102.0",
+  "version": "1.103.0",
   "date": "2026-11-11",
   "changes": [
-    "Dataviz : les nombres collés ou importés sont lus selon le format du document (« 1,025 » = 1 025 en anglais, « 1.025,5 » en français, espaces insécables, €, %)",
-    "Nouvel aperçu avant import : lignes d'en-tête (0, 1, 2), rôle de chaque colonne (libellé, donnée, ignorer), séparateur décimal, cellules non lues signalées"
+    "Heatmap : les noms longs passent à la ligne au lieu de rétrécir ; largeur de la colonne des noms réglable (20 à 50 %)",
+    "Mise en forme par ligne (onglet Données) : type Titre ou Total (gras, fond neutre léger), gras et taille ; nouvelle carte « Textes » pour les noms et les en-têtes de colonnes",
+    "Les heatmaps existantes gardent leur aspect"
   ]
 }

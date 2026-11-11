@@ -13,6 +13,7 @@ import {
   SANS,
   SERIF,
   fitText,
+  ellipsize,
   mw,
   heightOf,
   inkOn,
@@ -188,6 +189,62 @@ export function heatLegend(o, loc) {
   return out;
 }
 
+/* ---------- Mise en forme des textes (lot 2b) ---------- */
+/** Interligne des noms et en-têtes sur plusieurs lignes */
+const LH = 1.25;
+/** Opacité du fond neutre des lignes titre et total (sur une case blanche opaque) */
+const BAND_ALPHA = 0.5;
+/** Part de la largeur réservée aux noms des lignes (`nameWidth`) ; absente ou `auto` = largeur des noms, 35 % au plus (aspect d'origine) */
+const NAME_W = { 20: 0.2, 25: 0.25, 30: 0.3, 35: 0.35, 40: 0.4, 45: 0.45, 50: 0.5 };
+/** Type de ligne : préréglage de mise en forme (gras, taille, fond neutre léger) */
+export const ROW_KINDS = {
+  row: {},
+  heading: { bold: true, size: 'large', band: true },
+  total: { bold: true, band: true },
+};
+/** Mise en forme d'une ligne : préréglage de son type, puis ses propres réglages (`row.fmt` : bold, size, align) */
+export const rowFmt = (r) => {
+  const own = (r && r.fmt) || {},
+    out = { ...(ROW_KINDS[r && r.kind] || ROW_KINDS.row) };
+  for (const k of ['bold', 'size', 'align']) if (own[k] !== undefined && own[k] !== '') out[k] = own[k];
+  return out;
+};
+/** Graisse : gras (700), normal (400) ou celle des libellés de graphique (aspect d'origine) ; `base` = réglage de la carte Textes */
+const weightOf = (bold, base) =>
+  bold === true || (bold === undefined && base === true) ? 700 : bold === false ? 400 : TYPE.caption.weight;
+/** Passage à la ligne mesuré (`mw`) : mots, mots trop longs coupés, retours à la ligne du texte gardés ; au-delà de `max` lignes, la dernière finit par « … » */
+export function wrapText(text, weight, family, size, maxW, max = Infinity) {
+  const out = [];
+  const fits = (x) => mw(x, weight, family, size) <= maxW;
+  for (const para of String(text || '').split(/\n/)) {
+    let cur = '';
+    for (let w of para.split(/\s+/).filter(Boolean)) {
+      if (!fits(w)) {
+        /* mot plus large que la colonne : coupé en morceaux qui tiennent */
+        if (cur) out.push(cur);
+        cur = '';
+        while (!fits(w) && w.length > 1) {
+          let n = w.length - 1;
+          while (n > 1 && !fits(w.slice(0, n))) n--;
+          out.push(w.slice(0, n));
+          w = w.slice(n);
+        }
+      }
+      if (!cur) cur = w;
+      else if (fits(cur + ' ' + w)) cur += ' ' + w;
+      else {
+        out.push(cur);
+        cur = w;
+      }
+    }
+    if (cur || !out.length) out.push(cur);
+  }
+  if (out.length <= max) return out;
+  const keep = out.slice(0, max);
+  keep[max - 1] = ellipsize(out.slice(max - 1).join(' '), weight, family, size, maxW);
+  return keep;
+}
+
 const roundRect = (x, y, w, h, r) => {
   r = Math.max(0, Math.min(r, w / 2, h / 2));
   if (!r) return `M${x},${y}h${w}v${h}h${-w}Z`;
@@ -196,6 +253,11 @@ const roundRect = (x, y, w, h, r) => {
 
 const hasRef = (o) => String(o.refCol ?? LOOK.refCol) !== 'none';
 const REF_WHY = 'Choisissez une colonne de référence pour afficher les écarts.';
+const SIZES = { small: 'Petit', normal: 'Normal', large: 'Grand' };
+const hasNames = (o) => o.showRowNames !== false;
+const hasHeads = (o) => o.showColNames !== false;
+const NAMES_WHY = 'Affichez les noms des lignes (Axes et grille) pour les mettre en forme.';
+const HEADS_WHY = 'Affichez les noms des colonnes (Axes et grille) pour les mettre en forme.';
 
 export default {
   label: 'Heatmap (écarts à une référence)',
@@ -223,6 +285,8 @@ export default {
     gap: 3,
     corners: 'round',
     scaleMax: 0,
+    nameWrap: true, // nouvelle heatmap : noms et en-têtes passent à la ligne (absent = aspect d'origine, une ligne réduite)
+    headWrap: true,
     series: [
       { name: t('Projet'), color: 'grey' },
       { name: t('Position du Conseil'), color: 'grey' },
@@ -373,18 +437,76 @@ export default {
     },
     { k: 'classes', g: 'colors', t: 'select', label: 'Nombre de classes de couleur', options: CLASSES, def: LOOK.classes },
     {
+      k: 'nameWidth',
+      g: 'texts',
+      s: 'rownames',
+      t: 'select',
+      label: 'Largeur des noms',
+      options: { auto: 'Auto', 20: '20 %', 25: '25 %', 30: '30 %', 35: '35 %', 40: '40 %', 45: '45 %', 50: '50 %' },
+      def: 'auto',
+      when: hasNames,
+      why: NAMES_WHY,
+    },
+    { k: 'nameWrap', g: 'texts', s: 'rownames', t: 'bool', label: 'Noms sur plusieurs lignes', def: false, when: hasNames, why: NAMES_WHY },
+    {
+      k: 'nameSize',
+      g: 'texts',
+      s: 'rownames',
+      t: 'select',
+      label: 'Taille des noms',
+      options: SIZES,
+      def: 'normal',
+      when: hasNames,
+      why: NAMES_WHY,
+    },
+    { k: 'nameBold', g: 'texts', s: 'rownames', t: 'bool', label: 'Noms en gras', def: false, when: hasNames, why: NAMES_WHY },
+    {
+      k: 'nameAlign',
+      g: 'texts',
+      s: 'rownames',
+      t: 'select',
+      label: 'Alignement des noms',
+      options: { left: 'Gauche', center: 'Centre', right: 'Droite' },
+      def: 'left',
+      when: hasNames,
+      why: NAMES_WHY,
+    },
+    {
+      k: 'headWrap',
+      g: 'texts',
+      s: 'colheads',
+      t: 'bool',
+      label: 'En-têtes sur plusieurs lignes',
+      def: false,
+      when: hasHeads,
+      why: HEADS_WHY,
+    },
+    {
+      k: 'headSize',
+      g: 'texts',
+      s: 'colheads',
+      t: 'select',
+      label: 'Taille des en-têtes',
+      options: SIZES,
+      def: 'normal',
+      when: hasHeads,
+      why: HEADS_WHY,
+    },
+    { k: 'headBold', g: 'texts', s: 'colheads', t: 'bool', label: 'En-têtes en gras', def: false, when: hasHeads, why: HEADS_WHY },
+    {
       t: 'table',
       k: 'rows',
       series: 'series',
       maxSeries: 12,
       blank: true,
       noColor: true,
+      rowFmt: true, // colonnes Type de ligne, Gras, Taille (row.kind, row.fmt)
       serLabel: 'Colonne',
       label: 'Données',
     },
   ],
   dataHint:
-    'Une ligne par ligne du tableau, une colonne par colonne (12 au plus). Une cellule laissée vide est dessinée « en attente ». Les écarts sont calculés par rapport à la colonne de référence (Structure).',
+    'Une ligne par ligne du tableau, une colonne par colonne (12 au plus). Une cellule laissée vide est dessinée « en attente ». Les écarts sont calculés par rapport à la colonne de référence (Structure). Type de ligne : Titre ou Total mettent la ligne en gras sur un fond neutre léger ; Gras et Taille la règlent une à une.',
   render(o, W, env) {
     const series = o.series || [],
       rows = o.rows || [],
@@ -401,36 +523,87 @@ export default {
       loc = env.locale;
     const rowNames = o.showRowNames !== false && rows.some((r) => String(r.label || '').trim()),
       colNames = o.showColNames !== false && series.some((sr) => String(sr.name || '').trim());
+    /* mise en forme des noms : type de ligne (préréglage) puis réglages de la ligne ; taille et graisse de base dans la carte Textes */
+    const fmts = rows.map(rowFmt),
+      nameK = SIZE_K[o.nameSize] ?? 1,
+      namePx = (f) => capPx * nameK * (SIZE_K[f.size] ?? 1),
+      nameWt = (f) => weightOf(f.bold, o.nameBold),
+      wrapNames = !!o.nameWrap;
+    const share = NAME_W[o.nameWidth];
     const nameW = rowNames
-      ? Math.min(W * 0.35, Math.max(...rows.map((r) => mw(String(r.label || ''), TYPE.caption.weight, SANS, capPx))) + 9)
+      ? share
+        ? W * share
+        : Math.min(W * 0.35, Math.max(...rows.map((r, i) => mw(String(r.label || ''), nameWt(fmts[i]), SANS, namePx(fmts[i])))) + 9)
       : 0;
-    const headH = colNames ? Math.round(capPx * 2) : 0;
-    const H = Math.max(90, heightOf(o, W, env, null));
+    /* noms des lignes : une ligne réduite (aspect d'origine) ou passage à la ligne (`nameWrap`) */
+    const nameLines = rows.map((r, i) =>
+      rowNames && wrapNames ? wrapText(String(r.label || ''), nameWt(fmts[i]), SANS, namePx(fmts[i]), nameW - 9) : null,
+    );
+    /* en-têtes de colonnes : même principe (`headWrap`, `headBold`, `headSize`) ; un en-tête vide n'ajoute pas de hauteur */
+    const headPx = capPx * (SIZE_K[o.headSize] ?? 1),
+      headWt = weightOf(undefined, o.headBold),
+      cw0 = Math.max(4, (W - nameW - gap * (nc - 1)) / nc),
+      headLines = colNames && o.headWrap ? series.map((sr) => wrapText(String(sr.name || ''), headWt, SANS, headPx, cw0 - 2, 3)) : null,
+      headN = headLines ? Math.max(1, ...headLines.map((l) => l.length)) : 1;
+    const headH = !colNames
+      ? 0
+      : headN > 1 || headPx > capPx
+        ? Math.round(Math.max(capPx * 2, (headN - 1) * headPx * LH + headPx + capPx))
+        : Math.round(capPx * 2);
+    let H = Math.max(90, heightOf(o, W, env, null));
     const lg = o.legend !== false ? heatLegend(o, loc) : null;
     if (lg && o.legendNote === false) lg.note = '';
     const lgH = lg ? classBarHeight(W, lg) + VIZ.legendGap : 0; // la légende est dessinée en bas ; « en haut » la remonte (legendTop)
-    const cw = Math.max(4, (W - nameW - gap * (nc - 1)) / nc),
-      ch = Math.max(4, (H - lgH - headH - gap * (nr - 1)) / nr),
-      x0 = nameW,
-      y0 = headH;
+    /* hauteur des lignes : égale (aspect d'origine), sauf si un nom sur plusieurs lignes demande plus ; les autres lignes se partagent le reste */
+    const avail = H - lgH - headH - gap * (nr - 1);
+    const need = rows.map((r, i) => (nameLines[i] && nameLines[i].length > 1 ? nameLines[i].length * namePx(fmts[i]) * LH + 4 : 0));
+    let chs = rows.map(() => Math.max(4, avail / nr));
+    if (need.some((n) => n > avail / nr)) {
+      const order = need.map((n, i) => i).sort((a, b) => need[b] - need[a]);
+      let rest = avail,
+        cnt = nr;
+      for (const i of order) {
+        if (need[i] > rest / cnt && cnt > 0) {
+          rest -= need[i];
+          cnt--;
+        } else break;
+      }
+      const floor = numBase * 1.25 + 4; // une valeur lisible
+      if (cnt > 0 && rest / cnt >= floor) chs = need.map((n) => Math.max(n, rest / cnt));
+      else if ((o.hmode || 'ratio') === 'ratio') {
+        chs = need.map((n) => Math.max(n, floor)); // format proportionnel : la dataviz grandit
+        H += chs.reduce((a, b) => a + b, 0) - avail;
+      } else {
+        const want = need.map((n) => Math.max(n, floor)),
+          tot = want.reduce((a, b) => a + b, 0);
+        chs = want.map((n) => Math.max(4, (n * avail) / tot)); // hauteur fixe ou « remplir » : jamais de débordement, les noms sont coupés
+      }
+    }
+    const ys = [];
+    chs.reduce((y, ch, i) => ((ys[i] = y), y + ch + gap), headH);
+    const cw = cw0,
+      x0 = nameW;
     const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });
 
     if (colNames)
       series.forEach((sr, j) => {
-        const f = fitText(String(sr.name || ''), TYPE.caption.weight, SANS, capPx, cw - 2, 0.6);
-        svg.append(
-          s(
-            'text',
-            {
-              x: x0 + j * (cw + gap) + cw / 2,
-              y: headH - capPx * 0.6,
-              'text-anchor': 'middle',
-              'font-size': f.size,
-              'font-weight': TYPE.caption.weight,
-            },
-            f.text,
-          ),
-        );
+        const cx = x0 + j * (cw + gap) + cw / 2,
+          base = headH - capPx * 0.6;
+        if (headLines) {
+          const ls = headLines[j];
+          ls.forEach((l, k) =>
+            svg.append(
+              s(
+                'text',
+                { x: cx, y: base - (ls.length - 1 - k) * headPx * LH, 'text-anchor': 'middle', 'font-size': headPx, 'font-weight': headWt },
+                l,
+              ),
+            ),
+          );
+          return;
+        }
+        const f = fitText(String(sr.name || ''), headWt, SANS, headPx, cw - 2, 0.6);
+        svg.append(s('text', { x: cx, y: base, 'text-anchor': 'middle', 'font-size': f.size, 'font-weight': headWt }, f.text));
       });
 
     /* lignes de texte d'une case : valeur (chiffre des graphiques), puis écarts plus petits */
@@ -448,10 +621,10 @@ export default {
         out.push({ txt: signed(c.delta, fmt(Math.abs(c.delta), loc, dec) + suffix), small: true });
       return out;
     };
-    const sizeK = SIZE_K[o.valueSize] ?? 1,
-      numPx = numBase * sizeK,
-      smallPx = capPx * 0.9 * sizeK;
-    const textBlock = (lines, cx, cy, maxW, maxH, fill) => {
+    const sizeK = SIZE_K[o.valueSize] ?? 1;
+    const textBlock = (lines, cx, cy, maxW, maxH, fill, rk = 1) => {
+      const numPx = numBase * sizeK * rk,
+        smallPx = capPx * 0.9 * sizeK * rk;
       const need = (ls, k) => ls.reduce((a, l) => a + (l.num ? numPx : smallPx) * k * 1.25, 0);
       let ls = lines.slice(),
         k = 1;
@@ -484,11 +657,57 @@ export default {
     };
 
     rows.forEach((r, i) => {
-      const y = y0 + i * (ch + gap);
-      if (rowNames) {
-        const f = fitText(String(r.label || ''), TYPE.caption.weight, SANS, capPx, nameW - 9, 0.6);
-        svg.append(s('text', { x: 0, y: y + ch / 2 + 0.33 * f.size, 'font-size': f.size, 'font-weight': TYPE.caption.weight }, f.text));
+      const y = ys[i],
+        ch = chs[i],
+        fm = fmts[i];
+      /* ligne titre ou total : fond neutre léger sous toute la ligne (case blanche opaque dessous, comme les cases) */
+      if (fm.band) {
+        const d = roundRect(0, y, W, ch, radius);
+        svg.append(s('path', { d, fill: '#FFFFFF' }));
+        svg.append(s('path', { d, fill: colorRef(NEUTRAL), 'fill-opacity': BAND_ALPHA, class: 'hm-band' }));
       }
+      if (rowNames) {
+        const px = namePx(fm),
+          wt = nameWt(fm),
+          al = fm.align || o.nameAlign || 'left',
+          pad = fm.band ? 4 : 0,
+          tw = nameW - 9 - pad,
+          tx = al === 'center' ? pad + tw / 2 : al === 'right' ? nameW - 9 : pad,
+          anchor = al === 'center' ? 'middle' : al === 'right' ? 'end' : null;
+        if (nameLines[i]) {
+          let ls = nameLines[i];
+          const fit = Math.max(1, Math.floor((ch - 2) / (px * LH)));
+          if (ls.length > fit) ls = wrapText(String(r.label || ''), wt, SANS, px, tw, fit);
+          else if (pad) ls = wrapText(String(r.label || ''), wt, SANS, px, tw);
+          const top = y + ch / 2 - (ls.length * px * LH) / 2;
+          ls.forEach((l, k) =>
+            svg.append(
+              s(
+                'text',
+                {
+                  x: tx,
+                  y: top + (k + 0.5) * px * LH + 0.33 * px,
+                  'text-anchor': anchor,
+                  'font-size': px,
+                  'font-weight': wt,
+                  class: 'hm-name',
+                },
+                l,
+              ),
+            ),
+          );
+        } else {
+          const f = fitText(String(r.label || ''), wt, SANS, px, tw, 0.6);
+          svg.append(
+            s(
+              'text',
+              { x: tx, y: y + ch / 2 + 0.33 * f.size, 'text-anchor': anchor, 'font-size': f.size, 'font-weight': wt, class: 'hm-name' },
+              f.text,
+            ),
+          );
+        }
+      }
+      const rk = SIZE_K[fm.size] ?? 1;
       cells[i].forEach((c, j) => {
         const x = x0 + j * (cw + gap),
           d = roundRect(x, y, cw, ch, radius);
@@ -523,11 +742,11 @@ export default {
           );
           ink = inkOn(env, key, alpha);
         }
-        svg.append(textBlock(linesOf(c), x + cw / 2, y + ch / 2, cw - 6, ch - 4, ink));
+        svg.append(textBlock(linesOf(c), x + cw / 2, y + ch / 2, cw - 6, ch - 4, ink, rk));
       });
     });
     if (lg) drawLegend(svg, [], H - lgH + VIZ.legendGap, W, null, lg);
-    rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'y', 0, y0 + i * (ch + gap) - gap / 2, W, ch + gap)));
+    rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'y', 0, ys[i] - gap / 2, W, chs[i] + gap)));
     return { node: svg };
   },
 };

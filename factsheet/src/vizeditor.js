@@ -341,7 +341,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     cardEl(id, icon, name, nodes, { shut, refresh: refreshForm, acc: accs[col.viz.kind], sum, q: search.q, headExtra });
 
   /* ----- confort (audit lot 6) : rétablir une carte, copier / coller les réglages ----- */
-  const SETTINGS_G = new Set(['struct', 'dims', 'axes', 'labels', 'colors', 'bracket']);
+  const SETTINGS_G = new Set(['struct', 'dims', 'axes', 'labels', 'texts', 'colors', 'bracket']);
   const settingsOf = (ty) => (ty.fields || []).filter((f) => f.k && f.t !== 'node' && SETTINGS_G.has(groupOf(f)));
   /** champs d'une carte dont la valeur a quitté la valeur d'origine : [{ obj, f, v }] (valeur d'origine = réglages par défaut du type) */
   const changedIn = (list, obj, dflt) =>

@@ -19,6 +19,46 @@ export const hasHeader = (m, numericCols, dec = '.') =>
   m.length > 1 &&
   (headerRows(padMatrix(m), dec) > 0 || numericCols.some((j) => m[0][j] !== undefined && m[0][j] !== '' && num(m[0][j], dec) === null));
 
+/** Mise en forme d'une ligne (heatmap) : type (`row.kind`, absent = ligne ordinaire), gras et taille (`row.fmt`, absents = selon le type) */
+function rowFmtCols() {
+  const setFmt = (r, k, v) => {
+    const f = { ...(r.fmt || {}) };
+    if (v === undefined) delete f[k];
+    else f[k] = v;
+    if (Object.keys(f).length) r.fmt = f;
+    else delete r.fmt;
+  };
+  return [
+    {
+      name: t('Type de ligne'),
+      type: 'text',
+      isFmt: true,
+      select: { row: t('Ligne'), heading: t('Titre'), total: t('Total') },
+      get: (r) => (r.kind === 'heading' || r.kind === 'total' ? r.kind : 'row'),
+      set: (r, v) => {
+        if (v === 'heading' || v === 'total') r.kind = v;
+        else delete r.kind;
+      },
+    },
+    {
+      name: t('Gras'),
+      type: 'text',
+      isFmt: true,
+      select: { auto: t('Auto'), on: t('Oui'), off: t('Non') },
+      get: (r) => (r.fmt && r.fmt.bold === true ? 'on' : r.fmt && r.fmt.bold === false ? 'off' : 'auto'),
+      set: (r, v) => setFmt(r, 'bold', v === 'on' ? true : v === 'off' ? false : undefined),
+    },
+    {
+      name: t('Taille'),
+      type: 'text',
+      isFmt: true,
+      select: { auto: t('Auto'), small: t('Petit'), normal: t('Normal'), large: t('Grand') },
+      get: (r) => (r.fmt && r.fmt.size) || 'auto',
+      set: (r, v) => setFmt(r, 'size', v === 'auto' ? undefined : v),
+    },
+  ];
+}
+
 /* ---------- Adaptateur « libellé × séries » (barres, courbes…) ---------- */
 /** icons : bibliothèque d'icônes du document (ctxIcons) */
 export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
@@ -34,7 +74,22 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
     });
   const ns = series.length,
     parse = (v) => num(v, self.dec),
-    iconCol = f.icons ? [{ name: t('Icône'), type: 'text', isIcon: true, select: { none: t('Aucune'), ...pictoChoices(obj, icons) } }] : [];
+    /* colonnes après les séries : icône (barres verticales), mise en forme de la ligne (heatmap : type, gras, taille) */
+    extras = [
+      ...(f.icons
+        ? [
+            {
+              name: t('Icône'),
+              type: 'text',
+              isIcon: true,
+              select: { none: t('Aucune'), ...pictoChoices(obj, icons) },
+              get: (r) => r.icon || 'none',
+              set: (r, v) => (r.icon = v),
+            },
+          ]
+        : []),
+      ...(f.rowFmt ? rowFmtCols() : []),
+    ];
   const self = {
     dec: '.', // séparateur décimal du document (`gridEditor` le pose d'après `doc.locale`)
     table: true,
@@ -69,13 +124,14 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
               }
             : null,
       })),
-      ...iconCol,
+      ...extras,
     ],
     rows: () => rows.length,
-    get: (i, j) => (j === 0 ? rows[i].label || '' : j > ns ? rows[i].icon || 'none' : String((rows[i].v || [])[j - 1] ?? (blank ? '' : 0))),
+    get: (i, j) =>
+      j === 0 ? rows[i].label || '' : j > ns ? extras[j - ns - 1].get(rows[i]) : String((rows[i].v || [])[j - 1] ?? (blank ? '' : 0)),
     set(i, j, v) {
       if (j === 0) rows[i].label = v;
-      else if (j > ns) rows[i].icon = v;
+      else if (j > ns) extras[j - ns - 1].set(rows[i], v);
       else {
         const n = parse(v);
         (rows[i].v || (rows[i].v = []))[j - 1] = n === null ? (blank ? null : 0) : n;
@@ -102,13 +158,21 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
         ...(series[j] && series[j].dash ? { dash: series[j].dash } : {}),
       }));
       series.splice(0, series.length, ...ns);
+      /* une ligne de même libellé garde sa mise en forme (type, gras, taille) */
+      const keep = new Map(rows.filter((r) => r.kind || r.fmt).map((r) => [r.label, { kind: r.kind, fmt: r.fmt }]));
       rows.splice(
         0,
         rows.length,
-        ...body.map((c) => ({
-          label: String(c[0] ?? ''),
-          v: Array.from({ length: nser }, (_, j) => parse(c[j + 1]) ?? (blank ? null : 0)),
-        })),
+        ...body.map((c) => {
+          const label = String(c[0] ?? ''),
+            k = keep.get(label);
+          return {
+            label,
+            v: Array.from({ length: nser }, (_, j) => parse(c[j + 1]) ?? (blank ? null : 0)),
+            ...(k && k.kind ? { kind: k.kind } : {}),
+            ...(k && k.fmt ? { fmt: k.fmt } : {}),
+          };
+        }),
       );
     },
     numericCols: Array.from({ length: Math.max(0, series.length) }, (_, j) => j + 1),

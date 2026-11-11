@@ -8,6 +8,7 @@ export const CARDS = [
   { g: 'dims', id: 'dv-dims', icon: 'ruler-2', name: 'Dimensions' },
   { g: 'axes', id: 'dv-axes', icon: 'axis-y', name: 'Axes et grille' },
   { g: 'labels', id: 'dv-labels', icon: 'letter-case', name: 'Étiquettes' },
+  { g: 'texts', id: 'dv-texts', icon: 'typography', name: 'Textes' },
   { g: 'colors', id: 'dv-colors', icon: 'palette', name: 'Couleurs' },
   { g: 'bracket', id: 'dv-bracket', icon: 'brackets', name: 'Accolade et liaison' },
 ];
@@ -28,6 +29,8 @@ export const FIELD_ORDER = [
   // Étiquettes
   'legend', 'legendPos', 'legendNote', 'legendNoteText', 'showPercent', 'showValues', 'showPct', 'showDelta', 'valuesIn', 'labelIn', 'showLabels', 'groupLabels', 'showDates', 'showTotal',
   'layout', 'leading', 'totalTpl', 'refText', 'pendingText', 'decimals', 'suffix',
+  // Textes (mise en forme des noms et en-têtes)
+  'nameWidth', 'nameWrap', 'nameSize', 'nameBold', 'nameAlign', 'headWrap', 'headSize', 'headBold',
   // Couleurs
   'color', 'color2', 'classes', 'emptyStyle', 'fillTone', 'linkOpacity', 'pointOpacity',
   // Accolade et liaison
@@ -65,6 +68,8 @@ export const SUBS = {
   axis: 'Axe',
   scale: 'Échelle',
   ref: 'Ligne de référence',
+  rownames: 'Noms des lignes',
+  colheads: 'En-têtes de colonnes',
 };
 const SUB_OF = {
   legend: 'legend', legendPos: 'legend', legendNote: 'legend', legendNoteText: 'legend', showPercent: 'legend',
