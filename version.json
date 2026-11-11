@@ -1,7 +1,7 @@
 {
-  "version": "1.91.1",
-  "date": "2026-11-10",
+  "version": "1.91.2",
+  "date": "2026-11-11",
   "changes": [
-    "Sécurité : l'ouverture d'un projet refuse les images distantes ; seules les images incorporées ou celles du dépôt sont gardées"
+    "Page Batch Logo Export : menu « Sur cette page » pour aller à chaque section, bouton retour en haut, titres restylés, étapes et prérequis en cartes, options et dépannage repliables"
   ]
 }

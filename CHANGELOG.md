@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.91.2 — 2026-11-11
+- Page Batch Logo Export : menu « Sur cette page » pour aller à chaque section, bouton retour en haut, titres restylés, étapes et prérequis en cartes, options et dépannage repliables
+
 ## 1.91.1 — 2026-11-10
 - Sécurité : l'ouverture d'un projet refuse les images distantes (adresses `https://…`) ; seules les images incorporées ou celles du dépôt sont gardées, pour qu'un fichier reçu ne fasse jamais charger un site tiers
 
