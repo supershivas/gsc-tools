@@ -84,7 +84,7 @@ export function renderPanel(o, v, repaint) {
         h(
           'div',
           { class: 'pp-tile on' },
-          h('img', { src: 'assets/header/default/illustration.svg', alt: '' }),
+          h('img', { src: 'assets/header/default/factsheet_illu_lantern_default.svg', alt: '' }),
           h('span', { textContent: 'Par défaut' }),
         ),
         h('button', { type: 'button', class: 'pp-tile pp-add' }, h('i', { class: 'ti ti-plus' }), h('span', { textContent: 'Ajouter' })),

@@ -1,7 +1,8 @@
 {
   "schemaVersion": 1,
   "files": [
-    "header/default/illustration.svg",
+    "header/default/factsheet_illu_lantern_default.svg",
+    "header/default/factsheet_illu_lantern_negative.svg",
     "logos/gsc/ceu_default_h_rgb_en.svg",
     "logos/gsc/ceu_mono_h_rgb_en.svg",
     "logos/gsc/ceu_neg_h_rgb_en.svg",

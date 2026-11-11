@@ -3,7 +3,7 @@
 ## 1.101.0 — 2026-11-11
 - Plusieurs factsheets ouvertes à la fois, chacune dans un onglet (Alt+N : nouvel onglet, Alt+W : fermer) ; les onglets sont retrouvés à la réouverture
 - Chaque modification est gardée comme brouillon dans le navigateur ; un point signale ce qui a changé depuis le dernier « Enregistrer (.json) »
-- Fichier › Ouvrir récent : les 10 derniers fichiers ouverts ou enregistrés (copies locales)
+- Fichier › Ouvrir récent : les 10 derniers fichiers ouverts ou enregistrés (copies locales) ; l'image par défaut du header (renommée dans le dépôt) s'affiche de nouveau
 
 ## 1.100.2 — 2026-11-11
 - Logos GSC : les anciens PNG sont supprimés, les logos du header viennent des fichiers SVG (ceu_*.svg) ; les anciens projets sont migrés

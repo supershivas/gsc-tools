@@ -164,7 +164,7 @@ export const DEFAULT_LOGOS = () => ({
 });
 /** Image du header toujours disponible (première de la bibliothèque, non modifiable) */
 export const DEFAULT_IMAGE_ID = 'img-default';
-export const DEFAULT_IMAGE_SRC = 'assets/header/default/illustration.svg';
+export const DEFAULT_IMAGE_SRC = 'assets/header/default/factsheet_illu_lantern_default.svg';
 export const defaultHeaderImage = () => ({ id: DEFAULT_IMAGE_ID, name: 'Image par défaut', src: DEFAULT_IMAGE_SRC });
 /** Anciens chemins (dossier à plat) → nouveaux : les projets enregistrés avant le rangement gardent leurs images (voir `migrate`) */
 const LEGACY_ASSETS = {
@@ -178,6 +178,7 @@ const LEGACY_ASSETS = {
   'assets/logos/gsc/white.png': 'assets/logos/gsc/ceu_white_h_rgb_en.svg',
   'assets/logos/gsc/negative.png': 'assets/logos/gsc/ceu_neg_h_rgb_en.svg',
   'assets/2a3ba63bd5.png': 'assets/others/lantern-emblem.png',
+  'assets/header/default/illustration.svg': DEFAULT_IMAGE_SRC, // renommée dans le dépôt (1.101.0)
 };
 export const upgradeAsset = (v) => (typeof v === 'string' && LEGACY_ASSETS[v]) || v;
 

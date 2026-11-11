@@ -14,7 +14,10 @@ test('les anciens chemins d’images (dossier à plat) sont migrés', async ({ p
       white: 'assets/4a5a41080e.png',
       negative: 'assets/5ec5fb8b6a.png',
     };
-    j.header.images = [{ id: 'img-x', name: 'x', src: 'assets/Asset 1.svg' }];
+    j.header.images = [
+      { id: 'img-x', name: 'x', src: 'assets/Asset 1.svg' },
+      { id: 'img-y', name: 'y', src: 'assets/header/default/illustration.svg' }, // renommée dans le dépôt
+    ];
     delete j.header.logoFamily;
     const col = j.sections[0].subs[0].cols[0];
     col.type = 'image';
@@ -31,6 +34,7 @@ test('les anciens chemins d’images (dossier à plat) sont migrés', async ({ p
   expect(r.logos.mono).toBe('assets/logos/gsc/ceu_mono_h_rgb_en.svg');
   expect(r.family).toBe('gsc');
   expect(r.images.every((s) => s.startsWith('assets/header/'))).toBe(true);
+  expect(r.images[r.images.length - 1]).toBe('assets/header/default/factsheet_illu_lantern_default.svg');
   expect(r.col).toBe('assets/others/lantern-emblem.png');
 });
 
