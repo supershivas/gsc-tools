@@ -188,6 +188,7 @@ function imageLibrary(k, H) {
         doc: k.doc,
         assets,
         kinds: ['header'],
+        open: true,
         isOn: (e) => !!cur && cur.src === e.path,
         onPick: (e) =>
           e.local

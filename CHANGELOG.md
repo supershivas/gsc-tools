@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.100.1 — 2026-11-11
+- Header : changer de famille de logos fonctionne avec des fichiers nommés pec_neg_h_rgb_en.svg, ceu_default_h_rgb_en.svg… (la version est reconnue dans le nom)
+- Carte « Images du document » : sections fermées par défaut
+
 ## 1.100.0 — 2026-11-11
 - Cadres (sections, sous-sections, colonnes) : épaisseur du contour (0,5 / 1 / 1,5 pt) et coins (Arrondis / Droits / Très arrondis), dans « Fond et contour » ; la largeur utile des contenus suit le trait
 - Chiffre clé : hauteur (Fine / Normale / Épaisse) et coins de la barre de progression, trait de la pastille d'icône ; carte : coins de l'image

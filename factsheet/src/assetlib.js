@@ -13,7 +13,7 @@ const FALLBACK = [...Object.values(DEFAULT_LOGOS()), DEFAULT_IMAGE_SRC, 'assets/
 );
 
 /** « logos/gsc/default.png » → { kind: 'logos', folder: 'gsc', name: 'default.png', stem: 'default', path: 'assets/logos/gsc/default.png' } */
-const parse = (files) =>
+export const parseAssets = (files) =>
   files
     .filter((f) => typeof f === 'string' && /^(logos|header|others)\//.test(f) && !f.includes('..'))
     .map((f) => {
@@ -33,7 +33,7 @@ export function loadAssets() {
       (j) => (Array.isArray(j && j.files) ? j.files : FALLBACK),
       () => FALLBACK,
     )
-    .then((files) => (cache = parse(files)));
+    .then((files) => (cache = parseAssets(files)));
   return pending;
 }
 /** Affiche `build(liste)` dans `box` : tout de suite si la liste est chargée, sinon dès qu'elle l'est */
@@ -50,13 +50,30 @@ export function byFolder(list, kind) {
   list.filter((e) => e.kind === kind).forEach((e) => m.set(e.folder, [...(m.get(e.folder) || []), e]));
   return m;
 }
-/** Familles de logos : dossier → { default, mono, white, negative } (chemins) */
+/** Version d'un logo d'après son nom : `default`, `pec_mono_h_rgb_en`, `ceu_neg_h_rgb_en`… (un mot-clé entier, `neg` = négatif) ; null si aucun */
+const VARIANT_WORDS = { default: 'default', mono: 'mono', white: 'white', negative: 'negative', neg: 'negative' };
+export const logoVariantOf = (stem) => {
+  const w = String(stem)
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .find((x) => VARIANT_WORDS[x]);
+  return w ? VARIANT_WORDS[w] : null;
+};
+/** Familles de logos : dossier → { default, mono, white, negative } (chemins). Un fichier nommé exactement comme la version l'emporte sur un nom plus long. */
 export function logoFamilies(list) {
   const out = new Map();
-  for (const [folder, entries] of byFolder(list, 'logos'))
-    out.set(
-      folder,
-      Object.fromEntries(entries.filter((e) => ['default', 'mono', 'white', 'negative'].includes(e.stem)).map((e) => [e.stem, e.path])),
-    );
+  for (const [folder, entries] of byFolder(list, 'logos')) {
+    const files = {},
+      exact = new Set();
+    for (const e of entries) {
+      const v = logoVariantOf(e.stem);
+      if (!v) continue;
+      if (e.stem.toLowerCase() === v) {
+        files[v] = e.path;
+        exact.add(v);
+      } else if (!exact.has(v) && !files[v]) files[v] = e.path;
+    }
+    out.set(folder, files);
+  }
   return out;
 }

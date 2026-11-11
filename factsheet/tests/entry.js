@@ -6,11 +6,14 @@ import { DOCS, docEvilIcon } from './docs.js';
 import { renderDocument, measure } from '../src/render.js';
 import { groupOf, VALID_G } from '../src/vizgroups.js';
 import { heatCells, heatLegend } from '../src/viz/heatmap.js';
+import { logoFamilies, parseAssets } from '../src/assetlib.js';
 
 window.FSTEST = {
   defaultDoc,
   migrate,
   safeImgSrc,
+  logoFamilies,
+  parseAssets,
   newSection,
   newSub,
   newCol,

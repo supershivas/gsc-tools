@@ -4,7 +4,7 @@ import { t } from '../i18n.js';
 import { DENSITIES } from '../tokens.js';
 import { buildPalette } from '../palette.js';
 import { LOCALES, useLogoFamily, useHeaderImage } from '../state.js';
-import { withAssets, logoFamilies } from '../assetlib.js';
+import { withAssets, logoFamilies, logoVariantOf } from '../assetlib.js';
 import { assetBrowser, assetDialog, localEntries } from './assetgrid.js';
 
 export function documentPanel(k) {
@@ -39,13 +39,14 @@ export function documentPanel(k) {
   /* toutes les images : celles du dépôt (assets/) et celles qui ne sont que dans ce navigateur (marquées) */
   const imagesBox = () => {
     const H = doc.header;
-    const browser = (assets, done) =>
+    const browser = (assets, done, open) =>
       assetBrowser({
         doc,
         assets,
+        open,
         isOn: (e) =>
           e.kind === 'logos'
-            ? H.logoFamily === e.folder && e.stem === H.logoVariant
+            ? H.logoFamily === e.folder && logoVariantOf(e.stem) === H.logoVariant
             : e.kind === 'header'
               ? !!H.images.find((i) => i.id === H.imageId && i.src === e.path)
               : false,
@@ -87,7 +88,7 @@ export function documentPanel(k) {
         h('button', {
           type: 'button',
           textContent: t('Parcourir…'),
-          onclick: () => assetDialog(t('Images du document'), (close) => browser(assets, close)),
+          onclick: () => assetDialog(t('Images du document'), (close) => browser(assets, close, true)),
         }),
       );
     });

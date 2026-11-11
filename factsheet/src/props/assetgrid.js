@@ -3,7 +3,7 @@
 import { h, ico } from '../render.js';
 import { t } from '../i18n.js';
 import { docImages } from '../state.js';
-import { KINDS, KIND_ICON, KIND_LABEL, byFolder } from '../assetlib.js';
+import { KINDS, KIND_ICON, KIND_LABEL, byFolder, logoVariantOf } from '../assetlib.js';
 
 /** Images du document qui ne sont pas dans le dépôt, sans doublon */
 export function localEntries(doc, kind) {
@@ -15,14 +15,14 @@ export function localEntries(doc, kind) {
 }
 
 /** assets : liste du dépôt. kinds : genres affichés. onPick(entrée) → fonction (clic) ou null (vignette inerte). isOn(entrée) → vignette choisie. */
-export function assetBrowser({ doc, assets, kinds = KINDS, onPick, isOn }) {
+export function assetBrowser({ doc, assets, kinds = KINDS, onPick, isOn, open = false }) {
   const tile = (e) => {
     const pick = onPick && onPick(e);
     const pic = h(
       pick ? 'button' : 'div',
       {
         ...(pick ? { type: 'button', onclick: pick } : {}),
-        class: 'imgtile-pic' + (/^(white|negative)$/.test(e.stem) ? ' dark' : ''),
+        class: 'imgtile-pic' + (/^(white|negative)$/.test(logoVariantOf(e.stem)) ? ' dark' : ''),
         title: e.local ? t('Seulement dans ce navigateur : à déposer dans le dépôt GitHub pour la conserver') : e.path,
       },
       h('img', { src: e.path, alt: '', loading: 'lazy' }),
@@ -33,7 +33,7 @@ export function assetBrowser({ doc, assets, kinds = KINDS, onPick, isOn }) {
   const folderBlock = (folder, entries, local) =>
     h(
       'details',
-      { class: 'assetfolder', open: true },
+      { class: 'assetfolder', open },
       h(
         'summary',
         {},
@@ -55,7 +55,7 @@ export function assetBrowser({ doc, assets, kinds = KINDS, onPick, isOn }) {
       const n = assets.filter((e) => e.kind === kind).length + localEntries(doc, kind).length;
       return h(
         'details',
-        { class: 'assetkind', open: true },
+        { class: 'assetkind', open },
         h('summary', {}, ico(KIND_ICON[kind]), h('span', { textContent: t(KIND_LABEL[kind]) }), h('em', { textContent: String(n) })),
         h('div', { class: 'body' }, n ? blocksFor(kind) : h('p', { class: 'hint', textContent: t('Aucune image') })),
       );
