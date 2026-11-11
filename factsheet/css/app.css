@@ -101,6 +101,17 @@ body.dragging,body.dragging *{cursor:grabbing!important}
 .ve{position:fixed;inset:0;z-index:50;background:var(--ui-bg);display:flex;flex-direction:column;font:var(--fs-md)/1.4 "Source Sans 3",system-ui,sans-serif;color:var(--ui-ink)}
 .ve-bar{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;padding:0 14px;min-height:52px;background:#fff;border-bottom:1px solid var(--ui-line)}
 .ve-bl,.ve-br{display:flex;align-items:center;gap:8px}.ve-br{justify-content:flex-end}
+.ve-exp{display:inline-flex;align-items:center;gap:6px}
+dialog.vexp{border:1px solid var(--ui-line);border-radius:var(--radius-lg);padding:18px 20px;width:min(460px,calc(100vw - 24px));box-shadow:var(--shadow-pop)}
+dialog.vexp::backdrop{background:#0006}
+.vexp h3{margin:0 0 10px;font-size:var(--fs-lg)}
+.vexp h4{margin:14px 0 6px;font-size:var(--fs-sm);font-weight:600;color:var(--ui-mute);text-transform:uppercase;letter-spacing:.04em}
+.vexp label.opt{display:block;border:1px solid var(--ui-line);border-radius:var(--radius-md);padding:8px 10px;margin:0 0 8px;cursor:pointer}
+.vexp label.opt:has(input:checked){border-color:var(--ui-blue);background:var(--sel-faint)}
+.vexp label.opt small{display:block;color:var(--ui-mute);margin-left:22px}
+.vexp .tip{font-size:var(--fs-sm);color:var(--ui-mute);margin:10px 0 14px}
+.vexp .row{display:flex;justify-content:flex-end;gap:8px}
+.vexp .row button{display:inline-flex;align-items:center;gap:6px}
 .ve-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px}
 .ve-form{border-left:1px solid var(--ui-line);background:var(--ui-bg);padding:16px 14px 40px;overflow:auto}
 .ve-tabs{display:flex;gap:4px}

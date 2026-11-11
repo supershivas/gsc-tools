@@ -64,9 +64,9 @@ async function inlineImages(root) {
 }
 
 /* Caractères interdits en XML 1.0 (contrôles, tabulation verticale…, souvent collés depuis InDesign, Illustrator ou un PDF) : une seule suffit à rendre l'image SVG illisible */
-const XML_BAD = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g;
-const pageSvg = (vars, css, body) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" width="${PAGE.w}" height="${PAGE.h}"><foreignObject width="100%" height="100%">` +
+export const XML_BAD = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g;
+const pageSvg = (vars, css, body, w = PAGE.w, hh = PAGE.h) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${hh}"><foreignObject width="100%" height="100%">` +
   `<div xmlns="http://www.w3.org/1999/xhtml" style="${vars}"><style>${css.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</style>${body.replace(XML_BAD, ' ')}</div></foreignObject></svg>`;
 const loads = (svg) =>
   loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)).then(
@@ -200,5 +200,56 @@ export async function rasterizeDocument(doc, scale = 2) {
     return out;
   } finally {
     stage.remove();
+  }
+}
+
+/** Un élément du document (une dataviz) → { canvas, width, height }, à `scale` × sa taille en px CSS (1 px CSS = 1/96 pouce).
+    `fill` : couleur de fond (sinon transparent). `node` est déplacé dans un conteneur éphémère hors écran. */
+export async function rasterizeNode(node, { width, vars, scale = 2, fill = null, margin = 0 }) {
+  await loadFonts();
+  const css = await documentCss();
+  const wrap = h(
+    'div',
+    {
+      class: 'page',
+      style: {
+        position: 'absolute',
+        left: '-20000px',
+        top: '0',
+        width: width + 'px',
+        height: 'auto',
+        overflow: 'visible',
+        background: 'none',
+      },
+    },
+    h('div', { class: 'col col-viz', style: { width: width + 'px' } }, node),
+  );
+  for (const [k, v] of Object.entries(vars)) wrap.style.setProperty(k, v);
+  document.body.append(wrap);
+  try {
+    await inlineImages(wrap);
+    const W = width + 2 * margin,
+      H = Math.max(1, Math.ceil(wrap.getBoundingClientRect().height));
+    wrap.style.position = 'static';
+    const body = new XMLSerializer().serializeToString(wrap);
+    const im = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(pageSvg('', css, body, W, H)));
+    if (im.decode) await im.decode().catch(() => {});
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(W * scale);
+    canvas.height = Math.round(H * scale);
+    const g = canvas.getContext('2d');
+    if (fill) {
+      g.fillStyle = fill;
+      g.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    try {
+      g.drawImage(im, 0, 0, canvas.width, canvas.height);
+    } catch (e) {
+      await new Promise((r) => setTimeout(r, 150));
+      g.drawImage(im, 0, 0, canvas.width, canvas.height);
+    }
+    return { canvas, width: W, height: H };
+  } finally {
+    wrap.remove();
   }
 }

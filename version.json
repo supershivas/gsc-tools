@@ -1,9 +1,8 @@
 {
-  "version": "1.94.0",
+  "version": "1.95.0",
   "date": "2026-11-11",
   "changes": [
-    "Frise : épaisseur du trait (Fin → Très épais) et taille des repères ; Waffle : cases vides en contour seul ou en gris clair",
-    "Pictogrammes : non remplis estompés ou en contour seul, espace entre pictogrammes (Serré / Normal / Large) ; Enquête : taille des points",
-    "Nuage de points : taille des points (sans colonne « Taille ») et opacité ; les fiches existantes gardent leur aspect, ↺ y ramène"
+    "Éditeur de dataviz : nouveau bouton « Exporter » (PNG transparent, PNG avec fond, JPG, SVG vectoriel)",
+    "Images à 150 ou 300 dpi (taille d'impression enregistrée dans le fichier), titre et source en option"
   ]
 }

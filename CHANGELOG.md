@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.95.0 — 2026-11-11
+- Éditeur de dataviz : nouveau bouton « Exporter » (PNG transparent, PNG avec fond, JPG, SVG vectoriel)
+- Images à 150 ou 300 dpi (taille d'impression enregistrée dans le fichier), titre et source en option
+
 ## 1.94.0 — 2026-11-11
 - Frise : épaisseur du trait (Fin → Très épais) et taille des repères ; Waffle : cases vides en contour seul ou en gris clair
 - Pictogrammes : non remplis estompés ou en contour seul, espace entre pictogrammes (Serré / Normal / Large) ; Enquête : taille des points

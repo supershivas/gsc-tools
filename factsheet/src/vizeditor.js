@@ -19,6 +19,7 @@ import { startReorder } from './vizreorder.js';
 import { newSide, SIDE_FIELDS } from './viz/index.js';
 import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
 import { t } from './i18n.js';
+import { openVizExport } from './vizexport.js';
 import { CARDS, groupOf, fieldsOf, subsections, SUBS } from './vizgroups.js';
 
 const tr = t; // `t` est masqué par des variables locales (type de dataviz) dans `draw`
@@ -720,6 +721,24 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     applyFilter(form, search);
     form.scrollTop = top;
   }
+  /* Export image (PNG, JPG) ou SVG de la dataviz telle qu'elle est dessinée, sans les outils de l'éditeur (src/vizexport.js) */
+  function exportViz() {
+    openVizExport({
+      root,
+      viz: col.viz,
+      doc,
+      width,
+      bgCss: bg && bg !== 'none' ? `var(--c-${bg})` : '#fff',
+      render: (v) =>
+        renderVizFull(v, width, {
+          locale: doc.locale || 'en-GB',
+          pal: paletteOf(doc.theme, doc.colors),
+          fillH: availH,
+          rc: renderCtx(doc),
+        }),
+      fileStem: fileStem || ((x) => 'dataviz' + (x || '')),
+    });
+  }
   /* Outil de débogage : la dataviz (`col.viz`) et les réglages qui influencent son rendu, dans un seul JSON */
   function exportDebug() {
     const dump = {
@@ -1040,6 +1059,12 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
       h(
         'div',
         { class: 've-br' },
+        h(
+          'button',
+          { type: 'button', class: 've-exp', title: t('Exporter la dataviz (PNG, JPG, SVG)'), onclick: exportViz },
+          ico('download'),
+          h('span', { textContent: t('Exporter') }),
+        ),
         h('button', { type: 'button', textContent: 'Annuler', onclick: () => close(false) }),
         h('button', { type: 'button', class: 'primary', textContent: 'Terminer', onclick: () => close(true) }),
       ),

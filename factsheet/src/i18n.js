@@ -1059,6 +1059,26 @@ const EN = {
   'Exporte la dataviz et les réglages du document (thème, couleurs, densité) pour le débogage.':
     'Exports the dataviz and the document settings (theme, colors, density) for debugging.',
   'Exporter pour le débogage (JSON)': 'Export for debugging (JSON)',
+  'Exporter la dataviz': 'Export dataviz',
+  'Format du fichier': 'File format',
+  'Exporter la dataviz (PNG, JPG, SVG)': 'Export the dataviz (PNG, JPG, SVG)',
+  Résolution: 'Resolution',
+  'Fond transparent, à placer sur un autre document (Illustrator, InDesign, Keynote…).':
+    'Transparent background, to place on another document (Illustrator, InDesign, Keynote…).',
+  'PNG avec fond': 'PNG with background',
+  'Image avec le fond de la colonne.': 'Image with the column background.',
+  'Image sans transparence, avec le fond de la colonne : léger, pour l’impression ou le web.':
+    'Image without transparency, with the column background: light, for print or web.',
+  'SVG vectoriel': 'Vector SVG',
+  'Graphique modifiable dans Illustrator ou Figma. Titre, source et chiffre à côté ne sont pas inclus.':
+    'Chart editable in Illustrator or Figma. Title, source and side figure are not included.',
+  'Écran / bureautique · 150 dpi': 'Screen / office · 150 dpi',
+  'Impression · 300 dpi': 'Print · 300 dpi',
+  'Inclure le titre et la source': 'Include the title and source',
+  'Dessin vectoriel : sans perte à toutes les tailles. Les polices ne sont pas incorporées (Source Sans 3 et Source Serif 4 doivent être installées).':
+    'Vector drawing: lossless at any size. Fonts are not embedded (Source Sans 3 and Source Serif 4 must be installed).',
+  'Génération…': 'Generating…',
+  'Impossible d’exporter la dataviz dans ce navigateur.': 'Unable to export the dataviz in this browser.',
   'Couleur des hachures': 'Stripe colour',
   'Épaisseur des hachures': 'Stripe thickness',
   'Espacement des hachures': 'Stripe spacing',
