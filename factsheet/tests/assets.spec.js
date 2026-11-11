@@ -27,8 +27,8 @@ test('les anciens chemins d’images (dossier à plat) sont migrés', async ({ p
       col: d.sections[0].subs[0].cols[0].src,
     };
   });
-  expect(r.logos.default).toBe('assets/logos/gsc/default.png');
-  expect(r.logos.mono).toBe('assets/logos/gsc/mono.png');
+  expect(r.logos.default).toBe('assets/logos/gsc/ceu_default_h_rgb_en.svg');
+  expect(r.logos.mono).toBe('assets/logos/gsc/ceu_mono_h_rgb_en.svg');
   expect(r.family).toBe('gsc');
   expect(r.images.every((s) => s.startsWith('assets/header/'))).toBe(true);
   expect(r.col).toBe('assets/others/lantern-emblem.png');
@@ -50,11 +50,36 @@ test('carte « Document images », plus de barre « à publier »', async ({ pag
   await expect(page.locator('.warnings .note')).toHaveCount(0);
   await page.locator('#props .pp-card-h', { hasText: /Document images/ }).click();
   const card = page.locator('#props');
+  /* sections fermées par défaut */
   await expect(card.locator('.assetkind')).toHaveCount(3);
-  await expect(card.locator('.assetfolder', { hasText: 'gsc' }).locator('.imgtile')).toHaveCount(4);
+  await expect(card.locator('.assetkind[open]')).toHaveCount(0);
+  await expect(card.locator('.assetfolder', { hasText: 'gsc' }).locator('.imgtile').first()).toBeHidden();
+  await card.locator('.assetkind > summary').first().click();
+  await expect(card.locator('.assetfolder[open]')).toHaveCount(0);
   await expect(card.locator('.imgtile-flag')).toHaveCount(1);
   await card.getByRole('button', { name: 'Browse…' }).click();
   await expect(page.locator('dialog.assets-dlg[open] .imgtile').first()).toBeVisible();
   await page.keyboard.press('Escape');
   expect(errors).toEqual([]);
+});
+
+test('une famille de logos se reconnaît aux mots de ses noms de fichier (pec_neg_h_rgb_en.svg)', async ({ page }) => {
+  await page.goto('/factsheet/tests/blank.html');
+  const r = await page.evaluate(async () => {
+    const { logoFamilies, parseAssets } = window.FSTEST;
+    const list = parseAssets([
+      'logos/pec/pec_default_h_rgb_en.svg',
+      'logos/pec/pec_mono_h_rgb_en.svg',
+      'logos/pec/pec_neg_h_rgb_en.svg',
+      'logos/pec/pec_white_h_rgb_en.svg',
+      'logos/gsc/default.png',
+      'logos/gsc/ceu_default_h_rgb_en.svg',
+    ]);
+    const f = logoFamilies(list);
+    return { pec: f.get('pec'), gsc: f.get('gsc') };
+  });
+  expect(r.pec.negative).toBe('assets/logos/pec/pec_neg_h_rgb_en.svg');
+  expect(r.pec.default).toBe('assets/logos/pec/pec_default_h_rgb_en.svg');
+  expect(Object.keys(r.pec).sort()).toEqual(['default', 'mono', 'negative', 'white']);
+  expect(r.gsc.default).toBe('assets/logos/gsc/default.png');
 });
