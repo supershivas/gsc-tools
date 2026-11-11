@@ -136,6 +136,29 @@ table.dg{border-collapse:collapse;width:100%;font-size:var(--fs-md)}
 .dg .dg-n{width:28px;text-align:center;color:var(--ui-mute);font-size:var(--fs-xs);padding:0 2px}
 .dg-h{display:flex;gap:4px;align-items:center}.dg-h input{min-width:60px;width:100%;padding:3px 6px;font-size:var(--fs-sm)}.dg-color{width:44px!important;min-width:44px!important;padding:2px!important}
 .dg-tools{gap:8px}
+/* aperçu avant import (vizdata.js, importPreview) */
+dialog.modal.dg-imp{width:min(960px,calc(100vw - 24px))}
+.imp-body{display:grid;gap:12px;padding:var(--modal-padding);min-width:0}
+.imp-body h2{margin:0;font-size:var(--fs-lg)}
+.imp-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;font-size:var(--fs-md)}
+.imp-lab{display:inline-flex;align-items:center;gap:8px;color:var(--ui-mute)}
+.imp-lab select{min-height:32px;font-size:var(--fs-md)}
+.imp-segs{display:inline-flex;border:1px solid var(--ui-line);border-radius:var(--radius-sm);overflow:hidden}
+.imp-seg{min-width:36px;min-height:32px;border:0;border-right:1px solid var(--ui-line);border-radius:0;background:var(--ui-panel);color:var(--ui-ink);font-size:var(--fs-md);cursor:pointer}
+.imp-seg:last-child{border-right:0}
+.imp-seg.on{background:var(--ui-ink);color:var(--ui-panel)}
+.imp-scroll{max-height:50vh}
+table.imp td.imp-c{padding:5px 8px;vertical-align:top;white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis}
+table.imp td.imp-num{text-align:right;font-variant-numeric:tabular-nums}
+table.imp td.imp-num small{display:block;font-size:var(--fs-xs);color:var(--ui-mute)}
+table.imp tr.imp-h td{font-weight:600;background:var(--ui-bg)}
+table.imp th select{width:100%;min-height:28px;font-size:var(--fs-sm)}
+table.imp .imp-role-skip{color:var(--ui-mute);text-decoration:line-through}
+table.imp th.imp-role-skip{text-decoration:none}
+table.imp td.bad{color:var(--danger);background:color-mix(in srgb,var(--danger) 8%,transparent)}
+table.imp td.bad .ti{margin-right:4px}
+.imp-sum{margin:0;font-size:var(--fs-md);color:var(--ui-mute)}
+.imp-sum.warn{color:var(--danger)}
 
 .ve-main{display:flex;flex-direction:column;min-width:0;min-height:0}
 .ve-viewbar{display:flex;align-items:center;gap:16px;padding:6px 14px;background:#fff;border-bottom:1px solid var(--ui-line)}

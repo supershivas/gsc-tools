@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.102.0 — 2026-11-11
+- Dataviz : les nombres collés ou importés sont lus selon le format du document (« 1,025 » = 1 025 en anglais, « 1.025,5 » en français, espaces insécables, €, %)
+- Nouvel aperçu avant import : lignes d'en-tête (0, 1, 2), rôle de chaque colonne (libellé, donnée, ignorer), séparateur décimal, cellules non lues signalées
+
 ## 1.101.1 — 2026-11-11
 - Dataviz : changer de type ne fait plus perdre les données ; revenir à un type déjà utilisé restaure ses réglages et ses données
 

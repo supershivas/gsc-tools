@@ -8,54 +8,16 @@ import { iconSelect } from './iconselect.js';
 import { pictoChoices } from './viz/picto.js';
 import { ctxIcons } from './viz/icons.js';
 import { alertBox } from './dialogs.js';
+import { num, parseMatrix, fileToMatrix, padMatrix, headerRows, autoRoles, readImport, decimalOf } from './dataparse.js';
 
-const num = (c) => {
-  const n = parseFloat(String(c).replace(/\s/g, '').replace(',', '.'));
-  return isNaN(n) ? null : n;
-};
-
-export function parseMatrix(text) {
-  const lines = String(text || '')
-    .replace(/\r/g, '')
-    .split('\n')
-    .filter((l) => l.trim());
-  if (!lines.length) return null;
-  const sep = lines[0].includes('\t') ? '\t' : lines[0].includes(';') ? ';' : ',';
-  return lines.map((l) => {
-    if (sep !== ',' || !l.includes('"')) return l.split(sep).map((c) => c.trim());
-    const out = [];
-    let cur = '',
-      q = false;
-    for (const ch of l) {
-      if (ch === '"') q = !q;
-      else if (ch === ',' && !q) {
-        out.push(cur.trim());
-        cur = '';
-      } else cur += ch;
-    }
-    return out.concat(cur.trim());
-  });
-}
+export { parseMatrix, fileToMatrix, num };
 export const toCSV = (m) =>
   m.map((r) => r.map((c) => (/[",;\n]/.test(String(c)) ? `"${String(c).replace(/"/g, '""')}"` : String(c))).join(',')).join('\n');
 
-/** Texte d'un fichier importé → matrice (CSV, TSV ou JSON : tableau de lignes ou d'objets) */
-export function fileToMatrix(name, text) {
-  if (/\.json$/i.test(name) || /^\s*[\[{]/.test(text)) {
-    let j = JSON.parse(text);
-    if (!Array.isArray(j)) j = Object.values(j).find(Array.isArray) || [];
-    if (j.length && !Array.isArray(j[0])) {
-      const keys = [...new Set(j.flatMap((o) => Object.keys(o)))];
-      return [keys, ...j.map((o) => keys.map((k) => o[k] ?? ''))];
-    }
-    return j.map((r) => r.map((c) => String(c ?? '')));
-  }
-  return parseMatrix(text);
-}
-
-/** La 1re ligne est un en-tête si une de ses cellules « numériques » n'en est pas une */
-export const hasHeader = (m, numericCols) =>
-  m.length > 1 && numericCols.some((j) => m[0][j] !== undefined && m[0][j] !== '' && num(m[0][j]) === null);
+/** La 1re ligne est un en-tête (ancienne règle, gardée pour compatibilité) : voir `headerRows` pour la détection complète */
+export const hasHeader = (m, numericCols, dec = '.') =>
+  m.length > 1 &&
+  (headerRows(padMatrix(m), dec) > 0 || numericCols.some((j) => m[0][j] !== undefined && m[0][j] !== '' && num(m[0][j], dec) === null));
 
 /* ---------- Adaptateur « libellé × séries » (barres, courbes…) ---------- */
 /** icons : bibliothèque d'icônes du document (ctxIcons) */
@@ -71,8 +33,13 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
       r.v = Array.from({ length: series.length }, (_, j) => cell((r.v || [])[j]));
     });
   const ns = series.length,
+    parse = (v) => num(v, self.dec),
     iconCol = f.icons ? [{ name: t('Icône'), type: 'text', isIcon: true, select: { none: t('Aucune'), ...pictoChoices(obj, icons) } }] : [];
-  return {
+  const self = {
+    dec: '.', // séparateur décimal du document (`gridEditor` le pose d'après `doc.locale`)
+    table: true,
+    maxData: max,
+    blank,
     root: obj,
     cols: [
       { name: t('Libellé'), type: 'text' },
@@ -110,7 +77,7 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
       if (j === 0) rows[i].label = v;
       else if (j > ns) rows[i].icon = v;
       else {
-        const n = num(v);
+        const n = parse(v);
         (rows[i].v || (rows[i].v = []))[j - 1] = n === null ? (blank ? null : 0) : n;
       }
     },
@@ -138,7 +105,10 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
       rows.splice(
         0,
         rows.length,
-        ...body.map((c) => ({ label: c[0] || '', v: Array.from({ length: nser }, (_, j) => num(c[j + 1]) ?? (blank ? null : 0)) })),
+        ...body.map((c) => ({
+          label: String(c[0] ?? ''),
+          v: Array.from({ length: nser }, (_, j) => parse(c[j + 1]) ?? (blank ? null : 0)),
+        })),
       );
     },
     numericCols: Array.from({ length: Math.max(0, series.length) }, (_, j) => j + 1),
@@ -147,15 +117,20 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
       ...rows.map((r) => [r.label || '', ...series.map((_, j) => (r.v || [])[j] ?? (blank ? '' : 0))]),
     ],
   };
+  return self;
 }
 
 /* ---------- Adaptateur « enregistrements » : lignes = objets, colonnes décrites par le type de dataviz ---------- */
 export function recordsAdapter(spec, obj, palOpts, icons) {
   const rows = obj[spec.k] || (obj[spec.k] = []),
     cols = spec.cols;
-  const conv = (c, v) => (c.t === 'number' ? (num(v) ?? 0) : c.t === 'color' ? (palOpts[v] ? v : c.auto ? '' : c.def || 'blue') : v);
+  const conv = (c, v) =>
+    c.t === 'number' ? (num(v, self.dec) ?? 0) : c.t === 'color' ? (palOpts[v] ? v : c.auto ? '' : c.def || 'blue') : String(v ?? '');
   const blank = () => Object.fromEntries(cols.map((c) => [c.k, c.def ?? (c.t === 'number' ? 0 : '')]));
-  return {
+  const self = {
+    dec: '.',
+    table: false,
+    names: cols.flatMap((c) => [c.label, t(c.label), c.k]),
     cols: cols.map((c) => ({
       name: c.label,
       type: c.t === 'number' ? 'number' : 'text',
@@ -183,7 +158,8 @@ export function recordsAdapter(spec, obj, palOpts, icons) {
       const body = head ? m.slice(1) : m;
       const idx = cols.map((c, j) => {
         if (!head) return j;
-        const n = m[0].findIndex((x) => x.toLowerCase() === c.label.toLowerCase() || x.toLowerCase() === c.k.toLowerCase());
+        const keys = [c.label, t(c.label), c.k].map((x) => x.toLowerCase());
+        const n = m[0].findIndex((x) => keys.includes(String(x).toLowerCase()));
         return n < 0 ? j : n;
       });
       rows.splice(0, rows.length, ...body.map((r) => Object.fromEntries(cols.map((c, j) => [c.k, conv(c, r[idx[j]] ?? c.def ?? '')]))));
@@ -191,14 +167,200 @@ export function recordsAdapter(spec, obj, palOpts, icons) {
     numericCols: cols.map((c, j) => (c.t === 'number' ? j : -1)).filter((j) => j >= 0),
     toMatrix: () => [cols.map((c) => c.label), ...rows.map((r) => cols.map((c) => r[c.k] ?? ''))],
   };
+  return self;
+}
+
+/* ---------- Aperçu avant import ---------- */
+/** Fenêtre d'aperçu d'un tableau collé ou importé : matrice lue, lignes d'en-tête (0, 1, 2), rôle de chaque colonne
+    (libellé / donnée / ignorer), séparateur décimal, nombres tels qu'interprétés et cellules non lues.
+    Rend { matrix, head } pour `ad.load`, ou null (annulé). */
+export function importPreview(m0, ad, locale) {
+  return new Promise((resolve) => {
+    const m = padMatrix(m0),
+      w = m[0] ? m[0].length : 0,
+      docDec = decimalOf(locale),
+      loc = locale || 'en-GB';
+    const st = { dec: 'auto', head: Math.min(2, headerRows(m, docDec, ad.names || [])), touched: false };
+    const decOf = () => (st.dec === 'auto' ? docDec : st.dec);
+    st.roles = autoRoles(m, st.head, docDec, ad.table);
+    let result = null;
+    const nf = (v) => {
+      try {
+        return new Intl.NumberFormat(loc, { maximumFractionDigits: 6 }).format(v);
+      } catch (e) {
+        return String(v);
+      }
+    };
+    const ROLE = ad.table ? { label: t('Libellé'), data: t('Donnée'), skip: t('Ignorer') } : { data: t('Donnée'), skip: t('Ignorer') };
+    const summary = h('p', { class: 'imp-sum', 'aria-live': 'polite' });
+    const scroll = h('div', { class: 'dg-scroll imp-scroll' });
+    const headBtns = [0, 1, 2].map((n) =>
+      h('button', {
+        type: 'button',
+        class: 'imp-seg',
+        textContent: String(n),
+        'data-head': n,
+        onclick: () => {
+          st.head = n;
+          if (!st.touched) st.roles = autoRoles(m, n, decOf(), ad.table);
+          draw();
+        },
+      }),
+    );
+    const decSel = h(
+      'select',
+      {
+        class: 'imp-dec',
+        onchange: (e) => {
+          st.dec = e.target.value;
+          draw();
+        },
+      },
+      h('option', { value: 'auto', textContent: `${t('Format du document')} (${docDec === ',' ? '1 025,5' : '1,025.5'})` }),
+      h('option', { value: '.', textContent: t('Point (1,025.5)') }),
+      h('option', { value: ',', textContent: t('Virgule (1 025,5 ou 1.025,5)') }),
+    );
+    const draw = () => {
+      headBtns.forEach((b, n) => {
+        b.classList.toggle('on', n === st.head);
+        b.setAttribute('aria-pressed', String(n === st.head));
+      });
+      const res = readImport(m, { head: st.head, roles: st.roles, dec: decOf(), table: ad.table });
+      const table = h('table', { class: 'dg imp' });
+      table.append(
+        h(
+          'thead',
+          {},
+          h(
+            'tr',
+            {},
+            h('th', { class: 'dg-n' }),
+            ...st.roles.map((r, j) => {
+              const sel = h(
+                'select',
+                {
+                  'aria-label': `${t('Rôle de la colonne')} ${j + 1}`,
+                  'data-role': j,
+                  onchange: (e) => {
+                    st.roles[j] = e.target.value;
+                    st.touched = true;
+                    draw();
+                  },
+                },
+                Object.entries(ROLE).map(([k, l]) => h('option', { value: k, textContent: l })),
+              );
+              sel.value = r in ROLE ? r : 'data';
+              return h('th', { class: 'imp-role-' + r }, sel);
+            }),
+          ),
+        ),
+      );
+      const body = h('tbody');
+      m.forEach((row, i) => {
+        const isHead = i < st.head,
+          info = isHead ? null : res.cells[i - st.head];
+        body.append(
+          h(
+            'tr',
+            { class: isHead ? 'imp-h' : '' },
+            h('td', { class: 'dg-n', textContent: isHead ? t('En-tête') : String(i - st.head + 1) }),
+            ...row.map((raw, j) => {
+              const role = st.roles[j],
+                c = info && info[j];
+              if (isHead || !c || c.v === null) {
+                const bad = !!(c && c.bad);
+                return h(
+                  'td',
+                  { class: `imp-c imp-role-${role}${bad ? ' bad' : ''}`, title: bad ? t('Non lu : ce n’est pas un nombre') : null },
+                  bad ? ico('alert-triangle') : null,
+                  h('span', { textContent: raw }),
+                );
+              }
+              const shown = nf(c.v);
+              return h(
+                'td',
+                { class: `imp-c imp-num imp-role-${role}`, 'data-v': c.v },
+                h('span', { textContent: shown }),
+                shown !== raw ? h('small', { textContent: raw }) : null,
+              );
+            }),
+          ),
+        );
+      });
+      table.append(body);
+      scroll.replaceChildren(table);
+      const nRows = Math.max(0, res.matrix.length - (st.head ? 1 : 0)),
+        nData = res.dataCols.length;
+      const parts = [t('{r} lignes, {c} colonnes de données.').replace('{r}', nRows).replace('{c}', nData)];
+      if (res.bad)
+        parts.push(
+          (ad.blank || !ad.table ? t('{n} cellules non lues (laissées vides).') : t('{n} cellules non lues (comptées 0).')).replace(
+            '{n}',
+            res.bad,
+          ),
+        );
+      if (ad.table && ad.maxData && nData > ad.maxData)
+        parts.push(t('{n} colonnes de données au plus : les suivantes seront ignorées.').replace('{n}', ad.maxData));
+      if (ad.table && !res.roles.includes('label')) parts.push(t('Aucune colonne de libellés : les lignes resteront sans nom.'));
+      summary.textContent = parts.join(' ');
+      summary.classList.toggle('warn', !!res.bad);
+      okBtn.disabled = !nData || !nRows;
+      result = res;
+    };
+    const okBtn = h('button', { type: 'submit', class: 'btn primary', textContent: t('Importer') });
+    const dlg = h('dialog', { class: 'modal dg-imp', 'aria-label': t('Aperçu de l’import') });
+    const form = h(
+      'form',
+      {
+        method: 'dialog',
+        class: 'modal-form',
+        onsubmit: () => {
+          dlg.dataset.ok = '1';
+        },
+      },
+      h(
+        'div',
+        { class: 'imp-body' },
+        h('h2', { textContent: t('Aperçu de l’import') }),
+        h(
+          'div',
+          { class: 'imp-tools' },
+          h('span', { class: 'imp-lab', textContent: t('Lignes d’en-tête') }),
+          h('div', { class: 'imp-segs', role: 'group', 'aria-label': t('Lignes d’en-tête') }, ...headBtns),
+          h('label', { class: 'imp-lab' }, h('span', { textContent: t('Séparateur décimal') }), decSel),
+        ),
+        scroll,
+        summary,
+      ),
+      h(
+        'div',
+        { class: 'modal-actions' },
+        h('button', { type: 'button', class: 'btn', textContent: t('Annuler'), onclick: () => dlg.close() }),
+        okBtn,
+      ),
+    );
+    dlg.append(form);
+    dlg.addEventListener('close', () => {
+      dlg.remove();
+      resolve(dlg.dataset.ok && result ? { matrix: result.matrix, head: st.head > 0 } : null);
+    });
+    draw();
+    document.body.append(dlg);
+    dlg.showModal();
+    okBtn.focus();
+  });
 }
 
 /* ---------- Interface ---------- */
-export function gridEditor(ad, ctx, { downloadName = 'data' } = {}) {
+export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
   const rebuild = () => ctx.restructure();
-  const apply = (m, head) => {
+  ad.dec = decimalOf(locale);
+  /* collage ou import d'un tableau entier : aperçu d'abord, rien ne change avant « Importer » */
+  const apply = async (m) => {
     if (!m || !m.length) return;
-    ad.load(m, head === undefined ? hasHeader(m, ad.numericCols) : head);
+    const r = await importPreview(m, ad, locale);
+    if (!r) return;
+    ad.load(r.matrix, r.head);
     rebuild();
   };
 

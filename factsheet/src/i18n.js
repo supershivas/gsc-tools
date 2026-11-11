@@ -448,6 +448,22 @@ const EN = {
   Série: 'Series',
   'Coller un tableau': 'Paste a table',
   'Remplacer les données': 'Replace data',
+  /* aperçu avant import (vizdata.js) */
+  'Aperçu de l’import': 'Import preview',
+  'Lignes d’en-tête': 'Header rows',
+  'Séparateur décimal': 'Decimal separator',
+  'Format du document': 'Document format',
+  'Point (1,025.5)': 'Point (1,025.5)',
+  'Virgule (1 025,5 ou 1.025,5)': 'Comma (1 025,5 or 1.025,5)',
+  Donnée: 'Data',
+  Ignorer: 'Ignore',
+  'Rôle de la colonne': 'Column role',
+  'Non lu : ce n’est pas un nombre': 'Not read: this is not a number',
+  '{r} lignes, {c} colonnes de données.': '{r} rows, {c} data columns.',
+  '{n} cellules non lues (laissées vides).': '{n} cells not read (left empty).',
+  '{n} cellules non lues (comptées 0).': '{n} cells not read (counted as 0).',
+  '{n} colonnes de données au plus : les suivantes seront ignorées.': 'At most {n} data columns: the next ones will be ignored.',
+  'Aucune colonne de libellés : les lignes resteront sans nom.': 'No label column: rows will have no name.',
   'Collez un tableau depuis Excel ou un CSV : libellé ⇥ série 1 ⇥ série 2…  (la 1re ligne peut contenir les noms de séries)':
     'Paste a table from Excel or a CSV: label ⇥ series 1 ⇥ series 2…  (the first row may hold the series names)',
   /* éditeur de dataviz */

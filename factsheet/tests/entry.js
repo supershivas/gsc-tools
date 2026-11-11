@@ -7,6 +7,8 @@ import { renderDocument, measure } from '../src/render.js';
 import { groupOf, VALID_G } from '../src/vizgroups.js';
 import { heatCells, heatLegend } from '../src/viz/heatmap.js';
 import { logoFamilies, parseAssets } from '../src/assetlib.js';
+import * as dataparse from '../src/dataparse.js';
+import { tableAdapter, recordsAdapter } from '../src/vizdata.js';
 
 window.FSTEST = {
   defaultDoc,
@@ -28,4 +30,7 @@ window.FSTEST = {
   VALID_G: [...VALID_G],
   heatCells,
   heatLegend,
+  dataparse,
+  tableAdapter,
+  recordsAdapter,
 };

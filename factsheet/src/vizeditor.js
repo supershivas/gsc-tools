@@ -550,13 +550,17 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
           nodes.push(
             gridEditor(tableAdapter(f, col.viz.opts, paletteOptions(doc), SERIES_COLORS, ctxIcons(fctx)), fctx, {
               downloadName: col.viz.kind,
+              locale: doc.locale || 'en-GB',
             }),
           );
         else nodes.push(...gen([f]));
       }
       if (ty.data)
         nodes.push(
-          gridEditor(recordsAdapter(ty.data, col.viz.opts, paletteOptions(doc), ctxIcons(fctx)), fctx, { downloadName: col.viz.kind }),
+          gridEditor(recordsAdapter(ty.data, col.viz.opts, paletteOptions(doc), ctxIcons(fctx)), fctx, {
+            downloadName: col.viz.kind,
+            locale: doc.locale || 'en-GB',
+          }),
           ty.dataHint ? h('p', { class: 'hint', textContent: t(ty.dataHint) }) : null,
         );
       dataPane.append(
