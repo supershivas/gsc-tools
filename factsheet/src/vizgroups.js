@@ -21,7 +21,7 @@ export const FIELD_ORDER = [
   'style', 'orient', 'largestAngle', 'startAngle', 'ringAlign', 'orientation', 'alternate', 'tail', 'align', 'shape',
   'cols', 'gridRows', 'total', 'perIcon', 'perDot', 'perRow', 'circle', 'parents', 'curve', 'points', 'area', 'refCol', 'compareTo', 'colorBy',
   // Dimensions
-  'barSize', 'groupSpace', 'rowSpace', 'serSpace', 'rowGap', 'scale', 'pad', 'gap', 'corners', 'nodeW', 'nodePad', 'maxR', 'hole', 'lineWidth', 'pointSize',
+  'barSize', 'groupSpace', 'rowSpace', 'serSpace', 'rowGap', 'scale', 'pad', 'gap', 'corners', 'nodeW', 'nodePad', 'maxR', 'ringWidth', 'segGap', 'hole', 'lineWidth', 'pointSize',
   // Axes et grille
   'grid', 'gridStyle', 'gridTone', 'segments', 'axisValues', 'baseline', 'xTitle', 'yTitle', 'showRowNames', 'showColNames', 'zero', 'zeroX', 'zeroY', 'scaleMax', 'gridCount',
   'refLine', 'refValue', 'refAvg', 'refLineX', 'refX', 'refAvgX', 'refTextX', 'refLineY', 'refY', 'refAvgY', 'refTextY',
@@ -29,7 +29,7 @@ export const FIELD_ORDER = [
   'legend', 'legendPos', 'legendNote', 'legendNoteText', 'showPercent', 'showValues', 'showPct', 'showDelta', 'valuesIn', 'labelIn', 'showLabels', 'groupLabels', 'showDates', 'showTotal',
   'layout', 'leading', 'totalTpl', 'refText', 'pendingText', 'decimals', 'suffix',
   // Couleurs
-  'color', 'color2', 'classes',
+  'color', 'color2', 'classes', 'linkOpacity',
   // Accolade et liaison
   'callout.on', 'callout.value', 'callout.text', 'bracket', 'bracketGap', 'bracketLink', 'linkExtra', 'linkColor',
 ]; // prettier-ignore

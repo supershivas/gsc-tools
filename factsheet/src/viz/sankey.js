@@ -4,6 +4,7 @@ import { VIZ, TYPE } from '../tokens.js';
 import { s, SW, colorRef, pxOf, fmt, mw, SANS, fitText, heightOf, autoColor, inkOn } from './util.js';
 import { t } from '../i18n.js';
 
+const LINK_OPACITY = { light: 0.2, normal: 0.4, strong: 0.65 }; // opacité des flux (audit des options, lot 5a : `def` du champ, 0,4 d'origine)
 const ALIGN = { justify: sankeyJustify, left: sankeyLeft, right: sankeyRight, center: sankeyCenter };
 
 export default {
@@ -43,6 +44,14 @@ export default {
       t: 'select',
       label: 'Alignement des nœuds',
       options: { justify: 'Justifié', left: 'À gauche', right: 'À droite', center: 'Centré' },
+    },
+    {
+      k: 'linkOpacity',
+      g: 'colors',
+      t: 'select',
+      label: 'Opacité des flux',
+      options: { light: 'Légère', normal: 'Normale', strong: 'Marquée' },
+      def: 'normal',
     },
     { k: 'nodeW', g: 'dims', t: 'number', label: 'Largeur des nœuds (px)', min: 3, max: 36 },
     { k: 'nodePad', g: 'dims', t: 'number', label: 'Espace entre les nœuds (px)', min: 0, max: 36 },
@@ -147,7 +156,7 @@ export default {
           d: `M${x0},${l.y0}C${xm},${l.y0} ${xm},${l.y1} ${x1},${l.y1}`,
           stroke: colorRef(key),
           'stroke-width': Math.max(1, l.width),
-          'stroke-opacity': 0.4,
+          'stroke-opacity': LINK_OPACITY[o.linkOpacity] ?? LINK_OPACITY.normal,
         }),
       );
     }

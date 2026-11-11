@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.93.0 — 2026-11-11
+- Anneau : épaisseur (Fin / Normal / Épais) et séparation des segments (Aucune / Fine / Large) dans « Dimensions »
+- Barres et barres horizontales : coins arrondis ou droits ; Sankey : opacité des flux (Légère / Normale / Marquée)
+- Les fiches existantes gardent leur aspect ; ↺ et « Rétablir l'aspect d'origine » y ramènent
+
 ## 1.92.0 — 2026-11-11
 - Barres, barres horizontales, courbes et nuage de points : ligne de repère en tirets (objectif, moyenne…) avec son texte, dans « Axes et grille » › Ligne de référence
 - Bouton « Moyenne des données » qui remplit la valeur du repère ; l'échelle s'étend si le repère sort des données

@@ -747,3 +747,21 @@ test('repère : la moyenne des données remplit la valeur, et s’annule', async
   await expect(value).toHaveValue('0');
   expect(errors).toEqual([]);
 });
+
+/* Apparence (lot 5a) : l'épaisseur de l'anneau est en vignettes et ↺ revient à la valeur d'origine */
+test('anneau : épaisseur en vignettes, ↺ ramène à Normal', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await openEditor(page);
+  await pickType(page, /^Donut/);
+  await page.locator('.ve-form .pp-q').fill(' ');
+  const f = page.locator('.ve-form .f', { hasText: 'Ring thickness' });
+  await expect(f.locator('.seg.thumbs button')).toHaveCount(3);
+  await expect(f.locator('.seg button.on')).toHaveText('Normal');
+  await f.locator('.seg button', { hasText: 'Thick' }).click();
+  await page.locator('.ve-form .pp-q').fill(' ');
+  await expect(f.locator('.seg button.on')).toHaveText('Thick');
+  await f.locator('.pp-reset').click();
+  await expect(f.locator('.seg button.on')).toHaveText('Normal');
+  expect(errors).toEqual([]);
+});

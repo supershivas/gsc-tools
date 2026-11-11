@@ -161,6 +161,32 @@ export function widthThumbsControl(h2, label, choices, current, commit) {
   return c;
 }
 
+/** Vignettes d'épaisseur d'anneau : un petit anneau de plus en plus épais par choix (vrais cercles SVG au trait) */
+export function ringThumbsControl(h2, label, choices, current, commit) {
+  const c = segControl(h2, label, choices, current, commit);
+  c.node.classList.add('thumbs');
+  const NS = 'http://www.w3.org/2000/svg';
+  const R = [
+    [14, 3],
+    [12, 6],
+    [10, 9],
+  ]; // [rayon du trait, épaisseur] sur 28 × 28 : 10 %, 16 %, 24 % du rayon extérieur environ
+  [...c.node.children].forEach((b, i) => {
+    const svg = document.createElementNS(NS, 'svg'),
+      ci = document.createElementNS(NS, 'circle'),
+      [r, w] = R[i] || R[1];
+    svg.setAttribute('viewBox', '0 0 28 28');
+    svg.setAttribute('class', 'th-ring');
+    svg.setAttribute('aria-hidden', 'true');
+    Object.entries({ cx: 14, cy: 14, r: r - w / 2, fill: 'none', stroke: 'currentColor', 'stroke-width': w }).forEach(([k, v]) =>
+      ci.setAttribute(k, v),
+    );
+    svg.append(ci);
+    b.replaceChildren(h2('i', { class: 'th-ico', 'aria-hidden': 'true' }, svg), h2('span', { textContent: choices[i][1] }));
+  });
+  return c;
+}
+
 /** Vignettes de style de ligne (plein, tirets, pointillé) : un vrai trait SVG par choix, au-dessus du libellé */
 export function lineThumbsControl(h2, label, choices, current, commit) {
   const c = segControl(h2, label, choices, current, commit);

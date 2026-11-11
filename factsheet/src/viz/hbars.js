@@ -76,6 +76,14 @@ export default {
       def: 'normal',
     },
     {
+      k: 'corners',
+      g: 'dims',
+      t: 'select',
+      label: 'Coins des barres',
+      options: { round: 'Arrondis', square: 'Droits' },
+      def: 'round',
+    },
+    {
       k: 'rowSpace',
       g: 'dims',
       t: 'select',
@@ -184,7 +192,8 @@ export default {
     /* graduations : grille (verticale) et valeurs de l'axe (sous les barres, réserve comptée dans la hauteur) */
     const axV = !!o.axisValues,
       grid = gridOn(o),
-      base = (o.baseline ?? ORIGIN.baseline) && !o.labelIn;
+      base = (o.baseline ?? ORIGIN.baseline) && !o.labelIn,
+      square = o.corners === 'square'; // coins droits (def : arrondis)
     const tk = grid || axV ? ticks(0, max, gridN(o, Math.max(3, Math.floor(span / 80)))) : null,
       tickTxt = (v) => tickFmt(v, tk, env.locale, o.decimals) + suffix,
       axH = axV ? Math.round(capPx * 1.4 + 3) : 0;
@@ -278,7 +287,7 @@ export default {
             s('path', {
               'data-color': env.ui ? `rows.${i}.colors.${j}` : null,
               'data-color-base': env.ui ? `series.${j}.color` : null,
-              d: acc >= total(r) ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`,
+              d: acc >= total(r) && !square ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`,
               fill: colorRef(elColor(r, j, sr)),
               stroke: 'currentColor',
               'stroke-width': SW,
@@ -310,7 +319,9 @@ export default {
             s('path', {
               'data-color': env.ui ? `rows.${i}.colors.${j}` : null,
               'data-color-base': env.ui ? `series.${j}.color` : null,
-              d: hPath(x0, yy, Math.max(w, 0.0001), bh, VIZ.barRadius),
+              d: square
+                ? `M${x0},${yy}h${Math.max(w, 0.0001)}v${bh}h${-Math.max(w, 0.0001)}Z`
+                : hPath(x0, yy, Math.max(w, 0.0001), bh, VIZ.barRadius),
               fill: colorRef(elColor(r, j, sr)),
               stroke: 'currentColor',
               'stroke-width': SW,

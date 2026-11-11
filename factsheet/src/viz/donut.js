@@ -29,6 +29,9 @@ function clearManual(o) {
 const norm = (a) => ((a % 360) + 360) % 360;
 const hasLabel = (g) => !!(String(g.title || '').trim() || String(g.text || '').trim()); // un segment sans titre ni texte n'a ni libellé ni trait de repère
 const ORANGE = '#F28C28';
+/* Réglages d'apparence (audit des options, lot 5a) : la valeur d'origine est le `def` de chaque champ, aucune clé n'est écrite dans `defaults()` ni `migrate`. */
+const RING_PCT = { thin: 0.1, normal: VIZ.ringPct, thick: 0.24 }; // épaisseur de l'anneau / rayon extérieur
+const SEG_GAP = { none: 0, thin: 2, wide: 5 }; // largeur (px) du liseré de la couleur du fond entre les segments
 
 export default {
   label: 'Anneau / camembert',
@@ -66,6 +69,23 @@ export default {
   }),
   fields: [
     { k: 'style', g: 'struct', t: 'select', label: 'Forme', options: { donut: 'Anneau (total au centre)', pie: 'Camembert' } },
+    {
+      k: 'ringWidth',
+      g: 'dims',
+      when: (o) => o.style !== 'pie',
+      t: 'select',
+      label: 'Épaisseur de l’anneau',
+      options: { thin: 'Fin', normal: 'Normal', thick: 'Épais' },
+      def: 'normal',
+    },
+    {
+      k: 'segGap',
+      g: 'dims',
+      t: 'select',
+      label: 'Séparation des segments',
+      options: { none: 'Aucune', thin: 'Fine', wide: 'Large' },
+      def: 'none',
+    },
     { k: 'totalTpl', g: 'labels', when: (o) => o.style !== 'pie', t: 'ctext', label: 'Texte du centre' },
     { k: 'decimals', g: 'labels', when: (o) => o.style !== 'pie', t: 'number', label: 'Décimales du total', min: 0, max: 4 },
     {
@@ -275,7 +295,7 @@ export default {
         : Math.min(VIZ.ringLegend, round3(W - 6));
     const pie = o.style === 'pie';
     const Ro = D / 2 - SW,
-      Ri = pie ? 0 : Ro * (1 - VIZ.ringPct);
+      Ri = pie ? 0 : Ro * (1 - (RING_PCT[o.ringWidth] ?? RING_PCT.normal));
     const sector = (cx, cy, p) => {
       const pt = (r, ang) => [cx + r * Math.sin(rad(ang)), cy - r * Math.cos(rad(ang))];
       if (p.a1 - p.a0 >= 359.99)
@@ -398,6 +418,25 @@ export default {
           style: ui ? { cursor: 'grab' } : null,
         }),
       );
+      /* liseré entre les segments : vrai trait SVG de la couleur du fond, du centre (ou du bord intérieur) au-delà du bord extérieur ; il recouvre les contours */
+      const gap = SEG_GAP[o.segGap] ?? 0;
+      if (gap && arcs.length > 1 && !arcs.some((p) => p.a1 - p.a0 >= 359.99))
+        arcs.forEach((p) => {
+          const r0 = pie ? 0 : Ri - SW,
+            r1 = Ro + SW;
+          out.push(
+            s('line', {
+              x1: cx + r0 * Math.sin(rad(p.a1)),
+              y1: cy - r0 * Math.cos(rad(p.a1)),
+              x2: cx + r1 * Math.sin(rad(p.a1)),
+              y2: cy - r1 * Math.cos(rad(p.a1)),
+              stroke: '#FFFFFF',
+              'stroke-width': gap,
+              'stroke-linecap': 'butt',
+              'pointer-events': 'none',
+            }),
+          );
+        });
       if (ui)
         arcs.forEach((p) => {
           if (idxOf(p.g) === sel)

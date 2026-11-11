@@ -112,6 +112,14 @@ export default {
       def: 'normal',
     },
     {
+      k: 'corners',
+      g: 'dims',
+      t: 'select',
+      label: 'Coins des barres',
+      options: { round: 'Arrondis', square: 'Droits' },
+      def: 'round',
+    },
+    {
       k: 'groupSpace',
       g: 'dims',
       t: 'select',
@@ -228,7 +236,8 @@ export default {
     /* graduations : grille et valeurs de l'axe (à gauche, la réserve décale le graphique) */
     const axV = !!o.axisValues,
       grid = gridOn(o),
-      base = o.baseline ?? ORIGIN.baseline;
+      base = o.baseline ?? ORIGIN.baseline,
+      square = o.corners === 'square'; // coins droits (def : arrondis)
     const tk = grid || axV ? ticks(0, max, gridN(o, 5)) : null,
       tickTxt = (v) => tickFmt(v, tk, env.locale, o.decimals) + suffix;
     const px0 = axV ? Math.max(0, ...tk.out.map((v) => mw(tickTxt(v), 400, SANS, capPx))) + 8 : 0;
@@ -336,7 +345,7 @@ export default {
       s('path', {
         'data-color': env.ui ? `rows.${i}.colors.${j}` : null,
         'data-color-base': env.ui ? `series.${j}.color` : null,
-        d: round ? barPath(x, y, bw, Math.max(h, 0.0001), VIZ.barRadius) : `M${x},${y}h${bw}v${h}h${-bw}Z`,
+        d: round && !square ? barPath(x, y, bw, Math.max(h, 0.0001), VIZ.barRadius) : `M${x},${y}h${bw}v${h}h${-bw}Z`,
         fill: colorRef(color),
         stroke: 'currentColor',
         'stroke-width': SW,
