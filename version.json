@@ -1,7 +1,8 @@
 {
-  "version": "1.103.1",
+  "version": "1.104.0",
   "date": "2026-11-11",
   "changes": [
-    "Heatmap : quand les données n'ont que des hausses (ou que des baisses), la légende ne montre que ce sens, à partir de 0, sans mentionner l'autre"
+    "Heatmap : quand les données n'ont que des hausses (ou que des baisses), la légende ne montre que ce sens, à partir de 0, sans mentionner l'autre",
+    "Heatmap : de 3 à 20 classes de couleur ; un nombre pair n'a pas de classe neutre (autant de baisses que de hausses)"
   ]
 }

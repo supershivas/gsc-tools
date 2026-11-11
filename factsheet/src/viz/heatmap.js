@@ -24,7 +24,12 @@ import {
 } from './util.js';
 
 const NEUTRAL = 'grey'; // couleur neutre de la palette : cases de référence et écart nul
-const CLASSES = { 3: '3', 5: '5', 7: '7' };
+/** Nombre de classes : 3 à 20. Impair = une classe neutre grise autour de zéro ; pair = autant de baisses que de hausses, zéro à la limite. */
+const CLASSES = Object.fromEntries(Array.from({ length: 18 }, (_, i) => [i + 3, String(i + 3)]));
+/** Nombre de classes d'un réglage (borné à 3–20) */
+export const classCount = (o) => Math.max(3, Math.min(20, Math.round(+o.classes || +LOOK.classes)));
+/** Classes de chaque côté de zéro sur l'échelle divergente */
+const halfOf = (n) => Math.floor(n / 2);
 const LOOK = {
   refCol: '0',
   compareTo: 'ref',
@@ -61,11 +66,13 @@ export const refIndex = (o, n) => {
 export const classAlpha = (k, h) => (h <= 1 ? 0.6 : 0.2 + (0.8 * (k - 1)) / (h - 1));
 /** Teinte de la classe k selon l'intensité choisie (`fillTone`) : celle de `classAlpha`, ×0,75 / ×1,25, jamais au-delà de 1 */
 const toneAlpha = (o, k, h) => Math.min(1, classAlpha(k, h) * (TONE_K[o.fillTone] ?? 1));
-/** Classe d'un écart d sur une échelle divergente de n classes (impair) : −h…h, 0 = classe neutre autour de zéro */
+/** Classe d'un écart d sur une échelle divergente de n classes : −h…h. n impair : 0 = classe neutre autour de zéro ;
+    n pair : pas de classe neutre, tout écart non nul est au moins en classe ±1 (seul un écart nul reste à 0, gris). */
 export function divClass(d, M, n) {
-  const h = (n - 1) / 2;
+  const h = halfOf(n);
   if (!(M > 0) || !d) return 0;
-  const k = Math.min(h, Math.floor((Math.abs(d) / M) * (n / 2) + 0.5));
+  const r = Math.abs(d) / M;
+  const k = n % 2 ? Math.min(h, Math.floor(r * (n / 2) + 0.5)) : Math.max(1, Math.min(h, Math.ceil(r * h - 1e-9)));
   return Math.sign(d) * k;
 }
 /** Classe d'une valeur sur une échelle séquentielle de n classes entre lo et hi : 1…n */
@@ -83,7 +90,7 @@ export function heatCells(o) {
     prev = (o.compareTo || LOOK.compareTo) === 'prev',
     by = o.colorBy || LOOK.colorBy,
     mode = ref < 0 || by === 'value' ? 'value' : by,
-    nc = +o.classes || +LOOK.classes;
+    nc = classCount(o);
   /* valeur de comparaison : la colonne de référence, ou la colonne précédente remplie (« colonne précédente ») */
   const base = (r, j) => {
     if (ref < 0) return null;
@@ -134,7 +141,7 @@ export function heatCells(o) {
         c.alpha = 1;
       } else {
         c.fill = k < 0 ? o.color || LOOK.color : o.color2 || LOOK.color2;
-        c.alpha = toneAlpha(o, Math.abs(k), (nc - 1) / 2);
+        c.alpha = toneAlpha(o, Math.abs(k), halfOf(nc));
       }
     });
   }
@@ -148,7 +155,8 @@ export function heatLegend(o, loc) {
   const { cells, mode, scale: sc } = heatCells(o),
     dec = o.decimals ?? 1,
     nc = sc.nc,
-    h = (nc - 1) / 2;
+    h = halfOf(nc),
+    odd = nc % 2 === 1;
   if (!cells.flat().some((c) => c.kind === 'val') || !(sc.hi > sc.lo)) return null;
   const pct = mode === 'pct',
     unit = pct ? pctSign(loc) : o.suffix || '',
@@ -159,7 +167,7 @@ export function heatLegend(o, loc) {
   for (let i = 0; i < nc; i++) {
     if (mode === 'value') out.cells.push({ color: o.color2 || LOOK.color2, alpha: toneAlpha(o, i + 1, nc), path: 'color2' });
     else {
-      const k = i - h;
+      const k = odd || i < h ? i - h : i - h + 1; // pair : pas de classe neutre (−h…−1, 1…h)
       out.cells.push(
         k === 0
           ? { color: NEUTRAL, alpha: 1 }
@@ -176,8 +184,8 @@ export function heatLegend(o, loc) {
       out.cells = out.cells.slice(h);
       out.labels = [zero, ...out.labels.slice(h + 1)];
     } else {
-      out.cells = out.cells.slice(0, h + 1);
-      out.labels = [...out.labels.slice(0, h + 1), zero];
+      out.cells = out.cells.slice(0, odd ? h + 1 : h);
+      out.labels = [...out.labels.slice(0, odd ? h + 1 : h), zero];
     }
   }
   const custom = String(o.legendNoteText ?? '').trim();

@@ -451,3 +451,48 @@ test('textes : réglages dans l’éditeur (carte Textes, colonnes de ligne), ex
   expect(back[1].fmt).toEqual({ bold: true });
   expect(errors).toEqual([]);
 });
+
+test('classes de couleur : de 3 à 20, nombre pair sans classe neutre', async ({ page }) => {
+  await page.goto('/factsheet/tests/blank.html');
+  const r = await page.evaluate(() => {
+    const { heatCells, heatLegend, VIZ_TYPES } = window.FSTEST;
+    const o = VIZ_TYPES.heatmap.defaults();
+    const opts = VIZ_TYPES.heatmap.fields.find((f) => f.k === 'classes').options;
+    const lg = (n, extra = {}) => heatLegend({ ...o, classes: String(n), ...extra }, 'en-GB');
+    const up = { rows: [{ label: 'A', v: [10, 12, 15, null] }] };
+    const four = heatCells({ ...o, classes: '4' });
+    return {
+      opts: Object.keys(opts),
+      l20: lg(20),
+      l19: lg(19),
+      l4: lg(4),
+      up20: lg(20, up),
+      up19: lg(19, up),
+      four: four.cells.flat().map((c) => c.cls ?? null),
+      maxCls20: Math.max(
+        ...heatCells({ ...o, classes: '20' })
+          .cells.flat()
+          .map((c) => Math.abs(c.cls || 0)),
+      ),
+      big: heatLegend({ ...o, classes: '99' }, 'en-GB').cells.length,
+    };
+  });
+  expect(r.opts).toEqual(Array.from({ length: 18 }, (_, i) => String(i + 3)));
+  // 20 classes : 10 baisses puis 10 hausses, zéro à la limite du milieu
+  expect(r.l20.cells).toHaveLength(20);
+  expect(r.l20.cells.some((c) => !c.path)).toBe(false);
+  expect(r.l20.cells.slice(0, 10).every((c) => c.path === 'color')).toBe(true);
+  expect(r.l20.labels).toHaveLength(21);
+  expect(r.l20.labels[10]).toBe('0.0');
+  // 19 classes : classe neutre au milieu
+  expect(r.l19.cells[9].path).toBeUndefined();
+  expect(r.l4.cells.map((c) => c.path)).toEqual(['color', 'color', 'color2', 'color2']);
+  // un seul sens : 10 classes de hausse (pair) ; neutre + 9 (impair)
+  expect(r.up20.cells).toHaveLength(10);
+  expect(r.up20.labels[0]).toBe('0.0');
+  expect(r.up19.cells).toHaveLength(10);
+  // 4 classes : tout écart non nul est au moins en classe ±1 ; seules référence et attente sans classe
+  expect(r.four.filter((k) => k === 0)).toHaveLength(0);
+  expect(r.maxCls20).toBe(10);
+  expect(r.big).toBe(20); // borné à 20
+});

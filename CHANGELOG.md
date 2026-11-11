@@ -1,7 +1,8 @@
 # Changelog
 
-## 1.103.1 — 2026-11-11
+## 1.104.0 — 2026-11-11
 - Heatmap : quand les données n'ont que des hausses (ou que des baisses), la légende ne montre que ce sens, à partir de 0, sans mentionner l'autre
+- Heatmap : de 3 à 20 classes de couleur ; un nombre pair n'a pas de classe neutre (autant de baisses que de hausses)
 
 ## 1.103.0 — 2026-11-11
 - Heatmap : les noms longs passent à la ligne au lieu de rétrécir ; largeur de la colonne des noms réglable (20 à 50 %)
