@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.103.1 — 2026-11-11
+- Heatmap : quand les données n'ont que des hausses (ou que des baisses), la légende ne montre que ce sens, à partir de 0, sans mentionner l'autre
+
 ## 1.103.0 — 2026-11-11
 - Heatmap : les noms longs passent à la ligne au lieu de rétrécir ; largeur de la colonne des noms réglable (20 à 50 %)
 - Mise en forme par ligne (onglet Données) : type Titre ou Total (gras, fond neutre léger), gras et taille ; nouvelle carte « Textes » pour les noms et les en-têtes de colonnes

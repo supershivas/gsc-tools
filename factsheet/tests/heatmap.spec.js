@@ -194,9 +194,11 @@ test('légende en barre de classes et note', async ({ page }) => {
     const fixed = heatLegend({ ...o, scaleMax: 1000 }, 'fr-FR');
     const value = heatLegend({ ...o, colorBy: 'value' }, 'fr-FR');
     // un seul sens : toutes les valeurs montent
-    const up = heatLegend({ ...o, rows: [{ label: 'A', v: [10, 12, 15, null] }] }, 'fr-FR');
+    const up = heatLegend({ ...o, rows: [{ label: 'A', v: [10, 12, 15, null] }] }, 'en-GB');
+    // un seul sens : toutes les valeurs baissent (en %)
+    const down = heatLegend({ ...o, colorBy: 'pct', rows: [{ label: 'A', v: [10, 8, 5, null] }] }, 'en-GB');
     const empty = heatLegend({ ...o, rows: [{ label: 'A', v: [null, null, null, null] }] }, 'fr-FR');
-    return { a, prev, three: three.labels, customNote: custom.note, fixed: fixed.note, value, up: up.note, empty };
+    return { a, prev, three: three.labels, customNote: custom.note, fixed: fixed.note, value, up, down, empty };
   });
   expect(r.a.cells).toHaveLength(7);
   expect(r.a.labels).toHaveLength(8);
@@ -213,7 +215,18 @@ test('légende en barre de classes et note', async ({ page }) => {
   expect(r.fixed).toContain('fixed maximum');
   expect(r.value.cells).toHaveLength(7);
   expect(r.value.labels[0]).not.toMatch(/^[+−]/);
-  expect(r.up).toContain('No decrease in the data.');
+  // que des hausses : classe neutre + 3 classes de hausse, de 0 au maximum, sans rien sur les baisses
+  expect(r.up.cells.map((c) => c.path || 'zero')).toEqual(['zero', 'color2', 'color2', 'color2']);
+  expect(r.up.labels).toHaveLength(5);
+  expect(r.up.labels[0]).toBe('0.0');
+  expect(r.up.labels.slice(1).every((l) => l.startsWith('+'))).toBe(true);
+  expect(r.up.note).not.toMatch(/decrease|increase/i);
+  // que des baisses : 3 classes de baisse + classe neutre, du maximum à 0
+  expect(r.down.cells.map((c) => c.path || 'zero')).toEqual(['color', 'color', 'color', 'zero']);
+  expect(r.down.labels).toHaveLength(5);
+  expect(r.down.labels[4]).toBe('0.0%');
+  expect(r.down.labels.slice(0, 4).every((l) => l.startsWith('−'))).toBe(true);
+  expect(r.down.note).not.toMatch(/decrease|increase/i);
   expect(r.empty).toBeNull();
 });
 

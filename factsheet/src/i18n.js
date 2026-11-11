@@ -859,8 +859,6 @@ const EN = {
   'Couleur pleine = plus grande valeur du tableau ({v}).': 'Full colour = largest value in the table ({v}).',
   'Couleur pleine = écart de {v} ou plus (maximum fixé).': 'Full colour = gap of {v} or more (fixed maximum).',
   'Couleur pleine = valeur de {v} ou plus (maximum fixé).': 'Full colour = value of {v} or more (fixed maximum).',
-  'Aucune hausse dans les données.': 'No increase in the data.',
-  'Aucune baisse dans les données.': 'No decrease in the data.',
   'Couleur des baisses': 'Decrease colour',
   'Couleur des hausses (et des valeurs)': 'Increase colour (and values)',
   'Nombre de classes de couleur': 'Number of colour classes',

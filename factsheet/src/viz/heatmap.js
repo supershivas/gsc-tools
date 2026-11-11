@@ -142,7 +142,8 @@ export function heatCells(o) {
 }
 
 /** Légende en barre de classes (pure, réutilisée par les tests) : { cells, labels, note } ou null s'il n'y a rien à échelonner.
-    Libellés aux limites des classes ; note automatique (traduite) sauf `legendNoteText` rempli. */
+    Libellés aux limites des classes ; note automatique (traduite) sauf `legendNoteText` rempli.
+    Que des hausses (ou que des baisses) : seules la classe neutre et les classes de ce sens sont montrées, de 0 au maximum. */
 export function heatLegend(o, loc) {
   const { cells, mode, scale: sc } = heatCells(o),
     dec = o.decimals ?? 1,
@@ -168,6 +169,17 @@ export function heatLegend(o, loc) {
       );
     }
   }
+  /* un seul sens dans les données : la légende ne montre que lui (classe neutre comprise), à partir de 0 */
+  if (mode !== 'value' && sc.up !== sc.down) {
+    const zero = fmt(0, loc, dec) + unit;
+    if (sc.up) {
+      out.cells = out.cells.slice(h);
+      out.labels = [zero, ...out.labels.slice(h + 1)];
+    } else {
+      out.cells = out.cells.slice(0, h + 1);
+      out.labels = [...out.labels.slice(0, h + 1), zero];
+    }
+  }
   const custom = String(o.legendNoteText ?? '').trim();
   if (custom) out.note = custom;
   else {
@@ -181,10 +193,7 @@ export function heatLegend(o, loc) {
           : fixed
             ? t('Couleur pleine = écart de {v} ou plus (maximum fixé).')
             : t('Couleur pleine = plus grand écart du tableau ({v}).');
-    const parts = [txt.replace('{v}', v)];
-    if (mode !== 'value' && !sc.up) parts.push(t('Aucune hausse dans les données.'));
-    else if (mode !== 'value' && !sc.down) parts.push(t('Aucune baisse dans les données.'));
-    out.note = parts.join(' ');
+    out.note = txt.replace('{v}', v);
   }
   return out;
 }
