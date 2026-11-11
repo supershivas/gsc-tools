@@ -156,7 +156,12 @@ export const STROKE = {
 };
 
 /** Largeur utile à l'intérieur d'un élément à contour : retrait = padding des encadrés + trait, de chaque côté */
-export const insetW = (W) => W - 2 * (GAP.boxPad + STROKE.px);
+export const insetW = (W, box) => W - 2 * (GAP.boxPad + boxStroke(box));
+/** Épaisseur et coins du contour d'un cadre (`strokeW` : thin 0,5 pt def / medium 1 pt / thick 1,5 pt ; `corners` : round 3 px def / square / soft 6 px) */
+const BOX_W = { thin: 1, medium: 2, thick: 3 };
+const BOX_R = { round: STROKE.radius, square: 0, soft: STROKE.radius * 2 };
+export const boxStroke = (box) => STROKE.px * ((box && box.stroke && BOX_W[box.strokeW]) || 1); // sans contour : le retrait garde l'épaisseur d'origine
+export const boxRadius = (box) => (box && box.corners in BOX_R ? BOX_R[box.corners] : STROKE.radius);
 
 /* ---------- Header ---------- */
 export const HEADER = {

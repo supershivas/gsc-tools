@@ -49,7 +49,7 @@ export function cardEditor(k, col, W) {
       },
       Object.entries(opts).map(([v, l]) => h('option', { value: v, textContent: l })),
     );
-    s.value = C[key];
+    s.value = C[key] ?? Object.keys(opts)[0];
     return field(label, s);
   };
   const iconChoice = () =>
@@ -103,6 +103,7 @@ export function cardEditor(k, col, W) {
         'Type de carte selon la largeur de la colonne',
       ),
       sel('layout', 'Position de l’image', { vertical: t('En haut'), left: t('À gauche'), right: t('À droite') }),
+      C.image ? sel('imageCorners', 'Coins de l’image', { round: t('Arrondis'), square: t('Droits') }) : null,
       sel('align', 'Alignement', { left: t('Gauche'), center: t('Centré') }),
       C.icon ? iconChoice() : null,
       CARD_CHECKS.map(check),

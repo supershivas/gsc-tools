@@ -38,6 +38,23 @@ export const FIGURE_FIELDS = [
   },
   { k: 'barColor', t: 'color', label: 'Couleur de la barre', def: 'yellow' },
   { k: 'barRest', t: 'color', label: 'Couleur du reste de la barre', def: 'tint-blue' },
+  {
+    k: 'barHeight',
+    t: 'select',
+    label: 'Hauteur de la barre',
+    options: { thin: 'Fine', normal: 'Normale', thick: 'Épaisse' },
+    def: 'normal',
+  },
+  { k: 'barCorners', t: 'select', label: 'Coins de la barre', options: { round: 'Arrondis', square: 'Droits' }, def: 'round' },
+  {
+    k: 'iconRing',
+    t: 'select',
+    label: 'Trait de la pastille de l’icône',
+    options: { thin: 'Fin', medium: 'Moyen', thick: 'Épais' },
+    def: 'thin',
+    when: (o) => o.iconStyle === 'circle',
+    why: 'Choisissez « Dans une pastille » pour régler son trait.',
+  },
   { k: 'headText', t: 'text', label: 'En-tête (petites capitales, ex. « Sous occupation »)' },
   {
     k: 'headIcon',
@@ -55,7 +72,7 @@ const esc = (t) =>
     .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
 
 /** Icône au trait, à la hauteur de ligne du chiffre ; pastille ronde 0,5 pt en option ; icons : bibliothèque du document (rc.icons) */
-export function figureIcon(key, size, circle, icons) {
+export function figureIcon(key, size, circle, icons, ring = 1) {
   const custom = String(key || '').startsWith('custom:'),
     ic = ICONS[key];
   if (!ic && !custom) return null;
@@ -66,7 +83,14 @@ export function figureIcon(key, size, circle, icons) {
     'svg',
     { width: size, height: size, viewBox: `0 0 ${size} ${size}`, class: 'vi-ic fg-ic' },
     circle
-      ? s('circle', { cx: size / 2, cy: size / 2, r: size / 2 - SW / 2, fill: 'none', stroke: 'currentColor', 'stroke-width': SW })
+      ? s('circle', {
+          cx: size / 2,
+          cy: size / 2,
+          r: size / 2 - (SW * ring) / 2,
+          fill: 'none',
+          stroke: 'currentColor',
+          'stroke-width': SW * ring,
+        })
       : null,
     custom
       ? iconNode({}, key, o, o, G, G, 'blue', icons)
@@ -82,14 +106,18 @@ export function figureIcon(key, size, circle, icons) {
   );
 }
 
+/** hauteur de la barre de progression en px ; « Normale » = 15, la hauteur d'avant */
+const BAR_H = { thin: 9, normal: 15, thick: 21 };
+const RING_K = { thin: 1, medium: 2, thick: 3 };
+
 /** Barre de progression : rectangle à coins arrondis, contour 0,5 pt, partie pleine puis reste (éléments SVG réels, lisibles par l'export PDF) */
 function progressBar(pct, W, o) {
-  const H = 15,
+  const H = BAR_H[o.barHeight] ?? BAR_H.normal,
     p = Math.max(0, Math.min(100, +pct || 0)),
     w = Math.max(10, W),
     x = SW / 2,
     iw = w - SW,
-    r = 4.5,
+    r = o.barCorners === 'square' ? 0 : 4.5,
     fw = (iw * p) / 100;
   const hh = H - SW,
     rr = Math.min(r, fw / 2),
@@ -187,7 +215,7 @@ function oneFigure(o, W, align, g, fsAll, env) {
   const base0 = pxOf(TYPE.figure.size),
     base = base0 * (+o.scale || 1),
     lh = TYPE.figure.lh,
-    icon = o.icon && o.icon !== 'none' ? figureIcon(o.icon, lh, o.iconStyle === 'circle', env.rc.icons) : null;
+    icon = o.icon && o.icon !== 'none' ? figureIcon(o.icon, lh, o.iconStyle === 'circle', env.rc.icons, RING_K[g.iconRing] ?? 1) : null;
   const avail = (W || 9999) - (icon ? lh + VIZ.iconGap : 0) - 1;
   const fs =
     fsAll != null

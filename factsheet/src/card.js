@@ -25,6 +25,7 @@ export function renderCard(o, W, env) {
       `card card-${o.layout}` +
       (o.stroke ? ' stroked' + (o.fill ? ' filled' : '') : '') +
       (o.align === 'center' ? ' center' : '') +
+      (o.imageCorners === 'square' ? ' img-square' : '') +
       (o.bleed && o.stroke ? ' bleed' : ''),
   });
   const pic = o.image ? h('div', { class: 'card-img' }, h('img', { src, alt: '' })) : null;

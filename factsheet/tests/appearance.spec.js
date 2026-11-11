@@ -545,3 +545,112 @@ test('export PDF avec les réglages d’apparence (lot 5e), sans erreur', async 
   sizes.forEach((n) => expect(n).toBeGreaterThan(1000));
   expect(errors).toEqual([]);
 });
+
+/* Apparence (lot 5f) : cadres (épaisseur, coins), chiffre clé, image de carte. Sans clé, le dessin et la mise en page sont ceux d'avant. */
+async function frame(page, box) {
+  return page.evaluate((box) => {
+    const { defaultDoc, newViz, newCol, renderDocument } = window.FSTEST;
+    const d = defaultDoc();
+    const viz = newViz('bars');
+    viz.head.title = 'PROBE';
+    const col = { ...newCol('viz'), viz, stroke: true, ...box };
+    d.sections.find((s) => s.page === 'recto').subs[1].cols[0] = col;
+    const r = renderDocument(d);
+    const host = document.createElement('div');
+    Object.assign(host.style, { position: 'absolute', left: '-30000px', top: '0' });
+    document.body.append(host);
+    r.pages.forEach((p) => host.append(p.el));
+    const el = [...host.querySelectorAll('.col.stroked')].find((e) => e.textContent.includes('PROBE'));
+    const out = {
+      bw: parseFloat(el.style.getPropertyValue('--bw')), // la feuille de style n'est pas chargée dans blank.html : on lit les variables posées sur le cadre
+      rad: parseFloat(el.style.getPropertyValue('--rad')),
+      vizW: +el.querySelector('svg').getAttribute('width'),
+    };
+    host.remove();
+    return out;
+  }, box);
+}
+
+test('cadres : épaisseur du contour (0,5 pt d’origine) et coins (3 px d’origine), largeur utile ajustée', async ({ page }) => {
+  const none = await frame(page, {});
+  expect(none.bw).toBeCloseTo(0.667, 2);
+  expect(none.rad).toBe(3);
+  expect(await frame(page, { strokeW: 'thin', corners: 'round' })).toEqual(none);
+  const med = await frame(page, { strokeW: 'medium' });
+  const thick = await frame(page, { strokeW: 'thick' });
+  expect(med.bw).toBeCloseTo(1.333, 2);
+  expect(thick.bw).toBeCloseTo(2, 2);
+  expect(none.vizW - thick.vizW).toBeCloseTo(2 * (2 - 0.667), 1); // le retrait suit le trait : rien ne déborde
+  expect((await frame(page, { corners: 'square' })).rad).toBe(0);
+  expect((await frame(page, { corners: 'soft' })).rad).toBe(6);
+  /* sans contour, l'épaisseur choisie ne change pas le retrait */
+  const noStroke = await frame(page, { stroke: false, fillColor: 'grey', strokeW: 'thick' });
+  expect(noStroke.bw).toBeCloseTo(0.667, 2);
+});
+
+test('chiffre clé : barre (hauteur, coins) et trait de la pastille', async ({ page }) => {
+  const f = (o) =>
+    page.evaluate((o) => {
+      const { defaultDoc, newCol, renderDocument } = window.FSTEST;
+      const d = defaultDoc();
+      const col = newCol('figure');
+      Object.assign(col.figure, { bar: 60, icon: 'globe', iconStyle: 'circle', text: 'PROBE' }, o);
+      d.sections.find((s) => s.page === 'recto').subs[1].cols[0] = col;
+      const r = renderDocument(d);
+      const host = document.createElement('div');
+      Object.assign(host.style, { position: 'absolute', left: '-30000px', top: '0' });
+      document.body.append(host);
+      r.pages.forEach((p) => host.append(p.el));
+      const mine = [...host.querySelectorAll('.col-figure')].find((e) => e.textContent.includes('PROBE')),
+        bar = mine.querySelector('svg.fg-bar'),
+        rects = [...bar.querySelectorAll('rect')];
+      const ring = mine.querySelector('svg.fg-ic circle');
+      const out = { h: +bar.getAttribute('height'), rx: +rects[0].getAttribute('rx'), ring: +ring.getAttribute('stroke-width') };
+      host.remove();
+      return out;
+    }, o);
+  const none = await f({});
+  expect(none.h).toBe(15);
+  expect(none.rx).toBe(4.5);
+  expect(await f({ barHeight: 'normal', barCorners: 'round', iconRing: 'thin' })).toEqual(none);
+  expect((await f({ barHeight: 'thin' })).h).toBe(9);
+  expect((await f({ barHeight: 'thick' })).h).toBe(21);
+  expect((await f({ barCorners: 'square' })).rx).toBe(0);
+  expect((await f({ iconRing: 'thick' })).ring).toBeCloseTo(none.ring * 3, 5);
+});
+
+test('export PDF avec les réglages de cadres et de chiffre clé (lot 5f), sans erreur', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await page.addScriptTag({ url: '/factsheet/tests/entry.bundle.js' });
+  await addBundle(page, 'pdfexport.js');
+  const sizes = await page.evaluate(async (key) => {
+    const base = JSON.parse(localStorage.getItem(key));
+    const out = [];
+    for (const box of [
+      { stroke: true, strokeW: 'thick', corners: 'soft' },
+      { stroke: true, strokeW: 'medium', corners: 'square', dash: true },
+    ]) {
+      const doc = JSON.parse(JSON.stringify(base));
+      const secs = doc.sections;
+      Object.assign(secs[0], box);
+      Object.assign(secs[0].subs[0], box);
+      Object.assign(secs[0].subs[0].cols[0], box);
+      const col = secs.flatMap((s) => s.subs.flatMap((b) => b.cols)).find((c) => c.figure);
+      if (col)
+        Object.assign(col.figure, {
+          bar: 50,
+          barHeight: 'thick',
+          barCorners: 'square',
+          icon: 'globe',
+          iconStyle: 'circle',
+          iconRing: 'medium',
+        });
+      const { bytes } = await window.FSPDF.build(doc, 'net', { profile: 'x1a' });
+      out.push(bytes.length);
+    }
+    return out;
+  }, DOC_KEY);
+  sizes.forEach((n) => expect(n).toBeGreaterThan(1000));
+  expect(errors).toEqual([]);
+});

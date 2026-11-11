@@ -1,6 +1,20 @@
 /* Rendu du document en pages A4 (HTML). Aucune valeur de mise en page en dur :
    tout vient de tokens.js via les variables CSS (--s*, --gap-*, --t-*, --c-*). */
-import { PAGE, GRID, HEADER, GAP, STROKE, cssVars, applyVars, subColWidth, insetW, densityGaps, paletteOf } from './tokens.js';
+import {
+  PAGE,
+  GRID,
+  HEADER,
+  GAP,
+  STROKE,
+  cssVars,
+  applyVars,
+  subColWidth,
+  insetW,
+  boxStroke,
+  boxRadius,
+  densityGaps,
+  paletteOf,
+} from './tokens.js';
 import { renderCtx } from './renderctx.js';
 import { IMAGE_RATIOS } from './state.js';
 import { renderViz, composeSide } from './viz/index.js';
@@ -131,6 +145,8 @@ export const isBox = (o) => !!(o.stroke || hasFill(o) || hasHatch(o));
 const strokeStyle = (node) => (o) => {
   if (!isBox(o)) return;
   node.classList.add('stroked');
+  node.style.setProperty('--bw', boxStroke(o) + 'px'); // épaisseur et coins propres au cadre (jamais hérités d'un cadre parent)
+  node.style.setProperty('--rad', boxRadius(o) + 'px');
   // le pointillé remplace la bordure pleine (qui reste, transparente, pour garder le retrait) ; `sides` : côtés du contour (haut, droite, bas, gauche)
   const sd = sidesOf(o);
   node.style.setProperty('--stroke-color', o.stroke && !o.dash ? `var(--c-${o.strokeColor || 'text'})` : 'transparent');
@@ -147,7 +163,7 @@ const strokeStyle = (node) => (o) => {
   if (o.stroke && o.dash) {
     // contour en pointillés : un trait SVG (la bordure CSS ne règle ni le tiret ni l'espace), calé sur la taille réelle dans measure()
     node.classList.add('dashed');
-    const sw = STROKE.px,
+    const sw = boxStroke(o),
       all = sd.every(Boolean),
       common = {
         fill: 'none',
@@ -156,7 +172,7 @@ const strokeStyle = (node) => (o) => {
         'stroke-dasharray': `${num(o.dashLen, 6, 1, 48)} ${num(o.dashGap, 4, 1, 48)}`,
       };
     const marks = all
-      ? [s('rect', { ...common, 'data-side': 'all', rx: STROKE.radius - sw / 2 })]
+      ? [s('rect', { ...common, 'data-side': 'all', rx: Math.max(0, boxRadius(o) - sw / 2) })]
       : ['t', 'r', 'b', 'l'].filter((_, i) => sd[i]).map((k) => s('line', { ...common, 'data-side': k }));
     node.append(h('div', { class: 'dash', 'aria-hidden': 'true' }, s('svg', { width: 0, height: 0 }, ...marks)));
   }
@@ -250,7 +266,7 @@ function renderCol(col, w, path, env) {
   if (isBox(col) && col.type !== 'card') {
     strokeStyle(wrap)(col);
     wrap.style.justifyContent = { start: 'flex-start', center: 'center', end: 'flex-end' }[al];
-    w = insetW(w);
+    w = insetW(w, col);
   } else wrap.style.alignSelf = al;
   const strip = (x) =>
     stripInline(x)
@@ -339,7 +355,7 @@ function renderSub(sub, si, bi, env, W) {
   const el = h('div', { class: 'sub', dataset: { sel: `sub:${si}:${bi}` } });
   if (bi > 0) el.append(h('div', { class: 'sub-rule' })); // filet entre sous-sections (vrai élément : l'export PDF le lit)
   strokeStyle(el)(sub);
-  if (isBox(sub)) W = insetW(W);
+  if (isBox(sub)) W = insetW(W, sub);
   if (sub.title && sub.title.trim() && sub.showTitle !== false)
     el.append(h('h3', { class: 'sub-title', innerHTML: inline(sub.title, env) }));
   const custom = sub.layout === 'custom' && Array.isArray(sub.widths) && sub.widths.length === sub.cols.length;
@@ -380,10 +396,10 @@ export function columnWidth(doc, si, bi, ci) {
     col = sub && sub.cols[ci];
   if (!col) return GRID.contentW;
   let W = GRID.contentW;
-  if (isBox(sec)) W = insetW(W);
-  if (isBox(sub)) W = insetW(W);
+  if (isBox(sec)) W = insetW(W, sec);
+  if (isBox(sub)) W = insetW(W, sub);
   const w = subColWidth(sub, ci, densityGaps(doc.density).columns, W);
-  return isBox(col) && col.type !== 'card' ? insetW(w) : w;
+  return isBox(col) && col.type !== 'card' ? insetW(w, col) : w;
 }
 
 const isBand = (s) => !!(s.bg && s.bg !== 'none');
@@ -419,7 +435,7 @@ function renderSection(sec, si, env, pos) {
     host = h('div', { class: 'sec-box' });
     strokeStyle(host)(sec);
     el.append(host);
-    W = insetW(W);
+    W = insetW(W, sec);
   }
   if (sec.title && sec.title.trim() && sec.showTitle !== false)
     host.append(h('h2', { class: 'sec-title', innerHTML: inline(sec.title, env) }));
@@ -568,8 +584,8 @@ export function measure(result) {
     p.el.querySelectorAll('.dash').forEach((d) => {
       // cadre des pointillés : taille réelle du contenant, trait centré sur la bordure
       const box = d.parentElement,
-        m = STROKE.px / 2,
         svg = d.firstChild,
+        m = (parseFloat(svg.firstChild.getAttribute('stroke-width')) || STROKE.px) / 2,
         bw = box.offsetWidth,
         bh = box.offsetHeight;
       svg.setAttribute('width', bw);

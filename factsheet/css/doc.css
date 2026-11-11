@@ -68,13 +68,14 @@
 .fg-cell{min-width:0}
 .fg-over{display:flex;align-items:center;gap:var(--viz-iconGap);margin-bottom:18px;color:var(--c-blue);font-weight:600;letter-spacing:.06em;line-height:1.3}
 /* Contours : trait 0,5 pt, coins de 3 px, retrait = padding des encadrés (largeurs déduites dans render.js) */
-.stroked{border:var(--stroke) solid var(--stroke-color,var(--c-text));border-radius:var(--radius);padding:var(--gap-boxPad)}
+.stroked{border:var(--bw,var(--stroke)) solid var(--stroke-color,var(--c-text));border-radius:var(--rad,var(--radius));padding:var(--gap-boxPad)}
+.card.stroked{--bw:var(--stroke);--rad:var(--radius)}   /* la carte ne reprend jamais le contour d'un cadre parent */
 .filled{background:var(--c-white)}
 .hatched{position:relative;isolation:isolate}
-.hatch{position:absolute;inset:calc(-1 * var(--stroke));overflow:hidden;border-radius:var(--radius);z-index:-1;pointer-events:none}   /* jusqu'au bord extérieur : le retrait transparent d'un cadre sans contour est couvert aussi */
+.hatch{position:absolute;inset:calc(-1 * var(--bw,var(--stroke)));overflow:hidden;border-radius:var(--rad,var(--radius));z-index:-1;pointer-events:none}   /* jusqu'au bord extérieur : le retrait transparent d'un cadre sans contour est couvert aussi */
 .hatch svg{display:block}
 .dashed{position:relative;isolation:isolate}
-.dash{position:absolute;inset:calc(-1 * var(--stroke));z-index:1;pointer-events:none}
+.dash{position:absolute;inset:calc(-1 * var(--bw,var(--stroke)));z-index:1;pointer-events:none}
 .dash svg{display:block}
 .col.stroked{align-self:stretch;display:flex;flex-direction:column}
 .img-box.fit{aspect-ratio:4/3;height:auto}.img-box.fit.has{background:none}
@@ -102,6 +103,7 @@
 .card.bleed.card-left>.card-img{margin:calc(-1 * var(--gap-boxPad)) 0 calc(-1 * var(--gap-boxPad)) calc(-1 * var(--gap-boxPad));border-radius:var(--radius) 0 0 var(--radius)}
 .card.bleed.card-right>.card-img{margin:calc(-1 * var(--gap-boxPad)) calc(-1 * var(--gap-boxPad)) calc(-1 * var(--gap-boxPad)) 0;border-radius:0 var(--radius) var(--radius) 0}
 .card.card-left,.card.card-right{column-gap:var(--gap-columns)}
+.card.img-square>.card-img,.card.img-square.bleed.card-vertical>.card-img,.card.img-square.bleed.card-left>.card-img,.card.img-square.bleed.card-right>.card-img{border-radius:0}
 
 /* retours à la ligne saisis dans les champs texte (titres, légendes, cartes…) */
 .hd-over,.hd-title,.hd-sub,.sec-title,.sub-title,.cap,.card-tag,.card-title,.card-link,.card-list li,.vi-text,.vf-value,.vf-text,.viz-title,.viz-source{white-space:pre-line}

@@ -294,6 +294,9 @@ export function createKit(root, ctx, doc, kind) {
       dashOn = !!obj.dash;
     return [
       swatches(fillLabel, obj, 'fillColor', toneKeys(doc), true),
+      pair('Coins du cadre', obj, 'corners', { round: t('Arrondis'), square: t('Droits'), soft: t('Très arrondis') }, () =>
+        ctx.restructure(),
+      ),
       switchRow(t('Hachures'), hatchOn, () => {
         obj.hatch = hatchOn ? 'none' : paletteKeys(doc, false).find((c) => c !== 'blue') || 'blue';
       }),
@@ -318,6 +321,7 @@ export function createKit(root, ctx, doc, kind) {
       ...(obj.stroke
         ? [
             swatches('Couleur du contour', obj, 'strokeColor', toneKeys(doc)),
+            pair('Épaisseur du contour', obj, 'strokeW', { thin: '0,5 pt', medium: '1 pt', thick: '1,5 pt' }, () => ctx.restructure()),
             sidesRow(obj),
             switchRow(t('Pointillés'), dashOn, () => {
               obj.dash = !obj.dash;
