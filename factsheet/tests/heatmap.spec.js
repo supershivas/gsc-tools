@@ -518,7 +518,7 @@ test('hiérarchie : niveaux des lignes (retrait, graisse), groupes de colonnes, 
         rules: [...res.node.querySelectorAll('line.hm-group-rule')].map((l) => [+l.getAttribute('x1'), +l.getAttribute('x2')]),
         cells: [...res.node.querySelectorAll('path.hm-ref')].map((p) => {
           const b = p.getBBox();
-          return { x: b.x, y: b.y, w: b.width };
+          return { x: b.x, y: b.y, w: b.width, h: b.height };
         }),
         levelHits: res.node.querySelectorAll('[data-hit^="level:"]').length,
       };
@@ -568,6 +568,14 @@ test('hiérarchie : niveaux des lignes (retrait, graisse), groupes de colonnes, 
   expect(r.levels.names.map((n) => n.w)).toEqual(['700', '600', '400', '400']);
   expect(r.levels.names[3].size).toBeLessThan(r.levels.names[2].size);
   expect(r.levels.levelHits).toBe(4);
+  // niveau 1 : case plus haute (les autres niveaux partagent le reste, même total) ; sans niveau, toutes égales
+  expect(new Set(r.flat.cells.map((c) => Math.round(c.h))).size).toBe(1);
+  expect(r.levels.cells[0].h).toBeGreaterThan(r.levels.cells[1].h * 1.3);
+  expect(r.levels.cells[1].h).toBeCloseTo(r.levels.cells[2].h, 1);
+  expect(r.levels.cells.reduce((a, c) => a + c.h, 0)).toBeCloseTo(
+    r.flat.cells.reduce((a, c) => a + c.h, 0),
+    0,
+  );
   // groupes : un en-tête par suite de colonnes de même groupe, filet sur leur largeur, cases descendues d'autant
   expect(r.groups.groups).toEqual(['Draft', 'Positions']);
   expect(r.groups.rules).toHaveLength(2);

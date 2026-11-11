@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.107.1 — 2026-11-11
+- Heatmap hiérarchisée : les lignes de niveau 1 ont des cases plus hautes et une valeur plus grande ; les niveaux 2 à 4 gardent la taille de base
+
 ## 1.107.0 — 2026-11-11
 - Hiérarchie des lignes (niveaux 1 à 4, boutons ← → et Tab) dans le tableau de données de tous les types de dataviz ; seule la heatmap la dessine pour l'instant
 

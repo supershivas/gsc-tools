@@ -234,6 +234,9 @@ export function setLevel(r, l) {
 }
 /** Retrait d'un niveau (px) ; graisse et taille par niveau, seulement quand le tableau a des sous-données */
 const INDENT = 9;
+/** Niveau 1 (donnée principale) d'un tableau hiérarchisé : cases plus hautes (poids de hauteur) et valeur plus grande ; les niveaux 2 à 4 gardent la taille de base */
+const TOP_H = 1.4;
+const TOP_VALUE = 1.2;
 const LEVEL_FMT = [{ bold: true }, {}, { bold: false }, { bold: false, size: 'small' }];
 /** Mise en forme d'une ligne : niveau (si le tableau en a), préréglage de son type, puis ses propres réglages (`row.fmt` : bold, size, align) */
 export const rowFmt = (r, levels = false) => {
@@ -671,7 +674,10 @@ export default {
     /* hauteur des lignes : égale (aspect d'origine), sauf si un nom sur plusieurs lignes demande plus ; les autres lignes se partagent le reste */
     const avail = H - lgH - headH - gap * (nr - 1);
     const need = rows.map((r, i) => (nameLines[i] && nameLines[i].length > 1 ? nameLines[i].length * namePx(fmts[i]) * LH + 4 : 0));
-    let chs = rows.map(() => Math.max(4, avail / nr));
+    /* tableau hiérarchisé : les lignes de niveau 1 ont une case plus haute, le total ne change pas */
+    const wts = rows.map((r) => (levels && levelOf(r) === 0 ? TOP_H : 1)),
+      wsum = wts.reduce((a, b) => a + b, 0);
+    let chs = wts.map((w) => Math.max(4, (avail * w) / wsum));
     if (need.some((n) => n > avail / nr)) {
       const order = need.map((n, i) => i).sort((a, b) => need[b] - need[a]);
       let rest = avail,
@@ -852,7 +858,7 @@ export default {
           );
         }
       }
-      const rk = SIZE_K[fm.size] ?? 1;
+      const rk = (SIZE_K[fm.size] ?? 1) * (levels && levelOf(r) === 0 ? TOP_VALUE : 1);
       cells[i].forEach((c, j) => {
         const x = x0 + j * (cw + gap),
           d = roundRect(x, y, cw, ch, radius);
