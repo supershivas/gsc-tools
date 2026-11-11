@@ -3,7 +3,10 @@ import { layoutLegend, drawLegendWrap } from './util.js';
 import { partition } from 'd3-hierarchy';
 import { VIZ, TYPE } from '../tokens.js';
 import { s, SW, colorRef, pxOf, fmt, mw, SANS, drawLegend, fitText, heightOf, inkOn } from './util.js';
-import { HIER_DATA, hierRows, buildHier, topOf, depthAlpha } from './hier.js';
+import { HIER_DATA, hierRows, buildHier, topOf, depthAlpha, lineAttrs, toneAlpha, LINE_FIELD, TONE_FIELD } from './hier.js';
+
+/** séparation radiale des anneaux, en px (def : aucune) */
+const RING_GAP = { none: 0, thin: 2, wide: 5 };
 import { t } from '../i18n.js';
 
 const pt = (r, a) => [r * Math.sin(a), -r * Math.cos(a)];
@@ -34,6 +37,16 @@ export default {
   heights: ['ratio', 'fixed', 'fill'],
   fields: [
     { k: 'ratio', t: 'select', label: 'Format du graphique', options: { '1:1': '1:1 (carré)', '3:2': '3:2', '16:9': '16:9' } },
+    LINE_FIELD,
+    TONE_FIELD,
+    {
+      k: 'ringGap',
+      g: 'dims',
+      t: 'select',
+      label: 'Séparation des anneaux',
+      options: { none: 'Aucune', thin: 'Fine', wide: 'Large' },
+      def: 'none',
+    },
     { k: 'hole', g: 'dims', t: 'number', label: 'Trou central (0 à 0,6 du rayon)', min: 0, max: 0.6, step: 0.02 },
     { k: 'showLabels', g: 'labels', t: 'bool', label: 'Afficher les noms sur les arcs' },
     { k: 'showTotal', g: 'labels', t: 'bool', label: 'Afficher le total au centre' },
@@ -96,14 +109,14 @@ export default {
       const r0 = hole + (n.depth - 1) * ring,
         r1 = r0 + ring,
         key = topOf(n).data.color,
-        a = depthAlpha(n.depth);
+        a = toneAlpha(o, depthAlpha(n.depth)),
+        rg = n.depth > 1 ? Math.min(RING_GAP[o.ringGap] ?? 0, ring / 3) : 0; // l'anneau du centre garde son bord intérieur
       g.append(
         s('path', {
-          d: arc(n.x0, n.x1, r0, r1),
+          d: arc(n.x0, n.x1, r0 + rg, r1),
           fill: colorRef(key),
           'fill-opacity': a,
-          stroke: 'currentColor',
-          'stroke-width': SW,
+          ...lineAttrs(o),
           'stroke-linejoin': 'round',
         }),
       );

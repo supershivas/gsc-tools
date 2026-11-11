@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.96.0 — 2026-11-11
+- Bulles, treemap et sunburst : contour (Aucun / Fin / Moyen / Épais) et intensité des teintes (Légère / Normale / Marquée)
+- Treemap : coins arrondis ou droits ; Sunburst : séparation des anneaux (Aucune / Fine / Large)
+- Liste à icônes : trait du cercle et des icônes ; les fiches existantes gardent leur aspect, ↺ y ramène
+
 ## 1.95.1 — 2026-11-11
 - Export SVG de la dataviz : le titre et la source sont inclus, en vrais textes modifiables
 - Fenêtre d'export : plus de « null » affiché quand la dataviz n'a ni titre ni source

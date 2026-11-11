@@ -3,7 +3,7 @@ import { layoutLegend, drawLegendWrap } from './util.js';
 import { treemap, treemapSquarify } from 'd3-hierarchy';
 import { VIZ, TYPE } from '../tokens.js';
 import { s, SW, colorRef, pxOf, fmt, mw, SANS, drawLegend, fitText, heightOf, inkOn, round3 } from './util.js';
-import { HIER_DATA, hierRows, buildHier, topOf, depthAlpha } from './hier.js';
+import { HIER_DATA, hierRows, buildHier, topOf, depthAlpha, lineAttrs, toneAlpha, LINE_FIELD, TONE_FIELD } from './hier.js';
 import { t } from '../i18n.js';
 
 export default {
@@ -29,6 +29,9 @@ export default {
       label: 'Format du graphique',
       options: { '2:1': '2:1 (large)', '16:9': '16:9', '3:2': '3:2', '1:1': '1:1 (carré)' },
     },
+    LINE_FIELD,
+    TONE_FIELD,
+    { k: 'corners', g: 'dims', t: 'select', label: 'Coins des cases', options: { round: 'Arrondis', square: 'Droits' }, def: 'round' },
     { k: 'pad', g: 'dims', t: 'number', label: 'Espace entre les cases (px)', min: 0, max: 12 },
     { k: 'groupLabels', g: 'labels', t: 'bool', label: 'Afficher le nom des groupes (niveau 1)' },
     { k: 'showLabels', g: 'labels', t: 'bool', label: 'Afficher les noms' },
@@ -97,7 +100,7 @@ export default {
         h = n.y1 - n.y0,
         key = topOf(n).data.color,
         leaf = !n.children,
-        a = leaf ? depthAlpha(n.depth) : 0.16;
+        a = toneAlpha(o, leaf ? depthAlpha(n.depth) : 0.16);
       if (w < 1 || h < 1) continue;
       g.append(
         s('rect', {
@@ -105,11 +108,10 @@ export default {
           y: n.y0,
           width: w,
           height: h,
-          rx: Math.min(VIZ.barRadius, w / 2, h / 2),
+          rx: o.corners === 'square' ? 0 : Math.min(VIZ.barRadius, w / 2, h / 2),
           fill: colorRef(key),
           'fill-opacity': a,
-          stroke: 'currentColor',
-          'stroke-width': SW,
+          ...lineAttrs(o),
         }),
       );
       const ink = inkOn(env, key, a);

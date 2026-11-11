@@ -3,7 +3,7 @@ import { layoutLegend, drawLegendWrap } from './util.js';
 import { pack } from 'd3-hierarchy';
 import { VIZ, TYPE } from '../tokens.js';
 import { s, SW, colorRef, pxOf, fmt, mw, SANS, drawLegend, fitText, heightOf, inkOn } from './util.js';
-import { HIER_DATA, hierRows, buildHier, topOf, depthAlpha } from './hier.js';
+import { HIER_DATA, hierRows, buildHier, topOf, depthAlpha, lineAttrs, toneAlpha, LINE_FIELD, TONE_FIELD } from './hier.js';
 import { t } from '../i18n.js';
 
 export default {
@@ -25,6 +25,8 @@ export default {
   fields: [
     { k: 'ratio', t: 'select', label: 'Format du graphique', options: { '1:1': '1:1 (carré)', '3:2': '3:2', '16:9': '16:9' } },
     { k: 'pad', g: 'dims', t: 'number', label: 'Espace entre les bulles (px)', min: 0, max: 24 },
+    LINE_FIELD,
+    TONE_FIELD,
     { k: 'parents', g: 'struct', t: 'bool', label: 'Afficher le contour des groupes' },
     { k: 'showLabels', g: 'labels', t: 'bool', label: 'Afficher les noms' },
     { k: 'showValues', g: 'labels', t: 'bool', label: 'Afficher les valeurs' },
@@ -86,7 +88,7 @@ export default {
       if (!n.depth) continue;
       const key = topOf(n).data.color,
         leaf = !n.children,
-        a = leaf ? depthAlpha(n.depth) : 0.14;
+        a = toneAlpha(o, leaf ? depthAlpha(n.depth) : 0.14);
       if (!leaf && !o.parents) continue;
       g.append(
         s('circle', {
@@ -95,8 +97,7 @@ export default {
           r: Math.max(0.5, n.r),
           fill: colorRef(key),
           'fill-opacity': a,
-          stroke: 'currentColor',
-          'stroke-width': SW,
+          ...lineAttrs(o),
         }),
       );
       if (leaf && o.showLabels && n.r > 12) {
