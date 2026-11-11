@@ -615,3 +615,16 @@ export const gridLine = (o, x1, y1, x2, y2) =>
     'stroke-dasharray': GRID_DASH[o.gridStyle] ?? null,
     opacity: GRID_TONE[o.gridTone] ?? GRID_TONE.light,
   });
+
+/** Contour des formes pleines (bulles, treemap, sunburst, barres, anneau) : trait d'encre de 0,5 pt × cran ; sans clé, le trait d'avant (cran « thin ») */
+export const STROKE_K = { none: 0, thin: 1, medium: 2, thick: 3 };
+export const strokeAttrs = (k) => (k ? { stroke: 'currentColor', 'stroke-width': SW * k } : { stroke: 'none' });
+export const lineAttrs = (o) => strokeAttrs(STROKE_K[o.lineWidth] ?? 1);
+export const LINE_FIELD = {
+  k: 'lineWidth',
+  g: 'dims',
+  t: 'select',
+  label: 'Contour',
+  options: { none: 'Aucun', thin: 'Fin', medium: 'Moyen', thick: 'Épais' },
+  def: 'thin',
+};

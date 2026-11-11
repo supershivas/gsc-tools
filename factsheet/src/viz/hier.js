@@ -61,23 +61,10 @@ export const depthAlpha = (d) => [1, 1, 0.7, 0.45, 0.3][Math.min(d, 4)];
 
 /* Apparence commune des types hiérarchiques (bulles, treemap, sunburst) : contour et intensité des teintes. Sans clé : l'aspect d'avant
    (trait de 0,5 pt, teintes de `depthAlpha`). */
-const LINE_K = { none: 0, thin: 1, medium: 2, thick: 3 };
 const TONE_K = { light: 0.75, normal: 1, strong: 1.25 };
-/** attributs de contour d'une forme : trait d'encre de 0,5 pt × cran, ou aucun */
-export const lineAttrs = (o) => {
-  const k = LINE_K[o.lineWidth] ?? 1;
-  return k ? { stroke: 'currentColor', 'stroke-width': SW * k } : { stroke: 'none' };
-};
+export { lineAttrs, LINE_FIELD } from './util.js'; // contour : partagé avec les barres et l'anneau
 /** opacité de la teinte d'une forme, selon l'intensité choisie (jamais au-delà de 1) */
 export const toneAlpha = (o, a) => Math.min(1, a * (TONE_K[o.fillTone] ?? 1));
-export const LINE_FIELD = {
-  k: 'lineWidth',
-  g: 'dims',
-  t: 'select',
-  label: 'Contour',
-  options: { none: 'Aucun', thin: 'Fin', medium: 'Moyen', thick: 'Épais' },
-  def: 'thin',
-};
 export const TONE_FIELD = {
   k: 'fillTone',
   g: 'colors',

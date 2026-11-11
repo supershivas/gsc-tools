@@ -1,7 +1,7 @@
 /* Diagramme de Sankey : flux source → cible (d3-sankey). Les colonnes se déduisent des liens ; les flux circulaires ne sont pas pris en charge. */
 import { sankey, sankeyJustify, sankeyLeft, sankeyRight, sankeyCenter } from 'd3-sankey';
 import { VIZ, TYPE } from '../tokens.js';
-import { s, SW, colorRef, pxOf, fmt, mw, SANS, fitText, heightOf, autoColor, inkOn } from './util.js';
+import { s, SW, STROKE_K, strokeAttrs, colorRef, pxOf, fmt, mw, SANS, fitText, heightOf, autoColor, inkOn } from './util.js';
 import { t } from '../i18n.js';
 
 const LINK_OPACITY = { light: 0.2, normal: 0.4, strong: 0.65 }; // opacité des flux (audit des options, lot 5a : `def` du champ, 0,4 d'origine)
@@ -52,6 +52,14 @@ export default {
       label: 'Opacité des flux',
       options: { light: 'Légère', normal: 'Normale', strong: 'Marquée' },
       def: 'normal',
+    },
+    {
+      k: 'nodeLine',
+      g: 'dims',
+      t: 'select',
+      label: 'Contour des nœuds',
+      options: { none: 'Aucun', thin: 'Fin', medium: 'Moyen' },
+      def: 'thin',
     },
     { k: 'nodeW', g: 'dims', t: 'number', label: 'Largeur des nœuds (px)', min: 3, max: 36 },
     { k: 'nodePad', g: 'dims', t: 'number', label: 'Espace entre les nœuds (px)', min: 0, max: 36 },
@@ -170,8 +178,7 @@ export default {
           height: h,
           rx: Math.min(VIZ.barRadius, (n.x1 - n.x0) / 2),
           fill: colorRef(color.get(n.name)),
-          stroke: 'currentColor',
-          'stroke-width': SW,
+          ...strokeAttrs(STROKE_K[o.nodeLine] ?? 1),
         }),
       );
       const left = n.layer === 0 && maxLayer > 0 ? true : n.layer === maxLayer ? false : n.x0 < W / 2 ? false : true;

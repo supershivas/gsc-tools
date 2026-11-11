@@ -21,9 +21,9 @@ export const FIELD_ORDER = [
   'style', 'orient', 'largestAngle', 'startAngle', 'ringAlign', 'orientation', 'alternate', 'tail', 'align', 'shape',
   'cols', 'gridRows', 'total', 'perIcon', 'perDot', 'perRow', 'circle', 'parents', 'curve', 'points', 'area', 'refCol', 'compareTo', 'colorBy',
   // Dimensions
-  'barSize', 'groupSpace', 'rowSpace', 'serSpace', 'rowGap', 'scale', 'pad', 'gap', 'corners', 'nodeW', 'nodePad', 'maxR', 'ringWidth', 'segGap', 'hole', 'lineWidth', 'cellLine', 'pendingStyle', 'circleWidth', 'iconStroke', 'ringGap', 'markSize', 'dotSize', 'iconGap', 'pointSize',
+  'barSize', 'groupSpace', 'rowSpace', 'serSpace', 'rowGap', 'scale', 'pad', 'gap', 'corners', 'nodeW', 'nodePad', 'maxR', 'ringWidth', 'segGap', 'hole', 'lineWidth', 'cellLine', 'pendingStyle', 'nodeLine', 'circleWidth', 'iconStroke', 'ringGap', 'markSize', 'dotSize', 'iconGap', 'pointSize',
   // Axes et grille
-  'grid', 'gridStyle', 'gridTone', 'segments', 'axisValues', 'baseline', 'xTitle', 'yTitle', 'showRowNames', 'showColNames', 'zero', 'zeroX', 'zeroY', 'scaleMax', 'gridCount',
+  'grid', 'gridStyle', 'gridTone', 'segments', 'axisValues', 'baseline', 'baseWidth', 'xTitle', 'yTitle', 'showRowNames', 'showColNames', 'zero', 'zeroX', 'zeroY', 'scaleMax', 'gridCount',
   'refLine', 'refValue', 'refAvg', 'refLineX', 'refX', 'refAvgX', 'refTextX', 'refLineY', 'refY', 'refAvgY', 'refTextY',
   // Étiquettes
   'legend', 'legendPos', 'legendNote', 'legendNoteText', 'showPercent', 'showValues', 'showPct', 'showDelta', 'valuesIn', 'labelIn', 'showLabels', 'groupLabels', 'showDates', 'showTotal',
@@ -73,7 +73,7 @@ const SUB_OF = {
   labelIn: 'inbars', decimals: 'numbers', suffix: 'numbers',
   style: 'shape', orient: 'orient', largestAngle: 'orient', startAngle: 'orient', ringAlign: 'position',
   grid: 'grid', gridStyle: 'grid', gridTone: 'grid', segments: 'grid',
-  axisValues: 'axis', baseline: 'axis', xTitle: 'axis', yTitle: 'axis', showRowNames: 'axis', showColNames: 'axis',
+  axisValues: 'axis', baseline: 'axis', baseWidth: 'axis', xTitle: 'axis', yTitle: 'axis', showRowNames: 'axis', showColNames: 'axis',
   zero: 'scale', zeroX: 'scale', zeroY: 'scale', scaleMax: 'scale', gridCount: 'scale',
   refLine: 'ref', refValue: 'ref', refAvg: 'ref', refLineX: 'ref', refX: 'ref', refAvgX: 'ref', refTextX: 'ref',
   refLineY: 'ref', refY: 'ref', refAvgY: 'ref', refTextY: 'ref',

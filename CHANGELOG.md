@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.99.0 — 2026-11-11
+- Barres, barres horizontales, anneau : contour des formes (Aucun / Fin / Moyen / Épais) ; barres : trait de la ligne de base
+- Sankey : contour des nœuds (Aucun / Fin / Moyen)
+- Les fiches existantes gardent leur aspect ; ↺ et « Rétablir l'aspect d'origine » y ramènent
+
 ## 1.98.0 — 2026-11-11
 - Images du dépôt rangées en logos, header et autres images (sous-dossiers) ; la barre « images à publier » disparaît
 - Nouvelle carte « Images du document » (panneau Document) : tous les logos et images, avec un marqueur sur celles qui ne sont que dans ce navigateur

@@ -6,6 +6,9 @@ import {
   heightOf,
   s,
   SW,
+  STROKE_K,
+  LINE_FIELD,
+  lineAttrs,
   colorRef,
   pxOf,
   fmt,
@@ -110,6 +113,17 @@ export default {
       label: 'Épaisseur des barres',
       options: { thin: 'Fine', normal: 'Normale', thick: 'Épaisse' },
       def: 'normal',
+    },
+    { ...LINE_FIELD, label: 'Contour des barres' },
+    {
+      k: 'baseWidth',
+      g: 'axes',
+      when: (o) => o.baseline ?? ORIGIN.baseline,
+      why: 'Activez « Ligne de base » pour régler son trait.',
+      t: 'select',
+      label: 'Trait de la ligne de base',
+      options: { thin: 'Fin', medium: 'Moyen', thick: 'Épais' },
+      def: 'thin',
     },
     {
       k: 'corners',
@@ -269,7 +283,10 @@ export default {
         if (grid && !(base && v === 0)) svg.append(gridLine(o, px0, y, x1, y));
         if (axV) svg.append(s('text', { x: px0 - 6, y: y + 0.33 * capPx, 'text-anchor': 'end', 'font-size': capPx }, tickTxt(v)));
       });
-    if (base) svg.append(s('line', { x1: px0, y1: baseY, x2: x1, y2: baseY, stroke: 'currentColor', 'stroke-width': SW }));
+    if (base)
+      svg.append(
+        s('line', { x1: px0, y1: baseY, x2: x1, y2: baseY, stroke: 'currentColor', 'stroke-width': SW * (STROKE_K[o.baseWidth] || 1) }),
+      );
     if (refOk) refH(svg, yOf(ref), px0, x1, refText, capPx, refW); // par-dessus la grille, sous les barres
     if (o.yTitle)
       svg.append(s('text', { x: 0, y: capPx, 'font-size': capPx, 'font-weight': 700 }, fitText(o.yTitle, 700, SANS, capPx, W, 0.7).text));
@@ -347,8 +364,7 @@ export default {
         'data-color-base': env.ui ? `series.${j}.color` : null,
         d: round && !square ? barPath(x, y, bw, Math.max(h, 0.0001), VIZ.barRadius) : `M${x},${y}h${bw}v${h}h${-bw}Z`,
         fill: colorRef(color),
-        stroke: 'currentColor',
-        'stroke-width': SW,
+        ...lineAttrs(o),
         'stroke-linejoin': 'round',
       });
     rows.forEach((r, i) => {

@@ -1,9 +1,9 @@
 {
-  "version": "1.98.0",
+  "version": "1.99.0",
   "date": "2026-11-11",
   "changes": [
-    "Images du dépôt rangées en logos, header et autres images (sous-dossiers) ; la barre « images à publier » disparaît",
-    "Nouvelle carte « Images du document » (panneau Document) : tous les logos et images, avec un marqueur sur celles qui ne sont que dans ce navigateur",
-    "Header : famille de logos au choix et bibliothèque d'images par dossier ; colonne image : choix d'une image du dépôt"
+    "Barres, barres horizontales, anneau : contour des formes (Aucun / Fin / Moyen / Épais) ; barres : trait de la ligne de base",
+    "Sankey : contour des nœuds (Aucun / Fin / Moyen)",
+    "Les fiches existantes gardent leur aspect ; ↺ et « Rétablir l'aspect d'origine » y ramènent"
   ]
 }

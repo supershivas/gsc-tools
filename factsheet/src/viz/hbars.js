@@ -5,6 +5,9 @@ import {
   heightOf,
   s,
   SW,
+  STROKE_K,
+  LINE_FIELD,
+  lineAttrs,
   colorRef,
   pxOf,
   fmt,
@@ -74,6 +77,17 @@ export default {
       label: 'Épaisseur des barres',
       options: { thin: 'Fine', normal: 'Normale', thick: 'Épaisse', xthick: 'Très épaisse' },
       def: 'normal',
+    },
+    { ...LINE_FIELD, label: 'Contour des barres' },
+    {
+      k: 'baseWidth',
+      g: 'axes',
+      when: (o) => o.baseline ?? ORIGIN.baseline,
+      why: 'Activez « Ligne de base » pour régler son trait.',
+      t: 'select',
+      label: 'Trait de la ligne de base',
+      options: { thin: 'Fin', medium: 'Moyen', thick: 'Épais' },
+      def: 'thin',
     },
     {
       k: 'corners',
@@ -239,7 +253,10 @@ export default {
           );
         }
       });
-    if (base) svg.append(s('line', { x1: x0, y1: 0, x2: x0, y2: bodyH, stroke: 'currentColor', 'stroke-width': SW }));
+    if (base)
+      svg.append(
+        s('line', { x1: x0, y1: 0, x2: x0, y2: bodyH, stroke: 'currentColor', 'stroke-width': SW * (STROKE_K[o.baseWidth] || 1) }),
+      );
     if (refOk) refV(svg, x0 + (ref / max) * span, 0, bodyH, refText, capPx, W); // par-dessus la grille, sous les barres
     const nSeg = Math.max(0, Math.min(20, Math.floor(+o.segments || 0)));
     /* graduations (traits de séparation des segments) et libellé dans la barre */
@@ -289,8 +306,7 @@ export default {
               'data-color-base': env.ui ? `series.${j}.color` : null,
               d: acc >= total(r) && !square ? hPath(xa, y, w, bh, VIZ.barRadius) : `M${xa},${y}h${w}v${bh}h${-w}Z`,
               fill: colorRef(elColor(r, j, sr)),
-              stroke: 'currentColor',
-              'stroke-width': SW,
+              ...lineAttrs(o),
               'stroke-linejoin': 'round',
             }),
           );
@@ -323,8 +339,7 @@ export default {
                 ? `M${x0},${yy}h${Math.max(w, 0.0001)}v${bh}h${-Math.max(w, 0.0001)}Z`
                 : hPath(x0, yy, Math.max(w, 0.0001), bh, VIZ.barRadius),
               fill: colorRef(elColor(r, j, sr)),
-              stroke: 'currentColor',
-              'stroke-width': SW,
+              ...lineAttrs(o),
               'stroke-linejoin': 'round',
             }),
           );

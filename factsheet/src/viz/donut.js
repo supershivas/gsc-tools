@@ -2,7 +2,7 @@
    libellés autour de l'anneau avec traits de repère (colonnes larges)
    ou en légende sous l'anneau (colonnes étroites). Logique reprise de donut-export. */
 import { VIZ, TYPE } from '../tokens.js';
-import { s, SW, colorRef, pxOf, fmt, mw, SERIF, SANS, round3, textLines, drawLines } from './util.js';
+import { s, SW, lineAttrs, LINE_FIELD, colorRef, pxOf, fmt, mw, SERIF, SANS, round3, textLines, drawLines } from './util.js';
 import { t } from '../i18n.js';
 
 const BODY = pxOf(TYPE.body.size),
@@ -69,6 +69,7 @@ export default {
   }),
   fields: [
     { k: 'style', g: 'struct', t: 'select', label: 'Forme', options: { donut: 'Anneau (total au centre)', pie: 'Camembert' } },
+    { ...LINE_FIELD, label: 'Contour des segments' },
     {
       k: 'ringWidth',
       g: 'dims',
@@ -411,8 +412,7 @@ export default {
           'data-color': ui ? `segments.${idxOf(p.g)}.color` : null,
           d: sector(cx, cy, p),
           fill: colorRef(p.g.color),
-          stroke: 'currentColor',
-          'stroke-width': SW,
+          ...lineAttrs(o),
           'stroke-linejoin': 'round',
           'data-hit': ui ? `ring:${idxOf(p.g)}` : null,
           style: ui ? { cursor: 'grab' } : null,

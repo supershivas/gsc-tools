@@ -482,3 +482,66 @@ test('export PDF avec les réglages d’apparence de la heatmap (lot 5d), sans e
   sizes.forEach((n) => expect(n).toBeGreaterThan(1000));
   expect(errors).toEqual([]);
 });
+
+/* Apparence (lot 5e) : contours des barres, de l'anneau, des nœuds du Sankey, trait de la ligne de base. Sans clé : aspect d'avant. */
+const filled = (svg) =>
+  [...svg.querySelectorAll('path[fill], rect[fill]')]
+    .filter((n) => n.getAttribute('fill') !== 'none' && n.getAttribute('fill') !== '#FFFFFF' && n.hasAttribute('stroke'))
+    .map((n) => ({ stroke: n.getAttribute('stroke'), sw: +n.getAttribute('stroke-width') }));
+
+for (const [kind, key] of [
+  ['bars', 'lineWidth'],
+  ['hbars', 'lineWidth'],
+  ['donut', 'lineWidth'],
+  ['sankey', 'nodeLine'],
+]) {
+  test(`${kind} : ${key} Aucun / Fin (d’origine) / Moyen / Épais`, async ({ page }) => {
+    const none = await probe(page, kind, {}, filled);
+    expect(none.length).toBeGreaterThan(1);
+    const base = none.find((n) => n.stroke === 'currentColor').sw;
+    expect(await probe(page, kind, { [key]: 'thin' }, filled)).toEqual(none);
+    const med = await probe(page, kind, { [key]: 'medium' }, filled);
+    expect(med.some((n) => n.sw === base * 2)).toBe(true);
+    if (key === 'lineWidth') expect((await probe(page, kind, { [key]: 'thick' }, filled)).some((n) => n.sw === base * 3)).toBe(true);
+    const off = await probe(page, kind, { [key]: 'none' }, filled);
+    expect(off.some((n) => n.stroke === 'none')).toBe(true);
+    expect(off.filter((n) => n.stroke === 'currentColor').length).toBeLessThan(none.filter((n) => n.stroke === 'currentColor').length);
+  });
+}
+
+test('barres et barres horizontales : trait de la ligne de base', async ({ page }) => {
+  for (const kind of ['bars', 'hbars']) {
+    const f = (svg) => Math.max(...[...svg.querySelectorAll('line[stroke="currentColor"]')].map((l) => +l.getAttribute('stroke-width')));
+    const o = { baseline: true };
+    const none = await probe(page, kind, o, f);
+    expect(await probe(page, kind, { ...o, baseWidth: 'thin' }, f)).toBe(none);
+    expect(await probe(page, kind, { ...o, baseWidth: 'thick' }, f)).toBeCloseTo(none * 3, 5);
+  }
+});
+
+test('export PDF avec les réglages d’apparence (lot 5e), sans erreur', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await page.addScriptTag({ url: '/factsheet/tests/entry.bundle.js' });
+  await addBundle(page, 'pdfexport.js');
+  const sizes = await page.evaluate(async (key) => {
+    const base = JSON.parse(localStorage.getItem(key));
+    const out = [];
+    for (const [kind, opts] of [
+      ['bars', { lineWidth: 'none', baseline: true, baseWidth: 'thick' }],
+      ['hbars', { lineWidth: 'thick', baseline: true, baseWidth: 'medium' }],
+      ['donut', { lineWidth: 'medium' }],
+      ['sankey', { nodeLine: 'none' }],
+    ]) {
+      const doc = JSON.parse(JSON.stringify(base));
+      const col = doc.sections.flatMap((s) => s.subs.flatMap((b) => b.cols)).find((c) => c.viz);
+      col.viz = window.FSTEST.newViz(kind);
+      Object.assign(col.viz.opts, opts);
+      const { bytes } = await window.FSPDF.build(doc, 'net', { profile: 'x1a' });
+      out.push(bytes.length);
+    }
+    return out;
+  }, DOC_KEY);
+  sizes.forEach((n) => expect(n).toBeGreaterThan(1000));
+  expect(errors).toEqual([]);
+});
