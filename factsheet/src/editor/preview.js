@@ -11,22 +11,31 @@ export function createPreview(ctx, { spacing, selection }) {
   const stage = ctx.stage;
   const gauges = document.getElementById('gauges');
   const warnEl = document.getElementById('warnings');
-  let zoomMode = 'fit',
-    raf = 0;
+  let raf = 0;
+  /* le zoom est propre à chaque onglet (`tab.view.zoom`) ; le document candidat ne vit que le temps d'un geste (annulé au changement d'onglet) */
+  const zoomOf = () => ctx.tab().view.zoom || 'fit';
   let previewDoc = null,
     previewMark = null; // glisser-déposer : document candidat dessiné pendant le geste
 
   function scaleValue() {
+    const zoomMode = zoomOf();
     if (zoomMode !== 'fit') return parseFloat(zoomMode);
     const avail = stage.clientWidth - 44;
     return Math.max(0.4, Math.min(1, (avail - 24) / (2 * PAGE.w)));
   }
 
   function draw() {
-    stage.classList.toggle('free', zoomMode !== 'fit'); // zoom manuel : de la marge autour des pages, pour pouvoir zoomer sous le curseur même quand tout tient à l'écran
-    const sc = scaleValue(),
-      sx = stage.scrollLeft,
+    stage.classList.toggle('free', zoomOf() !== 'fit'); // zoom manuel : de la marge autour des pages, pour pouvoir zoomer sous le curseur même quand tout tient à l'écran
+    const view = ctx.tab().view,
+      sc = scaleValue();
+    let sx = stage.scrollLeft,
       sy = stage.scrollTop;
+    if (view.restoreScroll) {
+      // retour sur un onglet : on retrouve son défilement
+      view.restoreScroll = false;
+      sx = view.sx || 0;
+      sy = view.sy || 0;
+    }
     const doc = ctx.getDoc();
     const r = renderDocument(previewDoc || doc);
     stage.innerHTML = '';
@@ -209,9 +218,10 @@ export function createPreview(ctx, { spacing, selection }) {
   return {
     schedule,
     scaleValue,
-    getZoom: () => zoomMode,
+    getZoom: zoomOf,
     setZoom: (v) => {
-      zoomMode = v;
+      ctx.tab().view.zoom = v;
+      ctx.viewChanged();
     },
     /* redessin immédiat (zoom à la molette) */
     drawNow: () => {

@@ -1,7 +1,7 @@
 import { migrate } from '../state.js';
 import { t } from '../i18n.js';
 
-/* ---------- Historique (annuler / rétablir) : moteur ----------
+/* ---------- Historique (annuler / rétablir) : moteur, un historique par onglet ----------
    Un instantané du document après chaque modification ; la frappe est regroupée (1 s). Les images en data URL sont
    remplacées par un numéro dans les instantanés pour ne pas multiplier les mégaoctets.
    L'interface (boutons, panneau, nom du fichier) est dans history-ui.js ; `onChange` est appelé après chaque pas. */
@@ -52,11 +52,24 @@ const firstDiff = (a, b, path = []) => {
   return null;
 };
 
+/** État d'historique d'un onglet (workspace.js) : pile d'instantanés, curseur, et table des images remplacées par un numéro */
+export const newHistState = () => ({
+  stack: [],
+  meta: [],
+  i: -1,
+  at: 0,
+  burst: false,
+  applying: false,
+  max: 100,
+  imgIds: new Map(),
+  imgById: [],
+});
+
+/* Le moteur ne garde aucun état : il travaille sur l'historique de l'onglet actif (`ctx.tab().hist`). */
 export function createHistory(ctx) {
-  const HIST = { stack: [], meta: [], i: -1, at: 0, burst: false, applying: false, max: 100 };
-  const imgIds = new Map(),
-    imgById = [];
+  const S = () => ctx.tab().hist;
   const tokenOf = (v) => {
+    const { imgIds, imgById } = S();
     let n = imgIds.get(v);
     if (n == null) {
       n = imgById.length;
@@ -67,7 +80,10 @@ export function createHistory(ctx) {
   };
   const snapshot = () =>
     JSON.stringify(ctx.getDoc(), (k, v) => (typeof v === 'string' && v.length > 300 && v.startsWith('data:') ? tokenOf(v) : v));
-  const restore = (str) => JSON.parse(str, (k, v) => (typeof v === 'string' && v.startsWith('\u0001img') ? imgById[+v.slice(4)] : v));
+  const restore = (str) => {
+    const { imgById } = S();
+    return JSON.parse(str, (k, v) => (typeof v === 'string' && v.startsWith('\u0001img') ? imgById[+v.slice(4)] : v));
+  };
 
   function describe(prevStr, nextStr) {
     if (prevStr == null) return t('Ouverture du document');
@@ -114,8 +130,17 @@ export function createHistory(ctx) {
     return `${where} · ${FIELDS[field] ? t(FIELDS[field]) : t('réglage')}`;
   }
 
-  const api = { steps: HIST, onChange: () => {} };
+  const api = {
+    /** historique de l'onglet actif (lu à chaque appel : il change avec l'onglet) */
+    get steps() {
+      return S();
+    },
+    onChange: () => {},
+  };
+  /** instantané courant de l'onglet actif (indicateur « modifié depuis le dernier export ») */
+  api.current = () => S().stack[S().i];
   api.record = (burst) => {
+    const HIST = S();
     if (HIST.applying) return;
     const sn = snapshot();
     if (HIST.i >= 0 && HIST.stack[HIST.i] === sn) return;
@@ -139,6 +164,7 @@ export function createHistory(ctx) {
     api.onChange();
   };
   api.goTo = (i) => {
+    const HIST = S();
     if (i < 0 || i >= HIST.stack.length) return;
     HIST.i = i;
     HIST.applying = true;
@@ -151,9 +177,9 @@ export function createHistory(ctx) {
     }
     api.onChange();
   };
-  api.undo = () => api.goTo(HIST.i - 1);
-  api.redo = () => api.goTo(HIST.i + 1);
-  api.canUndo = () => HIST.i > 0;
-  api.canRedo = () => HIST.i < HIST.stack.length - 1;
+  api.undo = () => api.goTo(S().i - 1);
+  api.redo = () => api.goTo(S().i + 1);
+  api.canUndo = () => S().i > 0;
+  api.canRedo = () => S().i < S().stack.length - 1;
   return api;
 }

@@ -6,7 +6,6 @@ import { MAC, MOD } from './keys.js';
    (un clic revient à ce pas) et petit message en bas à gauche après un déplacement / une suppression.
    `onSync` : redessin des contrôles voisins (espacement) quand l'historique change. */
 export function createHistoryUi(ctx, history, { onSync }) {
-  const HIST = history.steps;
   const undoBtn = h(
     'button',
     {
@@ -70,6 +69,7 @@ export function createHistoryUi(ctx, history, { onSync }) {
   let histPop = null;
   const clock = (ms) => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   function drawHistory() {
+    const HIST = history.steps;
     const list = h('ul', { class: 'hist-list' });
     for (let k = HIST.stack.length - 1; k >= 0; k--) {
       const m = HIST.meta[k] || {};
@@ -133,7 +133,7 @@ export function createHistoryUi(ctx, history, { onSync }) {
     drawHistory();
   }
 
-  /* Petit message en bas à gauche (déplacement, suppression) avec « Annuler » ; disparaît seul */
+  /* Petit message en bas à gauche (déplacement, suppression) avec « Annuler » (si `undoLabel`) ; disparaît seul */
   let noteTimer = 0;
   function noteToast(label, undoLabel) {
     document.querySelectorAll('.fs-toast').forEach((n) => n.remove());
@@ -142,14 +142,16 @@ export function createHistoryUi(ctx, history, { onSync }) {
       'div',
       { class: 'fs-toast', role: 'status' },
       h('span', { textContent: t(label) }),
-      h('button', {
-        type: 'button',
-        textContent: t(undoLabel),
-        onclick: () => {
-          el.remove();
-          history.undo();
-        },
-      }),
+      undoLabel
+        ? h('button', {
+            type: 'button',
+            textContent: t(undoLabel),
+            onclick: () => {
+              el.remove();
+              history.undo();
+            },
+          })
+        : null,
     );
     document.body.append(el);
     noteTimer = setTimeout(() => el.remove(), 6000);

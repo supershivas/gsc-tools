@@ -24,9 +24,22 @@ function watchErrors(page) {
   return errors;
 }
 
-/** Fabrique un document dans la page (modules de l'app) et le range dans le localStorage ; `build` est le nom d'un document de tests/docs.js. */
+/** Efface l'espace de travail (onglets, brouillons, fichiers récents : IndexedDB `factsheet-creator`). */
+async function clearWorkspace(page) {
+  await page.evaluate(
+    () =>
+      new Promise((res) => {
+        const r = indexedDB.deleteDatabase('factsheet-creator');
+        r.onsuccess = r.onerror = r.onblocked = () => res();
+      }),
+  );
+}
+
+/** Fabrique un document dans la page (modules de l'app) et le range dans le localStorage (ancienne clé, migrée en premier onglet) ;
+    `build` est le nom d'un document de tests/docs.js. L'espace de travail est vidé : l'éditeur part de ce seul document. */
 async function seed(page, build, { lang = 'en' } = {}) {
   await page.goto('/factsheet/tests/blank.html');
+  await clearWorkspace(page);
   await page.evaluate(
     ([key, langKey, name, lang]) => {
       const doc = typeof name === 'string' ? window.FSTEST.docs[name]() : null;
@@ -71,4 +84,15 @@ async function addBundle(page, file) {
   await page.addScriptTag({ url: `/factsheet/${file}` });
 }
 
-module.exports = { DOC_KEY, LANG_KEY, stubExternal, watchErrors, seed, openApp, settle, addBundle, root: path.resolve(__dirname, '..') };
+module.exports = {
+  DOC_KEY,
+  LANG_KEY,
+  stubExternal,
+  watchErrors,
+  clearWorkspace,
+  seed,
+  openApp,
+  settle,
+  addBundle,
+  root: path.resolve(__dirname, '..'),
+};

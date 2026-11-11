@@ -2,13 +2,15 @@
    (logos, header, colonnes) et les projets .json, pour les retrouver sur tous les appareils.
    Les modifications restent d'abord dans le navigateur (éditeur) ; ici on les publie en un geste. */
 import { initI18n, t } from './i18n.js';
-import { docImages } from './state.js';
+import { docImages, uid } from './state.js';
+import { readActiveDoc, writeActiveDoc, openInNewTab } from './wsstore.js';
 import { REPO, getToken, setToken, checkAccess, listDir, readText, commitFiles, textToBase64, splitDataUrl, assetName } from './github.js';
 import { confirmBox } from './dialogs.js';
 
-const DOC_KEY = 'factsheet-creator-v1';
-const loadDoc = () => { try { return JSON.parse(localStorage.getItem(DOC_KEY)); } catch (e) { return null; } };
-const saveDoc = d => localStorage.setItem(DOC_KEY, JSON.stringify(d));
+/* Document de l'onglet actif de l'éditeur (IndexedDB, repli : miroir `factsheet-creator-v1`), relu avant chaque geste */
+let doc = null;
+const loadDoc = () => readActiveDoc();
+const reloadDoc = async () => { doc = await loadDoc(); };
 const isLocal = x => /^data:/.test(x.get());
 
 const el = (tag, props = {}, ...kids) => {
@@ -30,6 +32,7 @@ function drawLog() { logEl.replaceChildren(...log.slice(-6).map(l => el('div', {
 
 async function refresh() {
   loadError = '';
+  await reloadDoc();
   try { [published, projects] = await Promise.all([listDir('factsheet/assets/others'), listDir('factsheet/projects')]); }
   catch (e) { loadError = e.status === 403 ? t('Limite de requêtes GitHub atteinte : ajoutez un jeton.') : t('Impossible de lire le dépôt.'); }
   draw();
@@ -60,7 +63,7 @@ async function waitLive(names) {
 
 /** Publie les images encore locales du document puis remplace leur contenu par le chemin publié */
 async function publishImages() {
-  const doc = loadDoc(); if (!doc) return;
+  const doc = await loadDoc(); if (!doc) return;
   const refs = docImages(doc).filter(isLocal), names = new Map();
   for (const r of refs) { const d = r.get(); if (!names.has(d)) names.set(d, await assetName(d)); }
   const have = new Set(published.map(f => f.name));
@@ -70,16 +73,16 @@ async function publishImages() {
     await commitFiles(fresh.map(([d, n]) => ({ path: `factsheet/assets/others/${n}`, base64: splitDataUrl(d).base64 })), `Publie ${fresh.length} image${fresh.length > 1 ? 's' : ''} depuis l’Atelier`);
   }
   await waitLive([...names.values()]);
-  const doc2 = loadDoc();                      // relu : l'éditeur a pu enregistrer entre-temps
+  const doc2 = await loadDoc();                // relu : l'éditeur a pu enregistrer entre-temps
   docImages(doc2).filter(isLocal).forEach(r => { const n = names.get(r.get()); if (n) r.set('assets/others/' + n); });
-  saveDoc(doc2);
+  await writeActiveDoc(doc2);
   say(`${t('Publié')} : ${names.size} ${t('image(s)')}`, 'ok');
 }
 
 async function publishProject(name) {
   const s = slug(name); if (!s) return;
   await publishImages();
-  const doc = loadDoc();
+  const doc = await loadDoc();
   if (docImages(doc).some(isLocal)) throw new Error(t('Des images ne sont pas encore publiées.'));
   await commitFiles([{ path: `factsheet/projects/${s}.json`, base64: textToBase64(JSON.stringify(doc, null, 2)) }], `Publie le projet ${s} depuis l’Atelier`);
   say(`${t('Projet publié')} : ${s}`, 'ok');
@@ -88,12 +91,12 @@ async function publishProject(name) {
 async function openProject(p) {
   const doc = JSON.parse(await readText(p.path));
   if (!Array.isArray(doc.sections)) throw new Error(t('Fichier de projet invalide.'));
-  saveDoc(doc); location.href = 'index.html';
+  await openInNewTab(doc, uid('t')); location.href = 'index.html';
 }
 
 /* ---------- Interface ---------- */
 function draw() {
-  const doc = loadDoc(), local = doc ? docImages(doc).filter(isLocal) : [];
+  const local = doc ? docImages(doc).filter(isLocal) : [];
   const tokenInput = el('input', { type: 'password', placeholder: 'github_pat_…', autocomplete: 'off', value: '' });
   const connected = canPush();
   const sec = (title, ...kids) => el('section', { class: 'card' }, el('h2', { textContent: title }), ...kids);
@@ -127,7 +130,7 @@ function draw() {
     el('div', { class: 'row' }, nameInput, btn('Publier le projet en cours', 'cloud-upload', () => run(() => publishProject(nameInput.value)), 'primary')),
     projects.length ? el('ul', { class: 'files plist' }, projects.filter(p => /\.json$/.test(p.name)).map(p => el('li', {}, icon('file-code'), el('span', { textContent: p.name.replace(/\.json$/, '') }),
       el('span', { class: 'sp' }),
-      btn('Ouvrir dans l’éditeur', 'folder-open', async () => { if (await confirmBox(t('Remplacer le projet en cours dans ce navigateur ?'), { ok: t('Remplacer'), danger: true })) run(() => openProject(p)); }),
+      btn('Ouvrir dans l’éditeur', 'folder-open', () => run(() => openProject(p))),   // nouvel onglet : rien n'est remplacé
       el('button', { type: 'button', class: 'icon', title: 'Supprimer', disabled: busy || !connected, onclick: async () => { if (await confirmBox(t('Supprimer ce projet ?'), { ok: t('Supprimer'), danger: true })) run(async () => { await commitFiles([{ path: p.path, remove: true }], `Supprime le projet ${p.name} depuis l’Atelier`); say(t('Projet supprimé'), 'ok'); }); } }, icon('trash')))))
       : el('p', { class: 'hint', textContent: 'Aucun projet publié.' }));
   [...proj.querySelectorAll('.row .btn')].forEach(b => { b.disabled = busy || !connected; });
@@ -136,5 +139,4 @@ function draw() {
 }
 
 initI18n();
-draw(); drawLog();
-connect().then(refresh);
+reloadDoc().then(() => { draw(); drawLog(); connect().then(refresh); });

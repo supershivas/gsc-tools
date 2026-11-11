@@ -8,10 +8,12 @@ const SPACING_KINDS = { margin: 'Marges', sec: 'Sections', sub: 'Sous-sections',
 
 export function createSpacing(ctx) {
   const stage = ctx.stage;
-  let showSpacing = false;
+  /* filigrane allumé ou non : propre à chaque onglet (`tab.view.spacing`) */
+  const isOn = () => !!ctx.tab().view.spacing;
   const legendEl = h('div', { class: 'sp-legend' });
   const toggle = () => {
-    showSpacing = !showSpacing;
+    ctx.tab().view.spacing = !isOn();
+    ctx.viewChanged();
     ctx.schedule();
     sync();
   };
@@ -37,8 +39,8 @@ export function createSpacing(ctx) {
     ),
   );
   function sync() {
-    spToggle.classList.toggle('on', showSpacing);
-    spToggle.setAttribute('aria-pressed', String(showSpacing));
+    spToggle.classList.toggle('on', isOn());
+    spToggle.setAttribute('aria-pressed', String(isOn()));
     Object.keys(DENSITIES).forEach((k, i) => densBtns[i].classList.toggle('on', (ctx.getDoc().density || 'normal') === k));
   }
   // dans la barre (taille fixe) : ne déplace jamais l'aperçu
@@ -52,7 +54,7 @@ export function createSpacing(ctx) {
   function draw() {
     stage.querySelectorAll('.sp-layer').forEach((n) => n.remove());
     legendEl.replaceChildren();
-    if (!showSpacing) return; // la mise en page peut bouger après coup (polices, images) : le filigrane suit
+    if (!isOn()) return; // la mise en page peut bouger après coup (polices, images) : le filigrane suit
     stage.querySelectorAll('.pwrap').forEach((w) => {
       const page = w.querySelector('.page');
       if (!page) return;
@@ -107,5 +109,5 @@ export function createSpacing(ctx) {
     legendEl.replaceChildren(...Object.entries(SPACING_KINDS).map(([k, l]) => h('span', {}, h('i', { class: 'sp-' + k }), t(l))));
   }
 
-  return { draw, sync, toggle, isOn: () => showSpacing };
+  return { draw, sync, toggle, isOn };
 }

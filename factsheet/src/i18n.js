@@ -155,8 +155,28 @@ const EN = {
   'Afficher le titre': 'Show title',
   'affichage du titre': 'title visibility',
   'Nouvelle factsheet vierge': 'New blank factsheet',
-  'Créer une factsheet vierge ? Le document actuel sera remplacé : enregistrez-le d’abord (.json) si besoin.':
-    'Create a blank factsheet? The current document will be replaced: save it first (.json) if needed.',
+  /* espace de travail : onglets, brouillons, fichiers récents (editor/workspace.js, editor/tabs-ui.js) */
+  'Sans titre': 'Untitled',
+  'Documents ouverts': 'Open documents',
+  'Nouvel onglet': 'New tab',
+  'Fermer l’onglet': 'Close tab',
+  'Modifié depuis le dernier export': 'Modified since last export',
+  'Brouillon enregistré': 'Draft saved',
+  'Brouillon non enregistré : stockage du navigateur plein': 'Draft not saved: browser storage full',
+  'Brouillon du document actif seulement (IndexedDB indisponible)': 'Draft of the active document only (IndexedDB unavailable)',
+  'Les brouillons restent dans ce navigateur. Fichier › Enregistrer (.json) pour garder une copie.':
+    'Drafts stay in this browser. File › Save (.json) to keep a copy.',
+  'Ce document a été modifié depuis le dernier export (.json). Fermer l’onglet quand même ? Son brouillon sera supprimé.':
+    'This document has been modified since the last export (.json). Close the tab anyway? Its draft will be deleted.',
+  'Ce fichier est déjà ouvert : son onglet est affiché.': 'This file is already open: showing its tab.',
+  'Ce fichier est déjà ouvert dans un onglet, avec un contenu différent. Ouvrir aussi cette version dans un nouvel onglet ?':
+    'This file is already open in a tab, with different content. Also open this version in a new tab?',
+  'Ouvrir une copie': 'Open a copy',
+  'Ouvrir récent (copie locale)': 'Open recent (local copy)',
+  'Aucun fichier récent': 'No recent files',
+  'Fichiers récents indisponibles dans ce navigateur': 'Recent files unavailable in this browser',
+  'Vider la liste': 'Clear the list',
+  'Cette copie locale n’existe plus.': 'This local copy no longer exists.',
   'Enregistrer (.json)': 'Save (.json)',
   'Ouvrir…': 'Open…',
   'Exporter PDF…': 'Export PDF…',
@@ -1175,7 +1195,6 @@ const EN = {
   'Image supprimée': 'Image deleted',
   'Projet supprimé': 'Project deleted',
   'Supprimer ce projet ?': 'Delete this project?',
-  'Remplacer le projet en cours dans ce navigateur ?': 'Replace the current project in this browser?',
   'Des images ne sont pas encore publiées.': 'Some images are not published yet.',
   'Cette image est utilisée par le document en cours. La supprimer quand même ?':
     'This image is used by the current document. Delete it anyway?',

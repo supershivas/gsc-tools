@@ -15,6 +15,7 @@
 </head>
 <body>
 <header id="app-header"></header>
+<div class="fs-tabs-bar" id="fsTabs"></div>
 <div class="app">
   <aside class="panel tree" id="tree"></aside>
   <main class="stage-wrap">
@@ -43,9 +44,10 @@
     const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = `${href}?v=${v}`; l.onload = l.onerror = res; document.head.append(l);
   })));
   await new Promise((res, rej) => { const s = document.createElement('script'); s.src = `app.js?v=${v}`; s.onload = res; s.onerror = rej; document.body.append(s); });
+  await window.FS_READY; // l'éditeur lit d'abord l'espace de travail (onglets, IndexedDB)
   const { initShell } = await import(`../js/shell.js?v=${v}`);
   const ui = window.FS_UI || {};
-  initShell({ sub: 'Factsheet creator', menus: ui.menus, center: ui.center, settingsExtra: ui.settings });
+  initShell({ sub: 'Factsheet creator', menus: ui.menus, center: ui.center, settingsExtra: ui.settings, exportData: ui.exportData });
 })();
 </script>
 </body>

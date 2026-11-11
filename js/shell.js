@@ -21,12 +21,18 @@ export function toast(text) {
   setTimeout(() => t.remove(), 4000);
 }
 
-function exportData(version) {
+/* Données de la page hors localStorage (ex. onglets du Factsheet creator, dans IndexedDB) : async () => ({ clé: valeur }) */
+let exportExtra = null;
+
+async function exportData(version) {
   const data = {};
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
     if (!DATA_PREFIXES.some(p => k.startsWith(p))) continue;
     try { data[k] = JSON.parse(localStorage.getItem(k)); } catch { data[k] = localStorage.getItem(k); }
+  }
+  if (exportExtra) {
+    try { Object.assign(data, await exportExtra()); } catch { /* export partiel plutôt que rien */ }
   }
   downloadJSON({ app: 'gsc-tools', version, exportedAt: new Date().toISOString(), data }, 'gsc-tools-export.json');
 }
@@ -57,7 +63,7 @@ async function buildSettings() {
   return dlg;
 }
 
-/* Menus déroulants de l'en-tête : [{ label, items: [{ label, icon?, hint?, href?, run?, checked?(), disabled?() } | { heading } | '-'] }] */
+/* Menus déroulants de l'en-tête : [{ label, items: (liste, ou fonction qui la renvoie à chaque ouverture) [{ label, icon?, hint?, href?, run?, checked?(), disabled?() } | { heading } | '-'] }] */
 function buildMenus(menus) {
   const nav = el('nav', { className: 'app-menus', ariaLabel: 'Menu' });
   const pops = [];
@@ -67,7 +73,8 @@ function buildMenus(menus) {
     const btn = el('button', { type: 'button', className: 'menu-btn', textContent: def.label, ariaHasPopup: 'menu', ariaExpanded: 'false' });
     const pop = el('div', { className: 'menu-pop', role: 'menu', hidden: true });
     const m = { btn, pop, fill() {
-      pop.replaceChildren(...def.items.map(it => {
+      const items = typeof def.items === 'function' ? def.items() : def.items;
+      pop.replaceChildren(...items.map(it => {
         if (it === '-') return el('div', { className: 'menu-sep', role: 'separator' });
         if (it.heading) return el('div', { className: 'menu-head', textContent: it.heading });
         const mark = it.checked ? el('i', { className: 'ti ti-check' + (it.checked() ? '' : ' off') }) : it.icon ? icon(it.icon) : el('i', { className: 'ti' });
@@ -86,8 +93,9 @@ function buildMenus(menus) {
   return nav;
 }
 
-export function initShell({ sub = '', homeUrl = new URL('./', ROOT).href, menus = [], center = null, settingsExtra: extra = [] } = {}) {
+export function initShell({ sub = '', homeUrl = new URL('./', ROOT).href, menus = [], center = null, settingsExtra: extra = [], exportData: extraData = null } = {}) {
   settingsExtra = extra;
+  exportExtra = extraData;
   const host = document.getElementById('app-header');
   const name = el('a', { className: 'app-name', href: homeUrl, textContent: 'GSC tools' });
   let dlgPromise;

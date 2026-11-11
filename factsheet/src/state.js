@@ -177,7 +177,9 @@ const LEGACY_ASSETS = {
 };
 export const upgradeAsset = (v) => (typeof v === 'string' && LEGACY_ASSETS[v]) || v;
 
-/* ---------- Persistance locale + fichier ---------- */
+/* ---------- Persistance locale + fichier ----------
+   L'éditeur garde ses documents dans IndexedDB (src/wsstore.js, src/editor/workspace.js) ; `factsheet-creator-v1` est le miroir
+   du document de l'onglet actif, et le seul stockage quand IndexedDB est indisponible. */
 const KEY = 'factsheet-creator-v1';
 export function loadDoc() {
   try {
@@ -200,6 +202,8 @@ export function migrate(j) {
   const d = Object.assign(defaultDoc(), j);
   /* icônes importées : anciennes icônes propres à une dataviz → bibliothèque du document */
   d.customIcons = Array.isArray(j.customIcons) ? j.customIcons : [];
+  /* identifiant stable du fichier (espace de travail : un fichier déjà ouvert bascule sur son onglet ; fichiers récents) */
+  if (typeof d.fileId !== 'string' || !d.fileId) d.fileId = uid('f');
   /* ancien texte libre de colonne (col.free) → textes libres positionnables (col.texts) */
   for (const sec of d.sections || [])
     for (const sb of sec.subs || [])
