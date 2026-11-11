@@ -27,8 +27,8 @@ test('les anciens chemins d’images (dossier à plat) sont migrés', async ({ p
       col: d.sections[0].subs[0].cols[0].src,
     };
   });
-  expect(r.logos.default).toBe('assets/logos/gsc/default.png');
-  expect(r.logos.mono).toBe('assets/logos/gsc/mono.png');
+  expect(r.logos.default).toBe('assets/logos/gsc/ceu_default_h_rgb_en.svg');
+  expect(r.logos.mono).toBe('assets/logos/gsc/ceu_mono_h_rgb_en.svg');
   expect(r.family).toBe('gsc');
   expect(r.images.every((s) => s.startsWith('assets/header/'))).toBe(true);
   expect(r.col).toBe('assets/others/lantern-emblem.png');

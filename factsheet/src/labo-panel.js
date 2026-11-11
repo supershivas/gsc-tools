@@ -5,10 +5,10 @@ import { paletteKeys, cssVars, applyVars, DEFAULT_THEME } from './tokens.js';
 
 const KEYS = paletteKeys({ theme: DEFAULT_THEME, colors: {} });
 const LOGOS = {
-  default: ['Défaut', 'assets/logos/gsc/mono.png'],
-  mono: ['Mono', 'assets/logos/gsc/default.png'],
-  white: ['Blanc', 'assets/logos/gsc/white.png'],
-  negative: ['Négatif', 'assets/logos/gsc/negative.png'],
+  default: ['Défaut', 'assets/logos/gsc/ceu_default_h_rgb_en.svg'],
+  mono: ['Mono', 'assets/logos/gsc/ceu_mono_h_rgb_en.svg'],
+  white: ['Blanc', 'assets/logos/gsc/ceu_white_h_rgb_en.svg'],
+  negative: ['Négatif', 'assets/logos/gsc/ceu_neg_h_rgb_en.svg'],
 };
 
 export const panelOpts = () => ({

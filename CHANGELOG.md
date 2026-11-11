@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.100.2 — 2026-11-11
+- Logos GSC : les anciens PNG sont supprimés, les logos du header viennent des fichiers SVG (ceu_*.svg) ; les anciens projets sont migrés
+
 ## 1.100.1 — 2026-11-11
 - Header : changer de famille de logos fonctionne avec des fichiers nommés pec_neg_h_rgb_en.svg, ceu_default_h_rgb_en.svg… (la version est reconnue dans le nom)
 - Carte « Images du document » : sections fermées par défaut

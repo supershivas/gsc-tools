@@ -12,7 +12,7 @@ const FALLBACK = [...Object.values(DEFAULT_LOGOS()), DEFAULT_IMAGE_SRC, 'assets/
   p.slice('assets/'.length),
 );
 
-/** « logos/gsc/default.png » → { kind: 'logos', folder: 'gsc', name: 'default.png', stem: 'default', path: 'assets/logos/gsc/default.png' } */
+/** « logos/gsc/ceu_default_h_rgb_en.svg » → { kind: 'logos', folder: 'gsc', name, stem, path: 'assets/logos/gsc/…' } */
 export const parseAssets = (files) =>
   files
     .filter((f) => typeof f === 'string' && /^(logos|header|others)\//.test(f) && !f.includes('..'))

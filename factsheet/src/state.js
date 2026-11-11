@@ -157,10 +157,10 @@ export function defaultDoc() {
 /* ---------- Images publiées dans le dépôt (factsheet/assets/, rangées en logos/, header/, others/) ---------- */
 export const DEFAULT_LOGO_FAMILY = 'gsc';
 export const DEFAULT_LOGOS = () => ({
-  default: 'assets/logos/gsc/default.png',
-  mono: 'assets/logos/gsc/mono.png',
-  white: 'assets/logos/gsc/white.png',
-  negative: 'assets/logos/gsc/negative.png',
+  default: 'assets/logos/gsc/ceu_default_h_rgb_en.svg',
+  mono: 'assets/logos/gsc/ceu_mono_h_rgb_en.svg',
+  white: 'assets/logos/gsc/ceu_white_h_rgb_en.svg',
+  negative: 'assets/logos/gsc/ceu_neg_h_rgb_en.svg',
 });
 /** Image du header toujours disponible (première de la bibliothèque, non modifiable) */
 export const DEFAULT_IMAGE_ID = 'img-default';
@@ -168,11 +168,15 @@ export const DEFAULT_IMAGE_SRC = 'assets/header/default/illustration.svg';
 export const defaultHeaderImage = () => ({ id: DEFAULT_IMAGE_ID, name: 'Image par défaut', src: DEFAULT_IMAGE_SRC });
 /** Anciens chemins (dossier à plat) → nouveaux : les projets enregistrés avant le rangement gardent leurs images (voir `migrate`) */
 const LEGACY_ASSETS = {
-  'assets/d9742f1219.png': 'assets/logos/gsc/default.png',
-  'assets/c069bffefa.png': 'assets/logos/gsc/mono.png',
-  'assets/4a5a41080e.png': 'assets/logos/gsc/white.png',
-  'assets/5ec5fb8b6a.png': 'assets/logos/gsc/negative.png',
+  'assets/d9742f1219.png': 'assets/logos/gsc/ceu_default_h_rgb_en.svg',
+  'assets/c069bffefa.png': 'assets/logos/gsc/ceu_mono_h_rgb_en.svg',
+  'assets/4a5a41080e.png': 'assets/logos/gsc/ceu_white_h_rgb_en.svg',
+  'assets/5ec5fb8b6a.png': 'assets/logos/gsc/ceu_neg_h_rgb_en.svg',
   'assets/Asset 1.svg': DEFAULT_IMAGE_SRC,
+  'assets/logos/gsc/default.png': 'assets/logos/gsc/ceu_default_h_rgb_en.svg',
+  'assets/logos/gsc/mono.png': 'assets/logos/gsc/ceu_mono_h_rgb_en.svg',
+  'assets/logos/gsc/white.png': 'assets/logos/gsc/ceu_white_h_rgb_en.svg',
+  'assets/logos/gsc/negative.png': 'assets/logos/gsc/ceu_neg_h_rgb_en.svg',
   'assets/2a3ba63bd5.png': 'assets/others/lantern-emblem.png',
 };
 export const upgradeAsset = (v) => (typeof v === 'string' && LEGACY_ASSETS[v]) || v;
