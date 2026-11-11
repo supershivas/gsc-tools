@@ -14,6 +14,8 @@ async function rename(page, name) {
   await input.fill(name);
   await input.blur();
 }
+/** Largeur de la première page de l'aperçu, lue en un seul appel (jamais sur un élément retiré par un nouveau rendu) */
+const pageWidth = (page) => page.evaluate(() => (document.querySelector('#stage .pwrap') || {}).offsetWidth || 0);
 /** contenu de la base IndexedDB de l'espace de travail */
 const readDb = (page) =>
   page.evaluate(
@@ -68,20 +70,12 @@ test('deux onglets isolés : document, historique, sélection et zoom propres à
   await expect(page.locator('#tree .tn.sel')).toHaveCount(0);
   await rename(page, 'Second');
   expect(await activeName(page)).toBe('Second');
-  const fitW = await page
-    .locator('#stage .pwrap')
-    .first()
-    .evaluate((n) => n.offsetWidth);
+  await settle(page); // le renommage redessine l'aperçu à l'image suivante : mesurer avant ferait lire une page déjà retirée (largeur 0)
+  const fitW = await pageWidth(page);
+  expect(fitW).toBeGreaterThan(0);
   await page.locator('.menu-btn', { hasText: 'View' }).click();
   await page.locator('.menu-pop:not([hidden]) .menu-item', { hasText: '200 %' }).click();
-  await expect
-    .poll(() =>
-      page
-        .locator('#stage .pwrap')
-        .first()
-        .evaluate((n) => n.offsetWidth),
-    )
-    .toBeGreaterThan(fitW);
+  await expect.poll(() => pageWidth(page)).toBeGreaterThan(fitW);
   expect((await docOfActive(page)).sections.length).toBe(1); // factsheet vierge
   await expect(page.locator('.fs-hbtn[aria-label="Undo"]')).toBeEnabled();
   // retour au premier onglet : rien n'a bougé, et son historique ne contient pas le renommage
@@ -94,12 +88,7 @@ test('deux onglets isolés : document, historique, sélection et zoom propres à
   await expect(page.locator('.fs-hbtn[aria-label="Undo"]')).toBeDisabled();
   await expect(page.locator('#tree .tn.sel')).toHaveAttribute('data-path', sel1);
   await expect(page.locator('#stage .page:not(.ovf-clone)')).toHaveCount(2);
-  expect(
-    await page
-      .locator('#stage .pwrap')
-      .first()
-      .evaluate((n) => n.offsetWidth),
-  ).toBe(fitW); // zoom « Ajuster » de cet onglet
+  await expect.poll(() => pageWidth(page)).toBe(fitW); // zoom « Ajuster » de cet onglet
   // annuler dans le premier onglet n'agit pas sur le second
   await page.keyboard.press('Control+z');
   await tabs(page).nth(1).locator('.fs-tab-btn').click();
