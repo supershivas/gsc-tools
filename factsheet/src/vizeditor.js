@@ -225,11 +225,14 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     hiliteSel();
     if (miniHold.isConnected) drawMini();
     const t = VIZ_TYPES[col.viz.kind];
-    const hintMsg = holder.querySelector('[data-reorder]')
-      ? 'Glisser un élément pour changer son ordre : les autres se réajustent en gardant des écarts proportionnels.'
-      : t && t.edit
-        ? 'Cliquer un segment ou un libellé pour le sélectionner · glisser l’anneau pour le tourner · glisser un libellé (verticalement, ou de l’autre côté) · glisser le point blanc pour déplacer l’ancrage du trait'
-        : '';
+    const hintMsg =
+      t && t.editHint
+        ? t.editHint
+        : holder.querySelector('[data-reorder]')
+          ? 'Glisser un élément pour changer son ordre : les autres se réajustent en gardant des écarts proportionnels.'
+          : t && t.edit
+            ? 'Cliquer un segment ou un libellé pour le sélectionner · glisser l’anneau pour le tourner · glisser un libellé (verticalement, ou de l’autre côté) · glisser le point blanc pour déplacer l’ancrage du trait'
+            : '';
     hint.textContent = hintMsg && tr(hintMsg);
     sheet.style.width = width + 48 + 'px';
     holder.style.width = width + 'px';

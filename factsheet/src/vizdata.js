@@ -101,6 +101,13 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
       ...series.map((sr, j) => ({
         name: sr.name || '',
         type: 'number',
+        group: f.levels ? sr.group || '' : null, // heatmap : groupe de colonnes
+        onGroup: f.levels
+          ? (v) => {
+              if (v.trim()) sr.group = v;
+              else delete sr.group;
+            }
+          : null,
         color: sr.color,
         palOpts: f.noColor ? null : palOpts, // heatmap : la couleur vient de l'échelle, pas de la colonne
         onColor: (v) => {
@@ -137,6 +144,17 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
         (rows[i].v || (rows[i].v = []))[j - 1] = n === null ? (blank ? null : 0) : n;
       }
     },
+    /* heatmap : niveau des lignes (0 = donnée principale … 3), jamais plus d'un niveau sous la ligne du dessus */
+    levels: f.levels
+      ? {
+          get: (i) => Math.max(0, Math.min(3, Math.round(+rows[i].level || 0))),
+          max: (i) => (i <= 0 ? 0 : Math.min(3, Math.max(0, Math.round(+rows[i - 1].level || 0)) + 1)),
+          set: (i, l) => {
+            if (l > 0) rows[i].level = l;
+            else delete rows[i].level;
+          },
+        }
+      : null,
     addRow: () => rows.push({ label: '', v: series.map(() => (blank ? null : 0)) }),
     delRow: (i) => {
       if (rows.length > 1) rows.splice(i, 1);
@@ -149,17 +167,23 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
           }
         : null,
     colLabel: '+ ' + serName,
-    load(m, head) {
+    load(m, head, { groups } = {}) {
       const body = head ? m.slice(1) : m,
         nser = Math.min(max, Math.max(1, ...body.map((c) => c.length - 1)));
-      const ns = Array.from({ length: nser }, (_, j) => ({
-        name: (head && m[0][j + 1]) || (series[j] && series[j].name) || `${serName} ${j + 1}`,
-        color: (series[j] && series[j].color) || SERIES_COLORS[j % SERIES_COLORS.length],
-        ...(series[j] && series[j].dash ? { dash: series[j].dash } : {}),
-      }));
+      const ns = Array.from({ length: nser }, (_, j) => {
+        const g = f.levels ? (groups ? groups[j] : series[j] && series[j].group) : null; // groupes lus à l'import, sinon gardés
+        return {
+          name: (head && m[0][j + 1]) || (series[j] && series[j].name) || `${serName} ${j + 1}`,
+          color: (series[j] && series[j].color) || SERIES_COLORS[j % SERIES_COLORS.length],
+          ...(series[j] && series[j].dash ? { dash: series[j].dash } : {}),
+          ...(g ? { group: g } : {}),
+        };
+      });
       series.splice(0, series.length, ...ns);
       /* une ligne de même libellé garde sa mise en forme (type, gras, taille) */
-      const keep = new Map(rows.filter((r) => r.kind || r.fmt).map((r) => [r.label, { kind: r.kind, fmt: r.fmt }]));
+      const keep = new Map(
+        rows.filter((r) => r.kind || r.fmt || r.level).map((r) => [r.label, { kind: r.kind, fmt: r.fmt, level: r.level }]),
+      );
       rows.splice(
         0,
         rows.length,
@@ -171,6 +195,7 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
             v: Array.from({ length: nser }, (_, j) => parse(c[j + 1]) ?? (blank ? null : 0)),
             ...(k && k.kind ? { kind: k.kind } : {}),
             ...(k && k.fmt ? { fmt: k.fmt } : {}),
+            ...(k && k.level ? { level: k.level } : {}),
           };
         }),
       );
@@ -365,6 +390,8 @@ export function importPreview(m0, ad, locale) {
         );
       if (ad.table && ad.maxData && nData > ad.maxData)
         parts.push(t('{n} colonnes de données au plus : les suivantes seront ignorées.').replace('{n}', ad.maxData));
+      if (ad.table && res.groups)
+        parts.push(t('Groupes de colonnes : {g}.').replace('{g}', [...new Set(res.groups.filter(Boolean))].join(', ')));
       if (ad.table && !res.roles.includes('label')) parts.push(t('Aucune colonne de libellés : les lignes resteront sans nom.'));
       summary.textContent = parts.join(' ');
       summary.classList.toggle('warn', !!res.bad);
@@ -406,7 +433,7 @@ export function importPreview(m0, ad, locale) {
     dlg.append(form);
     dlg.addEventListener('close', () => {
       dlg.remove();
-      resolve(dlg.dataset.ok && result ? { matrix: result.matrix, head: st.head > 0 } : null);
+      resolve(dlg.dataset.ok && result ? { matrix: result.matrix, head: st.head > 0, groups: result.groups } : null);
     });
     draw();
     document.body.append(dlg);
@@ -424,7 +451,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
     if (!m || !m.length) return;
     const r = await importPreview(m, ad, locale);
     if (!r) return;
-    ad.load(r.matrix, r.head);
+    ad.load(r.matrix, r.head, { groups: r.groups || undefined });
     rebuild();
   };
 
@@ -542,6 +569,19 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
                     ico('line-dashed'),
                   )
                 : null,
+              c.onGroup
+                ? h('input', {
+                    type: 'text',
+                    class: 'dg-group',
+                    value: c.group,
+                    placeholder: t('Groupe'),
+                    title: t('Groupe de colonnes : les colonnes voisines de même groupe sont réunies sous un en-tête commun'),
+                    oninput: (e) => {
+                      c.onGroup(e.target.value);
+                      ctx.changed();
+                    },
+                  })
+                : null,
               h('input', {
                 type: 'text',
                 value: c.name,
@@ -654,6 +694,15 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
           }
         };
         if (c.ml) return; // cellule multiligne : Entrée et flèches restent dans le texte
+        if (j === 0 && ad.levels && e.key === 'Tab' && !e.altKey && !e.ctrlKey && !e.metaKey) {
+          /* nom d'une ligne : Tab descend d'un niveau, Maj+Tab remonte (sauf si le niveau ne peut plus changer : le focus avance) */
+          const l = ad.levels.get(i) + (e.shiftKey ? -1 : 1);
+          if (l >= 0 && l <= ad.levels.max(i)) {
+            e.preventDefault();
+            setLevel(i, l);
+          }
+          return;
+        }
         if (e.key === 'Enter' || e.key === 'ArrowDown') go(1, 0);
         else if (e.key === 'ArrowUp') go(-1, 0);
       },
@@ -676,7 +725,49 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
         rebuild();
       },
     });
+    if (j === 0 && ad.levels) {
+      /* niveau de la ligne : boutons de retrait, nom décalé dans le tableau */
+      const out = h(
+          'button',
+          {
+            type: 'button',
+            class: 'mini dg-lvl-btn',
+            title: t('Remonter d’un niveau'),
+            'aria-label': t('Remonter d’un niveau'),
+            onclick: () => setLevel(i, ad.levels.get(i) - 1),
+          },
+          ico('indent-decrease'),
+        ),
+        inBtn = h(
+          'button',
+          {
+            type: 'button',
+            class: 'mini dg-lvl-btn',
+            title: t('Descendre d’un niveau'),
+            'aria-label': t('Descendre d’un niveau'),
+            onclick: () => setLevel(i, ad.levels.get(i) + 1),
+          },
+          ico('indent-increase'),
+        );
+      lvlUps[i] = () => {
+        const l = ad.levels.get(i);
+        inp.style.paddingLeft = 8 + l * 14 + 'px';
+        inp.dataset.level = l;
+        out.disabled = l <= 0;
+        inBtn.disabled = l >= ad.levels.max(i);
+      };
+      lvlUps[i]();
+      return h('td', {}, h('div', { class: 'dg-lvl' }, out, inBtn, inp));
+    }
     return h('td', {}, inp);
+  };
+  /* niveau d'une ligne changé sur place (sans reconstruire le tableau : le focus reste) ; les lignes suivantes revoient leur maximum */
+  const lvlUps = [];
+  const setLevel = (i, l) => {
+    if (l < 0 || l > ad.levels.max(i)) return;
+    ad.levels.set(i, l);
+    lvlUps.forEach((u) => u && u());
+    ctx.changed();
   };
   for (let i = 0; i < ad.rows(); i++) {
     body.append(

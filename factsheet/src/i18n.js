@@ -470,6 +470,14 @@ const EN = {
   Non: 'No',
   'Une ligne par ligne du tableau, une colonne par colonne (12 au plus). Une cellule laissée vide est dessinée « en attente ». Les écarts sont calculés par rapport à la colonne de référence (Structure). Type de ligne : Titre ou Total mettent la ligne en gras sur un fond neutre léger ; Gras et Taille la règlent une à une.':
     'One row per table row, one column per column (12 at most). An empty cell is drawn as “pending”. Gaps are computed against the reference column (Structure). Row type: Title or Total make the row bold on a light neutral background; Bold and Size set each row individually.',
+  /* heatmap : hiérarchie des lignes et groupes de colonnes */
+  'Groupe de colonnes : les colonnes voisines de même groupe sont réunies sous un en-tête commun':
+    'Column group: neighbouring columns with the same group share a common header',
+  'Remonter d’un niveau': 'Move up a level',
+  'Descendre d’un niveau': 'Move down a level',
+  'Groupes de colonnes : {g}.': 'Column groups: {g}.',
+  'Glisser une case pour changer l’ordre des lignes · glisser un nom vers la droite ou la gauche pour changer son niveau':
+    'Drag a cell to reorder the rows · drag a name right or left to change its level',
   /* aperçu avant import (vizdata.js) */
   'Aperçu de l’import': 'Import preview',
   'Lignes d’en-tête': 'Header rows',

@@ -216,7 +216,7 @@ export function autoRoles(m, head, dec, table = true) {
 }
 
 /** Lecture finale : en-têtes (lignes jointes), rôles, nombres interprétés.
-    Rend { matrix (pour `load`, 1re ligne = en-tête si head > 0), names, cells: [{ raw, v, bad }][], bad (nombre de cellules non lues), dataCols }.
+    Rend { matrix (pour `load`, 1re ligne = en-tête si head > 0), names, groups (groupes des colonnes de données, ou null), cells: [{ raw, v, bad }][], bad (nombre de cellules non lues), dataCols }.
     `table` : tableau à séries (une colonne de libellés, les autres en données) ; sinon enregistrements (colonnes gardées dans l'ordre). */
 export function readImport(m0, { head = 0, roles, dec = '.', table = true } = {}) {
   const m = padMatrix(m0),
@@ -232,6 +232,26 @@ export function readImport(m0, { head = 0, roles, dec = '.', table = true } = {}
   const labels = roles.map((r, j) => (r === 'label' ? j : -1)).filter((j) => j >= 0),
     data = roles.map((r, j) => (r === 'data' ? j : -1)).filter((j) => j >= 0);
   const numCols = table ? data : numericColumns(m, dec).filter((j) => data.includes(j));
+  /* colonnes groupées (tableau à séries) : 2 lignes d'en-tête ou plus, la 1re couvre plusieurs colonnes (cellule fusionnée d'Excel :
+     nom puis cellules vides) et la dernière nomme la plupart des colonnes → la 1re donne les groupes, les suivantes les noms */
+  let groups = null;
+  if (table && head >= 2 && data.length > 1) {
+    const top = m[0],
+      low = m[head - 1];
+    const spans = data.some((j, k) => k > 0 && !top[j] && data.slice(0, k).some((q) => top[q])),
+      named = data.filter((j) => low[j]).length >= data.length / 2;
+    if (spans && named) {
+      let cur = '';
+      groups = data.map((j) => (cur = top[j] || cur));
+      data.forEach((j) => {
+        names[j] = m
+          .slice(1, head)
+          .map((r) => r[j])
+          .filter(Boolean)
+          .join(' ');
+      });
+    }
+  }
   let bad = 0;
   const cells = m.slice(head).map((r) =>
     r.map((raw, j) => {
@@ -263,5 +283,5 @@ export function readImport(m0, { head = 0, roles, dec = '.', table = true } = {}
         ...data.map((j) => names[j]),
       ]
     : data.map((j) => names[j]);
-  return { matrix: head ? [top, ...rows] : rows, names, cells, bad, roles, dataCols: data };
+  return { matrix: head ? [top, ...rows] : rows, names, groups, cells, bad, roles, dataCols: data };
 }

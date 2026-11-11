@@ -496,3 +496,135 @@ test('classes de couleur : de 3 à 20, nombre pair sans classe neutre', async ({
   expect(r.maxCls20).toBe(10);
   expect(r.big).toBe(20); // borné à 20
 });
+
+test('hiérarchie : niveaux des lignes (retrait, graisse), groupes de colonnes, glisser un nom', async ({ page }) => {
+  await page.goto('/factsheet/tests/blank.html');
+  await page.evaluate(() => document.fonts.ready);
+  const r = await page.evaluate(() => {
+    const { VIZ_TYPES } = window.FSTEST;
+    const ty = VIZ_TYPES.heatmap;
+    const draw = (o) => {
+      const host = document.createElement('div');
+      const res = ty.render(o, 460, { locale: 'en-GB', ui: true });
+      host.append(res.node);
+      document.body.append(host);
+      const out = {
+        names: [...res.node.querySelectorAll('text.hm-name')].map((t) => ({
+          x: +t.getAttribute('x'),
+          w: t.getAttribute('font-weight'),
+          size: +t.getAttribute('font-size'),
+        })),
+        groups: [...res.node.querySelectorAll('text.hm-group')].map((t) => t.textContent),
+        rules: [...res.node.querySelectorAll('line.hm-group-rule')].map((l) => [+l.getAttribute('x1'), +l.getAttribute('x2')]),
+        cells: [...res.node.querySelectorAll('path.hm-ref')].map((p) => {
+          const b = p.getBBox();
+          return { x: b.x, y: b.y, w: b.width };
+        }),
+        levelHits: res.node.querySelectorAll('[data-hit^="level:"]').length,
+      };
+      host.remove();
+      return out;
+    };
+    const o = ty.defaults();
+    const flat = draw(o);
+    const lv = JSON.parse(JSON.stringify(o));
+    lv.rows.forEach((x, i) => (x.level = i)); // 0, 1, 2, 3
+    const levels = draw(lv);
+    const gr = JSON.parse(JSON.stringify(o));
+    gr.series[0].group = 'Draft';
+    gr.series[1].group = 'Positions';
+    gr.series[2].group = 'Positions';
+    const groups = draw(gr);
+    // glisser un nom : un niveau tous les 18 px, jamais plus d'un niveau sous la ligne du dessus
+    const ed = JSON.parse(JSON.stringify(o));
+    const api = { redraw() {} };
+    let d = ty.edit.start({ kind: 'level', i: 1 }, ed, null, api, { x: 10, y: 0 });
+    d.move({ x: 70, y: 2 }); // 3 niveaux demandés, 1 permis
+    const one = ed.rows[1].level;
+    d = ty.edit.start({ kind: 'level', i: 2 }, ed, null, api, { x: 10, y: 0 });
+    d.move({ x: 46, y: 0 });
+    const two = ed.rows[2].level;
+    d = ty.edit.start({ kind: 'level', i: 1 }, ed, null, api, { x: 50, y: 0 });
+    d.move({ x: 20, y: 0 });
+    const back = ed.rows[1].level;
+    const first = ty.edit.start({ kind: 'level', i: 0 }, ed, null, api, { x: 0, y: 0 });
+    first.move({ x: 60, y: 0 });
+    return { flat, levels, groups, one, two, back, firstLevel: ed.rows[0].level };
+  });
+  // sans niveau : aspect inchangé
+  expect(r.flat.names.every((n) => n.x === 0 && n.w === '600')).toBe(true);
+  expect(r.flat.groups).toEqual([]);
+  // niveaux : retrait de 9 px par niveau, gras → semi-gras → normal → normal plus petit
+  expect(r.levels.names.map((n) => n.x)).toEqual([0, 9, 18, 27]);
+  expect(r.levels.names.map((n) => n.w)).toEqual(['700', '600', '400', '400']);
+  expect(r.levels.names[3].size).toBeLessThan(r.levels.names[2].size);
+  expect(r.levels.levelHits).toBe(4);
+  // groupes : un en-tête par suite de colonnes de même groupe, filet sur leur largeur, cases descendues d'autant
+  expect(r.groups.groups).toEqual(['Draft', 'Positions']);
+  expect(r.groups.rules).toHaveLength(2);
+  expect(r.groups.rules[1][0]).toBeCloseTo(r.groups.cells.length ? r.flat.cells[0].x + r.flat.cells[0].w + 3 + 1 : 0, 0);
+  expect(r.groups.cells[0].y).toBeGreaterThan(r.flat.cells[0].y);
+  expect(r.one).toBe(1);
+  expect(r.two).toBe(2);
+  expect(r.back).toBeUndefined(); // revenu au niveau 0 (clé retirée)
+  expect(r.firstLevel).toBeUndefined(); // la 1re ligne reste au niveau 0
+});
+
+test('hiérarchie dans l’éditeur : boutons de retrait, Tab, groupe de colonne, glisser dans l’aperçu', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await page.evaluate((key) => {
+    const doc = JSON.parse(localStorage.getItem(key));
+    const col = doc.sections.flatMap((s) => s.subs.flatMap((b) => b.cols)).find((c) => c.viz);
+    col.viz = { kind: 'heatmap', opts: null, head: { title: '', source: '' }, side: { pos: 'none' } };
+    localStorage.setItem(key, JSON.stringify(doc));
+  }, DOC_KEY);
+  await page.reload();
+  await page.waitForSelector('#stage .page');
+  await page
+    .locator('#tree .col-row', { hasText: /Dataviz/ })
+    .first()
+    .click();
+  const open = page.locator('#props button.primary').first();
+  if (!(await open.count())) await page.locator('#props .pp-chev').first().click();
+  await open.click();
+  await expect(page.locator('.ve-bar')).toBeVisible();
+  await page.locator('.ve-tab[data-tab=data]').click();
+  const grid = page.locator('table.dg').first();
+  // ligne 2 : bouton « descendre d'un niveau » ; ligne 3 : Tab dans le nom
+  await grid.locator('tbody tr').nth(1).locator('button[aria-label="Move down a level"]').click();
+  await expect(grid.locator('input[data-r="1"][data-c="0"]')).toHaveAttribute('data-level', '1');
+  await expect(grid.locator('tbody tr').nth(0).locator('button[aria-label="Move down a level"]')).toBeDisabled(); // 1re ligne
+  await grid.locator('input[data-r="2"][data-c="0"]').focus();
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await expect(grid.locator('input[data-r="2"][data-c="0"]')).toHaveAttribute('data-level', '2');
+  await expect(grid.locator('input[data-r="2"][data-c="0"]')).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(grid.locator('input[data-r="2"][data-c="0"]')).toHaveAttribute('data-level', '1');
+  // groupe des deux colonnes du milieu
+  await grid.locator('thead input.dg-group').nth(1).fill('Positions');
+  await grid.locator('thead input.dg-group').nth(2).fill('Positions');
+  // aperçu : glisser le nom de la 4e ligne vers la droite
+  await page.locator('.ve-tab[data-tab=viz]').click();
+  const stage = page.locator('#ve-stage svg');
+  await expect(stage.locator('text.hm-group')).toHaveText(['Positions']);
+  const hit = stage.locator('[data-hit="level:3"]');
+  const b = await hit.boundingBox();
+  await page.mouse.move(b.x + 10, b.y + b.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(b.x + 40, b.y + b.height / 2, { steps: 5 });
+  await page.mouse.move(b.x + 80, b.y + b.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await page.screenshot({ path: test.info().outputPath('heatmap-levels.png') });
+  await page.locator('.ve-bar button.primary').click();
+  await expect(page.locator('.ve-bar')).toHaveCount(0);
+  await page.waitForTimeout(300);
+  const opts = await page.evaluate((key) => {
+    const doc = JSON.parse(localStorage.getItem(key));
+    return doc.sections.flatMap((s) => s.subs.flatMap((b) => b.cols)).find((c) => c.viz && c.viz.kind === 'heatmap').viz.opts;
+  }, DOC_KEY);
+  expect(opts.rows.map((x) => x.level || 0)).toEqual([0, 1, 1, 2]);
+  expect(opts.series.map((x) => x.group || '')).toEqual(['', 'Positions', 'Positions', '']);
+  expect(errors).toEqual([]);
+});

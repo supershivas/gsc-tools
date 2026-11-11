@@ -95,6 +95,11 @@ test('en-têtes et rôles : tableau budgétaire (2 lignes d’en-tête, colonne 
       bad: auto.bad,
       heads: [one, none, years, zeros].map((m) => headerRows(m, '.')),
       sparse: headerRows(sparse, '.'),
+      mffGroups: auto.groups,
+      grouped: readImport(parseMatrix('\tMFF 2021-27\t\tProposal\t\nvalues\tCommit.\tPaym.\tCommit.\tPaym.\nA\t1\t2\t3\t4'), {
+        head: 2,
+        dec: '.',
+      }),
     };
   }, MFF);
   expect(r.head).toBe(2);
@@ -108,7 +113,10 @@ test('en-têtes et rôles : tableau budgétaire (2 lignes d’en-tête, colonne 
   expect(r.pctH1[4]).toBe(25.1);
   expect(r.bad).toBe(0);
   expect(r.heads).toEqual([1, 0, 1, 1]);
-  expect(r.sparse).toBe(1); // « 5 » seul dans la dernière cellule au-dessus d'une ligne complète
+  expect(r.sparse).toBe(1);
+  expect(r.mffGroups).toBeNull(); // 2e ligne d'en-tête = unité : pas de groupes
+  expect(r.grouped.groups).toEqual(['MFF 2021-27', 'MFF 2021-27', 'Proposal', 'Proposal']); // cellule fusionnée d'Excel
+  expect(r.grouped.matrix[0]).toEqual(['values', 'Commit.', 'Paym.', 'Commit.', 'Paym.']); // « 5 » seul dans la dernière cellule au-dessus d'une ligne complète
 });
 
 test('adaptateurs : heatmap (cellules vides), barres et enregistrements sans régression', async ({ page }) => {

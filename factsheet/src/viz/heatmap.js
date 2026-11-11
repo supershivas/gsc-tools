@@ -219,10 +219,22 @@ export const ROW_KINDS = {
   heading: { bold: true, size: 'large', band: true },
   total: { bold: true, band: true },
 };
-/** Mise en forme d'une ligne : préréglage de son type, puis ses propres réglages (`row.fmt` : bold, size, align) */
-export const rowFmt = (r) => {
+/** Hiérarchie des lignes : niveau 0 (donnée principale) à 3 (sous-données), `row.level` (absent = 0) */
+export const MAX_LEVEL = 3;
+export const levelOf = (r) => Math.max(0, Math.min(MAX_LEVEL, Math.round(+(r && r.level) || 0)));
+/** Niveau le plus profond permis pour la ligne i : un de plus que la ligne au-dessus (la 1re ligne reste au niveau 0) */
+export const maxLevelAt = (rows, i) => (i <= 0 ? 0 : Math.min(MAX_LEVEL, levelOf(rows[i - 1]) + 1));
+export function setLevel(r, l) {
+  if (l > 0) r.level = l;
+  else delete r.level;
+}
+/** Retrait d'un niveau (px) ; graisse et taille par niveau, seulement quand le tableau a des sous-données */
+const INDENT = 9;
+const LEVEL_FMT = [{ bold: true }, {}, { bold: false }, { bold: false, size: 'small' }];
+/** Mise en forme d'une ligne : niveau (si le tableau en a), préréglage de son type, puis ses propres réglages (`row.fmt` : bold, size, align) */
+export const rowFmt = (r, levels = false) => {
   const own = (r && r.fmt) || {},
-    out = { ...(ROW_KINDS[r && r.kind] || ROW_KINDS.row) };
+    out = { ...(levels ? LEVEL_FMT[levelOf(r)] : {}), ...(ROW_KINDS[r && r.kind] || ROW_KINDS.row) };
   for (const k of ['bold', 'size', 'align']) if (own[k] !== undefined && own[k] !== '') out[k] = own[k];
   return out;
 };
@@ -260,6 +272,19 @@ export function wrapText(text, weight, family, size, maxW, max = Infinity) {
   const keep = out.slice(0, max);
   keep[max - 1] = ellipsize(out.slice(max - 1).join(' '), weight, family, size, maxW);
   return keep;
+}
+
+/** Groupes de colonnes consécutives de même `group` non vide : [{ name, from, to }] */
+export function groupRuns(series) {
+  const out = [];
+  (series || []).forEach((sr, j) => {
+    const g = String((sr && sr.group) || '').trim(),
+      last = out[out.length - 1];
+    if (!g) return;
+    if (last && last.name === g && last.to === j - 1) last.to = j;
+    else out.push({ name: g, from: j, to: j });
+  });
+  return out;
 }
 
 const roundRect = (x, y, w, h, r) => {
@@ -318,6 +343,29 @@ export default {
     ],
   }),
   heights: ['ratio', 'fixed', 'fill'],
+  editHint: 'Glisser une case pour changer l’ordre des lignes · glisser un nom vers la droite ou la gauche pour changer son niveau',
+  /* glisser un nom horizontalement : un niveau tous les 18 px, jamais plus d'un niveau sous la ligne du dessus */
+  edit: {
+    start(hit, o, meta, api, pt0) {
+      const rows = o.rows || [],
+        r = rows[hit.i];
+      if (hit.kind !== 'level' || !r) return null;
+      const l0 = levelOf(r);
+      let moved = false;
+      return {
+        move(pt) {
+          const dx = pt.x - pt0.x;
+          if (!moved && Math.abs(dx) < 4) return;
+          moved = true;
+          const l = Math.max(0, Math.min(maxLevelAt(rows, hit.i), l0 + Math.round(dx / (INDENT * 2))));
+          if (l !== levelOf(r)) {
+            setLevel(r, l);
+            api.redraw();
+          }
+        },
+      };
+    },
+  },
   fields: [
     {
       k: 'refCol',
@@ -518,6 +566,7 @@ export default {
       blank: true,
       noColor: true,
       rowFmt: true, // colonnes Type de ligne, Gras, Taille (row.kind, row.fmt)
+      levels: true, // niveau des lignes (row.level, boutons de retrait) et groupe des colonnes (series[j].group)
       serLabel: 'Colonne',
       label: 'Données',
     },
@@ -541,7 +590,9 @@ export default {
     const rowNames = o.showRowNames !== false && rows.some((r) => String(r.label || '').trim()),
       colNames = o.showColNames !== false && series.some((sr) => String(sr.name || '').trim());
     /* mise en forme des noms : type de ligne (préréglage) puis réglages de la ligne ; taille et graisse de base dans la carte Textes */
-    const fmts = rows.map(rowFmt),
+    const levels = rows.some((r) => levelOf(r) > 0),
+      indentOf = (r) => (levels ? levelOf(r) * INDENT : 0),
+      fmts = rows.map((r) => rowFmt(r, levels)),
       nameK = SIZE_K[o.nameSize] ?? 1,
       namePx = (f) => capPx * nameK * (SIZE_K[f.size] ?? 1),
       nameWt = (f) => weightOf(f.bold, o.nameBold),
@@ -550,11 +601,14 @@ export default {
     const nameW = rowNames
       ? share
         ? W * share
-        : Math.min(W * 0.35, Math.max(...rows.map((r, i) => mw(String(r.label || ''), nameWt(fmts[i]), SANS, namePx(fmts[i])))) + 9)
+        : Math.min(
+            W * 0.35,
+            Math.max(...rows.map((r, i) => indentOf(r) + mw(String(r.label || ''), nameWt(fmts[i]), SANS, namePx(fmts[i])))) + 9,
+          )
       : 0;
     /* noms des lignes : une ligne réduite (aspect d'origine) ou passage à la ligne (`nameWrap`) */
     const nameLines = rows.map((r, i) =>
-      rowNames && wrapNames ? wrapText(String(r.label || ''), nameWt(fmts[i]), SANS, namePx(fmts[i]), nameW - 9) : null,
+      rowNames && wrapNames ? wrapText(String(r.label || ''), nameWt(fmts[i]), SANS, namePx(fmts[i]), nameW - 9 - indentOf(r)) : null,
     );
     /* en-têtes de colonnes : même principe (`headWrap`, `headBold`, `headSize`) ; un en-tête vide n'ajoute pas de hauteur */
     const headPx = capPx * (SIZE_K[o.headSize] ?? 1),
@@ -562,11 +616,15 @@ export default {
       cw0 = Math.max(4, (W - nameW - gap * (nc - 1)) / nc),
       headLines = colNames && o.headWrap ? series.map((sr) => wrapText(String(sr.name || ''), headWt, SANS, headPx, cw0 - 2, 3)) : null,
       headN = headLines ? Math.max(1, ...headLines.map((l) => l.length)) : 1;
-    const headH = !colNames
+    const namesH = !colNames
       ? 0
       : headN > 1 || headPx > capPx
         ? Math.round(Math.max(capPx * 2, (headN - 1) * headPx * LH + headPx + capPx))
         : Math.round(capPx * 2);
+    /* colonnes groupées (`series[j].group`) : une bande au-dessus des noms, nom du groupe centré sur ses colonnes et filet dessous */
+    const runs = o.showColNames !== false ? groupRuns(series) : [],
+      groupH = runs.length ? Math.round(headPx * LH + 6) : 0,
+      headH = groupH + namesH;
     let H = Math.max(90, heightOf(o, W, env, null));
     const lg = o.legend !== false ? heatLegend(o, loc) : null;
     if (lg && o.legendNote === false) lg.note = '';
@@ -606,6 +664,7 @@ export default {
       series.forEach((sr, j) => {
         const cx = x0 + j * (cw + gap) + cw / 2,
           base = headH - capPx * 0.6;
+        if (!String(sr.name || '').trim()) return;
         if (headLines) {
           const ls = headLines[j];
           ls.forEach((l, k) =>
@@ -622,6 +681,35 @@ export default {
         const f = fitText(String(sr.name || ''), headWt, SANS, headPx, cw - 2, 0.6);
         svg.append(s('text', { x: cx, y: base, 'text-anchor': 'middle', 'font-size': f.size, 'font-weight': headWt }, f.text));
       });
+
+    runs.forEach((g) => {
+      const xa = x0 + g.from * (cw + gap),
+        xb = x0 + g.to * (cw + gap) + cw,
+        f = fitText(g.name, 700, SANS, headPx, xb - xa - 2, 0.6);
+      svg.append(
+        s(
+          'text',
+          {
+            x: (xa + xb) / 2,
+            y: (headPx * LH) / 2 + 0.33 * f.size,
+            'text-anchor': 'middle',
+            'font-size': f.size,
+            'font-weight': 700,
+            class: 'hm-group',
+          },
+          f.text,
+        ),
+        s('line', {
+          x1: xa + 1,
+          x2: xb - 1,
+          y1: groupH - 3,
+          y2: groupH - 3,
+          stroke: 'currentColor',
+          'stroke-width': SW,
+          class: 'hm-group-rule',
+        }),
+      );
+    });
 
     /* lignes de texte d'une case : valeur (chiffre des graphiques), puis écarts plus petits */
     const linesOf = (c) => {
@@ -687,7 +775,8 @@ export default {
         const px = namePx(fm),
           wt = nameWt(fm),
           al = fm.align || o.nameAlign || 'left',
-          pad = fm.band ? 4 : 0,
+          ind = indentOf(r),
+          pad = (fm.band ? 4 : 0) + ind,
           tw = nameW - 9 - pad,
           tx = al === 'center' ? pad + tw / 2 : al === 'right' ? nameW - 9 : pad,
           anchor = al === 'center' ? 'middle' : al === 'right' ? 'end' : null;
@@ -695,7 +784,7 @@ export default {
           let ls = nameLines[i];
           const fit = Math.max(1, Math.floor((ch - 2) / (px * LH)));
           if (ls.length > fit) ls = wrapText(String(r.label || ''), wt, SANS, px, tw, fit);
-          else if (pad) ls = wrapText(String(r.label || ''), wt, SANS, px, tw);
+          else if (fm.band) ls = wrapText(String(r.label || ''), wt, SANS, px, tw);
           const top = y + ch / 2 - (ls.length * px * LH) / 2;
           ls.forEach((l, k) =>
             svg.append(
@@ -764,6 +853,21 @@ export default {
     });
     if (lg) drawLegend(svg, [], H - lgH + VIZ.legendGap, W, null, lg);
     rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'y', 0, ys[i] - gap / 2, W, chs[i] + gap)));
+    /* éditeur : glisser un nom vers la droite ou la gauche change son niveau (au-dessus de la zone de réordonnancement) */
+    if (env.ui && rowNames)
+      rows.forEach((_, i) =>
+        svg.append(
+          s('rect', {
+            x: 0,
+            y: ys[i],
+            width: Math.max(1, nameW - 9),
+            height: Math.max(1, chs[i]),
+            fill: 'rgba(0,0,0,0)',
+            'data-hit': `level:${i}`,
+            style: { cursor: 'ew-resize' },
+          }),
+        ),
+      );
     return { node: svg };
   },
 };
