@@ -465,12 +465,15 @@ export function remapColors(doc, fn, bg = fn, fill = bg) {
   };
   (doc.sections || []).forEach((sec) => {
     sec.bg = bg(sec.bg);
+    if (sec.fg) sec.fg = fn(sec.fg);
     if (sec.strokeColor) sec.strokeColor = fn(sec.strokeColor);
     if (sec.fillColor) sec.fillColor = fill(sec.fillColor);
     (sec.subs || []).forEach((sub) => {
+      if (sub.fg) sub.fg = fn(sub.fg);
       if (sub.strokeColor) sub.strokeColor = fn(sub.strokeColor);
       if (sub.fillColor) sub.fillColor = fill(sub.fillColor);
       (sub.cols || []).forEach((c) => {
+        if (c.fg) c.fg = fn(c.fg);
         if (c.strokeColor) c.strokeColor = fn(c.strokeColor);
         if (c.fillColor) c.fillColor = fill(c.fillColor);
         walk(c.viz);

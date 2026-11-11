@@ -166,11 +166,11 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
           },
         }
       : null,
-    /* heatmap : niveau des lignes (0 = donnée principale … 3), jamais plus d'un niveau sous la ligne du dessus */
+    /* heatmap : niveau des lignes (0 = donnée principale … 3, affiché de 1 à 4), chaque ligne se règle librement */
     levels: f.levels
       ? {
           get: (i) => Math.max(0, Math.min(3, Math.round(+rows[i].level || 0))),
-          max: (i) => (i <= 0 ? 0 : Math.min(3, Math.max(0, Math.round(+rows[i - 1].level || 0)) + 1)),
+          max: () => 3,
           set: (i, l) => {
             if (l > 0) rows[i].level = l;
             else delete rows[i].level;
@@ -749,7 +749,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
         };
         if (c.ml) return; // cellule multiligne : Entrée et flèches restent dans le texte
         if (j === 0 && ad.levels && e.key === 'Tab' && !e.altKey && !e.ctrlKey && !e.metaKey) {
-          /* nom d'une ligne : Tab descend d'un niveau, Maj+Tab remonte (sauf si le niveau ne peut plus changer : le focus avance) */
+          /* nom d'une ligne : Tab descend d'un niveau, Maj+Tab remonte (aux bornes 1 et 4, le focus avance) */
           const l = ad.levels.get(i) + (e.shiftKey ? -1 : 1);
           if (l >= 0 && l <= ad.levels.max(i)) {
             e.preventDefault();
@@ -786,7 +786,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
           {
             type: 'button',
             class: 'mini dg-lvl-btn',
-            title: t('Remonter d’un niveau'),
+            title: t('Remonter d’un niveau (1 à 4)'),
             'aria-label': t('Remonter d’un niveau'),
             onclick: () => setLevel(i, ad.levels.get(i) - 1),
           },
@@ -797,7 +797,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
           {
             type: 'button',
             class: 'mini dg-lvl-btn',
-            title: t('Descendre d’un niveau'),
+            title: t('Descendre d’un niveau (1 à 4)'),
             'aria-label': t('Descendre d’un niveau'),
             onclick: () => setLevel(i, ad.levels.get(i) + 1),
           },
@@ -807,6 +807,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
         const l = ad.levels.get(i);
         inp.style.paddingLeft = 8 + l * 14 + 'px';
         inp.dataset.level = l;
+        inp.title = `${t('Niveau')} ${l + 1}`;
         out.disabled = l <= 0;
         inBtn.disabled = l >= ad.levels.max(i);
       };

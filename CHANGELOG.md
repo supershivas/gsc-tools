@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.105.1 — 2026-11-11
+- Heatmap : chaque ligne se règle librement sur l'un des 4 niveaux (1 à 4), sans dépendre de la ligne du dessus ni de sa position
+- Couleur du texte réglable pour une section, une sous-section ou une colonne (carte « Couleur du texte »)
+
 ## 1.105.0 — 2026-11-11
 - Heatmap : masquer une ligne ou une colonne (bouton œil dans l'onglet Données) ; les données restent et « Tout réafficher » les ramène, aussi depuis la carte Structure
 - Les cases masquées ne comptent plus dans l'échelle de couleur ni dans la légende

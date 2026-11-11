@@ -535,11 +535,11 @@ test('hiérarchie : niveaux des lignes (retrait, graisse), groupes de colonnes, 
     gr.series[1].group = 'Positions';
     gr.series[2].group = 'Positions';
     const groups = draw(gr);
-    // glisser un nom : un niveau tous les 18 px, jamais plus d'un niveau sous la ligne du dessus
+    // glisser un nom : un niveau tous les 18 px, entre 0 et 3, quelles que soient les lignes voisines
     const ed = JSON.parse(JSON.stringify(o));
     const api = { redraw() {} };
     let d = ty.edit.start({ kind: 'level', i: 1 }, ed, null, api, { x: 10, y: 0 });
-    d.move({ x: 70, y: 2 }); // 3 niveaux demandés, 1 permis
+    d.move({ x: 70, y: 2 }); // 3 niveaux demandés, 3 permis (niveau 4) directement sous le niveau 0
     const one = ed.rows[1].level;
     d = ty.edit.start({ kind: 'level', i: 2 }, ed, null, api, { x: 10, y: 0 });
     d.move({ x: 46, y: 0 });
@@ -548,8 +548,17 @@ test('hiérarchie : niveaux des lignes (retrait, graisse), groupes de colonnes, 
     d.move({ x: 20, y: 0 });
     const back = ed.rows[1].level;
     const first = ty.edit.start({ kind: 'level', i: 0 }, ed, null, api, { x: 0, y: 0 });
-    first.move({ x: 60, y: 0 });
-    return { flat, levels, groups, one, two, back, firstLevel: ed.rows[0].level };
+    first.move({ x: 60, y: 0 }); // la 1re ligne n'est plus bloquée
+    const firstLevel = ed.rows[0].level;
+    first.move({ x: 400, y: 0 }); // borné à 3
+    const capped = ed.rows[0].level;
+    // niveau 4 (level 3) juste sous une ligne de niveau 1 (level 0 → 3) : dessin correct
+    const deep = JSON.parse(JSON.stringify(o));
+    deep.rows[1].level = 3;
+    deep.rows[2].level = 1;
+    deep.rows[3].level = 3;
+    const deepDraw = draw(deep);
+    return { flat, levels, groups, one, two, back, firstLevel, capped, deepDraw };
   });
   // sans niveau : aspect inchangé
   expect(r.flat.names.every((n) => n.x === 0 && n.w === '600')).toBe(true);
@@ -564,10 +573,14 @@ test('hiérarchie : niveaux des lignes (retrait, graisse), groupes de colonnes, 
   expect(r.groups.rules).toHaveLength(2);
   expect(r.groups.rules[1][0]).toBeCloseTo(r.groups.cells.length ? r.flat.cells[0].x + r.flat.cells[0].w + 3 + 1 : 0, 0);
   expect(r.groups.cells[0].y).toBeGreaterThan(r.flat.cells[0].y);
-  expect(r.one).toBe(1);
+  expect(r.one).toBe(3); // niveau 4 directement sous le niveau 1
   expect(r.two).toBe(2);
-  expect(r.back).toBeUndefined(); // revenu au niveau 0 (clé retirée)
-  expect(r.firstLevel).toBeUndefined(); // la 1re ligne reste au niveau 0
+  expect(r.back).toBe(1); // 3 → 1 en reculant de 2 niveaux
+  expect(r.firstLevel).toBe(3); // la 1re ligne peut être au niveau 4
+  expect(r.capped).toBe(3);
+  // niveau 4 sous une ligne de niveau 1 : retrait de 27 px, police plus petite que le niveau 3
+  expect(r.deepDraw.names.map((n) => n.x)).toEqual([0, 27, 9, 27]);
+  expect(r.deepDraw.names[1].size).toBeLessThan(r.deepDraw.names[2].size);
 });
 
 test('hiérarchie dans l’éditeur : boutons de retrait, Tab, groupe de colonne, glisser dans l’aperçu', async ({ page }) => {
@@ -594,7 +607,8 @@ test('hiérarchie dans l’éditeur : boutons de retrait, Tab, groupe de colonne
   // ligne 2 : bouton « descendre d'un niveau » ; ligne 3 : Tab dans le nom
   await grid.locator('tbody tr').nth(1).locator('button[aria-label="Move down a level"]').click();
   await expect(grid.locator('input[data-r="1"][data-c="0"]')).toHaveAttribute('data-level', '1');
-  await expect(grid.locator('tbody tr').nth(0).locator('button[aria-label="Move down a level"]')).toBeDisabled(); // 1re ligne
+  await expect(grid.locator('tbody tr').nth(0).locator('button[aria-label="Move down a level"]')).toBeEnabled(); // 1re ligne libre
+  await expect(grid.locator('input[data-r="1"][data-c="0"]')).toHaveAttribute('title', 'Level 2');
   await grid.locator('input[data-r="2"][data-c="0"]').focus();
   await page.keyboard.press('Tab');
   await page.keyboard.press('Tab');
@@ -602,6 +616,37 @@ test('hiérarchie dans l’éditeur : boutons de retrait, Tab, groupe de colonne
   await expect(grid.locator('input[data-r="2"][data-c="0"]')).toBeFocused();
   await page.keyboard.press('Shift+Tab');
   await expect(grid.locator('input[data-r="2"][data-c="0"]')).toHaveAttribute('data-level', '1');
+  // niveau 4 directement sous un niveau 2 (boutons), Tab bute à 3 et le focus avance
+  const r2 = grid.locator('input[data-r="2"][data-c="0"]');
+  const down2 = grid.locator('tbody tr').nth(2).locator('button[aria-label="Move down a level"]');
+  await down2.click();
+  await down2.click();
+  await expect(r2).toHaveAttribute('data-level', '3');
+  await expect(down2).toBeDisabled();
+  await r2.focus();
+  await page.keyboard.press('Tab');
+  await expect(r2).toHaveAttribute('data-level', '3');
+  await expect(r2).not.toBeFocused(); // le focus a avancé
+  // 1re ligne au niveau 4, Maj+Tab bute à 0
+  const r0 = grid.locator('input[data-r="0"][data-c="0"]');
+  const down0 = grid.locator('tbody tr').nth(0).locator('button[aria-label="Move down a level"]');
+  await down0.click();
+  await down0.click();
+  await down0.click();
+  await expect(r0).toHaveAttribute('data-level', '3');
+  await grid.locator('tbody tr').nth(0).locator('button[aria-label="Move up a level"]').click();
+  await grid.locator('tbody tr').nth(0).locator('button[aria-label="Move up a level"]').click();
+  await grid.locator('tbody tr').nth(0).locator('button[aria-label="Move up a level"]').click();
+  await expect(r0).toHaveAttribute('data-level', '0');
+  await r0.focus();
+  await page.keyboard.press('Shift+Tab');
+  await expect(r0).toHaveAttribute('data-level', '0');
+  await expect(r0).not.toBeFocused();
+  // retour à l'état attendu par la suite : ligne 3 au niveau 2 → 1
+  await r2.focus();
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Shift+Tab');
+  await expect(r2).toHaveAttribute('data-level', '1');
   // groupe des deux colonnes du milieu
   await grid.locator('thead input.dg-group').nth(1).fill('Positions');
   await grid.locator('thead input.dg-group').nth(2).fill('Positions');
@@ -614,7 +659,7 @@ test('hiérarchie dans l’éditeur : boutons de retrait, Tab, groupe de colonne
   await page.mouse.move(b.x + 10, b.y + b.height / 2);
   await page.mouse.down();
   await page.mouse.move(b.x + 40, b.y + b.height / 2, { steps: 5 });
-  await page.mouse.move(b.x + 80, b.y + b.height / 2, { steps: 5 });
+  await page.mouse.move(b.x + 200, b.y + b.height / 2, { steps: 5 }); // bien au-delà de 3 niveaux : borné à 3
   await page.mouse.up();
   await page.screenshot({ path: test.info().outputPath('heatmap-levels.png') });
   await page.locator('.ve-bar button.primary').click();
@@ -624,7 +669,7 @@ test('hiérarchie dans l’éditeur : boutons de retrait, Tab, groupe de colonne
     const doc = JSON.parse(localStorage.getItem(key));
     return doc.sections.flatMap((s) => s.subs.flatMap((b) => b.cols)).find((c) => c.viz && c.viz.kind === 'heatmap').viz.opts;
   }, DOC_KEY);
-  expect(opts.rows.map((x) => x.level || 0)).toEqual([0, 1, 1, 2]);
+  expect(opts.rows.map((x) => x.level || 0)).toEqual([0, 1, 1, 3]);
   expect(opts.series.map((x) => x.group || '')).toEqual(['', 'Positions', 'Positions', '']);
   expect(errors).toEqual([]);
 });

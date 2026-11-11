@@ -1,8 +1,28 @@
 /* Propriétés d'une section : titre, filets, page, fond et contour. */
 import { t } from '../i18n.js';
+import { h } from '../render.js';
 import { toneKeys } from '../tokens.js';
 import { defaultRuleColor } from '../render.js';
 import { stepSection } from '../state.js';
+
+/** Carte « Couleur du texte » commune aux sections, sous-sections et colonnes : `fg`, « Aucun » = celle du niveau au-dessus */
+export function textColorCard(k, obj) {
+  const { doc, card, swatches, sumColor } = k;
+  return card(
+    'text-color',
+    'palette',
+    t('Couleur du texte'),
+    [
+      swatches('Couleur du texte', obj, 'fg', toneKeys(doc), true),
+      h('p', {
+        class: 'hint',
+        textContent: t('Aucun : le texte garde la couleur du niveau au-dessus. Une couleur choisie dans le texte l’emporte.'),
+      }),
+    ],
+    null,
+    sumColor(obj.fg),
+  );
+}
 
 export function sectionPanel(k, { si, sec }) {
   const { doc, ctx, root, title, card, text, pair, swatches, switchRow, boxControls, sumColor, sumBox, struct } = k;
@@ -45,5 +65,6 @@ export function sectionPanel(k, { si, sec }) {
       null,
       [sumColor(sec.bg), sumBox(sec)].filter((x) => x !== t('Aucun')).join(' · ') || t('Aucun'),
     ),
+    textColorCard(k, sec),
   );
 }

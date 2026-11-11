@@ -77,7 +77,11 @@ export function docUi() {
     return s;
   };
   sec.subs = [
-    sub('1-1-1', [{ ...newCol('image'), src: 'assets/header/default/factsheet_illu_lantern_default.svg' }, newCol('text'), newCol('figure')]),
+    sub('1-1-1', [
+      { ...newCol('image'), src: 'assets/header/default/factsheet_illu_lantern_default.svg' },
+      newCol('text'),
+      newCol('figure'),
+    ]),
     sub('1-1', [newCol('card'), { ...newCol('viz'), viz: newViz('donut') }]),
   ];
   d.sections = [sec, ...d.sections.filter((s) => s.page === 'verso').slice(0, 1)];

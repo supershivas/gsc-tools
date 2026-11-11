@@ -5,6 +5,7 @@ import { GRID, customLayoutOf } from '../tokens.js';
 import { layoutSelect } from '../layoutselect.js';
 import { newCol, newSub, moveSub, refreshAutoCards, isFreeCol, equalLayout, uid } from '../state.js';
 import { chooseBox } from '../dialogs.js';
+import { textColorCard } from './section.js';
 
 export function subPanel(k, { si, bi, sec, sub }) {
   const { doc, ctx, root, title, card, field, text, switchRow, boxControls, sumBox, struct } = k;
@@ -108,5 +109,6 @@ export function subPanel(k, { si, bi, sec, sub }) {
       field('Déplacer vers la section', mv),
     ]),
     card('sub-box', 'border-all', t('Fond et contour'), boxControls(sub), null, sumBox(sub)),
+    textColorCard(k, sub),
   );
 }

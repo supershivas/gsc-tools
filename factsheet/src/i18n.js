@@ -475,9 +475,14 @@ const EN = {
     'Column group: neighbouring columns with the same group share a common header',
   'Remonter d’un niveau': 'Move up a level',
   'Descendre d’un niveau': 'Move down a level',
+  'Remonter d’un niveau (1 à 4)': 'Move up a level (1 to 4)',
+  'Descendre d’un niveau (1 à 4)': 'Move down a level (1 to 4)',
+  Niveau: 'Level',
+  'Aucun : le texte garde la couleur du niveau au-dessus. Une couleur choisie dans le texte l’emporte.':
+    'None: the text keeps the colour of the level above. A colour chosen within the text takes precedence.',
   'Groupes de colonnes : {g}.': 'Column groups: {g}.',
-  'Glisser une case pour changer l’ordre des lignes · glisser un nom vers la droite ou la gauche pour changer son niveau':
-    'Drag a cell to reorder the rows · drag a name right or left to change its level',
+  'Glisser une case pour changer l’ordre des lignes · glisser un nom vers la droite ou la gauche pour changer son niveau (1 à 4)':
+    'Drag a cell to reorder the rows · drag a name right or left to change its level (1 to 4)',
   /* heatmap : masquer des lignes ou des colonnes */
   Masquer: 'Hide',
   Réafficher: 'Show',

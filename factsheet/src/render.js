@@ -262,6 +262,7 @@ function renderImage(col, w) {
 /** w = largeur de la colonne (avant son propre retrait) */
 function renderCol(col, w, path, env) {
   const wrap = h('div', { class: `col col-${col.type}`, dataset: { sel: path } });
+  applyFg(wrap, col);
   const al = { top: 'start', center: 'center', bottom: 'end' }[col.valign] || 'start';
   if (isBox(col) && col.type !== 'card') {
     strokeStyle(wrap)(col);
@@ -355,6 +356,7 @@ function renderSub(sub, si, bi, env, W) {
   const el = h('div', { class: 'sub', dataset: { sel: `sub:${si}:${bi}` } });
   if (bi > 0) el.append(h('div', { class: 'sub-rule' })); // filet entre sous-sections (vrai élément : l'export PDF le lit)
   strokeStyle(el)(sub);
+  applyFg(el, sub);
   if (isBox(sub)) W = insetW(W, sub);
   if (sub.title && sub.title.trim() && sub.showTitle !== false)
     el.append(h('h3', { class: 'sub-title', innerHTML: inline(sub.title, env) }));
@@ -402,6 +404,12 @@ export function columnWidth(doc, si, bi, ci) {
   return isBox(col) && col.type !== 'card' ? insetW(w, col) : w;
 }
 
+/** Couleur du texte d'une section, sous-section ou colonne (`fg`, absent ou `none` = celle du niveau au-dessus) : `color` et `--c-text`, pour que cartes, contours et dataviz la suivent */
+function applyFg(el, o) {
+  if (!o || !o.fg || o.fg === 'none') return;
+  el.style.color = `var(--c-${o.fg})`;
+  el.style.setProperty('--c-text', `var(--c-${o.fg})`);
+}
 const isBand = (s) => !!(s.bg && s.bg !== 'none');
 /** couleur du filet entre sous-sections par défaut : blanc sur un fond de section, bleu léger (teinte 20 %) sur fond blanc */
 export const defaultRuleColor = (s) => (!isBand(s) || s.bg === 'white' ? 'tint-blue' : 'white');
@@ -425,6 +433,7 @@ function renderSection(sec, si, env, pos) {
     .join(' ');
   const el = h('section', { class: cls, style, dataset: { sel: `sec:${si}` } });
   el.style.setProperty('--rule', `var(--c-${sec.ruleColor || defaultRuleColor(sec)})`);
+  applyFg(el, sec);
   /* filet entre sections (vrai élément : l'export PDF le lit) : au milieu de l'écart entre deux sections sur fond blanc, ou à la jonction de deux bandes de couleur ;
      entre un fond blanc et une bande, le changement de fond sert déjà de séparation */
   if (!pos.first && sec.secRule !== false && band === pos.prevBand)

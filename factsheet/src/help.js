@@ -34,6 +34,8 @@ export const HELP = {
   'Échanger le contenu avec…': 'Échange de place le contenu de cette colonne avec celui d’une autre (alignements inclus). Annulable.',
   Disposition: 'Alignement vertical du contenu et du texte dans la colonne.',
   'Fond et contour': 'Fond (couleur ou teinte) et contour de la colonne, indépendants l’un de l’autre.',
+  'Couleur du texte':
+    'Couleur de tout le texte de cet élément (titres, textes, dataviz). Une couleur choisie dans le texte lui-même l’emporte.',
   /* dataviz */
   'Type de dataviz': 'Change le type du graphique en gardant le titre et, quand la forme est la même, les données.',
   Hauteur:

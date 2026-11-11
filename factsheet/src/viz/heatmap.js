@@ -223,11 +223,11 @@ export const ROW_KINDS = {
   heading: { bold: true, size: 'large', band: true },
   total: { bold: true, band: true },
 };
-/** Hiérarchie des lignes : niveau 0 (donnée principale) à 3 (sous-données), `row.level` (absent = 0) */
+/** Hiérarchie des lignes : niveau 0 (donnée principale) à 3 (sous-données), `row.level` (absent = 0) ; affiché de 1 à 4 */
 export const MAX_LEVEL = 3;
 export const levelOf = (r) => Math.max(0, Math.min(MAX_LEVEL, Math.round(+(r && r.level) || 0)));
-/** Niveau le plus profond permis pour la ligne i : un de plus que la ligne au-dessus (la 1re ligne reste au niveau 0) */
-export const maxLevelAt = (rows, i) => (i <= 0 ? 0 : Math.min(MAX_LEVEL, levelOf(rows[i - 1]) + 1));
+/** Niveau le plus profond permis pour la ligne i : toujours le dernier (chaque ligne se règle librement, quelles que soient ses voisines) */
+export const maxLevelAt = () => MAX_LEVEL;
 export function setLevel(r, l) {
   if (l > 0) r.level = l;
   else delete r.level;
@@ -347,8 +347,8 @@ export default {
     ],
   }),
   heights: ['ratio', 'fixed', 'fill'],
-  editHint: 'Glisser une case pour changer l’ordre des lignes · glisser un nom vers la droite ou la gauche pour changer son niveau',
-  /* glisser un nom horizontalement : un niveau tous les 18 px, jamais plus d'un niveau sous la ligne du dessus */
+  editHint: 'Glisser une case pour changer l’ordre des lignes · glisser un nom vers la droite ou la gauche pour changer son niveau (1 à 4)',
+  /* glisser un nom horizontalement : un niveau tous les 18 px, entre 0 et 3 */
   edit: {
     start(hit, o, meta, api, pt0) {
       const rows = o.rows || [],
@@ -361,7 +361,7 @@ export default {
           const dx = pt.x - pt0.x;
           if (!moved && Math.abs(dx) < 4) return;
           moved = true;
-          const l = Math.max(0, Math.min(maxLevelAt(rows, hit.i), l0 + Math.round(dx / (INDENT * 2))));
+          const l = Math.max(0, Math.min(MAX_LEVEL, l0 + Math.round(dx / (INDENT * 2))));
           if (l !== levelOf(r)) {
             setLevel(r, l);
             api.redraw();

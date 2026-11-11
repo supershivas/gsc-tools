@@ -14,6 +14,7 @@ import { cardEditor } from './col-card.js';
 import { figureEditor } from './col-figure.js';
 import { vizEditor } from './col-viz.js';
 import { freeTexts } from './col-free.js';
+import { textColorCard } from './section.js';
 
 const ICONS = { text: 'text-size', image: 'photo', card: 'layout-cards', figure: 'number', viz: 'chart-bar' };
 const HMODE = { auto: 'Auto', ratio: 'Proportion', fixed: 'Fixe', fill: 'Remplir', match: 'Voisine' };
@@ -87,8 +88,9 @@ export function columnPanel(k, { si, bi, ci, sec, sub, col }) {
   /* Changer de type garde l'alignement, le cadre et le fond ; le texte est conservé si on revient au texte */
   const changeType = (v) => {
     const keep = col.text,
-      { valign, align, stroke, strokeColor, fillColor } = col;
+      { valign, align, stroke, strokeColor, fillColor, fg } = col;
     Object.assign(col, newCol(v), { valign, align, stroke, strokeColor, fillColor });
+    if (fg) col.fg = fg;
     if (v === 'text' && keep) col.text = keep;
     if (v === 'card') {
       col.card = newCard(columnWidth(doc, si, bi, ci));
@@ -212,6 +214,7 @@ export function columnPanel(k, { si, bi, ci, sec, sub, col }) {
       t({ top: 'Haut', center: 'Centre', bottom: 'Bas' }[col.valign || 'top']),
     ),
     col.type !== 'card' ? card('col-box', 'border-all', t('Fond et contour'), boxControls(col), null, sumBox(col)) : null,
+    textColorCard(k, col),
     h('div', { class: 'pr-adv', textContent: 'Avancé' }),
     card('col-free', 'text-size', t('Textes libres'), freeTexts(k, col), null, String((col.texts || []).length || t('Aucun'))),
     col.type === 'text' || col.type === 'card'
