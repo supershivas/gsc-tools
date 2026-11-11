@@ -12,6 +12,7 @@ Après modification de `src/` : `npm install` (une fois) puis `npm run build` po
 - `src/render.js` — JSON → pages A4 HTML + mesure de remplissage (jauges, avertissements de débordement).
 - `src/editor.js` — panneau d'édition (contenu, couleurs, images ; jamais tailles/espacements/layout).
 - `src/props.js` + `src/props/` — panneau de propriétés : `props.js` aiguille vers un module par sorte d’élément (`document`, `header`, `section`, `subsection`, `column`, et pour les colonnes `col-text`, `col-image`, `col-figure`, `col-card`, `col-viz`, `col-free`) ; les briques communes (champs, couleurs, interrupteurs, cartes repliables, tête collante) sont dans `props/kit.js`.
+- `src/editor/workspace.js` + `src/wsstore.js` — onglets (plusieurs documents ouverts), brouillons IndexedDB, fichiers récents (voir `docs/architecture.md`, « Espace de travail »).
 - `css/doc.css` — styles du document, uniquement via variables issues des tokens.
 
 ## Format du texte

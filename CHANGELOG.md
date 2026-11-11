@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.101.0 — 2026-11-11
+- Plusieurs factsheets ouvertes à la fois, chacune dans un onglet (Alt+N : nouvel onglet, Alt+W : fermer) ; les onglets sont retrouvés à la réouverture
+- Chaque modification est gardée comme brouillon dans le navigateur ; un point signale ce qui a changé depuis le dernier « Enregistrer (.json) »
+- Fichier › Ouvrir récent : les 10 derniers fichiers ouverts ou enregistrés (copies locales)
+
 ## 1.100.0 — 2026-11-11
 - Cadres (sections, sous-sections, colonnes) : épaisseur du contour (0,5 / 1 / 1,5 pt) et coins (Arrondis / Droits / Très arrondis), dans « Fond et contour » ; la largeur utile des contenus suit le trait
 - Chiffre clé : hauteur (Fine / Normale / Épaisse) et coins de la barre de progression, trait de la pastille d'icône ; carte : coins de l'image
