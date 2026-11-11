@@ -87,7 +87,11 @@ test.describe('sidebar de l’éditeur de dataviz', () => {
     await page.keyboard.press('Escape'); // referme la modale seulement
     await expect(page.locator('dialog[open]')).toHaveCount(0);
     await expect(page.locator('.ve-bar')).toBeVisible();
-    await page.keyboard.press('Escape');
+    /* l'éditeur ne réécoute Échap qu'après l'événement `close` de la modale (tâche suivante) : un Échap trop rapide est ignoré, on réessaie */
+    await expect(async () => {
+      await page.keyboard.press('Escape');
+      await expect(page.locator('dialog[open]')).toBeVisible({ timeout: 500 });
+    }).toPass();
     await page.locator('dialog[open] button.primary').click();
     await expect(page.locator('.ve-bar')).toHaveCount(0);
   });

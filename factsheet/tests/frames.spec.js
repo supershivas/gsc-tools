@@ -17,11 +17,13 @@ test('cadres : épaisseur et coins réglables dans le panneau, appliqués à la 
   await expect(th).toBeVisible();
   await th.locator('button', { hasText: '1,5 pt' }).click();
   await page.locator('.panel .f', { hasText: 'Frame corners' }).locator('button', { hasText: 'Square' }).click();
-  const box = await page
-    .locator('.sec-box')
-    .first()
-    .evaluate((n) => [n.style.getPropertyValue('--bw'), n.style.getPropertyValue('--rad')]);
-  expect(box[1]).toBe('0px');
-  expect(parseFloat(box[0])).toBeCloseTo(2, 1);
+  // l'aperçu se redessine à l'image suivante (requestAnimationFrame) : on attend le nouveau rendu
+  const box = () =>
+    page
+      .locator('.sec-box')
+      .first()
+      .evaluate((n) => [n.style.getPropertyValue('--bw'), n.style.getPropertyValue('--rad')]);
+  await expect.poll(async () => (await box())[1]).toBe('0px');
+  expect(parseFloat((await box())[0])).toBeCloseTo(2, 1);
   expect(errors).toEqual([]);
 });
