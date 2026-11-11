@@ -17,8 +17,13 @@ import {
   gridN,
   gridLine,
   scaleTop,
+  refVal,
+  refTxt,
+  refRoom,
+  refH,
+  refV,
 } from './util.js';
-import { axesFields, axisTitleFields } from './axes.js';
+import { axesFields, axisTitleFields, refFieldsXY } from './axes.js';
 import { t } from '../i18n.js';
 
 /** Aspect d'origine de la carte « Axes et grille » (nuage d'avant la carte : lignes horizontales en pointillé, valeurs et axes affichés) */
@@ -42,6 +47,12 @@ export default {
     ...ORIGIN,
     scaleMax: 0,
     gridCount: '0',
+    refLineX: false,
+    refX: 0,
+    refTextX: '',
+    refLineY: false,
+    refY: 0,
+    refTextY: '',
     rows: [
       ['France', 'Europe', 38, 82.5, 67],
       ['Germany', 'Europe', 44, 81.1, 83],
@@ -64,6 +75,7 @@ export default {
     },
     ...axesFields(ORIGIN, { sides: true }),
     ...axisTitleFields(),
+    ...refFieldsXY(),
     { k: 'zeroX', g: 'axes', t: 'bool', label: 'Axe horizontal démarrant à zéro' },
     { k: 'zeroY', g: 'axes', t: 'bool', label: 'Axe vertical démarrant à zéro' },
     { k: 'maxR', g: 'dims', t: 'number', label: 'Rayon maximal des bulles (px)', min: 3, max: 40 },
@@ -121,6 +133,12 @@ export default {
       rOf = (p) => (hasSize ? Math.max(3, Math.sqrt(p.size / maxSize) * (+o.maxR || 14)) : VIZ.pointR * 1.4);
     const xs = pts.map((p) => p.x),
       ys = pts.map((p) => p.y);
+    const refX = refVal(o, 'refLineX', 'refX'),
+      refY = refVal(o, 'refLineY', 'refY'),
+      refTextX = refX != null ? refTxt(o, 'refLineX', 'refTextX') : '',
+      refTextY = refY != null ? refTxt(o, 'refLineY', 'refTextY') : '';
+    if (refX != null) xs.push(refX); // l'échelle s'étend pour inclure les repères
+    if (refY != null) ys.push(refY);
     let xl = Math.min(...xs),
       xh = Math.max(...xs),
       yl = Math.min(...ys),
@@ -147,9 +165,9 @@ export default {
     const valsH = axV ? capPx * 1.4 : 0; // ligne des valeurs sous l'axe horizontal
     const ml = axV ? Math.max(...Y.out.map((v) => mw(f(v, Y), 400, SANS, capPx))) + 8 : 6,
       mb = valsH + (o.xTitle ? capPx * 1.5 : 0) + 6,
-      mt = o.yTitle ? capPx * 1.7 : 6;
+      mt = (o.yTitle ? capPx * 1.7 : 6) + (refTextX ? capPx * 1.4 : 0); // le texte du repère vertical se pose au-dessus du cadre, sous le titre de l'axe
     const x0 = ml,
-      x1 = W - 6,
+      x1 = W - 6 - refRoom(refTextY, capPx, W), // le texte du repère horizontal est posé après le bout de la ligne
       y1 = H - legH - mb,
       y0 = mt;
     const sx = (v) => x0 + ((v - X.lo) / (X.hi - X.lo)) * (x1 - x0),
@@ -188,6 +206,8 @@ export default {
           fitText(o.xTitle, 700, SANS, capPx, W - ml, 0.7).text,
         ),
       );
+    if (refX != null) refV(gridG, sx(refX), y0, y1, refTextX, capPx, W); // par-dessus la grille, sous les points
+    if (refY != null) refH(gridG, sy(refY), x0, x1, refTextY, capPx, W - 6 - x1);
     svg.append(gridG);
     const dots = s('g'),
       labs = s('g');

@@ -21,8 +21,12 @@ import {
   gridN,
   gridLine,
   scaleTop,
+  refVal,
+  refTxt,
+  refRoom,
+  refH,
 } from './util.js';
-import { axesFields, axisTitleFields } from './axes.js';
+import { axesFields, axisTitleFields, refFields } from './axes.js';
 import { t } from '../i18n.js';
 
 /** Valeurs d'origine des traits et des points (aspect d'avant les réglages : trait 0,5 pt, un point rond par valeur, segments droits) */
@@ -103,6 +107,9 @@ export default {
     baseline: true,
     scaleMax: 0,
     gridCount: '0',
+    refLine: false,
+    refValue: 0,
+    refText: '',
     series: [
       { name: `${t('Série')} 1`, color: 'blue' },
       { name: `${t('Série')} 2`, color: 'yellow' },
@@ -125,6 +132,7 @@ export default {
     },
     ...axesFields(ORIGIN),
     ...axisTitleFields(),
+    ...refFields(),
     {
       k: 'curve',
       g: 'struct',
@@ -211,8 +219,13 @@ export default {
     const baseY = H - (legend ? VIZ.legendGap + VIZ.legendH : 0) - VIZ.catH - xT,
       top = (o.showValues ? VIZ.plotTop : 0) + R + yT,
       plotH = baseY - top - R;
+    const ref = refVal(o),
+      refText = refTxt(o),
+      refW = ref != null ? refRoom(refText, capPx, W) : 0,
+      PW = W - refW; // largeur du graphique : le texte du repère est posé après
     const all = rows.flatMap((r) => series.map((_, j) => numVal(r, j)));
-    let lo = o.zero === false ? Math.min(...all) : 0,
+    if (ref != null) all.push(ref); // l'échelle s'étend pour inclure le repère
+    let lo = o.zero === false ? Math.min(...all) : Math.min(0, ref ?? 0),
       hi = Math.max(...all, lo + 1e-9);
     if (o.zero === false) {
       const pad = (hi - lo) * 0.1 || 1;
@@ -232,27 +245,28 @@ export default {
     if (atEnd && series.length) {
       const wide = Math.max(...series.map((sr) => mw(sr.name || '', 400, SANS, capPx))),
         k = 1 - 1 / (2 * n);
-      endR = Math.min(0.4 * (W - px0), Math.max(0, (wide + R + 6 - (W - px0) / (2 * n)) / k));
+      endR = Math.min(0.4 * (PW - px0), Math.max(0, (wide + R + 6 - (PW - px0) / (2 * n)) / k));
     }
-    const slot = (W - px0 - endR) / n;
+    const slot = (PW - px0 - endR) / n;
     const xOf = (i) => px0 + slot * (i + 0.5),
       yOf = (v) => baseY - R - ((v - lo) / (hi - lo)) * plotH;
     const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });
     if (tk)
       tk.out.forEach((v) => {
         const y = yOf(v);
-        if (grid && !(base && v <= lo)) svg.append(gridLine(o, px0, y, W, y)); // la ligne de base remplace celle du bas de l'échelle
+        if (grid && !(base && v <= lo)) svg.append(gridLine(o, px0, y, PW, y)); // la ligne de base remplace celle du bas de l'échelle
         if (axV) svg.append(s('text', { x: px0 - 6, y: y + 0.33 * capPx, 'text-anchor': 'end', 'font-size': capPx }, tickTxt(v)));
       });
-    if (base) svg.append(s('line', { x1: px0, y1: baseY, x2: W, y2: baseY, stroke: 'currentColor', 'stroke-width': SW }));
+    if (base) svg.append(s('line', { x1: px0, y1: baseY, x2: PW, y2: baseY, stroke: 'currentColor', 'stroke-width': SW }));
+    if (ref != null) refH(svg, yOf(ref), px0, PW, refText, capPx, refW); // par-dessus la grille, sous les courbes et les points
     if (o.yTitle)
       svg.append(s('text', { x: 0, y: capPx, 'font-size': capPx, 'font-weight': 700 }, fitText(o.yTitle, 700, SANS, capPx, W, 0.7).text));
     if (o.xTitle)
       svg.append(
         s(
           'text',
-          { x: (px0 + W) / 2, y: baseY + VIZ.catH + capPx * 1.2, 'text-anchor': 'middle', 'font-size': capPx, 'font-weight': 700 },
-          fitText(o.xTitle, 700, SANS, capPx, W - px0, 0.7).text,
+          { x: (px0 + PW) / 2, y: baseY + VIZ.catH + capPx * 1.2, 'text-anchor': 'middle', 'font-size': capPx, 'font-weight': 700 },
+          fitText(o.xTitle, 700, SANS, capPx, PW - px0, 0.7).text,
         ),
       );
     const paths = series.map((_, j) =>
@@ -341,7 +355,7 @@ export default {
       /* noms après le dernier point, écartés d'une ligne s'ils se chevauchent (de haut en bas, puis remontés s'ils sortent du graphique) */
       const gap = capPx * 1.15,
         x = xOf(rows.length - 1) + R + 4,
-        room = Math.max(10, W - x),
+        room = Math.max(10, PW - x),
         last = rows[rows.length - 1] || {};
       const lab = series.map((sr, j) => ({ sr, y: yOf(numVal(last, j)) })).sort((a, b) => a.y - b.y);
       lab.forEach((l, i) => {

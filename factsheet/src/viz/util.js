@@ -550,6 +550,56 @@ export const gridOn = (o) => o.grid === true || (typeof o.grid === 'string' && o
 export const gridN = (o, auto) => +o.gridCount || auto;
 /** Maximum de l'échelle : `scaleMax` s'il est posé (jamais sous le maximum des données, pour ne rien couper), sinon celui des données */
 export const scaleTop = (o, dataMax) => (+o.scaleMax > 0 ? Math.max(+o.scaleMax, dataMax) : dataMax);
+/* ---------- Repère (ligne de référence : objectif, moyenne…) ---------- */
+/** Valeur d'un repère (interrupteur + nombre) : `null` si éteint ou si le nombre n'est pas valide */
+export const refVal = (o, on = 'refLine', v = 'refValue') => {
+  const x = parseFloat(o[v]);
+  return o[on] && isFinite(x) ? x : null;
+};
+/** Texte du repère (une ligne, sans mise en forme) ; vide si le repère est éteint */
+export const refTxt = (o, on = 'refLine', tx = 'refText') =>
+  o[on]
+    ? String(o[tx] || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+    : '';
+/** Largeur réservée à droite pour le texte d'un repère horizontal (le texte est posé après le bout de la ligne : il ne touche ni barres ni valeurs) */
+export const refRoom = (text, capPx, W) => (text ? Math.ceil(Math.min(W * 0.3, mw(text, 400, SANS, capPx)) + 8) : 0);
+export const REF_DASH = '5 3';
+const refLook = { stroke: 'currentColor', 'stroke-width': SW * 2, 'stroke-dasharray': REF_DASH, class: 'viz-ref' };
+/** Repère horizontal (tirets, encre du document) de x1 à x2 ; le texte suit le bout de la ligne, centré sur elle */
+export function refH(svg, y, x1, x2, text, capPx, room) {
+  svg.append(s('line', { x1, y1: y, x2, y2: y, ...refLook }));
+  if (text && room > 8)
+    svg.append(
+      s(
+        'text',
+        { x: x2 + 5, y: y + 0.33 * capPx, 'font-size': capPx, class: 'viz-ref-t' },
+        fitText(text, 400, SANS, capPx, room - 6, 0.7).text,
+      ),
+    );
+}
+/** Repère vertical de y1 à y2 ; le texte est posé juste au-dessus de la ligne, centré (rabattu pour rester dans [0, W]) */
+export function refV(svg, x, y1, y2, text, capPx, W) {
+  svg.append(s('line', { x1: x, y1, x2: x, y2, ...refLook }));
+  if (!text) return;
+  const f = fitText(text, 400, SANS, capPx, W * 0.5, 0.7),
+    w = mw(f.text, 400, SANS, f.size),
+    anchor = x + w / 2 > W ? 'end' : x - w / 2 < 0 ? 'start' : 'middle';
+  svg.append(
+    s(
+      'text',
+      {
+        x: anchor === 'end' ? W : anchor === 'start' ? 0 : x,
+        y: Math.min(y1, y2) - 4,
+        'text-anchor': anchor,
+        'font-size': f.size,
+        class: 'viz-ref-t',
+      },
+      f.text,
+    ),
+  );
+}
 /** Intensité de la grille : opacité de l'encre du texte (la couleur reste celle du thème, passée par makeInk à l'export) */
 export const GRID_TONE = { light: 0.3, normal: 0.55, strong: 1 };
 export const GRID_DASH = { solid: null, dashed: '4 3', dotted: '1 3' };

@@ -20,9 +20,12 @@ import {
   gridN,
   gridLine,
   scaleTop,
+  refVal,
+  refTxt,
+  refV,
 } from './util.js';
 import { iconNode, iconImportPanel } from './picto.js';
-import { axesFields } from './axes.js';
+import { axesFields, refFields } from './axes.js';
 import { t } from '../i18n.js';
 
 /** Aspect d'origine de la carte « Axes et grille » (barres horizontales d'avant la carte : ligne de base à gauche, sans grille) */
@@ -50,6 +53,9 @@ export default {
     baseline: true,
     scaleMax: 0,
     gridCount: '0',
+    refLine: false,
+    refValue: 0,
+    refText: '',
     series: [{ name: t('Valeur'), color: 'blue' }],
     rows: [
       { label: t('Premier critère'), v: [72] },
@@ -100,6 +106,7 @@ export default {
         why: 'Désactivez « Libellés dans les barres » pour afficher la ligne de base.',
       },
     }),
+    ...refFields(),
     { k: 'segments', g: 'axes', t: 'number', label: 'Graduations dans les barres', min: 0, max: 20, def: 0 },
     { k: 'legend', g: 'labels', t: 'bool', label: 'Afficher la légende' },
     {
@@ -167,6 +174,11 @@ export default {
     rows.forEach((r) => {
       max = Math.max(max, stacked ? total(r) : Math.max(0, ...series.map((_, j) => numVal(r, j))));
     });
+    const ref = refVal(o),
+      refOk = ref != null && ref >= 0, // pas de valeur négative sur des barres
+      refText = refOk ? refTxt(o) : '',
+      refTop = refText ? Math.round(capPx * 1.5) : 0; // bande en haut pour le texte, sans toucher aux barres ni à leurs valeurs
+    if (refOk) max = Math.max(max, ref); // l'échelle s'étend pour inclure le repère
     if (!max) max = 1;
     max = scaleTop(o, max);
     /* graduations : grille (verticale) et valeurs de l'axe (sous les barres, réserve comptée dans la hauteur) */
@@ -186,14 +198,21 @@ export default {
     /* hauteur fixe ou « remplir » : les barres s'épaississent (ou s'amincissent) pour occuper la hauteur demandée ; automatique = hauteur naturelle */
     let bh = natBh;
     if (o.hmode === 'fixed' || o.hmode === 'fill' || o.hmode === 'match') {
-      const target = heightOf(o, W, env, natBody + axH + legBlock),
+      const target = heightOf(o, W, env, natBody + axH + legBlock + refTop) - refTop,
         f = Math.max(0.5, Math.min(4, (target - legBlock - axH - gaps) / Math.max(1, natBody - gaps)));
       bh = Math.max(3, natBh * f);
     }
     const rh = stacked ? bh : k * bh + (k - 1) * sGap;
     const bodyH = rows.length * rh + gaps;
     const H = bodyH + axH + legBlock;
-    const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });
+    const root = s('svg', {
+      width: W,
+      height: H + refTop,
+      viewBox: `0 0 ${W} ${H + refTop}`,
+      style: { display: 'block', overflow: 'visible' },
+    });
+    const svg = refTop ? s('g', { transform: `translate(0 ${refTop})` }) : root; // contenu décalé sous la bande du texte
+    if (refTop) root.append(svg);
     if (tk)
       tk.out.forEach((v) => {
         const x = x0 + (v / max) * span;
@@ -212,6 +231,7 @@ export default {
         }
       });
     if (base) svg.append(s('line', { x1: x0, y1: 0, x2: x0, y2: bodyH, stroke: 'currentColor', 'stroke-width': SW }));
+    if (refOk) refV(svg, x0 + (ref / max) * span, 0, bodyH, refText, capPx, W); // par-dessus la grille, sous les barres
     const nSeg = Math.max(0, Math.min(20, Math.floor(+o.segments || 0)));
     /* graduations (traits de séparation des segments) et libellé dans la barre */
     const NUMF = { 'font-size': numPx, 'font-weight': 700, style: { fontFamily: 'var(--t-captionNum-family)' } };
@@ -335,6 +355,6 @@ export default {
     });
     if (o.legend && !legIn) drawLegend(svg, series, H - VIZ.legendH, W);
     rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'y', 0, i * (rh + rGap) - rGap / 2, W, rh + rGap)));
-    return { node: svg };
+    return { node: root };
   },
 };

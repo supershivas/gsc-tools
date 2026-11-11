@@ -590,7 +590,7 @@ test.describe('axes et grille', () => {
     await expect(gridLines(page)).toHaveCount(0);
     await axesCard(page).locator('.pp-chev').click();
     await expect(axesCard(page).locator('.pp-reset-card')).toBeHidden();
-    expect(await axesCard(page).locator('.pp-sub').allTextContents()).toEqual(['Grid', 'Axis', 'Scale']);
+    expect(await axesCard(page).locator('.pp-sub').allTextContents()).toEqual(['Grid', 'Axis', 'Scale', 'Reference line']);
   });
 
   test('grille activée, export PDF sans erreur, ↺ de la carte revient à l’aspect d’origine', async ({ page }) => {
@@ -725,4 +725,25 @@ test.describe('courbes : traits et points', () => {
     expect(+(await dots(page).first().getAttribute('r'))).toBeCloseTo(4.5, 1);
     await expect(page.locator('#ve-stage svg path[fill-opacity]')).toHaveCount(0);
   });
+});
+
+/* Repère (lot 4 de l'audit des options) : bouton « Moyenne des données », annulable */
+test('repère : la moyenne des données remplit la valeur, et s’annule', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await openEditor(page);
+  await pickType(page, /^Bars \(/);
+  await page.locator('.ve-form .pp-q').fill(' ');
+  const row = page.locator('.ve-form .pp-switchrow', { hasText: 'Reference line' });
+  await row.locator('button[role=switch]').click();
+  const value = page.locator('.ve-form .f', { hasText: 'Reference value' }).locator('input');
+  await page.locator('.ve-form .pp-q').fill(' ');
+  await page.locator('.ve-form button', { hasText: 'Average of the data' }).click();
+  await page.locator('.ve-form .pp-q').fill(' ');
+  await expect(value).toHaveValue(/^[1-9]\d*(\.\d{1,2})?$/); // moyenne des données (la courbe d'origine donne ses valeurs aux barres)
+  await expect(page.locator('#ve-stage svg line.viz-ref')).toHaveCount(1);
+  await page.locator('.ve-hist').first().click();
+  await page.locator('.ve-form .pp-q').fill(' ');
+  await expect(value).toHaveValue('0');
+  expect(errors).toEqual([]);
 });

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.92.0 — 2026-11-11
+- Barres, barres horizontales, courbes et nuage de points : ligne de repère en tirets (objectif, moyenne…) avec son texte, dans « Axes et grille » › Ligne de référence
+- Bouton « Moyenne des données » qui remplit la valeur du repère ; l'échelle s'étend si le repère sort des données
+
 ## 1.91.2 — 2026-11-11
 - Page Batch Logo Export : menu « Sur cette page » pour aller à chaque section, bouton retour en haut, titres restylés, étapes et prérequis en cartes, options et dépannage repliables
 

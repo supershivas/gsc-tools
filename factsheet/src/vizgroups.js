@@ -24,6 +24,7 @@ export const FIELD_ORDER = [
   'barSize', 'groupSpace', 'rowSpace', 'serSpace', 'rowGap', 'scale', 'pad', 'gap', 'corners', 'nodeW', 'nodePad', 'maxR', 'hole', 'lineWidth', 'pointSize',
   // Axes et grille
   'grid', 'gridStyle', 'gridTone', 'segments', 'axisValues', 'baseline', 'xTitle', 'yTitle', 'showRowNames', 'showColNames', 'zero', 'zeroX', 'zeroY', 'scaleMax', 'gridCount',
+  'refLine', 'refValue', 'refAvg', 'refLineX', 'refX', 'refAvgX', 'refTextX', 'refLineY', 'refY', 'refAvgY', 'refTextY',
   // Étiquettes
   'legend', 'legendPos', 'legendNote', 'legendNoteText', 'showPercent', 'showValues', 'showPct', 'showDelta', 'valuesIn', 'labelIn', 'showLabels', 'groupLabels', 'showDates', 'showTotal',
   'layout', 'leading', 'totalTpl', 'refText', 'pendingText', 'decimals', 'suffix',
@@ -63,6 +64,7 @@ export const SUBS = {
   grid: 'Grille',
   axis: 'Axe',
   scale: 'Échelle',
+  ref: 'Ligne de référence',
 };
 const SUB_OF = {
   legend: 'legend', legendPos: 'legend', legendNote: 'legend', legendNoteText: 'legend', showPercent: 'legend',
@@ -73,6 +75,8 @@ const SUB_OF = {
   grid: 'grid', gridStyle: 'grid', gridTone: 'grid', segments: 'grid',
   axisValues: 'axis', baseline: 'axis', xTitle: 'axis', yTitle: 'axis', showRowNames: 'axis', showColNames: 'axis',
   zero: 'scale', zeroX: 'scale', zeroY: 'scale', scaleMax: 'scale', gridCount: 'scale',
+  refLine: 'ref', refValue: 'ref', refAvg: 'ref', refLineX: 'ref', refX: 'ref', refAvgX: 'ref', refTextX: 'ref',
+  refLineY: 'ref', refY: 'ref', refAvgY: 'ref', refTextY: 'ref',
 }; // prettier-ignore
 const SUB_RANK = Object.keys(SUBS);
 export const subOf = (f) => f.s || SUB_OF[f.k];

@@ -25,8 +25,12 @@ import {
   gridN,
   gridLine,
   scaleTop,
+  refVal,
+  refTxt,
+  refRoom,
+  refH,
 } from './util.js';
-import { axesFields, axisTitleFields } from './axes.js';
+import { axesFields, axisTitleFields, refFields } from './axes.js';
 
 /** Aspect d'origine de la carte « Axes et grille » (barres d'avant la carte : ni grille, ni valeurs d'axe, ni ligne de base) */
 const ORIGIN = { grid: false, gridStyle: 'solid', gridTone: 'light', axisValues: false, baseline: false };
@@ -66,6 +70,9 @@ export default {
     baseline: false,
     scaleMax: 0,
     gridCount: '0',
+    refLine: false,
+    refValue: 0,
+    refText: '',
   }),
   heights: ['ratio', 'fixed', 'fill'],
   fields: [
@@ -84,6 +91,7 @@ export default {
     },
     ...axesFields(ORIGIN),
     ...axisTitleFields(),
+    ...refFields(),
     { k: 'legend', g: 'labels', t: 'bool', label: 'Afficher la légende' },
     {
       k: 'legendPos',
@@ -187,12 +195,17 @@ export default {
       overlap = o.style === 'overlap' && k === 2;
     const H = Math.max(120, heightOf(o, W, env, null));
     const co = o.callout && o.callout.on && rows.length > 1 ? o.callout : null;
-    const x1 = W - (co ? VIZ.calloutW : 0);
+    const xc = W - (co ? VIZ.calloutW : 0); // début de la zone de l'accolade
     const hasIcons = rows.some((r) => r.icon && r.icon !== 'none'),
       iconSz = 33,
       catH = (o.labelIn || !rows.some((r) => String(r.label || '').trim()) ? 6 : VIZ.catH) + (hasIcons ? iconSz + 6 : 0);
     const capPx = pxOf(TYPE.caption.size),
       numPx = pxOf(TYPE.captionNum.size);
+    const ref = refVal(o),
+      refOk = ref != null && ref >= 0, // pas de valeur négative sur des barres
+      refText = refOk ? refTxt(o) : '',
+      refW = refRoom(refText, capPx, xc);
+    const x1 = xc - refW; // fin du graphique : le texte du repère est posé juste après
     const yT = o.yTitle ? capPx * 1.7 : 0, // titre de l'axe vertical, au-dessus du graphique
       xT = o.xTitle ? capPx * 1.5 : 0; // titre de l'axe horizontal, sous les catégories
     const baseY = H - (o.legend && !legIn ? VIZ.legendGap + VIZ.legendH : 0) - catH - xT,
@@ -208,6 +221,7 @@ export default {
           max = Math.max(max, numVal(r, j));
         });
     });
+    if (refOk) max = Math.max(max, ref); // l'échelle s'étend pour inclure le repère
     if (!max) max = 1;
     max = scaleTop(o, max);
     const suffix = o.suffix || '';
@@ -247,6 +261,7 @@ export default {
         if (axV) svg.append(s('text', { x: px0 - 6, y: y + 0.33 * capPx, 'text-anchor': 'end', 'font-size': capPx }, tickTxt(v)));
       });
     if (base) svg.append(s('line', { x1: px0, y1: baseY, x2: x1, y2: baseY, stroke: 'currentColor', 'stroke-width': SW }));
+    if (refOk) refH(svg, yOf(ref), px0, x1, refText, capPx, refW); // par-dessus la grille, sous les barres
     if (o.yTitle)
       svg.append(s('text', { x: 0, y: capPx, 'font-size': capPx, 'font-weight': 700 }, fitText(o.yTitle, 700, SANS, capPx, W, 0.7).text));
     if (o.xTitle)
@@ -283,7 +298,7 @@ export default {
     if (co) {
       const yFirst = yOf(metric(rows[0])),
         yLast = yOf(metric(rows[rows.length - 1]));
-      const bx = x1 + VIZ.calloutGap / 2;
+      const bx = xc + VIZ.calloutGap / 2;
       svg.append(
         s(
           'g',
@@ -295,10 +310,10 @@ export default {
       const cPx = pxOf(TYPE.callout.size),
         midY = (yFirst + yLast) / 2,
         tx = bx + VIZ.calloutGap + VIZ.leaderGap;
-      const tl = textLines('', co.text || '', capPx, VIZ.calloutW - (tx - x1) - 3);
+      const tl = textLines('', co.text || '', capPx, VIZ.calloutW - (tx - xc) - 3);
       const blockH = TYPE.callout.lh + tl.length * TYPE.caption.lh,
         top = Math.max(0, midY - blockH / 2);
-      const cv = fitText(co.value || '', TYPE.callout.weight, SANS, cPx, VIZ.calloutW - (tx - x1) - 3);
+      const cv = fitText(co.value || '', TYPE.callout.weight, SANS, cPx, VIZ.calloutW - (tx - xc) - 3);
       svg.append(
         s(
           'text',
