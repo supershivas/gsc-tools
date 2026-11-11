@@ -5,6 +5,10 @@ import { ICONS, ICON_OPTIONS, customChoices } from './icons.js';
 import { iconNode, iconImportPanel } from './picto.js';
 import { t } from '../i18n.js';
 
+/** traits en multiples de 0,5 pt ; « Fin » = l'aspect d'avant */
+const STROKE_K = { thin: 1, medium: 2, thick: 3 };
+const STROKE_OPTIONS = { thin: 'Fin', medium: 'Moyen', thick: 'Épais' };
+
 export default {
   label: 'Liste à icônes',
   icon: 'list-check',
@@ -47,6 +51,17 @@ export default {
       min: 0,
       max: 120,
     },
+    {
+      k: 'circleWidth',
+      g: 'dims',
+      when: (o) => o.circle !== false,
+      why: 'Activez « Cercle autour de l’icône » pour régler son trait.',
+      t: 'select',
+      label: 'Trait du cercle',
+      options: STROKE_OPTIONS,
+      def: 'thin',
+    },
+    { k: 'iconStroke', g: 'dims', t: 'select', label: 'Trait des icônes', options: STROKE_OPTIONS, def: 'thin' },
     { k: 'scale', g: 'dims', t: 'select', label: 'Taille des icônes et du texte', options: { 1: 'Normal', 1.5: 'Grand', 2: 'Très grand' } },
     {
       k: 'items',
@@ -82,7 +97,9 @@ export default {
       ring = o.circle !== false,
       C = VIZ.iconCircle * sc,
       G = (ring ? VIZ.iconGlyph : VIZ.iconCircle * 0.9) * sc,
-      bodyPx = pxOf(TYPE.body.size) * sc;
+      bodyPx = pxOf(TYPE.body.size) * sc,
+      cw = SW * (STROKE_K[o.circleWidth] ?? 1),
+      iw = SW * (STROKE_K[o.iconStroke] ?? 1);
     const list = el('div', { class: 'viz-icons', style: o.rowGap === 'tight' ? { gap: '3px' } : o.rowGap === 'none' ? { gap: '0' } : {} });
     (o.items || []).forEach((it, idx) => {
       const k = G / 24,
@@ -91,14 +108,14 @@ export default {
       const svg = s(
         'svg',
         { width: C, height: C, viewBox: `0 0 ${C} ${C}`, class: 'vi-ic' },
-        ring ? s('circle', { cx: C / 2, cy: C / 2, r: C / 2 - SW / 2, fill: 'none', stroke: 'currentColor', 'stroke-width': SW }) : null,
+        ring ? s('circle', { cx: C / 2, cy: C / 2, r: C / 2 - cw / 2, fill: 'none', stroke: 'currentColor', 'stroke-width': cw }) : null,
         isCustom
           ? iconNode(o, it.icon, (C - G) / 2, (C - G) / 2, G, G, 'text', env.rc.icons)
           : s('path', {
               d: ic.d,
               fill: 'none',
               stroke: 'currentColor',
-              'stroke-width': SW / k,
+              'stroke-width': iw / k,
               'stroke-linecap': 'round',
               'stroke-linejoin': 'round',
               transform: `translate(${(C - G) / 2} ${(C - G) / 2}) scale(${k})`,

@@ -145,14 +145,14 @@ export function widthThumbsControl(h2, label, choices, current, commit) {
   const c = segControl(h2, label, choices, current, commit);
   c.node.classList.add('thumbs');
   const NS = 'http://www.w3.org/2000/svg';
-  const W = [1, 2, 3, 5];
+  const WK = { none: 0, thin: 1, medium: 2, thick: 3, xthick: 5 }; // trait aux crans de la clé : 0,5 / 1 / 1,5 / 2,5 pt à l'échelle 2
   [...c.node.children].forEach((b, i) => {
     const svg = document.createElementNS(NS, 'svg'),
       ln = document.createElementNS(NS, 'line');
     svg.setAttribute('viewBox', '0 0 28 8');
     svg.setAttribute('class', 'th-width');
     svg.setAttribute('aria-hidden', 'true');
-    Object.entries({ x1: 0, y1: 4, x2: 28, y2: 4, stroke: 'currentColor', 'stroke-width': W[i] ?? 1 }).forEach(([k, v]) =>
+    Object.entries({ x1: 0, y1: 4, x2: 28, y2: 4, stroke: 'currentColor', 'stroke-width': WK[choices[i][0]] ?? 1 }).forEach(([k, v]) =>
       ln.setAttribute(k, v),
     );
     svg.append(ln);

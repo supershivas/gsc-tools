@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.95.0 — 2026-11-11
+- Bulles, treemap et sunburst : contour (Aucun / Fin / Moyen / Épais) et intensité des teintes (Légère / Normale / Marquée)
+- Treemap : coins arrondis ou droits ; Sunburst : séparation des anneaux (Aucune / Fine / Large)
+- Liste à icônes : trait du cercle et des icônes ; les fiches existantes gardent leur aspect, ↺ y ramène
+
 ## 1.94.0 — 2026-11-11
 - Frise : épaisseur du trait (Fin → Très épais) et taille des repères ; Waffle : cases vides en contour seul ou en gris clair
 - Pictogrammes : non remplis estompés ou en contour seul, espace entre pictogrammes (Serré / Normal / Large) ; Enquête : taille des points

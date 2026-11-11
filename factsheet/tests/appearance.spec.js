@@ -302,3 +302,100 @@ test('export PDF avec les réglages d’apparence (lot 5b), sans erreur', async 
   sizes.forEach((n) => expect(n).toBeGreaterThan(1000));
   expect(errors).toEqual([]);
 });
+
+/* Apparence (lot 5c) : bulles, treemap, sunburst, liste à icônes. Sans clé, le dessin est celui d'avant. */
+const shapes = (svg) =>
+  [...svg.querySelectorAll('circle[fill-opacity], rect[fill-opacity], path[fill-opacity]')].map((n) => ({
+    stroke: n.getAttribute('stroke'),
+    sw: +n.getAttribute('stroke-width'),
+    op: +n.getAttribute('fill-opacity'),
+    rx: +n.getAttribute('rx'),
+    d: n.getAttribute('d'),
+  }));
+
+for (const kind of ['bubbles', 'treemap', 'sunburst']) {
+  test(`${kind} : contour (Fin d’origine) et intensité des teintes (Normale d’origine)`, async ({ page }) => {
+    const none = await probe(page, kind, {}, shapes);
+    expect(none.length).toBeGreaterThan(3);
+    expect(new Set(none.map((s) => s.stroke))).toEqual(new Set(['currentColor']));
+    const base = none[0].sw;
+    expect(await probe(page, kind, { lineWidth: 'thin', fillTone: 'normal' }, shapes)).toEqual(none);
+    const thick = await probe(page, kind, { lineWidth: 'thick' }, shapes);
+    expect(thick[0].sw).toBeCloseTo(base * 3, 5);
+    const medium = await probe(page, kind, { lineWidth: 'medium' }, shapes);
+    expect(medium[0].sw).toBeCloseTo(base * 2, 5);
+    const off = await probe(page, kind, { lineWidth: 'none' }, shapes);
+    expect(new Set(off.map((s) => s.stroke))).toEqual(new Set(['none']));
+    const light = await probe(page, kind, { fillTone: 'light' }, shapes);
+    const strong = await probe(page, kind, { fillTone: 'strong' }, shapes);
+    none.forEach((s, i) => {
+      expect(light[i].op).toBeLessThanOrEqual(s.op);
+      expect(strong[i].op).toBeGreaterThanOrEqual(s.op);
+      expect(strong[i].op).toBeLessThanOrEqual(1);
+    });
+    expect(light.some((s, i) => s.op < none[i].op)).toBe(true);
+    expect(strong.some((s, i) => s.op > none[i].op)).toBe(true);
+  });
+}
+
+test('treemap : coins Arrondis (d’origine) / Droits', async ({ page }) => {
+  const none = await probe(page, 'treemap', {}, shapes);
+  expect(none.some((s) => s.rx > 0)).toBe(true);
+  expect(await probe(page, 'treemap', { corners: 'round' }, shapes)).toEqual(none);
+  const square = await probe(page, 'treemap', { corners: 'square' }, shapes);
+  expect(square.every((s) => s.rx === 0)).toBe(true);
+});
+
+test('sunburst : séparation des anneaux Aucune (d’origine) / Fine / Large', async ({ page }) => {
+  const none = await probe(page, 'sunburst', {}, shapes);
+  expect(await probe(page, 'sunburst', { ringGap: 'none' }, shapes)).toEqual(none);
+  const thin = await probe(page, 'sunburst', { ringGap: 'thin' }, shapes);
+  const wide = await probe(page, 'sunburst', { ringGap: 'wide' }, shapes);
+  expect(thin.map((s) => s.d)).not.toEqual(none.map((s) => s.d));
+  expect(wide.map((s) => s.d)).not.toEqual(thin.map((s) => s.d));
+  expect(wide.length).toBe(none.length);
+});
+
+test('liste à icônes : trait du cercle et des icônes (0,5 pt d’origine)', async ({ page }) => {
+  const f = (svg) => {
+    const root = svg.closest('.viz-icons') || svg.parentElement;
+    return {
+      ring: Math.max(...[...root.querySelectorAll('circle')].map((c) => +c.getAttribute('stroke-width'))),
+      r: +root.querySelector('circle').getAttribute('r'),
+      icon: Math.max(...[...root.querySelectorAll('path[stroke-linecap]')].map((p) => +p.getAttribute('stroke-width'))),
+    };
+  };
+  const none = await probe(page, 'icons', {}, f);
+  expect(await probe(page, 'icons', { circleWidth: 'thin', iconStroke: 'thin' }, f)).toEqual(none);
+  const thick = await probe(page, 'icons', { circleWidth: 'thick', iconStroke: 'medium' }, f);
+  expect(thick.ring).toBeCloseTo(none.ring * 3, 5);
+  expect(thick.icon).toBeCloseTo(none.icon * 2, 5);
+  expect(thick.r).toBeLessThan(none.r); // le cercle reste dans sa case
+});
+
+test('export PDF avec les réglages d’apparence (lot 5c), sans erreur', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await page.addScriptTag({ url: '/factsheet/tests/entry.bundle.js' });
+  await addBundle(page, 'pdfexport.js');
+  const sizes = await page.evaluate(async (key) => {
+    const base = JSON.parse(localStorage.getItem(key));
+    const out = [];
+    for (const [kind, opts] of [
+      ['bubbles', { lineWidth: 'none', fillTone: 'strong' }],
+      ['treemap', { lineWidth: 'thick', fillTone: 'light', corners: 'square' }],
+      ['sunburst', { lineWidth: 'medium', fillTone: 'strong', ringGap: 'wide' }],
+      ['icons', { circleWidth: 'thick', iconStroke: 'thick' }],
+    ]) {
+      const doc = JSON.parse(JSON.stringify(base));
+      const col = doc.sections.flatMap((s) => s.subs.flatMap((b) => b.cols)).find((c) => c.viz);
+      col.viz = window.FSTEST.newViz(kind);
+      Object.assign(col.viz.opts, opts);
+      const { bytes } = await window.FSPDF.build(doc, 'net', { profile: 'x1a' });
+      out.push(bytes.length);
+    }
+    return out;
+  }, DOC_KEY);
+  sizes.forEach((n) => expect(n).toBeGreaterThan(1000));
+  expect(errors).toEqual([]);
+});
