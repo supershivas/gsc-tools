@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.98.0 — 2026-11-11
+- Images du dépôt rangées en logos, header et autres images (sous-dossiers) ; la barre « images à publier » disparaît
+- Nouvelle carte « Images du document » (panneau Document) : tous les logos et images, avec un marqueur sur celles qui ne sont que dans ce navigateur
+- Header : famille de logos au choix et bibliothèque d'images par dossier ; colonne image : choix d'une image du dépôt
+
 ## 1.97.0 — 2026-11-11
 - Heatmap : contour des cases (Aucun / Fin / Moyen), motif des cases « en attente » (Tirets / Pointillés / Trait plein)
 - Heatmap : intensité des teintes (Légère / Normale / Marquée, légende comprise) et taille du texte des cases

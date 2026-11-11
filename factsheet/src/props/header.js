@@ -2,31 +2,57 @@
 import { h, ico, headerImage } from '../render.js';
 import { t } from '../i18n.js';
 import { toneKeys } from '../tokens.js';
-import { LOGO_VARIANTS, DEFAULT_LOGOS, DEFAULT_IMAGE_ID, newHeaderImage } from '../state.js';
+import { LOGO_VARIANTS, DEFAULT_LOGOS, DEFAULT_IMAGE_ID, newHeaderImage, useLogoFamily, useHeaderImage } from '../state.js';
+import { withAssets, logoFamilies } from '../assetlib.js';
+import { assetBrowser } from './assetgrid.js';
 import { readImage } from '../editor.js';
 import { alertBox, confirmBox, promptBox } from '../dialogs.js';
 
-/* Logo : 4 versions de même taille, une liste déroulante choisit celle qui s'affiche.
+/* Logo : une famille (dossier de assets/logos/) et 4 versions de même taille ; une rangée de vignettes choisit celle qui s'affiche.
    Les logos d'origine (publiés dans le dépôt) ne se retirent pas : on peut charger une autre image à leur place, puis rétablir l'original. */
 function logoPicker(k, H) {
+  return withAssets(h('div'), (assets) => logoBody(k, H, assets));
+}
+function logoBody(k, H, assets) {
   const { ctx, field, struct } = k;
-  const v = H.logoVariant,
-    orig = DEFAULT_LOGOS()[v],
+  const families = logoFamilies(assets),
+    v = H.logoVariant,
+    orig = (families.get(H.logoFamily) || {})[v] || DEFAULT_LOGOS()[v],
     custom = H.logos[v] !== orig;
-  const sel = h(
+  const names = [...families.keys()].sort((a, b) => a.localeCompare(b));
+  if (!names.includes(H.logoFamily)) names.unshift(H.logoFamily);
+  const famSel = h(
     'select',
     {
       onchange: (e) => {
-        H.logoVariant = e.target.value;
+        useLogoFamily(H, e.target.value, families.get(e.target.value) || {});
         ctx.restructure();
       },
     },
+    names.map((f) => h('option', { value: f, textContent: f, selected: f === H.logoFamily })),
+  );
+  const versions = h(
+    'div',
+    { class: 'logorow' },
     Object.entries(LOGO_VARIANTS).map(([key, l]) =>
-      h('option', {
-        value: key,
-        textContent: `${t(l)} — ${t(H.logos[key] !== DEFAULT_LOGOS()[key] ? 'personnalisé' : 'original')}`,
-        selected: v === key,
-      }),
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'imgtile' + (key === v ? ' on' : ''),
+          title: `${t(l)} — ${t(H.logos[key] !== ((families.get(H.logoFamily) || {})[key] || DEFAULT_LOGOS()[key]) ? 'personnalisé' : 'original')}`,
+          onclick: () => {
+            H.logoVariant = key;
+            ctx.restructure();
+          },
+        },
+        h(
+          'span',
+          { class: 'imgtile-pic' + (key === 'white' || key === 'negative' ? ' dark' : '') },
+          h('img', { src: H.logos[key], alt: '' }),
+        ),
+        h('span', { class: 'imgtile-name', textContent: t(l) }),
+      ),
     ),
   );
   const inp = h('input', {
@@ -48,7 +74,8 @@ function logoPicker(k, H) {
   return h(
     'div',
     {},
-    field('Version du logo', sel),
+    field('Famille de logos', famSel),
+    versions,
     h(
       'div',
       { class: 'f' },
@@ -56,7 +83,6 @@ function logoPicker(k, H) {
       h(
         'div',
         { class: 'row' },
-        h('img', { class: 'thumb' + (v === 'white' || v === 'negative' ? ' dark' : ''), src: H.logos[v], alt: '' }),
         h('button', { type: 'button', textContent: 'Charger une autre image…', onclick: () => inp.click() }),
         custom
           ? h('button', {
@@ -155,6 +181,22 @@ function imageLibrary(k, H) {
       { class: 'imggrid' },
       H.images.map(tile),
       h('button', { type: 'button', class: 'imgtile-add', onclick: add }, ico('plus'), h('span', { textContent: 'Ajouter une image' })),
+    ),
+    h('div', { class: 'hint', textContent: t('Bibliothèque du dépôt (assets/header/) :') }),
+    withAssets(h('div'), (assets) =>
+      assetBrowser({
+        doc: k.doc,
+        assets,
+        kinds: ['header'],
+        isOn: (e) => !!cur && cur.src === e.path,
+        onPick: (e) =>
+          e.local
+            ? null
+            : () => {
+                useHeaderImage(H, e.path, e.stem);
+                ctx.restructure();
+              },
+      }),
     ),
   );
 }

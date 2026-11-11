@@ -580,3 +580,21 @@ textarea.dg-ml{display:block;width:100%;min-width:90px;border:0;border-radius:0;
 .warnings .ovf-row{display:flex;align-items:center;gap:8px;box-sizing:border-box;height:38px}.ovf-row .ovf-txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ovf-row .mini{flex:none;white-space:nowrap}   /* hauteur entière : la page ne doit pas se décaler d'une fraction de pixel (captures de référence) */
 .tn-ovf{margin-left:4px;color:var(--danger);flex:none}
 #exportWarn{white-space:pre-line;margin:0 0 12px;padding:8px 10px;border-radius:var(--radius-sm);background:#fff4e5;color:#92400e;font-size:var(--fs-sm)}#exportWarn[hidden]{display:none}
+
+/* ---------- Images du dépôt (assetgrid.js) : marqueur « non stockée », familles de logos, fenêtre Parcourir ---------- */
+.imgtile-pic{position:relative}
+.imgtile-pic.dark{background:#1C1C1E}
+.imgtile-flag{position:absolute;top:3px;right:3px;display:flex;padding:2px;border-radius:var(--radius-xs);background:#fff;color:var(--ui-mute);font-size:var(--fs-sm)}
+.assetbrowser .imgtile-pic img,.logorow .imgtile-pic img{object-fit:contain}
+.assetbrowser details>summary{padding:6px 8px}
+.assetbrowser summary em{margin-left:auto;font-style:normal;font-weight:400;color:var(--ui-mute);font-size:var(--fs-sm)}
+.assetfolder .imggrid{margin:0 0 6px}
+.logorow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0 10px}
+.logorow .imgtile{cursor:pointer;font:inherit;color:inherit;text-align:left}
+.logorow .imgtile-pic{height:40px}
+.assets-dlg{width:min(880px,calc(100vw - 24px))}
+.assets-dlg-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--ui-line)}
+.assets-dlg-body{padding:12px 16px;max-height:calc(100dvh - 120px);overflow:auto}
+.assets-dlg .imggrid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+.assets-dlg .imgtile-pic{height:110px}
+.assetbrowser .imgtile.on,.logorow .imgtile.on{border-color:#1C1C1E;box-shadow:0 0 0 1px #1C1C1E}

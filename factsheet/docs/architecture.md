@@ -117,3 +117,11 @@ Description des fonctionnalités du Factsheet creator, sortie de `CLAUDE.md` (qu
 
 - **Hachures et contour en pointillés** (`render.js`, `strokeStyle` ; réglages dans `boxControls`, `props/kit.js`) : `hatch` (couleur ou `none`), `hatchW`, `hatchGap`, `hatchAngle` (0–180°, aimantation ±4° sur 0/30/45/60/90/120/135/150/180) ; les bandes sont des `<line>` SVG calculées pour couvrir une page entière (`hatchSvg`), donc tout contenant, sous le contenu, et débordent sous la bordure (`inset: -var(--stroke)`). Pointillés : `dash`, `dashLen`, `dashGap` ; la bordure CSS devient transparente et un `<rect>` SVG à `stroke-dasharray` la remplace, dimensionné sur la taille réelle par `measure()` (`.dash`). Tous deux sont lus par l'export PDF (`svgNode`).
 - **Côtés du contour** : `sides` `{ t, r, b, l }` (absent = les quatre ; `sidesOf` dans `render.js`). En trait plein, les côtés éteints ont une bordure transparente (retrait conservé) ; en pointillés, la bordure entière est transparente et un `<rect>` (4 côtés) ou des `<line>` (côtés choisis) la remplacent, positionnés par `measure()`.
+
+## Images du dépôt (`assets/`)
+
+- Rangement : `assets/logos/<famille>/{default,mono,white,negative}`, `assets/header/<dossier>/`, `assets/others/` (sous-dossiers possibles). Le stockage est manuel (glisser les fichiers sur GitHub) ; l'Atelier (jeton) publie dans `others/`.
+- `assets/index.json` : liste des fichiers, régénérée à chaque déploiement (`scripts/assets-manifest.mjs`, étape de `.github/workflows/pages.yml`). `src/assetlib.js` la lit (`loadAssets`, `withAssets`) et retombe sur les images d'origine si elle manque.
+- Header : `doc.header.logoFamily` (dossier de `logos/`) ; choisir une famille remplace les versions présentes dans le dossier (`useLogoFamily`). Bibliothèque d'images : vignettes du dépôt groupées par dossier (`useHeaderImage` ajoute l'image au document).
+- Carte « Document images » (panneau Document) : tout l'inventaire (logos, header, autres) + les images qui ne sont que dans le navigateur, marquées d'une icône nuage barré ; bouton « Parcourir… » = même navigateur dans une fenêtre. Les images du corps se choisissent dans la colonne image (liste « Image du dépôt »).
+- Migration : `LEGACY_ASSETS` / `upgradeAsset` (`state.js`) convertit les anciens chemins à plat à la lecture (header, logos, colonnes, cartes).

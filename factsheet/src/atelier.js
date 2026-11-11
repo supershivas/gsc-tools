@@ -30,7 +30,7 @@ function drawLog() { logEl.replaceChildren(...log.slice(-6).map(l => el('div', {
 
 async function refresh() {
   loadError = '';
-  try { [published, projects] = await Promise.all([listDir('factsheet/assets'), listDir('factsheet/projects')]); }
+  try { [published, projects] = await Promise.all([listDir('factsheet/assets/others'), listDir('factsheet/projects')]); }
   catch (e) { loadError = e.status === 403 ? t('Limite de requêtes GitHub atteinte : ajoutez un jeton.') : t('Impossible de lire le dépôt.'); }
   draw();
 }
@@ -51,7 +51,7 @@ const canPush = () => !!(access && access.ok && access.push);
 async function waitLive(names) {
   const t0 = Date.now();
   for (;;) {
-    const ok = await Promise.all(names.map(n => fetch(`assets/${n}`, { method: 'HEAD', cache: 'no-store' }).then(r => r.ok, () => false)));
+    const ok = await Promise.all(names.map(n => fetch(`assets/others/${n}`, { method: 'HEAD', cache: 'no-store' }).then(r => r.ok, () => false)));
     if (ok.every(Boolean)) return;
     if (Date.now() - t0 > 180000) { const e = new Error('timeout'); e.timeout = true; throw e; }
     say(t('Déploiement du site en cours…')); await new Promise(r => setTimeout(r, 6000));
@@ -67,11 +67,11 @@ async function publishImages() {
   const fresh = [...names].filter(([, n]) => !have.has(n));
   if (fresh.length) {
     say(t('Publication…'));
-    await commitFiles(fresh.map(([d, n]) => ({ path: `factsheet/assets/${n}`, base64: splitDataUrl(d).base64 })), `Publie ${fresh.length} image${fresh.length > 1 ? 's' : ''} depuis l’Atelier`);
+    await commitFiles(fresh.map(([d, n]) => ({ path: `factsheet/assets/others/${n}`, base64: splitDataUrl(d).base64 })), `Publie ${fresh.length} image${fresh.length > 1 ? 's' : ''} depuis l’Atelier`);
   }
   await waitLive([...names.values()]);
   const doc2 = loadDoc();                      // relu : l'éditeur a pu enregistrer entre-temps
-  docImages(doc2).filter(isLocal).forEach(r => { const n = names.get(r.get()); if (n) r.set('assets/' + n); });
+  docImages(doc2).filter(isLocal).forEach(r => { const n = names.get(r.get()); if (n) r.set('assets/others/' + n); });
   saveDoc(doc2);
   say(`${t('Publié')} : ${names.size} ${t('image(s)')}`, 'ok');
 }
@@ -114,9 +114,9 @@ function draw() {
   const [pubBtn] = toPub.querySelectorAll('button'); pubBtn.disabled = busy || !connected || !local.length;
 
   const lib = sec('Images publiées', loadError ? el('p', { class: 'err', textContent: loadError }) : null,
-    published.length ? el('div', { class: 'grid' }, published.map(f => el('figure', {}, el('img', { src: `assets/${f.name}`, alt: '', loading: 'lazy' }),
+    published.length ? el('div', { class: 'grid' }, published.map(f => el('figure', {}, el('img', { src: `assets/others/${f.name}`, alt: '', loading: 'lazy' }),
       el('figcaption', {}, el('span', { textContent: f.name }), el('button', { type: 'button', class: 'icon', title: 'Supprimer', disabled: busy || !connected, onclick: async () => {
-        const used = doc && JSON.stringify(doc).includes('assets/' + f.name);
+        const used = doc && JSON.stringify(doc).includes('assets/others/' + f.name);
         if (!(await confirmBox(used ? t('Cette image est utilisée par le document en cours. La supprimer quand même ?') : t('Supprimer cette image ?'), { ok: t('Supprimer'), danger: true }))) return;
         run(async () => { await commitFiles([{ path: f.path, remove: true }], `Supprime l’image ${f.name} depuis l’Atelier`); say(t('Image supprimée'), 'ok'); });
       } }, icon('trash'))))))

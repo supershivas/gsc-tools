@@ -1,6 +1,6 @@
 import { PAGE } from '../tokens.js';
 import { renderDocument, measure, h, ico } from '../render.js';
-import { localImageCount, storage, moveSection } from '../state.js';
+import { storage, moveSection } from '../state.js';
 import { stripMk } from '../viz/util.js';
 import { t } from '../i18n.js';
 
@@ -72,15 +72,6 @@ export function createPreview(ctx, { spacing, selection }) {
     warnEl.innerHTML = '';
     r.warnings.forEach((w) => warnEl.append(h('div', { textContent: w })));
     r.overflows.forEach((o) => o.secs.forEach(({ si, state }) => warnEl.append(overflowRow(doc, o, si, state))));
-    const nLocal = localImageCount(doc);
-    if (nLocal)
-      warnEl.append(
-        h('a', {
-          class: 'note',
-          href: 'atelier.html',
-          textContent: nLocal === 1 ? '1 image à publier — ouvrir l’Atelier' : `${nLocal} images à publier — ouvrir l’Atelier`,
-        }),
-      );
     if (!storage.ok)
       warnEl.append(
         h('div', {

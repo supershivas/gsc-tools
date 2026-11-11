@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    "header/default/illustration.svg",
+    "logos/gsc/default.png",
+    "logos/gsc/mono.png",
+    "logos/gsc/negative.png",
+    "logos/gsc/white.png",
+    "others/lantern-emblem.png"
+  ]
+}

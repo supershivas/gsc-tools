@@ -16,6 +16,7 @@ for (const p of [
   'organigramme/vendor/pdf-lib-1.17.1.min.js', 'organigramme/vendor/fontkit-1.1.1.umd.min.js',
   'organigramme/fonts/SourceSans3-Bold.ttf', 'organigramme/fonts/SourceSerif4-It.ttf', 'organigramme/fonts/SourceSerif4-SemiboldIt.ttf',
   'factsheet/icc/ISOcoated_v2_300_eci.icc',
+  'factsheet/assets/index.json', 'factsheet/assets/README.md', 'scripts/assets-manifest.mjs',
 ]) must(existsSync(p), `fichier manquant : ${p}`);
 
 // 2. version.json et la tête de CHANGELOG.md concordent.
@@ -40,6 +41,16 @@ for (const f of readdirSync(dir).filter((f) => f.endsWith('.js'))) {
     execFileSync('node', ['--input-type=module', '--check'], { input: src, stdio: ['pipe', 'pipe', 'pipe'] });
   } catch (e) {
     errors.push(`${dir}/${f} : erreur de syntaxe\n${e.stderr}`);
+  }
+}
+
+// 3 bis. Images du Factsheet creator : le manifeste est valide, ses fichiers existent, tout est rangé en logos/, header/ ou others/.
+{
+  const m = JSON.parse(read('factsheet/assets/index.json'));
+  must(m.schemaVersion === 1 && Array.isArray(m.files), 'factsheet/assets/index.json : format invalide (node scripts/assets-manifest.mjs)');
+  for (const f of m.files || []) {
+    must(/^(logos|header|others)\//.test(f), `factsheet/assets/${f} : hors de logos/, header/, others/`);
+    must(existsSync(`factsheet/assets/${f}`), `factsheet/assets/index.json cite un fichier absent : ${f} (relancer node scripts/assets-manifest.mjs)`);
   }
 }
 

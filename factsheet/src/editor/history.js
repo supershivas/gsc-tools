@@ -26,6 +26,7 @@ const FIELDS = {
   src: 'image',
   caption: 'légende',
   logoVariant: 'logo',
+  logoFamily: 'logo',
   logos: 'logo',
   colors: 'couleurs',
   colorNames: 'noms des couleurs',

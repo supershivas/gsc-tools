@@ -338,6 +338,23 @@ const EN = {
   'Images du header': 'Header images',
   'Image affichée (132 px de haut, largeur selon l’image) — choisissez dans la bibliothèque :':
     'Image shown (132 px high, width follows the image) — pick one from the library:',
+  'Famille de logos': 'Logo family',
+  'Image du dépôt': 'Repository image',
+  'Choisir…': 'Choose…',
+  Racine: 'Root',
+  'Dans ce document': 'In this document',
+  'Aucune image': 'No image',
+  'Seulement dans ce navigateur : à déposer dans le dépôt GitHub pour la conserver':
+    'Only in this browser: drop it in the GitHub repository to keep it',
+  'Images du document': 'Document images',
+  'Parcourir…': 'Browse…',
+  'Bibliothèque du dépôt (assets/header/) :': 'Repository library (assets/header/):',
+  'Logo ou image du header : un clic l’applique. Les images du corps se choisissent dans la colonne image.':
+    'Header logo or image: click to apply it. Body images are chosen in the image column.',
+  'L’icône nuage barré marque une image qui n’est que dans ce navigateur : déposez-la dans assets/ sur GitHub pour la conserver.':
+    'The crossed-out cloud icon marks an image that only exists in this browser: drop it in assets/ on GitHub to keep it.',
+  Logos: 'Logos',
+  'Autres images': 'Other images',
   'Ajouter une image': 'Add an image',
   Renommer: 'Rename',
   'Nom de l’image :': 'Image name:',

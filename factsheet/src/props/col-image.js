@@ -2,6 +2,7 @@
 import { h } from '../render.js';
 import { IMAGE_RATIOS, ALIGNS } from '../state.js';
 import { t } from '../i18n.js';
+import { withAssets, byFolder } from '../assetlib.js';
 
 export function imageEditor(k, col) {
   const { ctx, live, field, text, select, segmented, imgPicker } = k;
@@ -27,6 +28,30 @@ export function imageEditor(k, col) {
         col.natural = null;
       },
       1600,
+    ),
+    field(
+      'Image du dépôt',
+      withAssets(h('div'), (assets) => {
+        const sel = h(
+          'select',
+          {
+            onchange: (e) => {
+              col.src = e.target.value || col.src;
+              col.natural = null;
+              ctx.restructure();
+            },
+          },
+          h('option', { value: '', textContent: t('Choisir…') }),
+          [...byFolder(assets, 'others')].map(([folder, es]) =>
+            h(
+              'optgroup',
+              { label: folder || t('Racine') },
+              es.map((e) => h('option', { value: e.path, textContent: e.stem, selected: col.src === e.path })),
+            ),
+          ),
+        );
+        return sel;
+      }),
     ),
     select(
       col,

@@ -3,7 +3,9 @@ import { h } from '../render.js';
 import { t } from '../i18n.js';
 import { DENSITIES } from '../tokens.js';
 import { buildPalette } from '../palette.js';
-import { LOCALES } from '../state.js';
+import { LOCALES, useLogoFamily, useHeaderImage } from '../state.js';
+import { withAssets, logoFamilies } from '../assetlib.js';
+import { assetBrowser, assetDialog, localEntries } from './assetgrid.js';
 
 export function documentPanel(k) {
   const { doc, ctx, root, title, card, field, pair, switchRow, struct } = k;
@@ -32,6 +34,63 @@ export function documentPanel(k) {
     const draw = () => box.replaceChildren(buildPalette(ctx, draw));
     draw();
     return box;
+  };
+
+  /* toutes les images : celles du dépôt (assets/) et celles qui ne sont que dans ce navigateur (marquées) */
+  const imagesBox = () => {
+    const H = doc.header;
+    const browser = (assets, done) =>
+      assetBrowser({
+        doc,
+        assets,
+        isOn: (e) =>
+          e.kind === 'logos'
+            ? H.logoFamily === e.folder && e.stem === H.logoVariant
+            : e.kind === 'header'
+              ? !!H.images.find((i) => i.id === H.imageId && i.src === e.path)
+              : false,
+        onPick: (e) => {
+          if (e.local) return null;
+          if (e.kind === 'logos')
+            return () => {
+              useLogoFamily(H, e.folder, logoFamilies(assets).get(e.folder) || {});
+              done();
+              ctx.restructure();
+            };
+          if (e.kind === 'header')
+            return () => {
+              useHeaderImage(H, e.path, e.stem);
+              done();
+              ctx.restructure();
+            };
+          return null; /* images du corps : choisies dans la colonne image */
+        },
+      });
+    return withAssets(h('div'), (assets) => {
+      const nLocal = ['logos', 'header', 'others'].reduce((n, kd) => n + localEntries(doc, kd).length, 0);
+      return h(
+        'div',
+        {},
+        h('p', {
+          class: 'hint',
+          textContent: t('Logo ou image du header : un clic l’applique. Les images du corps se choisissent dans la colonne image.'),
+        }),
+        browser(assets, () => {}),
+        nLocal
+          ? h('p', {
+              class: 'hint',
+              textContent: t(
+                'L’icône nuage barré marque une image qui n’est que dans ce navigateur : déposez-la dans assets/ sur GitHub pour la conserver.',
+              ),
+            })
+          : null,
+        h('button', {
+          type: 'button',
+          textContent: t('Parcourir…'),
+          onclick: () => assetDialog(t('Images du document'), (close) => browser(assets, close)),
+        }),
+      );
+    });
   };
 
   title(doc.name || 'Document', [], { icon: 'file-text', pill: t('Document') });
@@ -64,6 +123,7 @@ export function documentPanel(k) {
       doc.name || '',
     ),
     card('doc-colors', 'palette', t('Couleurs du document'), [paletteBox()]),
+    card('doc-images', 'photos', t('Images du document'), [imagesBox()]),
     card('doc-advanced', 'adjustments', t('Options avancées'), [
       switchRow('Typographie française', !!doc.frTypo, toggle('frTypo')),
       switchRow('Ordinaux et fractions', !!doc.ordinals, toggle('ordinals')),

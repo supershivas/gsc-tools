@@ -15,6 +15,20 @@ export const COL_TYPES = { text: 'Texte', image: 'Image', figure: 'Chiffre clé'
 /* Les 4 versions du logo ont la même taille (HEADER.logo). `label` = clé de traduction. */
 export const LOGO_VARIANTS = { default: 'Défaut', mono: 'Mono', white: 'Blanc (white)', negative: 'Négatif' };
 export const newHeaderImage = (n = 1) => ({ id: uid('img'), name: `${t('Image')} ${n}`, src: null });
+/** Applique une famille de logos du dépôt : seules les versions présentes dans le dossier sont remplacées */
+export function useLogoFamily(H, family, files) {
+  H.logoFamily = family;
+  for (const v of Object.keys(LOGO_VARIANTS)) if (files[v]) H.logos[v] = files[v];
+}
+/** Choisit une image du dépôt pour le header (l'ajoute à la bibliothèque du document si elle n'y est pas) */
+export function useHeaderImage(H, path, name) {
+  let i = H.images.find((x) => x.src === path);
+  if (!i) {
+    i = { ...newHeaderImage(H.images.length + 1), name, src: path };
+    H.images.push(i);
+  }
+  H.imageId = i.id;
+}
 export const VALIGNS = { top: 'align-box-top-center', center: 'align-box-center-middle', bottom: 'align-box-bottom-center' };
 export const ALIGNS = { left: 'align-left', center: 'align-center', right: 'align-right', justify: 'align-justified' };
 export const LOCALES = {
@@ -91,7 +105,7 @@ export function defaultDoc() {
     const c = newCard();
     return { ...newCol('card'), card: { ...c, auto: false, ...o, content: { ...c.content, title, text, tag: 'NEW', link: 'Read more' } } };
   };
-  const img = (ratio) => ({ ...newCol('image'), ratio, src: 'assets/Asset 1.svg', caption: 'Lorem ipsum dolor sit amet' });
+  const img = (ratio) => ({ ...newCol('image'), ratio, src: DEFAULT_IMAGE_SRC, caption: 'Lorem ipsum dolor sit amet' });
   const sub = (title, layout, cols) => ({ id: uid('sub'), title, showTitle: true, layout, cols });
   const sec = (page, title, bg, subs) => ({ ...newSection(page), title, bg, subs });
 
@@ -131,6 +145,7 @@ export function defaultDoc() {
       images: [defaultHeaderImage()],
       imageId: DEFAULT_IMAGE_ID, // bibliothèque d'images du header (autant que l'on veut)
       logos: DEFAULT_LOGOS(),
+      logoFamily: DEFAULT_LOGO_FAMILY,
       logoVariant: 'default',
       showImage: true,
       showLogo: true,
@@ -139,16 +154,28 @@ export function defaultDoc() {
   };
 }
 
-/* ---------- Logos publiés dans le dépôt (disponibles sur tous les appareils) ---------- */
+/* ---------- Images publiées dans le dépôt (factsheet/assets/, rangées en logos/, header/, others/) ---------- */
+export const DEFAULT_LOGO_FAMILY = 'gsc';
 export const DEFAULT_LOGOS = () => ({
-  default: 'assets/d9742f1219.png',
-  mono: 'assets/c069bffefa.png',
-  white: 'assets/4a5a41080e.png',
-  negative: 'assets/5ec5fb8b6a.png',
+  default: 'assets/logos/gsc/default.png',
+  mono: 'assets/logos/gsc/mono.png',
+  white: 'assets/logos/gsc/white.png',
+  negative: 'assets/logos/gsc/negative.png',
 });
 /** Image du header toujours disponible (première de la bibliothèque, non modifiable) */
 export const DEFAULT_IMAGE_ID = 'img-default';
-export const defaultHeaderImage = () => ({ id: DEFAULT_IMAGE_ID, name: 'Image par défaut', src: 'assets/Asset 1.svg' });
+export const DEFAULT_IMAGE_SRC = 'assets/header/default/illustration.svg';
+export const defaultHeaderImage = () => ({ id: DEFAULT_IMAGE_ID, name: 'Image par défaut', src: DEFAULT_IMAGE_SRC });
+/** Anciens chemins (dossier à plat) → nouveaux : les projets enregistrés avant le rangement gardent leurs images (voir `migrate`) */
+const LEGACY_ASSETS = {
+  'assets/d9742f1219.png': 'assets/logos/gsc/default.png',
+  'assets/c069bffefa.png': 'assets/logos/gsc/mono.png',
+  'assets/4a5a41080e.png': 'assets/logos/gsc/white.png',
+  'assets/5ec5fb8b6a.png': 'assets/logos/gsc/negative.png',
+  'assets/Asset 1.svg': DEFAULT_IMAGE_SRC,
+  'assets/2a3ba63bd5.png': 'assets/others/lantern-emblem.png',
+};
+export const upgradeAsset = (v) => (typeof v === 'string' && LEGACY_ASSETS[v]) || v;
 
 /* ---------- Persistance locale + fichier ---------- */
 const KEY = 'factsheet-creator-v1';
@@ -215,6 +242,8 @@ export function migrate(j) {
         if (k.type === 'card' && !k.card) k.card = newCard();
         if (k.src && !safeImgSrc(k.src)) k.src = null;
         if (k.card && k.card.src && !safeImgSrc(k.card.src)) k.card.src = null;
+        if (k.src) k.src = upgradeAsset(k.src);
+        if (k.card && k.card.src) k.card.src = upgradeAsset(k.card.src);
         if (k.type === 'viz') {
           if (!k.viz) k.viz = newViz('bars');
           else if (!k.viz.opts) k.viz = newViz(k.viz.kind);
@@ -312,7 +341,8 @@ function migrateHeader(H, src) {
   delete H.logo;
   // une version vide reprend le logo publié (document créé avant la publication, autre appareil)
   const def = DEFAULT_LOGOS(),
-    cur = { ...(H.logos || {}) };
+    cur = Object.fromEntries(Object.entries(H.logos || {}).map(([k, v]) => [k, upgradeAsset(v)]));
+  if (typeof H.logoFamily !== 'string' || !H.logoFamily) H.logoFamily = DEFAULT_LOGO_FAMILY;
   // les logos « défaut » et « mono » avaient été publiés à l'envers : on remet les bons fichiers
   if (cur.default === def.mono) cur.default = def.default;
   if (cur.mono === def.default) cur.mono = def.mono;
@@ -320,7 +350,7 @@ function migrateHeader(H, src) {
   if (!LOGO_VARIANTS[H.logoVariant]) H.logoVariant = 'default';
   H.images = (H.images || [])
     .filter((i) => i && typeof i === 'object' && i.src && safeImgSrc(i.src) && i.id !== DEFAULT_IMAGE_ID)
-    .map((i, k) => ({ id: i.id || uid('img'), name: i.name || `${t('Image')} ${k + 1}`, src: i.src }));
+    .map((i, k) => ({ id: i.id || uid('img'), name: i.name || `${t('Image')} ${k + 1}`, src: upgradeAsset(i.src) }));
   H.images.unshift(defaultHeaderImage()); // l'image par défaut reste toujours la première
   if (!H.images.some((i) => i.id === H.imageId)) H.imageId = H.images[0].id;
 }
@@ -333,6 +363,7 @@ export function docImages(doc) {
   (H.images || []).forEach((i) =>
     out.push({
       label: `Header — ${i.name}`,
+      kind: 'header',
       get: () => i.src,
       set: (v) => {
         i.src = v;
@@ -342,6 +373,7 @@ export function docImages(doc) {
   Object.keys(H.logos || {}).forEach((k) =>
     out.push({
       label: `Logo — ${LOGO_VARIANTS[k] || k}`,
+      kind: 'logos',
       get: () => H.logos[k],
       set: (v) => {
         H.logos[k] = v;
@@ -354,6 +386,7 @@ export function docImages(doc) {
         if (c.type === 'image')
           out.push({
             label: `${sec.title || 'Section'} › ${sub.title || 'Subsection'} › ${ci + 1}`,
+            kind: 'others',
             get: () => c.src,
             set: (v) => {
               c.src = v;
@@ -364,7 +397,6 @@ export function docImages(doc) {
   );
   return out.filter((x) => x.get());
 }
-export const localImageCount = (doc) => docImages(doc).filter((x) => /^data:/.test(x.get())).length;
 
 /* ---------- Déplacement de contenus (colonnes) et de sous-sections ---------- */
 /** Échange le contenu de deux colonnes (n'importe où dans le document). L'alignement voyage avec le contenu. */

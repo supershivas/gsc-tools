@@ -5,10 +5,10 @@ import { paletteKeys, cssVars, applyVars, DEFAULT_THEME } from './tokens.js';
 
 const KEYS = paletteKeys({ theme: DEFAULT_THEME, colors: {} });
 const LOGOS = {
-  default: ['Défaut', 'assets/c069bffefa.png'],
-  mono: ['Mono', 'assets/d9742f1219.png'],
-  white: ['Blanc', 'assets/4a5a41080e.png'],
-  negative: ['Négatif', 'assets/5ec5fb8b6a.png'],
+  default: ['Défaut', 'assets/logos/gsc/mono.png'],
+  mono: ['Mono', 'assets/logos/gsc/default.png'],
+  white: ['Blanc', 'assets/logos/gsc/white.png'],
+  negative: ['Négatif', 'assets/logos/gsc/negative.png'],
 };
 
 export const panelOpts = () => ({
@@ -81,7 +81,12 @@ export function renderPanel(o, v, repaint) {
       h(
         'div',
         { class: 'pp-tiles' },
-        h('div', { class: 'pp-tile on' }, h('img', { src: 'assets/Asset 1.svg', alt: '' }), h('span', { textContent: 'Par défaut' })),
+        h(
+          'div',
+          { class: 'pp-tile on' },
+          h('img', { src: 'assets/header/default/illustration.svg', alt: '' }),
+          h('span', { textContent: 'Par défaut' }),
+        ),
         h('button', { type: 'button', class: 'pp-tile pp-add' }, h('i', { class: 'ti ti-plus' }), h('span', { textContent: 'Ajouter' })),
       ),
       h('p', {
