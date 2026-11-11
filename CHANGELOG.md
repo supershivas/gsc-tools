@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.107.0 — 2026-11-11
+- Hiérarchie des lignes (niveaux 1 à 4, boutons ← → et Tab) dans le tableau de données de tous les types de dataviz ; seule la heatmap la dessine pour l'instant
+
 ## 1.106.0 — 2026-11-11
 - Dataviz à tableau (barres, courbes, heatmap) : bouton « Inverser lignes et colonnes » dans l'onglet Données (les libellés deviennent les noms de colonnes et inversement ; refusé si le résultat dépasse le nombre de colonnes permis ; masquage gardé, niveaux, types de ligne et groupes demandent confirmation)
 

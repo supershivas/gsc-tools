@@ -59,6 +59,16 @@ function rowFmtCols() {
   ];
 }
 
+/** Niveau d'une ligne de n'importe quel tableau de données : `row.level` 0 à 3 (absent = 0), libre quelles que soient les lignes voisines */
+const rowLevels = (rows) => ({
+  get: (i) => Math.max(0, Math.min(3, Math.round(+rows[i].level || 0))),
+  max: () => 3,
+  set: (i, l) => {
+    if (l > 0) rows[i].level = l;
+    else delete rows[i].level;
+  },
+});
+
 /* ---------- Adaptateur « libellé × séries » (barres, courbes…) ---------- */
 /** icons : bibliothèque d'icônes du document (ctxIcons) */
 export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
@@ -166,17 +176,8 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
           },
         }
       : null,
-    /* heatmap : niveau des lignes (0 = donnée principale … 3, affiché de 1 à 4), chaque ligne se règle librement */
-    levels: f.levels
-      ? {
-          get: (i) => Math.max(0, Math.min(3, Math.round(+rows[i].level || 0))),
-          max: () => 3,
-          set: (i, l) => {
-            if (l > 0) rows[i].level = l;
-            else delete rows[i].level;
-          },
-        }
-      : null,
+    /* niveau des lignes (0 = donnée principale … 3, affiché de 1 à 4), chaque ligne se règle librement ; seule la heatmap le dessine */
+    levels: rowLevels(rows),
     addRow: () => rows.push({ label: '', v: series.map(() => (blank ? null : 0)) }),
     delRow: (i) => {
       if (rows.length > 1) rows.splice(i, 1);
@@ -297,15 +298,27 @@ export function recordsAdapter(spec, obj, palOpts, icons) {
       if (rows.length > (spec.min || 1)) rows.splice(i, 1);
     },
     addCol: null,
+    levels: rowLevels(rows),
     load(m, head) {
       const body = head ? m.slice(1) : m;
+      /* une ligne de même premier champ garde son niveau */
+      const keep = new Map(rows.filter((r) => r.level).map((r) => [String(r[cols[0].k] ?? ''), r.level]));
       const idx = cols.map((c, j) => {
         if (!head) return j;
         const keys = [c.label, t(c.label), c.k].map((x) => x.toLowerCase());
         const n = m[0].findIndex((x) => keys.includes(String(x).toLowerCase()));
         return n < 0 ? j : n;
       });
-      rows.splice(0, rows.length, ...body.map((r) => Object.fromEntries(cols.map((c, j) => [c.k, conv(c, r[idx[j]] ?? c.def ?? '')]))));
+      rows.splice(
+        0,
+        rows.length,
+        ...body.map((r) => {
+          const o = Object.fromEntries(cols.map((c, j) => [c.k, conv(c, r[idx[j]] ?? c.def ?? '')])),
+            l = keep.get(String(o[cols[0].k] ?? ''));
+          if (l) o.level = l;
+          return o;
+        }),
+      );
     },
     numericCols: cols.map((c, j) => (c.t === 'number' ? j : -1)).filter((j) => j >= 0),
     toMatrix: () => [cols.map((c) => c.label), ...rows.map((r) => cols.map((c) => r[c.k] ?? ''))],
@@ -697,7 +710,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
   );
   table.append(h('thead', {}, head));
   const body = h('tbody');
-  const cell = (i, j) => {
+  const rawCell = (i, j) => {
     const c = ad.cols[j],
       v = ad.get(i, j);
     const common = { 'data-r': i, 'data-c': j };
@@ -807,42 +820,52 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
         rebuild();
       },
     });
-    if (j === 0 && ad.levels) {
-      /* niveau de la ligne : boutons de retrait, nom décalé dans le tableau */
-      const out = h(
-          'button',
-          {
-            type: 'button',
-            class: 'mini dg-lvl-btn',
-            title: t('Remonter d’un niveau (1 à 4)'),
-            'aria-label': t('Remonter d’un niveau'),
-            onclick: () => setLevel(i, ad.levels.get(i) - 1),
-          },
-          ico('indent-decrease'),
-        ),
-        inBtn = h(
-          'button',
-          {
-            type: 'button',
-            class: 'mini dg-lvl-btn',
-            title: t('Descendre d’un niveau (1 à 4)'),
-            'aria-label': t('Descendre d’un niveau'),
-            onclick: () => setLevel(i, ad.levels.get(i) + 1),
-          },
-          ico('indent-increase'),
-        );
-      lvlUps[i] = () => {
-        const l = ad.levels.get(i);
-        inp.style.paddingLeft = 8 + l * 14 + 'px';
-        inp.dataset.level = l;
-        inp.title = `${t('Niveau')} ${l + 1}`;
-        out.disabled = l <= 0;
-        inBtn.disabled = l >= ad.levels.max(i);
-      };
-      lvlUps[i]();
-      return h('td', {}, h('div', { class: 'dg-lvl' }, out, inBtn, inp));
-    }
     return h('td', {}, inp);
+  };
+  /* première colonne : niveau de la ligne (boutons de retrait, nom décalé), pour tous les types de dataviz */
+  const cell = (i, j) => {
+    const td = rawCell(i, j);
+    if (j !== 0 || !ad.levels) return td;
+    const field = td.querySelector('input, textarea');
+    const body = field && field.parentNode === td ? field : h('div', { class: 'dg-lvl-body' }, ...td.childNodes);
+    const out = h(
+        'button',
+        {
+          type: 'button',
+          class: 'mini dg-lvl-btn',
+          title: t('Remonter d’un niveau (1 à 4)'),
+          'aria-label': t('Remonter d’un niveau'),
+          onclick: () => setLevel(i, ad.levels.get(i) - 1),
+        },
+        ico('indent-decrease'),
+      ),
+      inBtn = h(
+        'button',
+        {
+          type: 'button',
+          class: 'mini dg-lvl-btn',
+          title: t('Descendre d’un niveau (1 à 4)'),
+          'aria-label': t('Descendre d’un niveau'),
+          onclick: () => setLevel(i, ad.levels.get(i) + 1),
+        },
+        ico('indent-increase'),
+      );
+    lvlUps[i] = () => {
+      const l = ad.levels.get(i);
+      if (field) {
+        field.style.paddingLeft = 8 + l * 14 + 'px';
+        field.dataset.level = l;
+        field.title = `${t('Niveau')} ${l + 1}`;
+      } else {
+        body.style.paddingLeft = l * 14 + 'px';
+        body.title = `${t('Niveau')} ${l + 1}`;
+      }
+      out.disabled = l <= 0;
+      inBtn.disabled = l >= ad.levels.max(i);
+    };
+    lvlUps[i]();
+    td.replaceChildren(h('div', { class: 'dg-lvl' }, out, inBtn, body));
+    return td;
   };
   /* niveau d'une ligne changé sur place (sans reconstruire le tableau : le focus reste) ; les lignes suivantes revoient leur maximum */
   const lvlUps = [];
