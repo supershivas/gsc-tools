@@ -4,12 +4,15 @@
    Cmd/Ctrl + P : fenêtre d'export PDF, partout (l'impression du navigateur ne donne pas le document).
    W : affiche / masque « Marges et espaces ».
    Alt (⌥) + N : nouvel onglet ; Alt (⌥) + W : fermer l'onglet. Ctrl/Cmd + T et + W sont réservés par Firefox et Chrome
-   (la page ne reçoit jamais ces touches) ; Alt + N / W ne correspondent à aucun menu de Firefox. Touche physique (`e.code`) :
-   sur Mac, ⌥ + lettre produit un autre caractère. AltGr (= Ctrl + Alt sous Windows) n'est pas concerné. */
+   (la page ne reçoit jamais ces touches) ; Alt + N / W ne correspondent à aucun menu de Firefox. Lettre selon la disposition du clavier (`letterOf` : `e.key`, AZERTY compris ;
+   repli sur `e.code` quand ⌥ produit un autre caractère sur Mac). AltGr (= Ctrl + Alt sous Windows) n'est pas concerné. */
+/** Lettre de la touche selon la disposition du clavier (AZERTY, QWERTY…) : le caractère produit s'il s'agit d'une lettre ;
+    sinon (Mac : ⌥ + lettre donne un autre caractère) la touche physique */
+const letterOf = (e) => (/^[a-z]$/i.test(e.key) ? e.key.toLowerCase() : /^Key[A-Z]$/.test(e.code) ? e.code.slice(3).toLowerCase() : '');
 export function initShortcuts(ctx, history, exporter, ws, spacing) {
-  /* W (sans modificateur) : affiche / masque « Marges et espaces » */
+  /* W (sans modificateur) : affiche / masque « Marges et espaces ». Caractère produit (`e.key`), pas touche physique : sur AZERTY, la touche W est ailleurs que sur QWERTY */
   window.addEventListener('keydown', (e) => {
-    if (e.code !== 'KeyW' || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.repeat || !spacing) return;
+    if (letterOf(e) !== 'w' || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.repeat || !spacing) return;
     const tag = e.target.tagName || '';
     if (
       /INPUT|TEXTAREA|SELECT/.test(tag) ||
@@ -22,11 +25,11 @@ export function initShortcuts(ctx, history, exporter, ws, spacing) {
     spacing.toggle();
   });
   window.addEventListener('keydown', (e) => {
-    if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || (e.code !== 'KeyN' && e.code !== 'KeyW')) return;
+    if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || (letterOf(e) !== 'n' && letterOf(e) !== 'w')) return;
     const tag = e.target.tagName || '';
     if (/INPUT|TEXTAREA|SELECT/.test(tag) || e.target.isContentEditable || ws.busy()) return;
     e.preventDefault();
-    if (e.code === 'KeyN') ws.newBlank();
+    if (letterOf(e) === 'n') ws.newBlank();
     else ws.close();
   });
   window.addEventListener('keydown', (e) => {

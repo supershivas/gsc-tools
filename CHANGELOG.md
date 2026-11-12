@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.116.2 — 2026-11-12
+- Raccourcis W, Alt + N et Alt + W : suivent la lettre du clavier (AZERTY compris)
+
 ## 1.116.1 — 2026-11-12
 - Factsheet creator : l'heure s'ajoute au nom des fichiers enregistrés ou exportés (titre_AAMMJJ_HHMM)
 

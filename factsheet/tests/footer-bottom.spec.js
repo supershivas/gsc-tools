@@ -63,3 +63,13 @@ test('touche W : marges et espaces', async ({ page }) => {
   await page.locator('body').press('w');
   await expect(page.locator('.sp-layer')).toHaveCount(0);
 });
+
+test('touche W : suit la lettre du clavier (AZERTY : W est ailleurs que sur QWERTY)', async ({ page }) => {
+  await load(page, ``);
+  const press = (key, code) =>
+    page.evaluate(([key, code]) => window.dispatchEvent(new KeyboardEvent('keydown', { key, code, bubbles: true })), [key, code]);
+  await press('z', 'KeyW'); // touche physique « W » d'un QWERTY, qui produit Z en AZERTY : rien
+  expect(await page.locator('.sp-layer').count()).toBe(0);
+  await press('w', 'KeyZ'); // la lettre W en AZERTY
+  await expect(page.locator('.sp-layer').first()).toBeVisible();
+});
