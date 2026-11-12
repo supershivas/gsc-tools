@@ -2,10 +2,25 @@
    Suppr / Retour arrière : supprime l'élément sélectionné.
    Cmd/Ctrl + Z : annuler ; + Maj (ou Ctrl + Y) : rétablir — un champ de saisie garde son propre annuler.
    Cmd/Ctrl + P : fenêtre d'export PDF, partout (l'impression du navigateur ne donne pas le document).
+   W : affiche / masque « Marges et espaces ».
    Alt (⌥) + N : nouvel onglet ; Alt (⌥) + W : fermer l'onglet. Ctrl/Cmd + T et + W sont réservés par Firefox et Chrome
    (la page ne reçoit jamais ces touches) ; Alt + N / W ne correspondent à aucun menu de Firefox. Touche physique (`e.code`) :
    sur Mac, ⌥ + lettre produit un autre caractère. AltGr (= Ctrl + Alt sous Windows) n'est pas concerné. */
-export function initShortcuts(ctx, history, exporter, ws) {
+export function initShortcuts(ctx, history, exporter, ws, spacing) {
+  /* W (sans modificateur) : affiche / masque « Marges et espaces » */
+  window.addEventListener('keydown', (e) => {
+    if (e.code !== 'KeyW' || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.repeat || !spacing) return;
+    const tag = e.target.tagName || '';
+    if (
+      /INPUT|TEXTAREA|SELECT/.test(tag) ||
+      e.target.isContentEditable ||
+      ws.busy() ||
+      document.querySelector('dialog[open], .ve, .v3d, .ce')
+    )
+      return;
+    e.preventDefault();
+    spacing.toggle();
+  });
   window.addEventListener('keydown', (e) => {
     if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || (e.code !== 'KeyN' && e.code !== 'KeyW')) return;
     const tag = e.target.tagName || '';

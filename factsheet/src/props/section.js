@@ -27,6 +27,7 @@ export function textColorCard(k, obj) {
 
 export function sectionPanel(k, { si, sec }) {
   const { doc, ctx, root, title, card, text, pair, swatches, switchRow, boxControls, sumColor, sumBox, struct } = k;
+  const isLast = doc.sections.filter((x) => x.page === sec.page).pop() === sec;
   const flip = (obj, key) => () => {
     obj[key] = obj[key] === false;
   };
@@ -57,6 +58,17 @@ export function sectionPanel(k, { si, sec }) {
       switchRow(t('Filet entre les sous-sections'), sec.subRules !== false, flip(sec, 'subRules')),
       sec.subRules !== false ? swatches('Couleur du filet', ruleColor, 'ruleColor', toneKeys(doc)) : null,
       pair('Page', sec, 'page', { recto: t('Recto'), verso: t('Verso') }, () => ctx.restructure()),
+      /* dernière section de sa page seulement */
+      ...(isLast
+        ? [
+            switchRow(t('Aligner en bas de la page'), !!sec.alignBottom, () => {
+              sec.alignBottom = !sec.alignBottom;
+            }),
+            sec.alignBottom
+              ? pair('Fond', sec, 'bottomFit', { fill: t('Toute la hauteur'), fit: t('Hauteur de la section') }, () => ctx.restructure())
+              : null,
+          ]
+        : []),
     ]),
     card(
       'sec-bg',

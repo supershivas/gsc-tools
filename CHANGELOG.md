@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.116.0 — 2026-11-12
+- Pied de page dans la marge basse de chaque page (un texte par page, style Source)
+- Dernière section d'une page : option « Aligner en bas de la page », fond sur toute la hauteur ou sur la hauteur de la section
+- Touche W : affiche ou masque les marges et espaces
+
 ## 1.115.5 — 2026-11-12
 - Filet entre deux sections : espace au-dessus (15 / 18 / 24) et sous le filet (18 / 24 / 30) selon la densité
 

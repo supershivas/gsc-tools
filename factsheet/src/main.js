@@ -242,7 +242,7 @@ window.FS_READY = (async () => {
   };
   tabsUi = createTabsUi(ws, document.getElementById('fsTabs'));
   ws.loadRecents();
-  initShortcuts(ctx, history, exporter, ws);
+  initShortcuts(ctx, history, exporter, ws, spacing);
   const langSel = initLang(ctx);
   declareMenus({ ctx, history, historyUi, preview, spacing, hand, project, exporter, langSel, ws });
 

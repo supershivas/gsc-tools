@@ -3,6 +3,8 @@
   font-family:var(--t-body-family);font-size:var(--t-body-size);line-height:var(--t-body-lh);font-weight:var(--t-body-weight);
   -webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
 .page *{box-sizing:border-box}
+.page-footer{position:absolute;left:var(--margin);right:var(--margin);bottom:12px;font-family:var(--t-source-family);font-size:var(--t-source-size);line-height:var(--t-source-lh);font-weight:var(--t-source-weight);font-style:italic;white-space:pre-line}
+.sec.sec-bottom{display:flex;flex-direction:column;justify-content:flex-end}
 .content{position:absolute;left:0;right:0;display:flex;flex-direction:column}
 .sec{padding-left:var(--margin);padding-right:var(--margin);position:relative}
 .sec-rule{position:absolute;left:0;right:0;height:0;border-top:var(--stroke) solid var(--rule);pointer-events:none}

@@ -8,7 +8,7 @@ import { withAssets, logoFamilies, logoVariantOf } from '../assetlib.js';
 import { assetBrowser, assetDialog, localEntries } from './assetgrid.js';
 
 export function documentPanel(k) {
-  const { doc, ctx, root, title, card, field, pair, switchRow, struct } = k;
+  const { doc, ctx, root, title, card, field, pair, switchRow, struct, text } = k;
   const toggle = (key) => () => {
     doc[key] = !doc[key];
   };
@@ -122,6 +122,18 @@ export function documentPanel(k) {
       ],
       null,
       doc.name || '',
+    ),
+    card(
+      'doc-footer',
+      'layout-bottombar',
+      t('Pied de page'),
+      [
+        text(doc.footer, 'recto', 'Pied de page du recto'),
+        text(doc.footer, 'verso', 'Pied de page du verso'),
+        h('p', { class: 'hint', textContent: t('Dans la marge basse de chaque page, au style Source. Vide = pas de pied de page.') }),
+      ],
+      null,
+      [doc.footer.recto, doc.footer.verso].some((x) => x && x.trim()) ? t('Défini') : t('Aucun'),
     ),
     card('doc-colors', 'palette', t('Couleurs du document'), [paletteBox()]),
     card('doc-images', 'photos', t('Images du document'), [imagesBox()]),

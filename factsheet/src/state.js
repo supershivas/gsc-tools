@@ -135,6 +135,7 @@ export function defaultDoc() {
     name: 'factsheet',
     locale: 'en-GB',
     density: 'normal',
+    footer: { recto: '', verso: '' }, // pied de page (style Source) dans la marge basse de chaque page
     theme: DEFAULT_THEME,
     colors: {},
     colorNames: {},
@@ -209,6 +210,8 @@ export function migrate(j) {
   const d = Object.assign(defaultDoc(), j);
   /* icônes importées : anciennes icônes propres à une dataviz → bibliothèque du document */
   d.customIcons = Array.isArray(j.customIcons) ? j.customIcons : [];
+  const ft = j.footer && typeof j.footer === 'object' ? j.footer : {};
+  d.footer = { recto: typeof ft.recto === 'string' ? ft.recto : '', verso: typeof ft.verso === 'string' ? ft.verso : '' };
   /* identifiant stable du fichier (espace de travail : un fichier déjà ouvert bascule sur son onglet ; fichiers récents) */
   if (typeof d.fileId !== 'string' || !d.fileId) d.fileId = uid('f');
   /* ancien texte libre de colonne (col.free) → textes libres positionnables (col.texts) */

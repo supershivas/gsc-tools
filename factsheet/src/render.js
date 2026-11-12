@@ -447,10 +447,17 @@ function renderSection(sec, si, env, pos) {
     style.paddingTop = (pos.first ? firstGap : gap.bandPad) + 'px';
     style.paddingBottom = (pos.last ? PAGE.marginBottom : gap.bandPad) + 'px';
   }
-  const cls = ['sec', band && 'sec-band', pos.first && 'sec-first', pos.last && 'sec-last', sec.subRules === false && 'sec-norules']
+  const cls = [
+    'sec',
+    band && 'sec-band',
+    pos.first && 'sec-first',
+    pos.last && 'sec-last',
+    sec.subRules === false && 'sec-norules',
+    pos.last && sec.alignBottom && 'sec-bottom',
+  ]
     .filter(Boolean)
     .join(' ');
-  const el = h('section', { class: cls, style, dataset: { sel: `sec:${si}` } });
+  const el = h('section', { class: cls, style, dataset: { sel: `sec:${si}`, ...(sec.bottomFit === 'fit' ? { bottomFit: '1' } : {}) } });
   el.style.setProperty('--rule', `var(--c-${sec.ruleColor || defaultRuleColor(sec)})`);
   applyFg(el, sec);
   /* filet entre sections (vrai élément : l'export PDF le lit) : à `sectionRuleBelow` au-dessus du titre entre deux sections sur fond blanc, ou à la jonction de deux bandes de couleur ;
@@ -490,6 +497,13 @@ export function renderDocument(doc) {
       ),
     );
     page.append(content);
+    const ft = String((doc.footer && doc.footer[key]) || '').trim();
+    if (ft) {
+      const fe = h('div', { class: 'page-footer', innerHTML: inline(ft, env) });
+      const ls = list.length && list[list.length - 1].s;
+      if (ls && isBand(ls)) applyFg(fe, ls); // sur la dernière bande, le pied de page prend la couleur de son texte
+      page.append(fe);
+    }
     const lastBand = list.length && isBand(list[list.length - 1].s);
     pages.push({ el: page, key, content, top, lastBand, max: PAGE.h - top - (lastBand ? 0 : PAGE.marginBottom) });
   }
@@ -595,8 +609,17 @@ export function measure(result) {
         `${p.key === 'recto' ? 'Recto' : 'Verso'} : le contenu dépasse de ${Math.ceil(p.used - p.max)} px — déplacez une section vers l’autre page ou raccourcissez-la.`,
       );
     // le dernier fond de la page descend jusqu'au bas de page (et au fond perdu à l'export)
-    const last = p.content.querySelector('.sec-last.sec-band');
-    if (last) last.style.minHeight = Math.max(0, PAGE.h - p.top - last.offsetTop) + 'px';
+    const last = p.content.querySelector('.sec-last');
+    const lastIsBand = last && last.classList.contains('sec-band');
+    if (last && last.classList.contains('sec-bottom') && !p.overflow) {
+      /* « aligner en bas de la page » : le contenu s'arrête au-dessus de la marge basse. Fond sur toute la hauteur disponible (`bottomFit` faux)
+         ou seulement sur la hauteur de la section, qui descend alors en bas de page (marge ajoutée au-dessus) */
+      const bottom = lastIsBand ? PAGE.h - p.top : p.max,
+        fit = last.dataset.bottomFit === '1';
+      if (fit)
+        last.style.marginTop = (parseFloat(last.style.marginTop) || 0) + Math.max(0, bottom - (last.offsetTop + last.offsetHeight)) + 'px';
+      else last.style.minHeight = Math.max(0, bottom - last.offsetTop) + 'px';
+    } else if (lastIsBand) last.style.minHeight = Math.max(0, PAGE.h - p.top - last.offsetTop) + 'px';
     if (p.overflow) {
       /* sections qui sortent de la limite : 'out' = entièrement au-delà, 'cut' = coupée par la limite */
       const secs = [];

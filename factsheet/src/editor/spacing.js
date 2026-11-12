@@ -19,7 +19,7 @@ export function createSpacing(ctx) {
   };
   const spToggle = h(
     'button',
-    { type: 'button', class: 'sp-toggle', title: t('Marges et espaces'), 'aria-pressed': 'false', onclick: toggle },
+    { type: 'button', class: 'sp-toggle', title: t('Marges et espaces') + ' (W)', 'aria-pressed': 'false', onclick: toggle },
     ico('ruler-measure'),
     h('span', { textContent: t('Marges et espaces') }),
   );
