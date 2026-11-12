@@ -220,6 +220,8 @@ const EN = {
   'Largeur (%)': 'Width (%)',
   'Y (px)': 'Y (px)',
   'Chiffre clé (petit)': 'Key figure (small)',
+  'Hauteur du cadre ajustée au contenu': 'Fit box height to content',
+  'Hauteur du cadre (px)': 'Box height (px)',
   'Position de la légende (« Dans les barres » : noms des séries écrits dans chaque barre, sans légende séparée)':
     'Legend position (“Inside the bars”: series names written in each bar, no separate legend)',
   'Style de paragraphe': 'Paragraph style',

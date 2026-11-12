@@ -1,7 +1,7 @@
 {
-  "version": "1.115.1",
+  "version": "1.115.2",
   "date": "2026-11-12",
   "changes": [
-    "Chiffre clé avec contour : la hauteur du cadre s'adapte au contenu"
+    "Chiffre clé avec contour : interrupteur « Hauteur du cadre ajustée au contenu », sinon hauteur saisie en pixels"
   ]
 }

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.115.2 — 2026-11-12
+- Chiffre clé avec contour : interrupteur « Hauteur du cadre ajustée au contenu », sinon hauteur saisie en pixels
+
 ## 1.115.1 — 2026-11-12
 - Chiffre clé avec contour : la hauteur du cadre s'adapte au contenu
 
