@@ -1,5 +1,5 @@
 {
-  "version": "1.113.0",
+  "version": "1.114.0",
   "date": "2026-11-12",
   "changes": [
     "Éditeur de tableau : glisser-déposer des lignes et des colonnes pour les réordonner, dupliquer, répartir uniformément",

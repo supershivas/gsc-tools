@@ -5,12 +5,14 @@
      sélectionnée en entier par son en-tête) ; réglages du tableau : alternance, en-tête, pied.
    - Contours : sélecteur d'arêtes (schéma cliquable) ; avec une sélection, il écrit des surcharges `tb.edges` sur les arêtes de la
      sélection ; sans sélection, il règle `tb.look`. Épaisseur, couleur, style : le retour est immédiat dans le rendu.
+   - Texte : style de paragraphe, couleur du texte, alignement vertical, marges intérieures, colonne numérique, sur la sélection.
    - Préréglages : vignettes ; le texte et les fusions sont gardés, les surcharges d'arêtes oubliées après confirmation. */
 import { h, ico } from '../render.js';
 import { t } from '../i18n.js';
 import { s } from '../viz/util.js';
 import { colorSelect } from '../colorselect.js';
 import { toneKeys, colorLabel } from '../tokens.js';
+import { styleOf as paraStyle } from '../textstyles.js';
 import { confirmBox } from '../dialogs.js';
 import {
   TABLE_PRESETS,
@@ -30,6 +32,9 @@ import {
   footCount,
   setHeadRows,
   setFootRows,
+  CELL_STYLES,
+  PADS,
+  setNumCols,
 } from './model.js';
 import { selRect } from './grid-ui.js';
 
@@ -495,7 +500,94 @@ export function createStylePanel({ getTable, getSel, getDoc, commit }) {
     commit();
   }
 
-  const cards = [fillCard, edgeCard, presetCard];
+  /* ---------- Texte ---------- */
+  /** Valeur commune d'une propriété sur la sélection, ou null si elles diffèrent */
+  const common = (group, get) => (group.length && group.every((cl) => get(cl) === get(group[0])) ? get(group[0]) : null);
+  const textCard = makeCard('Texte', 'text', () => {
+    const T = tb(),
+      R = selRect(T, getSel()),
+      group = R ? cellsIn(R) : [];
+    const st = common(group, (cl) => cl.st || 'body'),
+      fg = common(group, (cl) => cl.fg || 'none'),
+      av = common(group, (cl) => cl.av || 'top'),
+      pad = common(group, (cl) => cl.pad || 'normal');
+    const cols = R ? T.cols.slice(R.c0, R.c1 + 1) : [],
+      numeric = cols.length > 0 && cols.every((c) => c.num);
+    const put = (k, v, def) => change(() => group.forEach((cl) => (v === def ? delete cl[k] : (cl[k] = v))));
+    return {
+      sig: [R, st, fg, av, pad, numeric, getDoc().colors, group.length],
+      draw: () =>
+        !R
+          ? [h('p', { class: 'hint', textContent: t('Sélectionnez des cellules pour régler leur texte.') })]
+          : [
+              block(
+                t('Style de paragraphe'),
+                h(
+                  'select',
+                  {
+                    'aria-label': t('Style de paragraphe'),
+                    dataset: { k: 'cellstyle' },
+                    onchange: (e) => put('st', e.target.value, 'body'),
+                  },
+                  st === null ? h('option', { value: '', textContent: t('Plusieurs styles'), selected: true, disabled: true }) : null,
+                  CELL_STYLES.map((k) => h('option', { value: k, textContent: t(paraStyle(k).n), selected: k === st })),
+                ),
+              ),
+              block(
+                t('Couleur du texte'),
+                picker(fg === null ? 'none' : fg, { none: 'Défaut', ...palette() }, (v) => put('fg', v, 'none'), 'fg'),
+              ),
+              block(
+                t('Alignement vertical'),
+                segment(
+                  [
+                    ['top', 'Haut', 'align-box-top-center'],
+                    ['center', 'Milieu', 'align-box-center-middle'],
+                    ['bottom', 'Bas', 'align-box-bottom-center'],
+                  ],
+                  av,
+                  (v) => put('av', v, 'top'),
+                  'Alignement vertical',
+                  { seg: 'av' },
+                ),
+              ),
+              block(
+                t('Marges intérieures'),
+                segment(
+                  Object.keys(PADS).map((k) => [
+                    k,
+                    t({ none: 'Aucune', tight: 'Serrées', normal: 'Normales', roomy: 'Aérées', wide: 'Larges' }[k]),
+                  ]),
+                  pad,
+                  (v) => put('pad', v, 'normal'),
+                  'Marges intérieures',
+                  { seg: 'pad' },
+                ),
+              ),
+              block(
+                t('Colonnes numériques'),
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    class: 'te-act' + (numeric ? ' on' : ''),
+                    'aria-pressed': String(numeric),
+                    dataset: { k: 'numcol', act: 'numcol' },
+                    onclick: () => change(() => setNumCols(T, R.c0, R.c1, !numeric)),
+                  },
+                  ico('numbers'),
+                  h('span', { textContent: t(numeric ? 'Colonne numérique' : 'Rendre numérique') }),
+                ),
+                h('p', {
+                  class: 'hint',
+                  textContent: t('Chiffres de largeur fixe, alignés à droite (sauf alignement choisi cellule par cellule).'),
+                }),
+              ),
+            ],
+    };
+  });
+
+  const cards = [fillCard, textCard, edgeCard, presetCard];
   let lastSel = null;
   function syncAll() {
     /* la sélection a changé : le réglage de trait reprend ce qui est posé sur les côtés choisis */

@@ -4,7 +4,7 @@
    Tout est un vrai élément HTML/SVG : l'export PDF et l'aperçu 3D le lisent tels quels. */
 import { h, richText } from '../render.js';
 import { s } from '../viz/util.js';
-import { fillOf, fgOf, headCount, tableSegments } from './model.js';
+import { fillOf, fgOf, headCount, tableSegments, padOf, ahOf, isNumCol } from './model.js';
 import { prefixOf, parseLine } from '../textstyles.js';
 
 const PX = 96 / 72; // pt → px
@@ -32,19 +32,21 @@ export function renderTable(tb, env) {
   for (const cl of tb.cells) {
     const kind = (tb.rows[cl.r] || {}).kind,
       fill = fillOf(tb, cl),
-      fg = fgOf(tb, cl);
+      fg = fgOf(tb, cl),
+      [py, px] = padOf(cl);
     const el = h(
       'div',
       {
-        class: 'tbl-cell' + (kind === 'head' ? ' tbl-head' : kind === 'foot' ? ' tbl-foot' : ''),
+        class: 'tbl-cell' + (isNumCol(tb, cl.c) ? ' tbl-num' : '') + (kind === 'head' ? ' tbl-head' : kind === 'foot' ? ' tbl-foot' : ''),
         style: {
           gridRow: `${cl.r + 1} / span ${cl.rs}`,
           gridColumn: `${cl.c + 1} / span ${cl.cs}`,
           justifyContent: AV[cl.av] || AV.top,
+          ...(cl.pad && cl.pad !== 'normal' ? { padding: `${py}px ${px}px`, minHeight: `calc(var(--t-small-lh) + ${2 * py}px)` } : {}),
         },
         dataset: { cell: cl.id },
       },
-      richText(styled(cl.text, cl.st), cl.ah || 'left', null, env),
+      richText(styled(cl.text, cl.st), ahOf(tb, cl), null, env),
     );
     if (fill !== 'none') el.style.background = `var(--c-${fill})`;
     if (fg !== 'none') {

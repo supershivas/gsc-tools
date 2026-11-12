@@ -192,7 +192,13 @@ window.FS_READY = (async () => {
       const doc = ctx.getDoc(),
         sec = doc.sections.find((x) => x.subs.includes(sub));
       if (!sec || ws.busy()) return;
-      openTableEditor({ col, bg: sec.bg, width: columnWidth(doc, doc.sections.indexOf(sec), sec.subs.indexOf(sub), ci), ctx });
+      openTableEditor({
+        col,
+        bg: sec.bg,
+        width: columnWidth(doc, doc.sections.indexOf(sec), sec.subs.indexOf(sub), ci),
+        ctx,
+        fileStem: (x) => exporter.fileStem(x),
+      });
     },
   };
 

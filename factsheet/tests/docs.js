@@ -176,6 +176,31 @@ export function docTableStyle() {
   return d;
 }
 
+/** Tableau (phase 4) : styles de paragraphe, couleur du texte, marges, alignements et une colonne numérique. */
+export function docTableText() {
+  const d = defaultDoc();
+  d.name = 'tableau-texte';
+  const tb = newTable(4, 3, 1);
+  applyPreset(tb, 'rules');
+  const at = (r, c) => tb.cells.find((x) => x.r === r && x.c === c);
+  ['Item', 'Label', 'Amount'].forEach((v, c) => (at(0, c).text = v));
+  Object.assign(at(1, 0), { text: 'Quoted', st: 'quote' });
+  Object.assign(at(1, 1), { text: 'Tiny', st: 'label', fg: 'blue', pad: 'wide', av: 'center' });
+  at(1, 2).text = '1 025,5';
+  at(2, 2).text = '12,25';
+  Object.assign(at(3, 0), { text: 'Big', st: 'figsm', pad: 'none' });
+  at(3, 2).text = '3';
+  tb.cols[2].num = true;
+  const sec = newSection('recto');
+  sec.title = 'Text table';
+  const a = newSub('1');
+  a.title = 'Cell text';
+  a.cols = [{ ...newCol('table'), table: tb }];
+  sec.subs = [a];
+  d.sections = [sec, ...d.sections.filter((x) => x.page === 'verso').slice(0, 1)];
+  return d;
+}
+
 export const DOCS = {
   ui: docUi,
   default: docDefault,
@@ -185,5 +210,6 @@ export const DOCS = {
   'iso-loose': docIsoLoose,
   table: docTable,
   'table-style': docTableStyle,
+  'table-text': docTableText,
 };
 export const DOC_NAMES = Object.keys(DOCS);
