@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.115.4 — 2026-11-12
+- Chiffre clé avec cadre : l'alignement vertical place de nouveau le cadre en haut, au centre ou en bas de la rangée
+
 ## 1.115.3 — 2026-11-12
 - Chiffre clé : l'interrupteur « Hauteur ajustée au contenu » passe dans la carte Hauteur ; éteint, on saisit la hauteur en pixels
 

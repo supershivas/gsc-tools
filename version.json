@@ -1,7 +1,7 @@
 {
-  "version": "1.115.3",
+  "version": "1.115.4",
   "date": "2026-11-12",
   "changes": [
-    "Chiffre clé : l'interrupteur « Hauteur ajustée au contenu » passe dans la carte Hauteur ; éteint, on saisit la hauteur en pixels"
+    "Chiffre clé avec cadre : l'alignement vertical place de nouveau le cadre en haut, au centre ou en bas de la rangée"
   ]
 }

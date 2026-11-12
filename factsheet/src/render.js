@@ -269,6 +269,7 @@ function renderCol(col, w, path, env) {
     strokeStyle(wrap)(col);
     wrap.style.justifyContent = { start: 'flex-start', center: 'center', end: 'flex-end' }[al];
     w = insetW(w, col);
+    if (col.type === 'figure') wrap.style.alignSelf = al; // cadre ajusté au contenu : c'est le cadre qui se place (haut, centre, bas) dans la rangée
   } else wrap.style.alignSelf = al;
   const strip = (x) =>
     stripInline(x)
@@ -349,7 +350,7 @@ function renderCol(col, w, path, env) {
       minHeight: col.minH + 'px',
       display: 'flex',
       flexDirection: 'column',
-      alignSelf: isBox(col) && col.type !== 'figure' ? 'stretch' : 'start', // chiffre clé : jamais étiré à la rangée, seulement à sa hauteur réglée
+      alignSelf: col.type === 'figure' ? al : isBox(col) ? 'stretch' : 'start', // chiffre clé : jamais étiré à la rangée, le cadre se place selon valign
       justifyContent: { start: 'flex-start', center: 'center', end: 'flex-end' }[al],
     });
   }
