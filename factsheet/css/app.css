@@ -203,8 +203,8 @@ body.ve-open{overflow:hidden}
 .te-cur{position:absolute;pointer-events:none!important;outline:2px solid var(--handle);outline-offset:-1px}
 .te-holder .tbl-cell{cursor:cell}
 .te-edit{outline:none;cursor:text;min-height:1em}
-.te-card{margin:0 0 16px}
-.te-card h3{margin:0 0 8px;font-size:var(--fs-xs);letter-spacing:.08em;text-transform:uppercase;color:var(--ui-mute)}
+.te-card{margin:0 0 8px}
+.te-duo{grid-template-columns:1fr 1fr}
 .te-where{display:block;margin-bottom:8px;font-size:var(--fs-md)}
 .te-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
 .te-col{display:grid;gap:6px}

@@ -433,6 +433,7 @@ const EN = {
   'Afficher les propriétés': 'Show properties',
   Colonne: 'Column',
   'Dataviz…': 'Dataviz…',
+  'Tableau…': 'Table…',
   Monter: 'Move up',
   Descendre: 'Move down',
   'Sans fond': 'No background',

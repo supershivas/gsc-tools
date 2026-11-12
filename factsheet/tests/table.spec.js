@@ -313,7 +313,7 @@ test('PDF : traits fins, tirets et fonds exportés dans l’espace de couleur du
 test('propriétés : nombre de lignes, en-tête et préréglage', async ({ page }) => {
   const errors = watchErrors(page);
   await openApp(page, 'table');
-  await page.locator('#stage [data-sel="col:0:1:1"] .tbl-cell').first().click();
+  await page.locator('#stage [data-sel="col:0:1:1"] .tbl-cell').last().click();
   const rows = page.locator('.panel label.f', { hasText: /^Rows/ }).locator('input');
   await rows.fill('6');
   await rows.press('Enter');

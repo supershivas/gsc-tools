@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.115.0 — 2026-11-12
+- Tableau : petit bouton « Tableau… » dans la barre au survol du bloc, comme pour les dataviz
+- Éditeur de tableau : options de la barre latérale rangées en cartes repliables (Sélection, Texte, Remplissage, Contours, Préréglages, Lignes, Colonnes, Fichier)
+
 ## 1.114.0 — 2026-11-12
 - Éditeur de tableau : glisser-déposer des lignes et des colonnes pour les réordonner, dupliquer, répartir uniformément
 - Ajustement des colonnes au contenu, avertissement de colonne trop étroite et de tableau plus haut qu'une page

@@ -143,9 +143,9 @@ export function createStylePanel({ getTable, getSel, getDoc, commit }) {
   const block = (label, ...kids) => h('div', { class: 'te-blk' }, h('div', { class: 'hint', textContent: label }), ...kids);
 
   /* ---------- cartes : reconstruites seulement quand ce qu'elles montrent change, le focus est gardé ---------- */
-  function makeCard(title, key, build) {
-    const body = h('div', { class: 'te-cardbody' });
-    const node = h('section', { class: 'te-card', dataset: { card: key } }, h('h3', { textContent: title }), body);
+  function makeCard(title, key, build, open = true) {
+    const body = h('div', { class: 'body te-cardbody' });
+    const node = h('details', { class: 'te-card', open, dataset: { card: key } }, h('summary', { textContent: title }), body);
     return {
       node,
       sync() {
@@ -210,62 +210,67 @@ export function createStylePanel({ getTable, getSel, getDoc, commit }) {
     T.look[k] = v;
     T.look.preset = 'custom';
   };
-  const fillCard = makeCard('Remplissage', 'fill', () => {
-    const T = tb(),
-      tg = fillTarget();
-    const sig = [tg && [tg.kind, tg.label, ownFill(tg)], T.look, headCount(T), footCount(T), T.rows.length, getDoc().colors];
-    return {
-      sig,
-      draw: () => [
-        block(
-          tg ? tg.label : t('Aucune cellule'),
-          tg
-            ? picker(ownFill(tg), fillOptions(), (v) => change(() => setFill(tg, v)), 'fill')
-            : h('p', {
-                class: 'hint',
-                textContent: t('Sélectionnez des cellules, une ligne ou une colonne (par son en-tête) pour la colorer.'),
-              }),
-        ),
-        h('div', { class: 'hint te-prio', textContent: t('Priorité : cellule, puis ligne, colonne, alternance, en-tête.') }),
-        block(
-          t('Alternance des lignes'),
-          picker(look('stripe'), fillOptions(), (v) => change(() => setLook('stripe', v)), 'stripe'),
-        ),
-        block(
-          t('Lignes d’en-tête'),
-          segment(
-            Array.from({ length: HEAD_MAX + 1 }, (_, i) => [i, String(i)]),
-            headCount(T),
-            (n) => change(() => setHeadRows(T, +n)),
-            'Lignes d’en-tête',
-            { seg: 'head' },
+  const fillCard = makeCard(
+    'Remplissage',
+    'fill',
+    () => {
+      const T = tb(),
+        tg = fillTarget();
+      const sig = [tg && [tg.kind, tg.label, ownFill(tg)], T.look, headCount(T), footCount(T), T.rows.length, getDoc().colors];
+      return {
+        sig,
+        draw: () => [
+          block(
+            tg ? tg.label : t('Aucune cellule'),
+            tg
+              ? picker(ownFill(tg), fillOptions(), (v) => change(() => setFill(tg, v)), 'fill')
+              : h('p', {
+                  class: 'hint',
+                  textContent: t('Sélectionnez des cellules, une ligne ou une colonne (par son en-tête) pour la colorer.'),
+                }),
           ),
-        ),
-        block(
-          t('Fond de l’en-tête'),
-          picker(look('headFill'), fillOptions(), (v) => change(() => setLook('headFill', v)), 'headFill'),
-        ),
-        block(
-          t('Texte de l’en-tête'),
-          picker(look('headFg'), { none: 'Auto', ...textOptions() }, (v) => change(() => setLook('headFg', v)), 'headFg'),
-        ),
-        block(
-          t('Lignes de pied'),
-          segment(
-            Array.from({ length: FOOT_MAX + 1 }, (_, i) => [i, String(i)]),
-            footCount(T),
-            (n) => change(() => setFootRows(T, +n)),
-            'Lignes de pied',
-            { seg: 'foot' },
+          h('div', { class: 'hint te-prio', textContent: t('Priorité : cellule, puis ligne, colonne, alternance, en-tête.') }),
+          block(
+            t('Alternance des lignes'),
+            picker(look('stripe'), fillOptions(), (v) => change(() => setLook('stripe', v)), 'stripe'),
           ),
-        ),
-        block(
-          t('Fond du pied'),
-          picker(look('footFill'), fillOptions(), (v) => change(() => setLook('footFill', v)), 'footFill'),
-        ),
-      ],
-    };
-  });
+          block(
+            t('Lignes d’en-tête'),
+            segment(
+              Array.from({ length: HEAD_MAX + 1 }, (_, i) => [i, String(i)]),
+              headCount(T),
+              (n) => change(() => setHeadRows(T, +n)),
+              'Lignes d’en-tête',
+              { seg: 'head' },
+            ),
+          ),
+          block(
+            t('Fond de l’en-tête'),
+            picker(look('headFill'), fillOptions(), (v) => change(() => setLook('headFill', v)), 'headFill'),
+          ),
+          block(
+            t('Texte de l’en-tête'),
+            picker(look('headFg'), { none: 'Auto', ...textOptions() }, (v) => change(() => setLook('headFg', v)), 'headFg'),
+          ),
+          block(
+            t('Lignes de pied'),
+            segment(
+              Array.from({ length: FOOT_MAX + 1 }, (_, i) => [i, String(i)]),
+              footCount(T),
+              (n) => change(() => setFootRows(T, +n)),
+              'Lignes de pied',
+              { seg: 'foot' },
+            ),
+          ),
+          block(
+            t('Fond du pied'),
+            picker(look('footFill'), fillOptions(), (v) => change(() => setLook('footFill', v)), 'footFill'),
+          ),
+        ],
+      };
+    },
+    true,
+  );
 
   /* ---------- Contours ---------- */
   const mode = () => (selRect(tb(), getSel()) ? 'edges' : 'look');
@@ -503,89 +508,94 @@ export function createStylePanel({ getTable, getSel, getDoc, commit }) {
   /* ---------- Texte ---------- */
   /** Valeur commune d'une propriété sur la sélection, ou null si elles diffèrent */
   const common = (group, get) => (group.length && group.every((cl) => get(cl) === get(group[0])) ? get(group[0]) : null);
-  const textCard = makeCard('Texte', 'text', () => {
-    const T = tb(),
-      R = selRect(T, getSel()),
-      group = R ? cellsIn(R) : [];
-    const st = common(group, (cl) => cl.st || 'body'),
-      fg = common(group, (cl) => cl.fg || 'none'),
-      av = common(group, (cl) => cl.av || 'top'),
-      pad = common(group, (cl) => cl.pad || 'normal');
-    const cols = R ? T.cols.slice(R.c0, R.c1 + 1) : [],
-      numeric = cols.length > 0 && cols.every((c) => c.num);
-    const put = (k, v, def) => change(() => group.forEach((cl) => (v === def ? delete cl[k] : (cl[k] = v))));
-    return {
-      sig: [R, st, fg, av, pad, numeric, getDoc().colors, group.length],
-      draw: () =>
-        !R
-          ? [h('p', { class: 'hint', textContent: t('Sélectionnez des cellules pour régler leur texte.') })]
-          : [
-              block(
-                t('Style de paragraphe'),
-                h(
-                  'select',
-                  {
-                    'aria-label': t('Style de paragraphe'),
-                    dataset: { k: 'cellstyle' },
-                    onchange: (e) => put('st', e.target.value, 'body'),
-                  },
-                  st === null ? h('option', { value: '', textContent: t('Plusieurs styles'), selected: true, disabled: true }) : null,
-                  CELL_STYLES.map((k) => h('option', { value: k, textContent: t(paraStyle(k).n), selected: k === st })),
+  const textCard = makeCard(
+    'Texte',
+    'text',
+    () => {
+      const T = tb(),
+        R = selRect(T, getSel()),
+        group = R ? cellsIn(R) : [];
+      const st = common(group, (cl) => cl.st || 'body'),
+        fg = common(group, (cl) => cl.fg || 'none'),
+        av = common(group, (cl) => cl.av || 'top'),
+        pad = common(group, (cl) => cl.pad || 'normal');
+      const cols = R ? T.cols.slice(R.c0, R.c1 + 1) : [],
+        numeric = cols.length > 0 && cols.every((c) => c.num);
+      const put = (k, v, def) => change(() => group.forEach((cl) => (v === def ? delete cl[k] : (cl[k] = v))));
+      return {
+        sig: [R, st, fg, av, pad, numeric, getDoc().colors, group.length],
+        draw: () =>
+          !R
+            ? [h('p', { class: 'hint', textContent: t('Sélectionnez des cellules pour régler leur texte.') })]
+            : [
+                block(
+                  t('Style de paragraphe'),
+                  h(
+                    'select',
+                    {
+                      'aria-label': t('Style de paragraphe'),
+                      dataset: { k: 'cellstyle' },
+                      onchange: (e) => put('st', e.target.value, 'body'),
+                    },
+                    st === null ? h('option', { value: '', textContent: t('Plusieurs styles'), selected: true, disabled: true }) : null,
+                    CELL_STYLES.map((k) => h('option', { value: k, textContent: t(paraStyle(k).n), selected: k === st })),
+                  ),
                 ),
-              ),
-              block(
-                t('Couleur du texte'),
-                picker(fg === null ? 'none' : fg, { none: 'Défaut', ...palette() }, (v) => put('fg', v, 'none'), 'fg'),
-              ),
-              block(
-                t('Alignement vertical'),
-                segment(
-                  [
-                    ['top', 'Haut', 'align-box-top-center'],
-                    ['center', 'Milieu', 'align-box-center-middle'],
-                    ['bottom', 'Bas', 'align-box-bottom-center'],
-                  ],
-                  av,
-                  (v) => put('av', v, 'top'),
-                  'Alignement vertical',
-                  { seg: 'av' },
+                block(
+                  t('Couleur du texte'),
+                  picker(fg === null ? 'none' : fg, { none: 'Défaut', ...palette() }, (v) => put('fg', v, 'none'), 'fg'),
                 ),
-              ),
-              block(
-                t('Marges intérieures'),
-                segment(
-                  Object.keys(PADS).map((k) => [
-                    k,
-                    t({ none: 'Aucune', tight: 'Serrées', normal: 'Normales', roomy: 'Aérées', wide: 'Larges' }[k]),
-                  ]),
-                  pad,
-                  (v) => put('pad', v, 'normal'),
-                  'Marges intérieures',
-                  { seg: 'pad' },
+                block(
+                  t('Alignement vertical'),
+                  segment(
+                    [
+                      ['top', 'Haut', 'align-box-top-center'],
+                      ['center', 'Milieu', 'align-box-center-middle'],
+                      ['bottom', 'Bas', 'align-box-bottom-center'],
+                    ],
+                    av,
+                    (v) => put('av', v, 'top'),
+                    'Alignement vertical',
+                    { seg: 'av' },
+                  ),
                 ),
-              ),
-              block(
-                t('Colonnes numériques'),
-                h(
-                  'button',
-                  {
-                    type: 'button',
-                    class: 'te-act' + (numeric ? ' on' : ''),
-                    'aria-pressed': String(numeric),
-                    dataset: { k: 'numcol', act: 'numcol' },
-                    onclick: () => change(() => setNumCols(T, R.c0, R.c1, !numeric)),
-                  },
-                  ico('numbers'),
-                  h('span', { textContent: t(numeric ? 'Colonne numérique' : 'Rendre numérique') }),
+                block(
+                  t('Marges intérieures'),
+                  segment(
+                    Object.keys(PADS).map((k) => [
+                      k,
+                      t({ none: 'Aucune', tight: 'Serrées', normal: 'Normales', roomy: 'Aérées', wide: 'Larges' }[k]),
+                    ]),
+                    pad,
+                    (v) => put('pad', v, 'normal'),
+                    'Marges intérieures',
+                    { seg: 'pad' },
+                  ),
                 ),
-                h('p', {
-                  class: 'hint',
-                  textContent: t('Chiffres de largeur fixe, alignés à droite (sauf alignement choisi cellule par cellule).'),
-                }),
-              ),
-            ],
-    };
-  });
+                block(
+                  t('Colonnes numériques'),
+                  h(
+                    'button',
+                    {
+                      type: 'button',
+                      class: 'te-act' + (numeric ? ' on' : ''),
+                      'aria-pressed': String(numeric),
+                      dataset: { k: 'numcol', act: 'numcol' },
+                      onclick: () => change(() => setNumCols(T, R.c0, R.c1, !numeric)),
+                    },
+                    ico('numbers'),
+                    h('span', { textContent: t(numeric ? 'Colonne numérique' : 'Rendre numérique') }),
+                  ),
+                  h('p', {
+                    class: 'hint',
+                    textContent: t('Chiffres de largeur fixe, alignés à droite (sauf alignement choisi cellule par cellule).'),
+                  }),
+                ),
+              ],
+      };
+    },
+    true,
+  );
 
   const cards = [fillCard, textCard, edgeCard, presetCard];
   let lastSel = null;
@@ -599,5 +609,12 @@ export function createStylePanel({ getTable, getSel, getDoc, commit }) {
     }
     cards.forEach((c) => c.sync());
   }
-  return { nodes: cards.map((c) => c.node), sync: syncAll };
+  return {
+    nodes: cards.map((c) => c.node),
+    fill: fillCard.node,
+    text: textCard.node,
+    edges: edgeCard.node,
+    presets: presetCard.node,
+    sync: syncAll,
+  };
 }

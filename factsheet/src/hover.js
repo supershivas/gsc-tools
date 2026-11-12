@@ -290,6 +290,9 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
           del(it.path),
           plus,
           col.type === 'viz' ? btn('Dataviz…', 'Ouvrir l’éditeur de dataviz', () => ctx.editViz({ col, sub, ci: it.ci }), 'primary') : null,
+          col.type === 'table'
+            ? btn('Tableau…', 'Ouvrir l’éditeur de tableau', () => ctx.editTable({ col, sub, ci: it.ci }), 'primary')
+            : null,
         ),
       );
     } else if (it.kind === 'sub') {

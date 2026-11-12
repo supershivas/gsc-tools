@@ -224,7 +224,7 @@ const pickColor = async (page, k, name) => {
 test('éditeur : fond d’une ligne par son en-tête, de la cellule, alternance et pied', async ({ page }) => {
   const errors = watchErrors(page);
   await openApp(page, 'table');
-  await cellsOf(page, 'col:0:1:0').first().dblclick();
+  await cellsOf(page, 'col:0:1:0').last().dblclick();
   await expect(page.locator('.te')).toBeVisible();
   /* en-tête de la ligne 4 → fond de ligne (la ligne 4 n'est pas zébrée) */
   await page.locator('.te .te-rhd').nth(3).click();
@@ -263,7 +263,7 @@ test('éditeur : fond d’une ligne par son en-tête, de la cellule, alternance 
 test('éditeur : contour extérieur en tirets de 1 pt sur une sélection, préréglage avec confirmation', async ({ page }) => {
   const errors = watchErrors(page);
   await openApp(page, 'table');
-  await cellsOf(page, 'col:0:1:0').first().dblclick();
+  await cellsOf(page, 'col:0:1:0').last().dblclick();
   await clickCell(page, 1, 0);
   await clickCell(page, 3, 1, { modifiers: ['Shift'] });
   expect(await page.locator('.te .te-where').textContent()).toBe('A2:B4');

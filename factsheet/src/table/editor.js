@@ -497,20 +497,29 @@ export function openTableEditor({ col, bg, width, ctx, fileStem = (x) => 'tablea
   );
   const style = createStylePanel({ getTable: tb, getSel: () => sel, getDoc: () => doc, commit });
   const selLabel = h('strong', { class: 'te-where' });
-  const card = (title, ...kids) => h('section', { class: 'te-card' }, h('h3', { textContent: title }), ...kids);
+  const card = (title, open, ...kids) =>
+    h('details', { class: 'te-card', open }, h('summary', { textContent: title }), h('div', { class: 'body' }, ...kids));
   form.append(
     card(
       'Sélection',
+      true,
       selLabel,
       h('div', { class: 'te-row' }, B.merge, B.split),
       h('div', { class: 'te-seg', role: 'group', 'aria-label': t('Alignement') }, alignBtns),
     ),
-    card('Lignes', h('div', { class: 'te-col' }, B.above, B.below, B.dupRow, B.up, B.down, B.evenRow, B.delRow)),
-    card('Colonnes', h('div', { class: 'te-col' }, B.left, B.right, B.dupCol, B.toLeft, B.toRight, B.evenCol, B.fitCol, B.delCol)),
-    ...style.nodes,
-    warn,
+    style.text,
+    style.fill,
+    style.edges,
+    style.presets,
+    card('Lignes', true, h('div', { class: 'te-col te-duo' }, B.above, B.below, B.dupRow, B.up, B.down, B.evenRow, B.delRow)),
+    card(
+      'Colonnes',
+      true,
+      h('div', { class: 'te-col te-duo' }, B.left, B.right, B.dupCol, B.toLeft, B.toRight, B.evenCol, B.fitCol, B.delCol),
+    ),
     card(
       'Fichier',
+      true,
       h(
         'div',
         { class: 'te-col' },
@@ -526,6 +535,7 @@ export function openTableEditor({ col, bg, width, ctx, fileStem = (x) => 'tablea
       }),
       fileIn,
     ),
+    warn,
     msg,
     h('p', {
       class: 'hint',

@@ -12,7 +12,8 @@ test('collage : Word et Excel lus en table / tr / td, fusions, gras / italique /
   const r = await page.evaluate(
     ([word, excel]) => {
       const P = window.FSTEST.tablePaste;
-      const pick = (g) => g && { R: g.R, C: g.C, cells: g.cells.map(({ r, c, rs, cs, text, ah }) => ({ r, c, rs, cs, text, ah: ah || '' })) };
+      const pick = (g) =>
+        g && { R: g.R, C: g.C, cells: g.cells.map(({ r, c, rs, cs, text, ah }) => ({ r, c, rs, cs, text, ah: ah || '' })) };
       return { word: pick(P.htmlToGrid(word)), excel: pick(P.htmlToGrid(excel)), pwned: !!window.__pwned };
     },
     [FIX('word-table.html'), FIX('excel-table.html')],
@@ -153,9 +154,11 @@ test('éditeur : ouverture, saisie, sélection, fusion, lignes, Échap en couche
   const errors = watchErrors(page);
   await openApp(page, 'table');
   /* ouverture par double-clic ; Annuler rend le tableau d'origine */
-  await cellsOf(page, 'col:0:1:0').first().dblclick();
+  await cellsOf(page, 'col:0:1:0').last().dblclick();
   await expect(page.locator('.te')).toBeVisible();
-  expect(await page.evaluate(() => [...document.body.children].filter((n) => !n.classList.contains('te') && n.inert).length)).toBeGreaterThan(0);
+  expect(
+    await page.evaluate(() => [...document.body.children].filter((n) => !n.classList.contains('te') && n.inert).length),
+  ).toBeGreaterThan(0);
   await clickCell(page, 1, 0);
   await page.keyboard.type('Hello');
   await page.keyboard.press('Enter');
@@ -165,7 +168,7 @@ test('éditeur : ouverture, saisie, sélection, fusion, lignes, Échap en couche
   await expect(cellsOf(page, 'col:0:1:0').filter({ hasText: 'Hello' })).toHaveCount(0);
 
   /* bouton des propriétés */
-  await cellsOf(page, 'col:0:1:0').first().click();
+  await cellsOf(page, 'col:0:1:0').last().click();
   await page.locator('.panel button', { hasText: 'Open the table editor' }).click();
   await expect(page.locator('.te')).toBeVisible();
   /* saisie : Entrée valide et descend, Tab passe à droite, gras par Cmd/Ctrl + B */
@@ -216,13 +219,21 @@ test('éditeur : ouverture, saisie, sélection, fusion, lignes, Échap en couche
   await page.locator('dialog.modal[open] button:not(.primary)').click();
   await expect(page.locator('.te')).toBeVisible();
   /* largeur de colonne : la poignée change la largeur en direct */
-  const w0 = await page.locator('.te .te-ch').first().evaluate((n) => n.offsetWidth);
+  const w0 = await page
+    .locator('.te .te-ch')
+    .first()
+    .evaluate((n) => n.offsetWidth);
   const hd = await page.locator('.te .te-cw').first().boundingBox();
   await page.mouse.move(hd.x + hd.width / 2, hd.y + hd.height / 2);
   await page.mouse.down();
   await page.mouse.move(hd.x + 60, hd.y + hd.height / 2, { steps: 4 });
   await page.mouse.up();
-  expect(await page.locator('.te .te-ch').first().evaluate((n) => n.offsetWidth)).toBeGreaterThan(w0 + 10);
+  expect(
+    await page
+      .locator('.te .te-ch')
+      .first()
+      .evaluate((n) => n.offsetWidth),
+  ).toBeGreaterThan(w0 + 10);
   /* Terminer : le tableau de l'aperçu prend les modifications */
   await page.locator('.te .ve-br button.primary').click();
   await expect(page.locator('.te')).toHaveCount(0);
@@ -234,20 +245,27 @@ test('éditeur : ouverture, saisie, sélection, fusion, lignes, Échap en couche
 test('éditeur : coller depuis Word ancré sur la sélection, copier en TSV et HTML, remplacer sans sélection', async ({ page }) => {
   const errors = watchErrors(page);
   await openApp(page, 'table');
-  await cellsOf(page, 'col:0:1:0').first().dblclick();
+  await cellsOf(page, 'col:0:1:0').last().dblclick();
   await clickCell(page, 1, 1);
   const paste = (data) =>
     page.evaluate((d) => {
       const dt = new DataTransfer();
       for (const [k, v] of Object.entries(d)) dt.setData(k, v);
-      document.querySelector('.te-stage').dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+      document
+        .querySelector('.te-stage')
+        .dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
     }, data);
   await paste({ 'text/html': FIX('word-table.html'), 'text/plain': 'Country\tBudget 2026' });
   /* collé en B2 : la grille passe à 4 colonnes, la fusion de deux colonnes et l'alignement suivent */
   await expect(page.locator('.te .te-ch')).toHaveCount(4);
   await expect(page.locator('.te .tbl-cell b', { hasText: 'Budget 2026' })).toHaveCount(1);
   expect(await page.locator('.te .tbl-cell', { hasText: 'Budget 2026' }).evaluate((n) => n.style.gridColumn)).toBe('3 / span 2');
-  expect(await page.locator('.te .tbl-cell', { hasText: '1.2 bn' }).locator('.rich').evaluate((n) => n.style.textAlign)).toBe('right');
+  expect(
+    await page
+      .locator('.te .tbl-cell', { hasText: '1.2 bn' })
+      .locator('.rich')
+      .evaluate((n) => n.style.textAlign),
+  ).toBe('right');
   expect(await page.locator('.te img').count()).toBe(0);
   expect(await page.locator('.te .te-where').textContent()).toBe('B2:D4');
   /* copier : TSV et HTML */

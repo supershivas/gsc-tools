@@ -234,3 +234,14 @@ test('éditeur : glisser une colonne, Échap annule, une fusion ne se coupe pas,
   await expect(page.locator('.te .te-warn')).toContainText('taller than a page');
   expect(errors).toEqual([]);
 });
+
+test('bloc tableau : le petit bouton « Table… » de la barre au survol ouvre l’éditeur', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'table');
+  await page.locator('[data-sel="col:0:0:0"] .tbl-cell').last().hover();
+  await page.locator('.hv-bar button', { hasText: 'Table…' }).click();
+  await expect(page.locator('.te')).toBeVisible();
+  await expect(page.locator('.te details.te-card')).toHaveCount(8);
+  await expect(page.locator('.te details.te-card summary').first()).toHaveText('Selection');
+  expect(errors).toEqual([]);
+});
