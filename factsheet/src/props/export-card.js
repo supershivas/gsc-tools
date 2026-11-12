@@ -25,6 +25,7 @@ const pref = () => {
     format: FORMATS[p.format] ? p.format : 'png-t',
     dpi: DPIS[p.dpi] ? +p.dpi : 300,
     profile: PDF_PROFILES[p.profile] ? p.profile : 'x4',
+    bleed: p.bleed === true,
   };
 };
 const save = (p) => {
@@ -97,9 +98,24 @@ export function exportCard(k, path) {
             ),
           )
         : null,
+      /* le fond perdu n'a de sens que pour un fond qui touche le bord de la feuille : le header et les bandes de section */
+      path === 'header' || path.startsWith('sec:')
+        ? [
+            k.switchRow(t('Fond perdu 3 mm'), p.bleed, () => {
+              p.bleed = !p.bleed;
+              save(p);
+            }),
+            h('p', {
+              class: 'hint',
+              textContent: t('Le fond coloré déborde de 3 mm sur les bords de la page (sans effet si l’élément n’a pas de fond).'),
+            }),
+          ]
+        : null,
       h('p', { class: 'hint', textContent: t(notes[p.format]) }),
       go,
-    ].filter(Boolean),
+    ]
+      .flat()
+      .filter(Boolean),
     null,
     f.ext,
   );

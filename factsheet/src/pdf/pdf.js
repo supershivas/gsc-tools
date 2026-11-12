@@ -47,6 +47,7 @@ import { PAGE, STROKE } from '../tokens.js';
 import { renderDocument, measure } from '../render.js';
 import { loadFonts } from '../viz/util.js';
 import { makeCmykResolver } from '../cmyk.js';
+import { bleedSides } from '../bleed.js';
 import { EXPORT_MODES, PDF_PROFILES, A4, BLEED_MM, sheetSize } from '../export.js';
 
 const PT_PER_MM = 72 / 25.4;
@@ -374,7 +375,7 @@ const xmlEsc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').rep
 export async function buildPdf(doc, mode = 'net', opts = {}) {
   /* opts.only : chemin d'un élément (`header`, `sec:0`, `sub:0:1`, `col:0:1:2`) → une seule page de la taille de l'élément, sans fond perdu ni repères */
   const only = opts.only || null;
-  if (only) mode = 'net';
+  if (only) mode = opts.bleed ? 'bleed' : 'net';
   const profile = PDF_PROFILES[opts.profile] ? opts.profile : 'none',
     flat = profile === 'x1a',
     pdfx = !!PDF_PROFILES[profile].icc,
@@ -384,8 +385,7 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
     size = sheetSize(mode),
     sheetW = size.w * PT_PER_MM,
     sheetH = size.h * PT_PER_MM,
-    off = m.offset * PT_PER_MM,
-    bleedPx = (BLEED_MM * 96) / 25.4;
+    off = m.offset * PT_PER_MM;
   await loadFonts();
   const ink = makeInk(doc, !!PDF_PROFILES[profile].rgb),
     resolve = ink.resolve;
@@ -458,12 +458,16 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
       onProgress(++pageNo, todo.length);
       const root = only ? p.root : p.el,
         P = root.getBoundingClientRect();
-      const Wp = only ? P.width * KX : sheetW,
-        Hp = only ? P.height * KY : sheetH,
+      /* un élément seul : la page est la sienne, agrandie du fond perdu là où son fond touche le bord de la feuille */
+      const bl = (only && opts.bleed && bleedSides(root, p.el)) || { l: 0, r: 0, t: 0, b: 0 },
+        offX = only ? bl.l * KX : off,
+        offY = only ? bl.t * KY : off;
+      const Wp = only ? (P.width + bl.l + bl.r) * KX : sheetW,
+        Hp = only ? (P.height + bl.t + bl.b) * KY : sheetH,
         gsCache = new Map(),
         page = pdf.addPage([Wp, Hp]);
       /* repères : px relatifs à la page du document → points sur la feuille */
-      const base = [KX, 0, 0, -KY, off, Hp - off];
+      const base = [KX, 0, 0, -KY, offX, Hp - offY];
       const ops = [];
       const push = (...o) => ops.push(...o);
       const flush = () => {
@@ -972,15 +976,7 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
       };
 
       /* ----- HTML ----- */
-      const bleedFor = (el, r) => {
-        if (!m.bleed) return null;
-        const isHd = el.classList.contains('hd'),
-          isBand = el.classList.contains('sec-band');
-        if (!isHd && !isBand) return null;
-        /* vers le haut : le header, ou la 1re bande d'une page SANS header (au recto, elle touche le header : elle le recouvrirait de 3 mm) */
-        const top = isHd || (el.classList.contains('sec-first') && !p.el.querySelector('.hd'));
-        return { l: bleedPx, r: bleedPx, t: top ? bleedPx : 0, b: el.classList.contains('sec-last') && isBand ? bleedPx : 0 };
-      };
+      const bleedFor = (el) => (m.bleed ? bleedSides(el, p.el) : null);
       /* A : opacité cumulée des parents (appliquée à chaque objet, texte compris, et non en groupe) */
       const walk = (el, A = 1) => {
         const cs = getComputedStyle(el);
@@ -1172,15 +1168,18 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
         mk.push(popGraphicsState());
         page.pushOperators(...mk);
       }
-      const trimW = only ? Wp : A4.w * PT_PER_MM,
-        trimH = only ? Hp : A4.h * PT_PER_MM;
-      page.setTrimBox(off, off, trimW, trimH);
-      page.setBleedBox(
-        off - (m.bleed ? BLEED_MM * PT_PER_MM : 0),
-        off - (m.bleed ? BLEED_MM * PT_PER_MM : 0),
-        trimW + (m.bleed ? 2 * BLEED_MM * PT_PER_MM : 0),
-        trimH + (m.bleed ? 2 * BLEED_MM * PT_PER_MM : 0),
-      );
+      if (only) {
+        page.setTrimBox(offX, bl.b * KY, P.width * KX, P.height * KY);
+        page.setBleedBox(0, 0, Wp, Hp);
+      } else {
+        page.setTrimBox(off, off, A4.w * PT_PER_MM, A4.h * PT_PER_MM);
+        page.setBleedBox(
+          off - (m.bleed ? BLEED_MM * PT_PER_MM : 0),
+          off - (m.bleed ? BLEED_MM * PT_PER_MM : 0),
+          A4.w * PT_PER_MM + (m.bleed ? 2 * BLEED_MM * PT_PER_MM : 0),
+          A4.h * PT_PER_MM + (m.bleed ? 2 * BLEED_MM * PT_PER_MM : 0),
+        );
+      }
     }
     if (pdfx) await makePdfX(pdf, profile, doc.name || 'factsheet');
     const bytes = await pdf.save({ useObjectStreams: false });

@@ -1178,6 +1178,9 @@ const EN = {
   'Exporte la dataviz et les réglages du document (thème, couleurs, densité) pour le débogage.':
     'Exports the dataviz and the document settings (theme, colors, density) for debugging.',
   'Exporter pour le débogage (JSON)': 'Export for debugging (JSON)',
+  'Fond perdu 3 mm': 'Bleed 3 mm',
+  'Le fond coloré déborde de 3 mm sur les bords de la page (sans effet si l’élément n’a pas de fond).':
+    'The colored background extends 3 mm past the page edges (no effect if the element has no background).',
   'Impossible d’exporter cet élément dans ce navigateur.': 'Unable to export this element in this browser.',
   'Fond transparent, à placer sur un autre document.': 'Transparent background, to place on another document.',
   'Image avec le fond blanc de la page.': 'Image with the white page background.',
