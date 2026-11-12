@@ -9,7 +9,23 @@ import { cssVars, applyVars } from '../tokens.js';
 import { renderCtx } from '../renderctx.js';
 import { loadFonts, typoOf, inlineMk } from '../viz/util.js';
 import { confirmBox } from '../dialogs.js';
-import { TABLE_MAX, cellAt, mergeCells, splitCell, insertRow, insertCol, deleteRow, deleteCol, resizeTable, checkTable } from './model.js';
+import {
+  TABLE_MAX,
+  cellAt,
+  mergeCells,
+  splitCell,
+  insertRow,
+  insertCol,
+  deleteRow,
+  deleteCol,
+  resizeTable,
+  checkTable,
+  moveTracks,
+  duplicateTrack,
+  distributeCols,
+  distributeRows,
+  fitCols,
+} from './model.js';
 import { clipToGrid, pasteGrid, fillRect, rectToTsv, rectToHtml } from './paste.js';
 import { createGridUi, selRect, cellName } from './grid-ui.js';
 import { createStylePanel } from './panel-style.js';
@@ -20,7 +36,8 @@ export function openTableEditor({ col, bg, width, ctx }) {
   if (current || !col.table) return;
   const doc = ctx.getDoc();
   const snapshot = JSON.stringify(col.table);
-  const tb = () => col.table;
+  let preview = null; // pendant un déplacement de lignes ou de colonnes : copie du tableau avec le déplacement appliqué
+  const tb = () => preview || col.table;
   let sel = null, // { a, b } : cellule active et autre coin
     editing = null, // { id, ed } : cellule en cours de saisie
     zoom = 'fit',
@@ -38,6 +55,7 @@ export function openTableEditor({ col, bg, width, ctx }) {
   const stage = h('div', { class: 've-stage te-stage', tabindex: 0, 'aria-label': t('Grille du tableau') }, scaler);
   const form = h('aside', { class: 'panel ve-form te-form' });
   const msg = h('p', { class: 'hint te-msg', role: 'status' });
+  const warn = h('p', { class: 'te-warn', role: 'status' });
 
   /* ----- historique ----- */
   const hist = { s: [snapshot], i: 0 };
@@ -74,6 +92,7 @@ export function openTableEditor({ col, bg, width, ctx }) {
   };
   const grid = createGridUi({
     holder,
+    host: root,
     getTable: tb,
     getEnv: () => ({ rc: renderCtx(doc) }),
     getSel: () => sel,
@@ -91,6 +110,11 @@ export function openTableEditor({ col, bg, width, ctx }) {
     },
     onLive: () => draw(),
     onDone: () => commit(),
+    onPreview: (copy) => {
+      preview = copy;
+      draw();
+    },
+    onReorder: ({ axis, a, b, to }) => moveBlock(axis, a, b, to),
   });
   function draw() {
     grid.draw();
@@ -99,6 +123,14 @@ export function openTableEditor({ col, bg, width, ctx }) {
     scaler.style.marginBottom = sheet.offsetHeight * (k - 1) + 'px';
     scaler.style.marginRight = (width + 48) * (k - 1) + 'px';
     syncPanel();
+    const dg = grid.diagnose(),
+      cn = dg.narrow.map((j) => cellName(0, j).replace(/\d+$/, ''));
+    warn.textContent = [
+      cn.length ? t(cn.length > 1 ? 'Colonnes trop étroites :' : 'Colonne trop étroite :') + ' ' + cn.join(', ') : '',
+      dg.tall ? t('Le tableau est plus haut qu’une page.') : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
     undoBtn.disabled = hist.i <= 0;
     redoBtn.disabled = hist.i >= hist.s.length - 1;
   }
@@ -233,6 +265,59 @@ export function openTableEditor({ col, bg, width, ctx }) {
     }
     commit();
   }
+  const LIST = { row: 'rows', col: 'cols' };
+  /** Étendue de la sélection sur un axe : [début, fin] */
+  const span = (axis) => {
+    const R = selRect(tb(), sel);
+    return R ? (axis === 'row' ? [R.r0, R.r1] : [R.c0, R.c1]) : null;
+  };
+  const selBlock = (axis, a, b) => {
+    const T = tb();
+    sel =
+      axis === 'row' ? { a: { r: a, c: 0 }, b: { r: b, c: T.cols.length - 1 } } : { a: { r: 0, c: a }, b: { r: T.rows.length - 1, c: b } };
+  };
+  function moveBlock(axis, a, b, to) {
+    preview = null;
+    if (!moveTracks(col.table, axis, a, b, to)) {
+      say(t('Impossible : une cellule fusionnée serait coupée.'));
+      return draw();
+    }
+    say('');
+    selBlock(axis, to, to + b - a);
+    commit();
+  }
+  function nudge(axis, d) {
+    const sp = span(axis);
+    if (!sp) return;
+    const n = tb()[LIST[axis]].length,
+      to = Math.max(0, Math.min(n - (sp[1] - sp[0] + 1), sp[0] + d));
+    if (to !== sp[0]) moveBlock(axis, sp[0], sp[1], to);
+  }
+  function duplicate(axis) {
+    const sp = span(axis);
+    if (!sp) return;
+    const L = sp[1] - sp[0] + 1;
+    for (let k = 0; k < L; k++) if (!duplicateTrack(tb(), axis, sp[0] + k, sp[1] + 1 + k)) break;
+    selBlock(axis, sp[1] + 1, sp[1] + L);
+    commit();
+  }
+  /** Plage à répartir : la sélection s'il y a plusieurs pistes, sinon tout le tableau */
+  const range = (axis) => {
+    const sp = span(axis),
+      n = tb()[LIST[axis]].length;
+    return sp && sp[1] > sp[0] ? sp : [0, n - 1];
+  };
+  function distribute(axis) {
+    const [a, b] = range(axis);
+    if (axis === 'col') distributeCols(tb(), a, b);
+    else distributeRows(tb(), a, b, grid.rowHeights());
+    commit();
+  }
+  function fit() {
+    const [a, b] = range('col');
+    fitCols(tb(), grid.contentWidths(), a, b);
+    commit();
+  }
   function align(ah) {
     const R = selRect(tb(), sel);
     if (!R) return;
@@ -340,6 +425,15 @@ export function openTableEditor({ col, bg, width, ctx }) {
     split: btn('arrows-split', 'Scinder', split, 'split'),
     above: btn('row-insert-top', 'Insérer au-dessus', () => rows('above'), 'row-above'),
     below: btn('row-insert-bottom', 'Insérer en dessous', () => rows('below'), 'row-below'),
+    dupRow: btn('copy', 'Dupliquer', () => duplicate('row'), 'row-dup'),
+    up: btn('arrow-up', 'Monter', () => nudge('row', -1), 'row-up'),
+    down: btn('arrow-down', 'Descendre', () => nudge('row', 1), 'row-down'),
+    evenRow: btn('layout-distribute-horizontal', 'Répartir uniformément', () => distribute('row'), 'row-even'),
+    dupCol: btn('copy', 'Dupliquer', () => duplicate('col'), 'col-dup'),
+    toLeft: btn('arrow-left', 'Vers la gauche', () => nudge('col', -1), 'col-left-move'),
+    toRight: btn('arrow-right', 'Vers la droite', () => nudge('col', 1), 'col-right-move'),
+    evenCol: btn('layout-distribute-vertical', 'Répartir uniformément', () => distribute('col'), 'col-even'),
+    fitCol: btn('arrows-horizontal', 'Ajuster au contenu', fit, 'col-fit'),
     delRow: btn('row-remove', 'Supprimer', () => rows('del'), 'row-del'),
     left: btn('column-insert-left', 'Insérer à gauche', () => cols('left'), 'col-left'),
     right: btn('column-insert-right', 'Insérer à droite', () => cols('right'), 'col-right'),
@@ -367,9 +461,10 @@ export function openTableEditor({ col, bg, width, ctx }) {
       h('div', { class: 'te-row' }, B.merge, B.split),
       h('div', { class: 'te-seg', role: 'group', 'aria-label': t('Alignement') }, alignBtns),
     ),
-    card('Lignes', h('div', { class: 'te-col' }, B.above, B.below, B.delRow)),
-    card('Colonnes', h('div', { class: 'te-col' }, B.left, B.right, B.delCol)),
+    card('Lignes', h('div', { class: 'te-col' }, B.above, B.below, B.dupRow, B.up, B.down, B.evenRow, B.delRow)),
+    card('Colonnes', h('div', { class: 'te-col' }, B.left, B.right, B.dupCol, B.toLeft, B.toRight, B.evenCol, B.fitCol, B.delCol)),
     ...style.nodes,
+    warn,
     msg,
     h('p', {
       class: 'hint',
@@ -390,6 +485,16 @@ export function openTableEditor({ col, bg, width, ctx }) {
     B.split.disabled = !group.some((cl) => cl.rs > 1 || cl.cs > 1);
     B.above.disabled = B.below.disabled = !R || T.rows.length >= TABLE_MAX.rows;
     B.left.disabled = B.right.disabled = !R || T.cols.length >= TABLE_MAX.cols;
+    const sr = span('row'),
+      sc = span('col');
+    B.dupRow.disabled = !R || T.rows.length + (sr ? sr[1] - sr[0] + 1 : 0) > TABLE_MAX.rows;
+    B.dupCol.disabled = !R || T.cols.length + (sc ? sc[1] - sc[0] + 1 : 0) > TABLE_MAX.cols;
+    B.up.disabled = !R || sr[0] <= 0;
+    B.down.disabled = !R || sr[1] >= T.rows.length - 1;
+    B.toLeft.disabled = !R || sc[0] <= 0;
+    B.toRight.disabled = !R || sc[1] >= T.cols.length - 1;
+    B.evenRow.disabled = T.rows.length < 2;
+    B.evenCol.disabled = B.fitCol.disabled = T.cols.length < 2;
     B.delRow.disabled = !R || R.r1 - R.r0 + 1 >= T.rows.length;
     B.delCol.disabled = !R || R.c1 - R.c0 + 1 >= T.cols.length;
     const ah = group.length ? group[0].ah || 'left' : null;
@@ -428,6 +533,7 @@ export function openTableEditor({ col, bg, width, ctx }) {
       onGrid = tg === stage,
       dialog = document.querySelector('dialog[open], .cs-pop');
     if (dialog) return;
+    if (e.key === 'Escape' && grid.dragging()) return; // le geste de déplacement s'annule lui-même
     if (e.key === 'Escape') {
       e.preventDefault(); // sinon le même Échap ferme aussitôt la modale de confirmation qui vient de s'ouvrir
       if (leaving) return;

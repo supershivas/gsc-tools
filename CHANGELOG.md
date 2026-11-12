@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.113.0 — 2026-11-12
+- Éditeur de tableau : glisser-déposer des lignes et des colonnes pour les réordonner, dupliquer, répartir uniformément
+- Ajustement des colonnes au contenu, avertissement de colonne trop étroite et de tableau plus haut qu'une page
+
 ## 1.112.0 — 2026-11-12
 - Éditeur de tableau : fonds de cellule, de ligne et de colonne, alternance, en-tête et pied colorés
 - Contours par arête (schéma façon InDesign) : épaisseur de 0,25 à 3 pt, couleur, plein, tirets, pointillés ou aucun trait ; nouveaux préréglages avec vignettes

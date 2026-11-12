@@ -5,8 +5,11 @@
 import { h } from '../render.js';
 import { t } from '../i18n.js';
 import { renderTable, layoutTable, trackEdges } from './render.js';
-import { cellAt, mergeRect } from './model.js';
+import { cellAt, mergeRect, moveTracks } from './model.js';
 import { dragSplit } from '../editor/split.js';
+import { PAGE } from '../tokens.js';
+
+const NARROW_PX = 30; // en dessous, une colonne est trop étroite pour écrire
 
 const letter = (j) => (j < 26 ? String.fromCharCode(65 + j) : 'A' + String.fromCharCode(65 + j - 26));
 export const cellName = (r, c) => `${letter(c)}${r + 1}`;
@@ -17,10 +20,12 @@ export function selRect(tb, sel) {
   return mergeRect(tb, sel.a.r, sel.a.c, sel.b.r, sel.b.c);
 }
 
-export function createGridUi({ holder, getTable, getEnv, getSel, setSel, scale, onEdit, onLive, onDone }) {
+export function createGridUi({ holder, host, getTable, getEnv, getSel, setSel, scale, onEdit, onLive, onDone, onPreview, onReorder }) {
   let tbl = null,
     chrome = null,
-    edges = null;
+    edges = null,
+    dropMark = null, // pendant un déplacement : { axis, start, len } de la piste prise, à sa place d'arrivée
+    reorder = null; // geste en cours (fonction d'annulation)
 
   function draw() {
     const tb = getTable();
@@ -42,7 +47,7 @@ export function createGridUi({ holder, getTable, getEnv, getSel, setSel, scale, 
       { xs, ys } = edges,
       R = tb.rows.length,
       C = tb.cols.length,
-      rect = selRect(tb, getSel());
+      rect = dropMark ? null : selRect(tb, getSel());
     const kids = [
       h('button', {
         type: 'button',
@@ -87,12 +92,16 @@ export function createGridUi({ holder, getTable, getEnv, getSel, setSel, scale, 
           dataset: { hrow: i },
         }),
       );
+    const box = (cls, r0, c0, r1, c1) =>
+      h('div', {
+        class: cls,
+        style: { left: xs[c0] + 'px', top: ys[r0] + 'px', width: xs[c1 + 1] - xs[c0] + 'px', height: ys[r1 + 1] - ys[r0] + 'px' },
+      });
+    if (dropMark) {
+      const { axis, start, len } = dropMark;
+      kids.push(axis === 'row' ? box('te-drop', start, 0, start + len - 1, C - 1) : box('te-drop', 0, start, R - 1, start + len - 1));
+    }
     if (rect) {
-      const box = (cls, r0, c0, r1, c1) =>
-        h('div', {
-          class: cls,
-          style: { left: xs[c0] + 'px', top: ys[r0] + 'px', width: xs[c1 + 1] - xs[c0] + 'px', height: ys[r1 + 1] - ys[r0] + 'px' },
-        });
       kids.push(box('te-sel', rect.r0, rect.c0, rect.r1, rect.c1));
       const a = cellAt(tb, getSel().a.r, getSel().a.c);
       if (a) kids.push(box('te-cur', a.r, a.c, a.r + a.rs - 1, a.c + a.cs - 1));
@@ -133,6 +142,8 @@ export function createGridUi({ holder, getTable, getEnv, getSel, setSel, scale, 
     const hd = headOf(tg),
       p = hd ? null : posOf(tg);
     if (!hd && !p) return;
+    const ro = hd && reorderable(hd);
+    if (ro) return startReorder(e, ro, hd);
     e.preventDefault(); // pas de sélection de texte du navigateur pendant le glissement
     const cur = getSel();
     if (hd) setSel(lineSel(hd, e.shiftKey && cur ? cur.a : null));
@@ -158,6 +169,102 @@ export function createGridUi({ holder, getTable, getEnv, getSel, setSel, scale, 
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
   });
+  /* ----- réordonner : glisser une en-tête de ligne ou de colonne déjà sélectionnée (avec toute la sélection voisine) ----- */
+  function reorderable(hd) {
+    const tb = getTable(),
+      rect = selRect(tb, getSel());
+    if (!rect) return null;
+    const R = tb.rows.length,
+      C = tb.cols.length;
+    if (hd.col != null) {
+      const ok = rect.r0 === 0 && rect.r1 === R - 1 && hd.col >= rect.c0 && hd.col <= rect.c1 && rect.c1 - rect.c0 + 1 < C;
+      return ok ? { axis: 'col', i: hd.col, a: rect.c0, b: rect.c1 } : null;
+    }
+    const ok = rect.c0 === 0 && rect.c1 === C - 1 && hd.row >= rect.r0 && hd.row <= rect.r1 && rect.r1 - rect.r0 + 1 < R;
+    return ok ? { axis: 'row', i: hd.row, a: rect.r0, b: rect.r1 } : null;
+  }
+  function startReorder(e, { axis, a, b }, hd) {
+    e.preventDefault();
+    const tb = getTable(),
+      n = (axis === 'row' ? tb.rows : tb.cols).length,
+      L = b - a + 1,
+      off = (axis === 'row' ? hd.row : hd.col) - a,
+      k = scale(),
+      box = tbl.getBoundingClientRect(),
+      { xs, ys } = edges,
+      track = axis === 'row' ? ys : xs;
+    let active = false,
+      ghost = null,
+      to = a,
+      valid = true;
+    const grab = axis === 'row' ? e.clientY - (box.top + ys[a] * k) : e.clientX - (box.left + xs[a] * k);
+    const activate = () => {
+      active = true;
+      document.body.classList.add('dragging');
+      const w = axis === 'row' ? xs[xs.length - 1] : xs[b + 1] - xs[a],
+        hh = axis === 'row' ? ys[b + 1] - ys[a] : ys[ys.length - 1];
+      const inner = tbl.cloneNode(true);
+      inner.removeAttribute('data-cell');
+      Object.assign(inner.style, {
+        position: 'absolute',
+        left: -(axis === 'col' ? xs[a] * k : 0) + 'px',
+        top: -(axis === 'row' ? ys[a] * k : 0) + 'px',
+        width: xs[xs.length - 1] + 'px',
+        transform: `scale(${k})`,
+        transformOrigin: '0 0',
+      });
+      ghost = h('div', { class: 'drag-obj te-ghost', style: { width: w * k + 'px', height: hh * k + 'px', overflow: 'hidden' } }, inner);
+      host.append(ghost);
+    };
+    const place = (ev) => {
+      ghost.style.left = (axis === 'col' ? ev.clientX - grab : box.left) + 'px';
+      ghost.style.top = (axis === 'row' ? ev.clientY - grab : box.top) + 'px';
+    };
+    const move = (ev) => {
+      if (!active) {
+        if (Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) < 6) return;
+        activate();
+      }
+      place(ev);
+      const p = (axis === 'row' ? ev.clientY - box.top : ev.clientX - box.left) / k,
+        last = track.length - 2;
+      let j = 0;
+      while (j < last && p >= track[j + 1]) j++;
+      const start = Math.max(0, Math.min(n - L, j - off));
+      if (start === to) return;
+      to = start;
+      const copy = JSON.parse(JSON.stringify(tb));
+      valid = start === a || moveTracks(copy, axis, a, b, start);
+      dropMark = valid && start !== a ? { axis, start, len: L } : null;
+      onPreview(valid && start !== a ? copy : null);
+    };
+    const end = (commit) => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', cancel);
+      window.removeEventListener('keydown', key, true);
+      reorder = null;
+      document.body.classList.remove('dragging');
+      if (ghost) ghost.remove();
+      const moved = active && commit && valid && to !== a;
+      dropMark = null;
+      onPreview(null);
+      if (!active) setSel(lineSel(hd));
+      else if (moved) onReorder({ axis, a, b, to });
+    };
+    const up = () => end(true),
+      cancel = () => end(false),
+      key = (ev) => {
+        if (ev.key !== 'Escape') return;
+        ev.preventDefault();
+        end(false);
+      };
+    reorder = cancel;
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', cancel);
+    window.addEventListener('keydown', key, true);
+  }
   holder.addEventListener('dblclick', (e) => {
     if (e.target.closest('.te-edit')) return;
     const rh = e.target.closest('.te-rh');
@@ -208,10 +315,46 @@ export function createGridUi({ holder, getTable, getEnv, getSel, setSel, scale, 
     window.addEventListener('pointerup', up);
   }
 
+  const cellEl = (id) => (tbl ? tbl.querySelector(`[data-cell="${CSS.escape(id)}"]`) : null);
   return {
     draw,
     refresh,
     drawChrome,
-    cellEl: (id) => (tbl ? tbl.querySelector(`[data-cell="${CSS.escape(id)}"]`) : null),
+    dragging: () => !!reorder,
+    /** Hauteurs des lignes (px, mesurées) */
+    rowHeights: () => (edges ? edges.ys.slice(1).map((y, i) => y - edges.ys[i]) : []),
+    /** Largeur naturelle du contenu de chaque colonne (px, cellules non fusionnées), cellule comprise */
+    contentWidths() {
+      const tb = getTable(),
+        out = tb.cols.map(() => 0);
+      for (const cl of tb.cells) {
+        const el = cl.cs === 1 && cellEl(cl.id);
+        if (!el) continue;
+        const w0 = el.style.width,
+          js = el.style.justifySelf;
+        el.style.width = 'max-content';
+        el.style.justifySelf = 'start';
+        out[cl.c] = Math.max(out[cl.c], el.offsetWidth);
+        el.style.width = w0;
+        el.style.justifySelf = js;
+      }
+      return out;
+    },
+    /** Colonnes trop étroites (largeur < NARROW_PX ou texte qui déborde) et dépassement de la hauteur d'une page */
+    diagnose() {
+      if (!tbl || !edges) return { narrow: [], tall: false };
+      const tb = getTable(),
+        narrow = new Set();
+      edges.xs.slice(1).forEach((x, j) => x - edges.xs[j] < NARROW_PX && narrow.add(j));
+      for (const cl of tb.cells) {
+        const el = cl.cs === 1 && cellEl(cl.id);
+        if (el && el.scrollWidth > el.clientWidth + 1) narrow.add(cl.c);
+      }
+      return {
+        narrow: [...narrow].sort((x, y) => x - y),
+        tall: edges.ys[edges.ys.length - 1] > PAGE.h - PAGE.marginTop - PAGE.marginBottom,
+      };
+    },
+    cellEl,
   };
 }

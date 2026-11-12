@@ -214,6 +214,11 @@ body.ve-open{overflow:hidden}
 .te-al{min-height:36px;display:inline-flex;align-items:center;justify-content:center}
 .te-al.on{background:var(--ui-ink);color:var(--ui-panel)}
 .te-msg:empty{display:none}
+.te-warn{margin:0 0 8px;font-size:var(--fs-xs);color:var(--danger)}
+.te-warn:empty{display:none}
+.te-drop{position:absolute;box-sizing:border-box;border:2px dashed var(--handle);background:var(--handle-mid);pointer-events:none;z-index:1}
+.te-ghost{background:#fff}
+.te-ch.on,.te-rhd.on{cursor:grab}
 .te-blk{margin:0 0 8px}
 .te-blk .cs{width:100%}
 .te-prio{margin:-2px 0 8px}

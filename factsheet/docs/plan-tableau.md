@@ -115,6 +115,8 @@ Estimation : phases 0 à 2 = le cœur (≈ 3 sessions longues) ; 3 à 5 = finiti
 
 **Phase 3 faite (1.112.0)** : fonds et contours dans l'éditeur (`table/panel-style.js`). Ajouts au modèle, sans renommer de clé : lignes de pied (`kind: 'foot'`, `footCount`, `setFootRows`, 2 au plus), `look.footFill`, `look.foot` (trait au-dessus du pied), `setEdges` / `rectEdges` / `sideStroke`, `setLookStroke` / `lookStroke` ; fonds de ligne et de colonne validés par `repairTable`. Préréglages ajoutés : « En-tête coloré et zébré », « Filets fins », « Avec pied » (le préréglage à pied fixe le nombre de lignes de pied) ; les Propriétés demandent aussi confirmation avant d'oublier des surcharges. Aucune capture de référence modifiée.
 
+**Phase 5 faite (1.113.0)** : réordonner lignes et colonnes par glisser-déposer, dupliquer, répartir uniformément, ajuster les colonnes au contenu, avertissements (colonne trop étroite, tableau plus haut qu'une page) ; voir `docs/architecture.md`. Pas de styles de tableau liés (décision du propriétaire). La phase 4 (texte et import) reste à faire ; 1.112.0 avait été prise par la phase 3.
+
 Versions : `main` était déjà en 1.108.0 à la fin de la phase 0, d'où le décalage du tableau du §3 (phase 1 = 1.109.0).
 
 ## 6. Hors périmètre (à rediscuter)

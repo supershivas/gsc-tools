@@ -256,6 +256,86 @@ export function resizeTable(tb, nr, nc) {
   while (tb.cols.length > nc) deleteCol(tb, tb.cols.length - 1);
   return tb;
 }
+/** Réordonne les pistes d'un axe : `order[k]` = ancien index de la piste qui devient la k-ième. Sans effet (false) si une cellule fusionnée serait coupée.
+    Le rôle d'une ligne (en-tête, corps, pied) reste attaché à sa position ; une surcharge d'arête suit la piste qu'elle borde
+    (la limite i appartient à la piste i, la dernière limite reste au bord). */
+export function permuteTracks(tb, axis, order) {
+  const A = AX[axis],
+    n = tb[A.list].length;
+  if (order.length !== n || new Set(order).size !== n || order.some((o) => !(o >= 0 && o < n))) return false;
+  const perm = [];
+  order.forEach((o, k) => (perm[o] = k));
+  for (const cl of tb.cells) for (let k = 1; k < cl[A.s]; k++) if (perm[cl[A.p] + k] !== perm[cl[A.p]] + k) return false;
+  for (const cl of tb.cells) cl[A.p] = perm[cl[A.p]];
+  const list = tb[A.list],
+    kinds = list.map((x) => x.kind);
+  tb[A.list] = order.map((o) => list[o]);
+  if (axis === 'row')
+    tb.rows.forEach((r, i) => {
+      if (kinds[i]) r.kind = kinds[i];
+      else delete r.kind;
+    });
+  const across = axis === 'row' ? 'h' : 'v',
+    out = {};
+  for (const [k, v] of Object.entries(tb.edges || {})) {
+    const [o, a, b] = k.split(':'),
+      idx = axis === 'row' ? +a : +b,
+      m = o === across && idx >= n ? idx : perm[idx];
+    out[axis === 'row' ? `${o}:${m}:${b}` : `${o}:${a}:${m}`] = v;
+  }
+  tb.edges = out;
+  return true;
+}
+/** Déplace les pistes a..b (contiguës) pour que la première prenne l'index `to` ; false si rien ne bouge ou si une fusion serait coupée */
+export function moveTracks(tb, axis, a, b, to) {
+  const n = tb[AX[axis].list].length,
+    L = b - a + 1;
+  if (!(a >= 0 && b >= a && b < n) || !(to >= 0 && to <= n - L) || to === a) return false;
+  const rest = [...Array(n).keys()].filter((k) => k < a || k > b);
+  rest.splice(to, 0, ...Array.from({ length: L }, (_, k) => a + k));
+  return permuteTracks(tb, axis, rest);
+}
+/** Copie la piste `at` à l'index `to` (après elle par défaut) : contenu, style, taille ; une fusion qui traverse `to` s'allonge. false si la limite est atteinte */
+export function duplicateTrack(tb, axis, at, to = at + 1) {
+  const A = AX[axis],
+    n = tb[A.list].length;
+  if (at < 0 || at >= n || to <= at || n >= (axis === 'row' ? TABLE_MAX.rows : TABLE_MAX.cols)) return false;
+  const src = tb.cells.filter((cl) => cl[A.p] === at && cl[A.s] === 1).map(clone);
+  insertTrack(tb, axis, to);
+  const ins = tb[A.list][to];
+  tb[A.list][to] = { ...clone(tb[A.list][at]), id: ins.id, ...(axis === 'row' ? { kind: ins.kind } : {}) };
+  for (const cl of src) {
+    tb.cells = tb.cells.filter((x) => !(x[A.p] === to && x[A.s] === 1 && x[A.op] >= cl[A.op] && x[A.op] < cl[A.op] + cl[A.os]));
+    cl.id = tid('tc');
+    cl[A.p] = to;
+    tb.cells.push(cl);
+  }
+  return true;
+}
+/** Largeurs égales pour les colonnes c0..c1 (la largeur totale de la plage ne change pas) */
+export function distributeCols(tb, c0, c1) {
+  const cs = tb.cols.slice(c0, c1 + 1);
+  if (cs.length < 2) return tb;
+  const w = Math.round((cs.reduce((s, c) => s + (+c.w > 0 ? +c.w : 1), 0) / cs.length) * 1000) / 1000;
+  cs.forEach((c) => (c.w = w));
+  return tb;
+}
+/** Hauteurs égales pour les lignes r0..r1 : la plus haute (`heights`, mesurées, en px) fait référence, sur la grille de 3 px */
+export function distributeRows(tb, r0, r1, heights) {
+  if (r1 <= r0) return tb;
+  const hmax = Math.max(...heights.slice(r0, r1 + 1));
+  for (let i = r0; i <= r1; i++) tb.rows[i].h = Math.ceil(hmax / 3) * 3;
+  return tb;
+}
+/** Largeurs des colonnes c0..c1 proportionnelles à `need` (largeur naturelle du contenu, en px) ; la largeur totale de la plage ne change pas */
+export function fitCols(tb, need, c0, c1) {
+  const cs = tb.cols.slice(c0, c1 + 1),
+    nd = need.slice(c0, c1 + 1).map((v) => Math.max(1, v || 1)),
+    sum = nd.reduce((s, v) => s + v, 0),
+    tot = cs.reduce((s, c) => s + (+c.w > 0 ? +c.w : 1), 0);
+  cs.forEach((c, k) => (c.w = Math.round(((tot * nd[k]) / sum) * 1000) / 1000));
+  return tb;
+}
 /** Nombre de lignes d'en-tête (en haut du tableau) */
 export function setHeadRows(tb, n) {
   n = clampInt(n, 0, Math.min(HEAD_MAX, tb.rows.length), 0);
