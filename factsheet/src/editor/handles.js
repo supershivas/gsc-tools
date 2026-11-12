@@ -1,6 +1,7 @@
 import { PAGE } from '../tokens.js';
 import { refreshAutoCards } from '../state.js';
 import { columnWidth } from '../render.js';
+import { dragSplit as split } from './split.js';
 
 /* Poignées de redimensionnement et textes libres, glissés dans l'aperçu : ce sont des `div` vides posés par le rendu (ignorés par l'export).
    `handOn()` : l'outil main est actif (les poignées ne réagissent pas). Le geste se fait en direct (`ctx.changed()`), puis `ctx.restructure()` à la fin. */
@@ -8,47 +9,20 @@ export function initHandles(ctx, { handOn }) {
   const stage = ctx.stage;
   const guardClick = () => ctx.suppressNextClick();
 
-  /* Poignées de largeur : glisser une poignée entre deux cellules règle leurs largeurs en direct (fractions, collées aux douzièmes).
-     cells = éléments dont on lit les largeurs ; apply(fractions) les range dans le document ; end() après le geste. */
+  /* Poignées de largeur (moteur commun `split.js`) : retour en direct (`ctx.changed()`), puis `ctx.restructure()` à la fin du geste */
   function dragSplit(e, sp, cells, { min = 0.1, apply, end }) {
-    const i = +sp.dataset.split,
-      sc = sp.closest('.page').getBoundingClientRect().width / PAGE.w;
-    const ws = cells.map((c) => c.getBoundingClientRect().width / sc),
-      sum = ws.reduce((a, b) => a + b, 0) || 1,
-      f0 = ws.map((w) => w / sum),
-      px = e.clientX;
-    let moved = false;
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
     ctx.hover.hide();
-    document.body.style.cursor = 'col-resize';
-    const move = (ev) => {
-      moved = true;
-      const pair = f0[i] + f0[i + 1],
-        before = f0.slice(0, i).reduce((a, b) => a + b, 0);
-      let b = before + f0[i] + (ev.clientX - px) / sc / sum;
-      const snap = Math.round(b * 12) / 12;
-      if (Math.abs(b - snap) < 0.014) b = snap;
-      b = Math.max(before + min, Math.min(before + pair - min, b));
-      const f = f0.slice();
-      f[i] = b - before;
-      f[i + 1] = before + pair - b;
-      apply(f.map((v) => Math.round(v * 1000) / 1000));
-      ctx.changed();
-    };
-    const up = () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      document.body.style.cursor = '';
-      if (moved) {
+    split(e, +sp.dataset.split, cells, {
+      scale: sp.closest('.page').getBoundingClientRect().width / PAGE.w,
+      min,
+      apply,
+      live: () => ctx.changed(),
+      done: () => {
         guardClick();
         end();
         ctx.restructure();
-      }
-    };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
+      },
+    });
   }
 
   /* entre deux colonnes d'une sous-section : gabarit « Personnalisé » */

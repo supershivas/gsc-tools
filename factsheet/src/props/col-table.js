@@ -1,5 +1,5 @@
-/* Colonne tableau : réglages minimaux (taille de la grille, lignes d'en-tête, préréglage d'habillage).
-   Texte des cellules, fusions et contours par arête : éditeur de tableau (voir docs/plan-tableau.md). */
+/* Colonne tableau : réglages minimaux (taille de la grille, lignes d'en-tête, préréglage d'habillage) et bouton de l'éditeur
+   de tableau (texte des cellules, fusions, lignes et colonnes, collage ; voir table/editor.js et docs/plan-tableau.md). */
 import { h, ico } from '../render.js';
 import { t } from '../i18n.js';
 import { richSelect } from '../colorselect.js';
@@ -13,7 +13,7 @@ export const PRESET_ICONS = {
   none: 'border-none',
 };
 
-export function tableEditor(k, col) {
+export function tableEditor(k, col, sub, ci) {
   const { ctx, field, pair } = k;
   if (!col.table) col.table = newTable();
   const tb = col.table;
@@ -38,6 +38,16 @@ export function tableEditor(k, col) {
   const presets = Object.fromEntries(Object.entries(TABLE_PRESETS).map(([key, p]) => [key, p.label]));
   if (!TABLE_PRESETS[tb.look && tb.look.preset]) presets.custom = 'Personnalisé';
   return [
+    h(
+      'button',
+      { type: 'button', class: 'primary', style: { width: '100%' }, onclick: () => ctx.editTable({ col, sub, ci }) },
+      ico('pencil'),
+      ' Ouvrir l’éditeur de tableau',
+    ),
+    h('p', {
+      class: 'hint',
+      textContent: t('Double-clic sur le tableau de l’aperçu : même éditeur (texte, fusions, collage depuis Excel ou Word).'),
+    }),
     h('div', { class: 'row2' }, size('Lignes', 'rows', TABLE_MAX.rows), size('Colonnes', 'cols', TABLE_MAX.cols)),
     pair('Lignes d’en-tête', heads, 'n', choices, () => {
       setHeadRows(tb, +heads.n);

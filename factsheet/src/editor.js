@@ -155,7 +155,7 @@ function parseTable(text) {
    Stockage : **gras**  ~~italique~~  __souligné__  « - » en début de ligne = puce. */
 const ESC = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 /** ty : typographie automatique du document (le champ montre le texte comme l'aperçu) */
-const mkToHtml = (t, ty) => {
+export const mkToHtml = (t, ty) => {
   const inline = (x) => inlineMk(x, true, ty);
   const lines = String(t || '')
     .replace(/\r\n?/g, '\n')
@@ -192,7 +192,7 @@ const mkToHtml = (t, ty) => {
   close();
   return html || '<div><br></div>';
 };
-function htmlToMk(root) {
+export function htmlToMk(root) {
   const lines = [];
   let cur = [];
   const keyOf = (r) => [r.b, r.i, r.u, r.sup, r.sub, r.s, r.c, r.h, r.up, r.sc, r.a].join('|');

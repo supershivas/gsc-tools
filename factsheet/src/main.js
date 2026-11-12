@@ -5,6 +5,7 @@ import { loadFonts } from './viz/util.js';
 import { buildTree } from './tree.js';
 import { buildProps } from './props.js';
 import { openVizEditor } from './vizeditor.js';
+import { openTableEditor } from './table/editor.js';
 import { linkShortcut } from './editor.js';
 import { initHover } from './hover.js';
 import { createHistory } from './editor/history.js';
@@ -186,6 +187,12 @@ window.FS_READY = (async () => {
         ctx,
         fileStem: (x) => exporter.fileStem(x),
       });
+    },
+    editTable({ col, sub, ci }) {
+      const doc = ctx.getDoc(),
+        sec = doc.sections.find((x) => x.subs.includes(sub));
+      if (!sec || ws.busy()) return;
+      openTableEditor({ col, bg: sec.bg, width: columnWidth(doc, doc.sections.indexOf(sec), sec.subs.indexOf(sub), ci), ctx });
     },
   };
 

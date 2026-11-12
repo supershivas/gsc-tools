@@ -10,6 +10,7 @@ import { logoFamilies, parseAssets } from '../src/assetlib.js';
 import * as dataparse from '../src/dataparse.js';
 import { tableAdapter, recordsAdapter } from '../src/vizdata.js';
 import * as table from '../src/table/model.js';
+import * as tablePaste from '../src/table/paste.js';
 import { removeColor, colorUses } from '../src/state.js';
 
 window.FSTEST = {
@@ -36,6 +37,7 @@ window.FSTEST = {
   tableAdapter,
   recordsAdapter,
   table,
+  tablePaste,
   removeColor,
   colorUses,
 };

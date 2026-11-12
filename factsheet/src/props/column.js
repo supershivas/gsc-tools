@@ -111,7 +111,7 @@ export function columnPanel(k, { si, bi, ci, sec, sub, col }) {
   else if (col.type === 'image') editor = imageEditor(k, col);
   else if (col.type === 'card') editor = [cardEditor(k, col, columnWidth(doc, si, bi, ci))];
   else if (col.type === 'figure') editor = figureEditor(k, col);
-  else if (col.type === 'table') editor = tableEditor(k, col);
+  else if (col.type === 'table') editor = tableEditor(k, col, sub, ci);
   else editor = vizEditor(k, col, sub, ci);
 
   const swapSelect = () => {

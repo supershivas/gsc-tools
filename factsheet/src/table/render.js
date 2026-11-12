@@ -83,15 +83,20 @@ function edgesOf(list, n) {
   sizes.forEach((v) => out.push(out[out.length - 1] + v));
   return out;
 }
+/** Limites des colonnes (xs) et des lignes (ys) du tableau rendu, en px non zoomés depuis son bord ; null avant la mise en page */
+export function trackEdges(tbl) {
+  const cs = getComputedStyle(tbl),
+    xs = edgesOf(cs.gridTemplateColumns, cs.gridTemplateColumns.trim().split(/\s+/).length),
+    ys = edgesOf(cs.gridTemplateRows, cs.gridTemplateRows.trim().split(/\s+/).length);
+  return xs && ys ? { xs, ys } : null;
+}
 /** Cale les traits du calque sur la mise en page réelle (après le rendu, comme les contours en pointillés) */
 export function layoutTable(tbl) {
   const svg = tbl.querySelector(':scope > .tbl-lines');
   if (!svg) return;
-  const cs = getComputedStyle(tbl),
-    nc = cs.gridTemplateColumns.trim().split(/\s+/).length,
-    xs = edgesOf(cs.gridTemplateColumns, nc),
-    ys = edgesOf(cs.gridTemplateRows, cs.gridTemplateRows.trim().split(/\s+/).length);
-  if (!xs || !ys) return;
+  const e = trackEdges(tbl);
+  if (!e) return;
+  const { xs, ys } = e;
   svg.setAttribute('width', xs[xs.length - 1]);
   svg.setAttribute('height', ys[ys.length - 1]);
   for (const ln of svg.children) {

@@ -111,6 +111,8 @@ Estimation : phases 0 à 2 = le cœur (≈ 3 sessions longues) ; 3 à 5 = finiti
 
 **Phase 1 faite (1.110.0** ; la 1.109.0 a été prise entre-temps par le fond perdu de l'export d'un élément**)** : modèle, rendu, PDF, propriétés minimales (voir `docs/architecture.md`, « Tableau »). Écart au plan : `HEAD_MAX` = 2 lignes d'en-tête (choix en 3 boutons). La phase 2 branche l'éditeur sur `table/model.js` sans changer le format.
 
+**Phase 2 faite (1.111.0)** : éditeur de tableau (`table/editor.js`, `grid-ui.js`) et copier-coller (`table/paste.js` : HTML de Word / Excel / Google Sheets / pages web, repli TSV). Ajouts au plan : alignement horizontal des cellules dans l'éditeur, Cmd/Ctrl + B / I / U sur des cellules entières. Format inchangé.
+
 Versions : `main` était déjà en 1.108.0 à la fin de la phase 0, d'où le décalage du tableau du §3 (phase 1 = 1.109.0).
 
 ## 6. Hors périmètre (à rediscuter)

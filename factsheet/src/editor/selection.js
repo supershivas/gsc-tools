@@ -46,16 +46,17 @@ export function createSelection(ctx) {
     ctx.select(n ? n.dataset.sel : null);
   });
 
-  /* Double-clic sur une dataviz de l'aperçu → éditeur */
+  /* Double-clic sur une dataviz ou un tableau de l'aperçu → son éditeur */
   stage.addEventListener('dblclick', (e) => {
-    const n = e.target.closest('.col-viz[data-sel]');
+    const n = e.target.closest('.col-viz[data-sel], .col-table[data-sel]');
     if (!n) return;
     const [, si, bi, ci] = n.dataset.sel.split(':').map(Number);
     const doc = ctx.getDoc(),
       sec = doc.sections[si],
       sub = sec && sec.subs[bi],
       col = sub && sub.cols[ci];
-    if (col) ctx.editViz({ col, sub, ci });
+    if (col && col.type === 'table') ctx.editTable({ col, sub, ci });
+    else if (col) ctx.editViz({ col, sub, ci });
   });
 
   return { draw };

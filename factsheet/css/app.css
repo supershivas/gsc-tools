@@ -184,6 +184,36 @@ table.imp td.bad .ti{margin-right:4px}
 .fmt{margin:3px 0 4px;flex-wrap:wrap}
 .fmt .mini{min-width:26px}
 body.ve-open{overflow:hidden}
+/* Éditeur de tableau (table/editor.js, grid-ui.js) : même coque que l'éditeur de dataviz ; en-têtes, poignées et sélection hors document */
+.te .ve-bar{grid-template-columns:1fr auto 1fr}
+.te-stage{align-items:safe flex-start;outline:none}
+.te-stage:focus-visible .te-sheet{outline:2px solid var(--handle-mid);outline-offset:2px}
+.te-holder{position:relative}
+.te-chrome{position:absolute;inset:0;pointer-events:none}
+.te-chrome>*{pointer-events:auto}
+.te-corner,.te-ch,.te-rhd{position:absolute;margin:0;padding:0;min-height:0;min-width:0;border:1px solid var(--ui-line);border-radius:0;background:var(--ui-bg);color:var(--ui-mute);font:var(--fs-xs)/1 "Source Sans 3",system-ui,sans-serif;cursor:pointer}
+.te-corner{left:-22px;top:-20px;width:20px;height:18px}
+.te-ch{top:-20px;height:18px}
+.te-rhd{left:-22px;width:20px}
+.te-ch.on,.te-rhd.on{background:var(--handle-mid);color:var(--ui-ink)}
+.te-cw{position:absolute;top:-20px;width:8px;height:18px;margin-left:-4px;cursor:col-resize;z-index:2}
+.te-rh{position:absolute;left:-22px;width:20px;height:8px;margin-top:-4px;cursor:row-resize;z-index:2}
+@media (hover:hover){.te-cw:hover,.te-rh:hover{background:var(--handle-mid)}.te-ch:hover,.te-rhd:hover{color:var(--ui-ink)}}
+.te-sel{position:absolute;pointer-events:none!important;background:var(--handle-soft);outline:1px solid var(--handle)}
+.te-cur{position:absolute;pointer-events:none!important;outline:2px solid var(--handle);outline-offset:-1px}
+.te-holder .tbl-cell{cursor:cell}
+.te-edit{outline:none;cursor:text;min-height:1em}
+.te-card{margin:0 0 16px}
+.te-card h3{margin:0 0 8px;font-size:var(--fs-xs);letter-spacing:.08em;text-transform:uppercase;color:var(--ui-mute)}
+.te-where{display:block;margin-bottom:8px;font-size:var(--fs-md)}
+.te-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.te-col{display:grid;gap:6px}
+.te-act{display:flex;align-items:center;gap:8px;min-height:36px;width:100%;justify-content:flex-start}
+.te-act:disabled,.te-al:disabled{opacity:.4;cursor:default}
+.te-seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.te-al{min-height:36px;display:inline-flex;align-items:center;justify-content:center}
+.te-al.on{background:var(--ui-ink);color:var(--ui-panel)}
+.te-msg:empty{display:none}
 @media print{.ve{display:none}}
 
 /* ---------- Barre contextuelle au survol ---------- */

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.111.0 — 2026-11-12
+- Éditeur de tableau : double-clic sur un tableau pour écrire dans les cellules, sélectionner, fusionner, scinder, insérer ou supprimer des lignes et colonnes, régler largeurs et hauteurs
+- Coller un tableau de Word, Excel, Google Sheets ou d'une page web : fusions, gras, italique, souligné et alignements sont gardés ; copier une sélection vers Excel ou Word
+
 ## 1.110.0 — 2026-11-12
 - Nouveau type de contenu « Tableau » (lignes, colonnes, lignes d'en-tête, préréglages : filets horizontaux, zébré, en-tête coloré, grille) ; texte des cellules et fusions arrivent avec l'éditeur de tableau
 

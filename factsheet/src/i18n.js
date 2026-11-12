@@ -1396,6 +1396,39 @@ const EN = {
   'Filets horizontaux': 'Horizontal rules',
   'En-tête coloré': 'Coloured header',
   'Le préréglage remplace les traits et les fonds du tableau.': 'The preset replaces the rules and fills of the table.',
+  'Tout sélectionner (Cmd/Ctrl + A)': 'Select all (Cmd/Ctrl + A)',
+  'Tout sélectionner': 'Select all',
+  'Sélectionner la colonne': 'Select the column',
+  'Sélectionner la ligne': 'Select the row',
+  'Glisser pour régler la largeur': 'Drag to set the width',
+  'Glisser pour régler la hauteur minimale (double-clic : selon le contenu)':
+    'Drag to set the minimum height (double-click: fit the content)',
+  'Éditeur de tableau': 'Table editor',
+  'Grille du tableau': 'Table grid',
+  'Plusieurs cellules contiennent du texte : il sera mis bout à bout dans la cellule fusionnée.':
+    'Several cells contain text: it will be joined in the merged cell.',
+  Fusionner: 'Merge',
+  'Remplacer le contenu du tableau par le tableau collé ?': 'Replace the table content with the pasted table?',
+  'Tableau limité à 12 colonnes × 40 lignes : une partie du collage a été ignorée':
+    'Tables are limited to 12 columns × 40 rows: part of the paste was ignored',
+  Scinder: 'Split',
+  'Insérer au-dessus': 'Insert above',
+  'Insérer en dessous': 'Insert below',
+  'Insérer à gauche': 'Insert left',
+  'Insérer à droite': 'Insert right',
+  'Aligner à gauche': 'Align left',
+  Centrer: 'Centre',
+  'Aligner à droite': 'Align right',
+  Justifier: 'Justify',
+  'Coller (Cmd/Ctrl + V) un tableau de Word, d’Excel, de Google Sheets ou d’une page web : fusions, gras, italique, souligné et alignements sont gardés. Sans cellule sélectionnée, le collage remplace le tableau.':
+    'Paste (Cmd/Ctrl + V) a table from Word, Excel, Google Sheets or a web page: merged cells, bold, italic, underline and alignment are kept. With no cell selected, the paste replaces the table.',
+  'Aucune cellule': 'No cell',
+  'Abandonner les modifications du tableau ?': 'Discard the changes to the table?',
+  'Clic, glisser ou Maj + clic : sélectionner · Entrée ou double-clic : écrire · Tab : cellule suivante · Échap : annuler':
+    'Click, drag or Shift + click: select · Enter or double-click: type · Tab: next cell · Esc: cancel',
+  'Ouvrir l’éditeur de tableau': 'Open the table editor',
+  'Double-clic sur le tableau de l’aperçu : même éditeur (texte, fusions, collage depuis Excel ou Word).':
+    'Double-click the table in the preview: same editor (text, merged cells, paste from Excel or Word).',
 };
 export const DICT = { en: EN }; // exporté pour scripts/check-i18n.mjs
 
