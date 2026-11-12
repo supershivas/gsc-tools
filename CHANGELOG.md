@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.108.0 — 2026-11-12
+- Carte « Exporter » sur le header, chaque section, sous-section et colonne : l'élément seul en PNG (transparent ou avec fond), JPG, SVG ou PDF (résolution 150/300 dpi, profil PDF au choix)
+
 ## 1.107.1 — 2026-11-11
 - Heatmap hiérarchisée : les lignes de niveau 1 ont des cases plus hautes et une valeur plus grande ; les niveaux 2 à 4 gardent la taille de base
 

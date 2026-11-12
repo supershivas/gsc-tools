@@ -1178,6 +1178,13 @@ const EN = {
   'Exporte la dataviz et les réglages du document (thème, couleurs, densité) pour le débogage.':
     'Exports the dataviz and the document settings (theme, colors, density) for debugging.',
   'Exporter pour le débogage (JSON)': 'Export for debugging (JSON)',
+  'Impossible d’exporter cet élément dans ce navigateur.': 'Unable to export this element in this browser.',
+  'Fond transparent, à placer sur un autre document.': 'Transparent background, to place on another document.',
+  'Image avec le fond blanc de la page.': 'Image with the white page background.',
+  'Image sans transparence, légère.': 'Image without transparency, lightweight.',
+  'Autonome, ouvrable dans un navigateur. Le contenu est du HTML intégré : pour un SVG modifiable dans Illustrator, exporter la dataviz depuis son éditeur.':
+    'Self-contained, opens in a browser. The content is embedded HTML: for an SVG editable in Illustrator, export the dataviz from its editor.',
+  'Une page de la taille de l’élément, textes et formes vectoriels.': 'One page the size of the element, with vector text and shapes.',
   'Exporter la dataviz': 'Export dataviz',
   'Format du fichier': 'File format',
   'Exporter la dataviz (PNG, JPG, SVG)': 'Export the dataviz (PNG, JPG, SVG)',

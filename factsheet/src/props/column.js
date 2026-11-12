@@ -1,4 +1,5 @@
 /* Propriétés d'une colonne : contenu (un éditeur par type : texte, image, chiffre clé, carte, dataviz), hauteur, disposition, fond, textes libres. */
+import { exportCard } from './export-card.js';
 import { h, ico, columnWidth } from '../render.js';
 import { t } from '../i18n.js';
 import { COL_TYPES, VALIGNS, ALIGNS, newCol, swapCols, allCols, duplicateCol, isFreeCol, MAX_COLS, refreshAutoCards } from '../state.js';
@@ -220,5 +221,6 @@ export function columnPanel(k, { si, bi, ci, sec, sub, col }) {
     col.type === 'text' || col.type === 'card'
       ? card('col-side', 'number', t('Chiffre à côté'), buildFields(SIDE_FIELDS, col.side || (col.side = newColSide()), ctx, {}, h))
       : null,
+    exportCard(k, `col:${si}:${bi}:${ci}`),
   );
 }

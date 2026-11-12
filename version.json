@@ -1,7 +1,7 @@
 {
-  "version": "1.107.1",
-  "date": "2026-11-11",
+  "version": "1.108.0",
+  "date": "2026-11-12",
   "changes": [
-    "Heatmap hiérarchisée : les lignes de niveau 1 ont des cases plus hautes et une valeur plus grande ; les niveaux 2 à 4 gardent la taille de base"
+    "Carte « Exporter » sur le header, chaque section, sous-section et colonne : l'élément seul en PNG (transparent ou avec fond), JPG, SVG ou PDF"
   ]
 }

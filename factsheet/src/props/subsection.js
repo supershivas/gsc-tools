@@ -1,4 +1,5 @@
 /* Propriétés d'une sous-section : titre, gabarit de colonnes, déplacement vers une autre section, fond et contour. */
+import { exportCard } from './export-card.js';
 import { h, columnWidth } from '../render.js';
 import { t } from '../i18n.js';
 import { GRID, customLayoutOf } from '../tokens.js';
@@ -110,5 +111,6 @@ export function subPanel(k, { si, bi, sec, sub }) {
     ]),
     card('sub-box', 'border-all', t('Fond et contour'), boxControls(sub), null, sumBox(sub)),
     textColorCard(k, sub),
+    exportCard(k, `sub:${si}:${bi}`),
   );
 }

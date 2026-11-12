@@ -207,6 +207,7 @@ window.FS_READY = (async () => {
   createZoom(ctx, preview, selection);
   const dnd = createDnd(ctx);
   const exporter = createExport(ctx);
+  ctx.exporter = exporter;
   linkShortcut();
 
   const project = createProjectFile(ctx, exporter.fileStem);

@@ -1,7 +1,8 @@
 import { h } from '../render.js';
 import { EXPORT_MODES, PDF_PROFILES } from '../export.js';
 import { t } from '../i18n.js';
-import { rasterizeDocument } from '../raster.js';
+import { rasterizeDocument, rasterizeElement, elementSvg } from '../raster.js';
+import { pngDpi, jpgDpi, download, toBlob } from '../vizexport.js';
 import { alertBox, confirmBox } from '../dialogs.js';
 
 /* Export : nom des fichiers, fenêtre d'export PDF (CMJN ou RVB, tous écrits par pdfexport.js) et aperçu 3D
@@ -165,5 +166,58 @@ export function createExport(ctx) {
     }
   });
 
-  return { fileStem, loadBundle, openExport, open3d };
+  /** Nom lisible de l'élément dans les fichiers : header, section-1, sous-section-1-2, colonne-1-2-3 */
+  const elementSlug = (path) => {
+    const [k, ...n] = path.split(':');
+    return (
+      ({ header: 'header', sec: 'section', sub: 'sous-section', col: 'colonne' }[k] || k) +
+      (n.length ? '-' + n.map((x) => +x + 1).join('-') : '')
+    );
+  };
+  /** Export d'un élément (header, section, sous-section, colonne) : opts = { format: png-t|png|jpg|svg|pdf, dpi, profile } */
+  async function exportElement(path, opts) {
+    const f = opts.format,
+      base = '_' + elementSlug(path);
+    if (f === 'pdf') {
+      if (!window.FSPDF) await loadBundle('pdfexport.js');
+      const profile = PDF_PROFILES[opts.profile] ? opts.profile : 'x4';
+      const { bytes, missing } = await window.FSPDF.build(ctx.getDoc(), 'net', { profile, only: path });
+      if (
+        missing.length &&
+        !(await confirmBox(
+          t('Ces caractères n’existent pas dans les polices du document et n’apparaîtront pas dans le PDF :') +
+            '\n\n' +
+            missing.join('  ') +
+            '\n\n' +
+            t('Télécharger quand même ?'),
+          { ok: t('Télécharger') },
+        ))
+      )
+        return false;
+      download(new Blob([bytes], { type: 'application/pdf' }), fileStem(base + PDF_PROFILES[profile].suffix) + '.pdf');
+      return true;
+    }
+    const doc = ctx.getDoc();
+    if (f === 'svg') {
+      const { svg } = await elementSvg(doc, path, { transparent: true });
+      download(new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n' + svg], { type: 'image/svg+xml' }), fileStem(base) + '.svg');
+      return true;
+    }
+    const dpi = opts.dpi || 300,
+      jpg = f === 'jpg';
+    const { canvas } = await rasterizeElement(doc, path, {
+      scale: dpi / 96,
+      fill: f === 'png-t' ? null : '#ffffff',
+      transparent: f === 'png-t',
+    });
+    const blob = await toBlob(canvas, jpg ? 'image/jpeg' : 'image/png', 0.95);
+    const raw = new Uint8Array(await blob.arrayBuffer());
+    download(
+      new Blob([jpg ? jpgDpi(raw, dpi) : pngDpi(raw, dpi)], { type: blob.type }),
+      fileStem(base + (f === 'png-t' ? '-transparent' : '')) + (jpg ? '.jpg' : '.png'),
+    );
+    return true;
+  }
+
+  return { fileStem, loadBundle, openExport, open3d, exportElement };
 }

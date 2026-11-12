@@ -372,6 +372,9 @@ const xmlEsc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').rep
 
 /** → { bytes, missing } ; opts : { profile: 'none' | 'x4' | 'x1a' | 'rgb', onProgress } */
 export async function buildPdf(doc, mode = 'net', opts = {}) {
+  /* opts.only : chemin d'un élément (`header`, `sec:0`, `sub:0:1`, `col:0:1:2`) → une seule page de la taille de l'élément, sans fond perdu ni repères */
+  const only = opts.only || null;
+  if (only) mode = 'net';
   const profile = PDF_PROFILES[opts.profile] ? opts.profile : 'none',
     flat = profile === 'x1a',
     pdfx = !!PDF_PROFILES[profile].icc,
@@ -379,8 +382,8 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
   const missing = new Set();
   const m = EXPORT_MODES[mode] || EXPORT_MODES.net,
     size = sheetSize(mode),
-    Wp = size.w * PT_PER_MM,
-    Hp = size.h * PT_PER_MM,
+    sheetW = size.w * PT_PER_MM,
+    sheetH = size.h * PT_PER_MM,
     off = m.offset * PT_PER_MM,
     bleedPx = (BLEED_MM * 96) / 25.4;
   await loadFonts();
@@ -445,11 +448,20 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
 
     const imgCache = new Map();
     let pageNo = 0;
-    for (const p of result.pages) {
-      onProgress(++pageNo, result.pages.length);
-      const page = pdf.addPage([Wp, Hp]),
-        P = p.el.getBoundingClientRect(),
-        gsCache = new Map();
+    let todo = result.pages;
+    if (only) {
+      const hit = result.pages.map((q) => ({ ...q, root: q.el.querySelector(`[data-sel="${only}"]`) })).find((q) => q.root);
+      if (!hit) throw new Error('élément introuvable : ' + only);
+      todo = [hit];
+    }
+    for (const p of todo) {
+      onProgress(++pageNo, todo.length);
+      const root = only ? p.root : p.el,
+        P = root.getBoundingClientRect();
+      const Wp = only ? P.width * KX : sheetW,
+        Hp = only ? P.height * KY : sheetH,
+        gsCache = new Map(),
+        page = pdf.addPage([Wp, Hp]);
       /* repères : px relatifs à la page du document → points sur la feuille */
       const base = [KX, 0, 0, -KY, off, Hp - off];
       const ops = [];
@@ -1058,7 +1070,7 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
             });
           }
         }
-        const clipped = cs.overflowX !== 'visible' && el !== p.el && el.localName !== 'html';
+        const clipped = cs.overflowX !== 'visible' && el !== root && el.localName !== 'html';
         const prevClip = curClip;
         if (clipped) {
           clipTo(rectPath(x, y, r.width, r.height, rad), [1, 0, 0, 1, 0, 0]);
@@ -1121,7 +1133,7 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
       };
 
       /* Le texte est dessiné après le reste de la page : l'ordre n'a pas d'importance (aucun élément ne recouvre du texte) sauf pour les SVG, où il suit. */
-      walk(p.el);
+      walk(root);
       flush();
       await flushText();
       flush();
@@ -1160,12 +1172,14 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
         mk.push(popGraphicsState());
         page.pushOperators(...mk);
       }
-      page.setTrimBox(off, off, A4.w * PT_PER_MM, A4.h * PT_PER_MM);
+      const trimW = only ? Wp : A4.w * PT_PER_MM,
+        trimH = only ? Hp : A4.h * PT_PER_MM;
+      page.setTrimBox(off, off, trimW, trimH);
       page.setBleedBox(
         off - (m.bleed ? BLEED_MM * PT_PER_MM : 0),
         off - (m.bleed ? BLEED_MM * PT_PER_MM : 0),
-        A4.w * PT_PER_MM + (m.bleed ? 2 * BLEED_MM * PT_PER_MM : 0),
-        A4.h * PT_PER_MM + (m.bleed ? 2 * BLEED_MM * PT_PER_MM : 0),
+        trimW + (m.bleed ? 2 * BLEED_MM * PT_PER_MM : 0),
+        trimH + (m.bleed ? 2 * BLEED_MM * PT_PER_MM : 0),
       );
     }
     if (pdfx) await makePdfX(pdf, profile, doc.name || 'factsheet');

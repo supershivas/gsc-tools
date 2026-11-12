@@ -1,4 +1,5 @@
 /* Propriétés du header : textes, couleurs, bibliothèque d'images, logo (4 versions). */
+import { exportCard } from './export-card.js';
 import { h, ico, headerImage } from '../render.js';
 import { t } from '../i18n.js';
 import { toneKeys } from '../tokens.js';
@@ -232,5 +233,6 @@ export function headerPanel(k) {
         H.showLogo = !H.showLogo;
       },
     }),
+    exportCard(k, 'header'),
   );
 }

@@ -1,4 +1,5 @@
 /* Propriétés d'une section : titre, filets, page, fond et contour. */
+import { exportCard } from './export-card.js';
 import { t } from '../i18n.js';
 import { h } from '../render.js';
 import { toneKeys } from '../tokens.js';
@@ -66,5 +67,6 @@ export function sectionPanel(k, { si, sec }) {
       [sumColor(sec.bg), sumBox(sec)].filter((x) => x !== t('Aucun')).join(' · ') || t('Aucun'),
     ),
     textColorCard(k, sec),
+    exportCard(k, `sec:${si}`),
   );
 }

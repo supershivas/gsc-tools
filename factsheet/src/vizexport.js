@@ -57,7 +57,7 @@ const CRC = (() => {
   };
 })();
 /** PNG : insère le bloc pHYs (pixels par mètre) juste après IHDR */
-function pngDpi(bytes, dpi) {
+export function pngDpi(bytes, dpi) {
   const ppm = Math.round(dpi / 0.0254),
     chunk = new Uint8Array(21),
     dv = new DataView(chunk.buffer);
@@ -74,7 +74,7 @@ function pngDpi(bytes, dpi) {
   return out;
 }
 /** JPG : renseigne la densité dans l'en-tête JFIF (octets 13 à 17) quand il existe */
-function jpgDpi(bytes, dpi) {
+export function jpgDpi(bytes, dpi) {
   const out = bytes.slice();
   if (out[2] === 0xff && out[3] === 0xe0 && String.fromCharCode(...out.subarray(6, 10)) === 'JFIF') {
     out[13] = 1; // points par pouce
@@ -84,14 +84,15 @@ function jpgDpi(bytes, dpi) {
   return out;
 }
 
-const download = (blob, name) => {
+export const download = (blob, name) => {
   const a = h('a', { href: URL.createObjectURL(blob), download: name });
   document.body.append(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 };
-const toBlob = (canvas, type, q) => new Promise((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('image vide'))), type, q));
+export const toBlob = (canvas, type, q) =>
+  new Promise((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('image vide'))), type, q));
 
 /* ---- SVG vectoriel : copie du <svg> rendu, styles calculés écrits en attributs (var(--c-…), currentColor et feuilles de style n'existent plus hors de l'app) ---- */
 const SHAPES = new Set(['path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon']);

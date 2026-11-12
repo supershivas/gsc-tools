@@ -253,3 +253,61 @@ export async function rasterizeNode(node, { width, vars, scale = 2, fill = null,
     wrap.remove();
   }
 }
+
+/** Un élément du document (en-tête, section, sous-section, colonne) → SVG autonome de sa taille exacte (`data-sel`, ex. `sec:0`).
+    La page est rendue comme à l'écran, puis décalée pour que seul l'élément reste visible ; `transparent` retire le fond de la page.
+    → { svg, width, height } (px CSS) */
+export async function elementSvg(doc, path, { transparent = false } = {}) {
+  await loadFonts();
+  const css = await documentCss();
+  const stage = h('div', { style: { position: 'absolute', left: '-20000px', top: '0' } });
+  document.body.append(stage);
+  try {
+    const result = renderDocument(doc);
+    result.pages.forEach((p) => stage.append(p.el));
+    measure(result);
+    await inlineImages(stage);
+    const page = result.pages.find((p) => p.el.querySelector(`[data-sel="${path}"]`));
+    if (!page) throw new Error('élément introuvable : ' + path);
+    const target = page.el.querySelector(`[data-sel="${path}"]`),
+      P = page.el.getBoundingClientRect(),
+      r = target.getBoundingClientRect();
+    if (transparent) page.el.style.background = 'none';
+    const width = Math.max(1, Math.ceil(r.width)),
+      height = Math.max(1, Math.ceil(r.height));
+    const vars = Object.entries(cssVars(doc.theme, doc.colors, doc.density))
+      .map(([k, v]) => `${k}:${v}`)
+      .join(';')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;');
+    const inner = new XMLSerializer().serializeToString(page.el);
+    const body =
+      `<div xmlns="http://www.w3.org/1999/xhtml" style="position:relative;width:${width}px;height:${height}px;overflow:hidden">` +
+      `<div style="position:absolute;left:${P.left - r.left}px;top:${P.top - r.top}px;width:${P.width}px;height:${P.height}px">${inner}</div></div>`;
+    return { svg: pageSvg(vars, css, body, width, height), width, height };
+  } finally {
+    stage.remove();
+  }
+}
+
+/** Idem, en image : → { canvas, width, height } à `scale` × la taille en px CSS ; `fill` : couleur de fond (sinon transparent) */
+export async function rasterizeElement(doc, path, { scale = 2, fill = null, transparent = false } = {}) {
+  const { svg, width, height } = await elementSvg(doc, path, { transparent });
+  const im = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
+  if (im.decode) await im.decode().catch(() => {});
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  const g = canvas.getContext('2d');
+  if (fill) {
+    g.fillStyle = fill;
+    g.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  try {
+    g.drawImage(im, 0, 0, canvas.width, canvas.height);
+  } catch (e) {
+    await new Promise((r) => setTimeout(r, 150));
+    g.drawImage(im, 0, 0, canvas.width, canvas.height);
+  }
+  return { canvas, width, height };
+}
