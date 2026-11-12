@@ -429,7 +429,19 @@ function renderSection(sec, si, env, pos) {
     style = {},
     gap = env.rc.gap;
   const firstGap = pos.key === 'recto' ? gap.headerToBody : PAGE.marginTop;
-  style.marginTop = (pos.first ? (band ? 0 : firstGap) : band && pos.prevBand ? 0 : gap.sectionBefore) + 'px';
+  /* filet entre deux sections sur fond blanc : espace au-dessus (15 / 18 / 24) + espace sous le filet (18 / 24 / 30), selon la densité ; sans filet, l'écart habituel */
+  const ruled = !pos.first && sec.secRule !== false && band === pos.prevBand;
+  const rulePad = ruled && !band;
+  style.marginTop =
+    (pos.first
+      ? band
+        ? 0
+        : firstGap
+      : band && pos.prevBand
+        ? 0
+        : rulePad
+          ? gap.sectionRuleAbove + gap.sectionRuleBelow
+          : gap.sectionBefore) + 'px';
   if (band) {
     style.background = `var(--c-${sec.bg})`;
     style.paddingTop = (pos.first ? firstGap : gap.bandPad) + 'px';
@@ -441,10 +453,10 @@ function renderSection(sec, si, env, pos) {
   const el = h('section', { class: cls, style, dataset: { sel: `sec:${si}` } });
   el.style.setProperty('--rule', `var(--c-${sec.ruleColor || defaultRuleColor(sec)})`);
   applyFg(el, sec);
-  /* filet entre sections (vrai élément : l'export PDF le lit) : au milieu de l'écart entre deux sections sur fond blanc, ou à la jonction de deux bandes de couleur ;
+  /* filet entre sections (vrai élément : l'export PDF le lit) : à `sectionRuleBelow` au-dessus du titre entre deux sections sur fond blanc, ou à la jonction de deux bandes de couleur ;
      entre un fond blanc et une bande, le changement de fond sert déjà de séparation */
-  if (!pos.first && sec.secRule !== false && band === pos.prevBand)
-    el.prepend(h('div', { class: 'sec-rule', style: { top: band ? '0px' : `calc(${-gap.sectionBefore / 2}px - var(--stroke) / 2)` } }));
+  if (ruled)
+    el.prepend(h('div', { class: 'sec-rule', style: { top: band ? '0px' : `calc(${-gap.sectionRuleBelow}px - var(--stroke) / 2)` } }));
   let host = el,
     W = GRID.contentW;
   if (isBox(sec)) {

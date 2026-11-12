@@ -43,6 +43,8 @@ export const GAP = Object.freeze({
   headerTitleSub: SPACE[1], // 3  — titre → sous-titre
   headerToBody: SPACE[12], // 36 — bas du header → 1re section (recto)
   sectionBefore: SPACE[8], // 24 — entre deux sections
+  sectionRuleAbove: SPACE[6], // 18 — avec filet : section précédente → filet
+  sectionRuleBelow: SPACE[8], // 24 — avec filet : filet → titre de la section (18 / 24 / 30 selon la densité)
   sectionTitle: SPACE[4], // 12 — titre de section → 1re sous-section
   subsectionBefore: SPACE[6], // 18 — entre deux sous-sections
   subsectionTitle: SPACE[3], // 9  — titre de sous-section → colonnes
@@ -57,7 +59,16 @@ export const GAP = Object.freeze({
    retraits d'encadrés et textes ne bougent pas. GAP reste la valeur « normale » : les écarts d'un document se lisent dans
    `densityGaps(doc.density)` (contexte de rendu `rc.gap`, voir renderctx.js), jamais dans une variable modifiée. */
 export const DENSITIES = { tight: { label: 'Serré', f: 0.75 }, normal: { label: 'Normal', f: 1 }, loose: { label: 'Large', f: 1.25 } };
-const DENSE_KEYS = ['sectionBefore', 'sectionTitle', 'subsectionBefore', 'subsectionTitle', 'columns', 'bandPad'];
+const DENSE_KEYS = [
+  'sectionBefore',
+  'sectionRuleAbove',
+  'sectionRuleBelow',
+  'sectionTitle',
+  'subsectionBefore',
+  'subsectionTitle',
+  'columns',
+  'bandPad',
+];
 const GAPS_BY_DENSITY = Object.fromEntries(
   Object.entries(DENSITIES).map(([key, { f }]) => [
     key,

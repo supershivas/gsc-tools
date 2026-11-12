@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.115.5 — 2026-11-12
+- Filet entre deux sections : espace au-dessus (15 / 18 / 24) et sous le filet (18 / 24 / 30) selon la densité
+
 ## 1.115.4 — 2026-11-12
 - Chiffre clé avec cadre : l'alignement vertical place de nouveau le cadre en haut, au centre ou en bas de la rangée
 

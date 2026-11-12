@@ -492,7 +492,13 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
           const sb = subIt.el.getBoundingClientRect();
           y = place(addSubBtn, subIt, 0, sb.bottom + gap.subsectionBefore * sc, subH) || y;
         }
-        place(addSecBtn, secIt, PAGE.margin * sc, y + gap.sectionBefore * sc, secH);
+        place(
+          addSecBtn,
+          secIt,
+          PAGE.margin * sc,
+          y + (sec.bg && sec.bg !== 'none' ? gap.sectionBefore : gap.sectionRuleAbove + gap.sectionRuleBelow) * sc,
+          secH,
+        );
       }
     }
     /* même forme que le cadre de sélection : 3 px d'air, coins de 3 px ; une section sur toute sa largeur, marges comprises */
