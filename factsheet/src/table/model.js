@@ -4,9 +4,9 @@
 
    col.table = {
      v: 1,
-     cols:  [{ id, w, fill }],              w = poids relatif (fr) ; fill = fond de la colonne (clé de couleur)
+     cols:  [{ id, w, fill, num }],         w = poids relatif (fr) ; fill = fond de la colonne (clé de couleur) ; num = colonne numérique (chiffres tabulaires, à droite)
      rows:  [{ id, h, kind, fill }],        h = hauteur mini en px (0 = selon le contenu) ; kind : 'head' | 'body' | 'foot' (pied, en bas) ; fill = fond de la ligne
-     cells: [{ id, r, c, rs, cs, text, st, ah, av, fill, fg }],
+     cells: [{ id, r, c, rs, cs, text, st, ah, av, pad, fill, fg }],   st = style de paragraphe (CELL_STYLES) ; pad = marges intérieures (clé de PADS)
      edges: { 'h:i:j': trait, 'v:i:j': trait },   surcharges d'arêtes (creuses) ; un trait de largeur 0 = aucun trait
      look:  { preset, top, bottom, sides, innerH, innerV, head, foot, headFill, headFg, footFill, stripe },
    }
@@ -359,6 +359,20 @@ export function fgOf(tb, cl) {
   if (row.kind === 'head' && L.headFg && L.headFg !== 'none') return L.headFg;
   return 'none';
 }
+/** Styles de paragraphe offerts à une cellule (sous-ensemble de PSTYLES : ni titres, ni chapeau, ni chiffre clé en grand) */
+export const CELL_STYLES = ['body', 'bold', 'small', 'quote', 'cap', 'label', 'source', 'note', 'figsm'];
+/** Marges intérieures [haut/bas, gauche/droite] en px, sur la grille de 3 px ; 'normal' = défaut (clé absente) */
+export const PADS = { none: [0, 0], tight: [3, 3], normal: [3, 6], roomy: [6, 9], wide: [9, 12] };
+export const padOf = (cl) => PADS[cl.pad] || PADS.normal;
+/** Colonne numérique ? (la cellule fusionnée suit sa colonne d'ancre) */
+export const isNumCol = (tb, c) => !!(tb.cols[c] && tb.cols[c].num);
+/** Alignement horizontal effectif : celui de la cellule, sinon à droite dans une colonne numérique */
+export const ahOf = (tb, cl) => cl.ah || (isNumCol(tb, cl.c) ? 'right' : 'left');
+/** Marque ou démarque des colonnes comme numériques */
+export function setNumCols(tb, c0, c1, on) {
+  for (let c = c0; c <= c1; c++) if (tb.cols[c]) on ? (tb.cols[c].num = true) : delete tb.cols[c].num;
+}
+
 const validStroke = (s) => s && s.w > 0 && isKey(s.color);
 /** Trait de l'arête ('h' | 'v', i, j), null si elle n'existe pas (intérieur d'une fusion) ou n'a pas de trait */
 export function edgeStroke(tb, o, i, j, map = coverMap(tb)) {
@@ -587,10 +601,15 @@ export function repairTable(src) {
     cl.text = typeof cl.text === 'string' ? cl.text : cl.text == null ? '' : String(cl.text);
     if (cl.ah && !AH.includes(cl.ah)) delete cl.ah;
     if (cl.av && !AV.includes(cl.av)) delete cl.av;
-    for (const k of ['fill', 'fg', 'st']) if (cl[k] != null && !isKey(cl[k])) delete cl[k];
+    for (const k of ['fill', 'fg']) if (cl[k] != null && !isKey(cl[k])) delete cl[k];
+    if (cl.st != null && !CELL_STYLES.includes(cl.st)) delete cl.st;
+    if (cl.pad != null && !PADS[cl.pad]) delete cl.pad;
     tb.cells.push(cl);
   }
   for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) if (!taken[r][c]) tb.cells.push(newCell(r, c));
+  tb.cols.forEach((c) => {
+    if (c.num !== true) delete c.num;
+  });
   /* fonds de lignes et de colonnes : des clés de couleur, sinon retirés */
   [...tb.rows, ...tb.cols].forEach((x) => {
     if (x.fill != null && !isKey(x.fill)) delete x.fill;

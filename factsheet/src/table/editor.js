@@ -9,14 +9,32 @@ import { cssVars, applyVars } from '../tokens.js';
 import { renderCtx } from '../renderctx.js';
 import { loadFonts, typoOf, inlineMk } from '../viz/util.js';
 import { confirmBox } from '../dialogs.js';
-import { TABLE_MAX, cellAt, mergeCells, splitCell, insertRow, insertCol, deleteRow, deleteCol, resizeTable, checkTable } from './model.js';
-import { clipToGrid, pasteGrid, fillRect, rectToTsv, rectToHtml } from './paste.js';
+import {
+  TABLE_MAX,
+  HEAD_MAX,
+  ahOf,
+  isNumCol,
+  setHeadRows,
+  setNumCols,
+  cellAt,
+  mergeCells,
+  splitCell,
+  insertRow,
+  insertCol,
+  deleteRow,
+  deleteCol,
+  resizeTable,
+  checkTable,
+} from './model.js';
+import { clipToGrid, matrixToGrid, pasteGrid, fillRect, rectToTsv, rectToHtml } from './paste.js';
 import { createGridUi, selRect, cellName } from './grid-ui.js';
 import { createStylePanel } from './panel-style.js';
+import { tablePreview, fileMatrix, tableToMatrix, matrixToText, csvSep, downloadText } from './tabular.js';
+import { alertBox } from '../dialogs.js';
 
 let current = null;
 
-export function openTableEditor({ col, bg, width, ctx }) {
+export function openTableEditor({ col, bg, width, ctx, fileStem = (x) => 'tableau' + x }) {
   if (current || !col.table) return;
   const doc = ctx.getDoc();
   const snapshot = JSON.stringify(col.table);
@@ -116,7 +134,7 @@ export function openTableEditor({ col, bg, width, ctx }) {
       contentEditable: 'true',
       spellcheck: 'true',
       innerHTML: keep ? mkToHtml(cl.text, typoOf(doc)) : '<div><br></div>',
-      style: { textAlign: cl.ah || 'left' },
+      style: { textAlign: ahOf(tb(), cl) },
     });
     ed.addEventListener('input', () => grid.refresh());
     el.replaceChildren(ed);
@@ -237,7 +255,8 @@ export function openTableEditor({ col, bg, width, ctx }) {
     const R = selRect(tb(), sel);
     if (!R) return;
     cellsIn(R).forEach((cl) => {
-      if (ah === 'left') delete cl.ah;
+      if (ah === (isNumCol(tb(), cl.c) ? 'right' : 'left'))
+        delete cl.ah; // l'alignement par défaut de la colonne n'est pas stocké
       else cl.ah = ah;
     });
     commit();
@@ -332,6 +351,42 @@ export function openTableEditor({ col, bg, width, ctx }) {
     );
   }
 
+  /* ----- fichier : import CSV / TSV avec aperçu, export ----- */
+  const fileIn = h('input', {
+    type: 'file',
+    accept: '.csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain',
+    hidden: true,
+    onchange: async () => {
+      const f = fileIn.files[0];
+      fileIn.value = '';
+      if (!f) return;
+      let m = null;
+      try {
+        m = fileMatrix(await f.text());
+      } catch (e) {
+        m = null;
+      }
+      if (!m) return alertBox(t('Fichier illisible.'));
+      const r = await tablePreview(m, doc.locale);
+      if (!r) return;
+      const T = tb();
+      say('');
+      resizeTable(T, Math.min(r.matrix.length, TABLE_MAX.rows), Math.min(r.matrix[0].length, TABLE_MAX.cols));
+      const lost = pasteGrid(T, matrixToGrid(r.matrix), 0, 0);
+      setHeadRows(T, Math.min(r.head, HEAD_MAX));
+      setNumCols(T, 0, T.cols.length - 1, false);
+      r.numCols.filter((c) => c < T.cols.length).forEach((c) => setNumCols(T, c, c, true));
+      sel = null;
+      warnLost(lost);
+      commit();
+    },
+  });
+  function exportFile(kind) {
+    const m = tableToMatrix(tb());
+    if (kind === 'tsv') downloadText(matrixToText(m, '\t'), fileStem('') + '.tsv', 'text/tab-separated-values');
+    else downloadText(matrixToText(m, csvSep(doc.locale)), fileStem('') + '.csv', 'text/csv');
+  }
+
   /* ----- panneau ----- */
   const btn = (icon, label, fn, key) =>
     h('button', { type: 'button', class: 'te-act', dataset: { act: key }, onclick: fn }, ico(icon), h('span', { textContent: label }));
@@ -370,6 +425,23 @@ export function openTableEditor({ col, bg, width, ctx }) {
     card('Lignes', h('div', { class: 'te-col' }, B.above, B.below, B.delRow)),
     card('Colonnes', h('div', { class: 'te-col' }, B.left, B.right, B.delCol)),
     ...style.nodes,
+    card(
+      'Fichier',
+      h(
+        'div',
+        { class: 'te-col' },
+        btn('file-import', 'Importer…', () => fileIn.click(), 'import'),
+        btn('file-export', 'Exporter en CSV', () => exportFile('csv'), 'export-csv'),
+        btn('file-export', 'Exporter en TSV', () => exportFile('tsv'), 'export-tsv'),
+      ),
+      h('p', {
+        class: 'hint',
+        textContent: t(
+          'L’import remplace le contenu du tableau ; le fichier peut être séparé par des virgules, des points-virgules ou des tabulations.',
+        ),
+      }),
+      fileIn,
+    ),
     msg,
     h('p', {
       class: 'hint',
@@ -392,10 +464,10 @@ export function openTableEditor({ col, bg, width, ctx }) {
     B.left.disabled = B.right.disabled = !R || T.cols.length >= TABLE_MAX.cols;
     B.delRow.disabled = !R || R.r1 - R.r0 + 1 >= T.rows.length;
     B.delCol.disabled = !R || R.c1 - R.c0 + 1 >= T.cols.length;
-    const ah = group.length ? group[0].ah || 'left' : null;
+    const ah = group.length ? ahOf(T, group[0]) : null;
     alignBtns.forEach((b) => {
       b.disabled = !R;
-      b.classList.toggle('on', !!ah && b.dataset.al === ah && group.every((cl) => (cl.ah || 'left') === ah));
+      b.classList.toggle('on', !!ah && b.dataset.al === ah && group.every((cl) => ahOf(T, cl) === ah));
     });
     style.sync();
     if (msg.textContent !== msgText) msg.textContent = msgText;

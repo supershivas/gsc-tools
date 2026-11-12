@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.113.0 — 2026-11-12
+- Éditeur de tableau : style de paragraphe, couleur du texte, marges intérieures et alignement vertical par cellule ; colonnes numériques (chiffres de largeur fixe, à droite)
+- Import d'un fichier CSV / TSV avec aperçu (en-têtes, séparateur décimal, nombres au format du document) et export du tableau en CSV ou TSV
+
 ## 1.112.0 — 2026-11-12
 - Éditeur de tableau : fonds de cellule, de ligne et de colonne, alternance, en-tête et pied colorés
 - Contours par arête (schéma façon InDesign) : épaisseur de 0,25 à 3 pt, couleur, plein, tirets, pointillés ou aucun trait ; nouveaux préréglages avec vignettes
