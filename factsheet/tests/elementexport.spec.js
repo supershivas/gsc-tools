@@ -25,10 +25,10 @@ test('export d’un élément : PNG, SVG, PDF', async ({ page }) => {
     .first()
     .click();
   const png = await exportOf(page, 'png-t');
-  expect(png.name).toMatch(/_header-transparent_\d{6}\.png$/);
+  expect(png.name).toMatch(/_header-transparent_\d{6}_\d{4}\.png$/);
   expect([...png.bytes.subarray(1, 4)]).toEqual([0x50, 0x4e, 0x47]);
   const pdf = await exportOf(page, 'pdf');
-  expect(pdf.name).toMatch(/_header-x4_\d{6}\.pdf$/);
+  expect(pdf.name).toMatch(/_header-x4_\d{6}_\d{4}\.pdf$/);
   expect(pdf.bytes.subarray(0, 5).toString()).toBe('%PDF-');
   expect((pdf.bytes.toString('latin1').match(/\/Type\s*\/Page\b/g) || []).length).toBe(1);
   const svg = await exportOf(page, 'svg');
@@ -39,7 +39,7 @@ test('export d’un élément : PNG, SVG, PDF', async ({ page }) => {
     .locator('.pp-switch')
     .click();
   const bleed = await exportOf(page, 'pdf');
-  expect(bleed.name).toMatch(/_header-bleed-x4_\d{6}\.pdf$/);
+  expect(bleed.name).toMatch(/_header-bleed-x4_\d{6}_\d{4}\.pdf$/);
   const txt = bleed.bytes.toString('latin1');
   const box = (k) => (txt.match(new RegExp('/' + k + '\\s*\\[([^\\]]+)\\]')) || [])[1].trim().split(/\s+/).map(Number);
   const [, , mw, mh] = box('MediaBox'),
@@ -48,7 +48,7 @@ test('export d’un élément : PNG, SVG, PDF', async ({ page }) => {
   expect(mh).toBeGreaterThan(th + 8);
   expect(tx).toBeGreaterThan(8);
   const bpng = await exportOf(page, 'png');
-  expect(bpng.name).toMatch(/_header-bleed_\d{6}\.png$/);
+  expect(bpng.name).toMatch(/_header-bleed_\d{6}_\d{4}\.png$/);
   await page
     .locator('#props .pp-card', { has: page.locator('.pp-card-h b', { hasText: /^(Exporter|Export)$/ }) })
     .locator('.pp-switch')
@@ -56,7 +56,7 @@ test('export d’un élément : PNG, SVG, PDF', async ({ page }) => {
   /* une section et une colonne : PNG non vide */
   await page.locator('#tree .tn[data-path="sec:0"]').first().click();
   const sec = await exportOf(page, 'png');
-  expect(sec.name).toMatch(/_section-1_\d{6}\.png$/);
+  expect(sec.name).toMatch(/_section-1_\d{6}_\d{4}\.png$/);
   expect(sec.bytes.length).toBeGreaterThan(5000);
   expect(errors).toEqual([]);
 });

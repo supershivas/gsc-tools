@@ -9,10 +9,11 @@ import { alertBox, confirmBox } from '../dialogs.js';
    (les pages sont dessinées ici, la scène three.js est dans viewer3d.js, chargé à la première ouverture).
    Renvoie `fileStem`, `loadBundle`, `openExport`, `open3d`. */
 export function createExport(ctx) {
-  /** Nom de fichier à l'enregistrement et à l'export : titre_AAMMJJ (l'extension est ajoutée par l'appelant) */
+  /** Nom de fichier à l'enregistrement et à l'export : titre_AAMMJJ_HHMM (heure locale ; l'extension est ajoutée par l'appelant) */
   const stamp = () => {
     const d = new Date();
-    return String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+    const p = (n) => String(n).padStart(2, '0');
+    return String(d.getFullYear()).slice(2) + p(d.getMonth() + 1) + p(d.getDate()) + '_' + p(d.getHours()) + p(d.getMinutes());
   };
   const fileStem = (suffix = '') => (ctx.getDoc().name || 'factsheet').replace(/[\\/:*?"<>|]+/g, '_') + suffix + '_' + stamp();
 

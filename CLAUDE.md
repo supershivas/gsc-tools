@@ -62,7 +62,7 @@ Détail et raisons dans `factsheet/docs/architecture.md`.
 
 - **Rouge = action** : le rouge d'accent ne marque que ce qui agit (bouton principal) ; états sélectionnés (onglets, espacement, cartes de type) et jauges en neutre ; orange/rouge d'alerte seulement pour un dépassement.
 - **Tout nouvel élément visuel du document doit rester lisible par l'export PDF** : éléments HTML/SVG réels, jamais de pseudo-élément, d'ombre ni de dégradé CSS ; tout opérateur de couleur du PDF passe par `makeInk`, le fond perdu par `bleedFor`.
-- **Un seul chemin d'export** : `factsheet/src/pdf/pdf.js` (pas de `window.print`) ; tout fichier enregistré ou exporté se nomme par `fileStem` (`titre_AAMMJJ.extension`).
+- **Un seul chemin d'export** : `factsheet/src/pdf/pdf.js` (pas de `window.print`) ; tout fichier enregistré ou exporté se nomme par `fileStem` (`titre_AAMMJJ_HHMM.extension`).
 - **Pas d'état global pendant le rendu** : tout passe par le contexte de rendu (`renderCtx`, `env.rc`) ; hors rendu, passer le document (`columnWidth(doc, …)`, `densityGaps(doc.density)`). Deux documents doivent pouvoir se rendre entremêlés (`tests/isolation.spec.js`).
 - **Glisser-déposer** : l'élément « pris » suit le pointeur avec une ombre, le reste se réarrange en direct, l'arrivée est en pointillés, Échap annule, un clic simple n'est jamais un glissement. Moteur commun `editor/dnd.js` ; dataviz : `vizreorder.js`.
 - **Aucun module ne garde le document** : lire `ctx.getDoc()` / `ctx.getSel()` / `ctx.tab()` à chaque appel (le document change avec l'onglet) ; un état propre au document (historique, zoom, filigrane…) va dans l'onglet (`workspace.js`), pas dans une variable de module.

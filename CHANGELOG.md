@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.116.1 — 2026-11-12
+- Factsheet creator : l'heure s'ajoute au nom des fichiers enregistrés ou exportés (titre_AAMMJJ_HHMM)
+
 ## 1.116.0 — 2026-11-12
 - Pied de page dans la marge basse de chaque page (un texte par page, style Source)
 - Dernière section d'une page : option « Aligner en bas de la page », fond sur toute la hauteur ou sur la hauteur de la section

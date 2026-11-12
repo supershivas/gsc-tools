@@ -199,7 +199,7 @@ test('export TSV et CSV nommés par fileStem', async ({ page }) => {
     const dl = page.waitForEvent('download');
     await page.locator(`.te [data-act="${act}"]`).click();
     const d = await dl;
-    expect(d.suggestedFilename()).toMatch(new RegExp(`^tableau-texte_\\d{6}\\.${ext}$`));
+    expect(d.suggestedFilename()).toMatch(new RegExp(`^tableau-texte_\\d{6}_\\d{4}\\.${ext}$`));
     const txt = fs.readFileSync(await d.path(), 'utf8');
     expect(txt).toContain('Item');
     expect(txt).toContain('12,25');
