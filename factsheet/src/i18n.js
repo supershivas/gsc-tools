@@ -1429,6 +1429,41 @@ const EN = {
   'Ouvrir l’éditeur de tableau': 'Open the table editor',
   'Double-clic sur le tableau de l’aperçu : même éditeur (texte, fusions, collage depuis Excel ou Word).':
     'Double-click the table in the preview: same editor (text, merged cells, paste from Excel or Word).',
+  Contours: 'Borders',
+  Préréglages: 'Presets',
+  'Cellules sélectionnées': 'Selected cells',
+  'Sélectionnez des cellules, une ligne ou une colonne (par son en-tête) pour la colorer.':
+    'Select cells, a row or a column (by its header) to color it.',
+  'Priorité : cellule, puis ligne, colonne, alternance, en-tête.': 'Priority: cell, then row, column, alternation, header.',
+  'Alternance des lignes': 'Alternating rows',
+  'Fond de l’en-tête': 'Header fill',
+  'Texte de l’en-tête': 'Header text',
+  'Lignes de pied': 'Footer rows',
+  'Fond du pied': 'Footer fill',
+  'Intérieur horizontal': 'Inside horizontal',
+  'Intérieur vertical': 'Inside vertical',
+  'Sous l’en-tête': 'Under the header',
+  'Au-dessus du pied': 'Above the footer',
+  'Traits des arêtes de la sélection.': 'Borders of the selection’s edges.',
+  'Sans cellule sélectionnée : traits du tableau entier.': 'No cell selected: borders of the whole table.',
+  Arêtes: 'Edges',
+  Extérieur: 'Outside',
+  Tout: 'All',
+  'Choisissez les arêtes à régler dans le schéma.': 'Pick the edges to set in the diagram.',
+  'Aucun trait': 'No line',
+  'Style du trait': 'Line style',
+  'Épaisseur (pt)': 'Weight (pt)',
+  'Tiret (pt)': 'Dash (pt)',
+  'Espace (pt)': 'Gap (pt)',
+  'Rétablir les traits du tableau': 'Reset to the table’s borders',
+  'En-tête coloré et zébré': 'Colored header, zebra',
+  'Filets fins': 'Thin rules',
+  'Avec pied': 'With footer',
+  'Le préréglage remplace les traits et les fonds du tableau ; le texte et les fusions sont gardés.':
+    'The preset replaces the table’s borders and fills; text and merged cells are kept.',
+  'Les traits réglés sur des arêtes seront oubliés. Appliquer le préréglage ?':
+    'Borders set on individual edges will be lost. Apply the preset?',
+  Appliquer: 'Apply',
 };
 export const DICT = { en: EN }; // exporté pour scripts/check-i18n.mjs
 

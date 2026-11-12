@@ -3,15 +3,23 @@
 import { h, ico } from '../render.js';
 import { t } from '../i18n.js';
 import { richSelect } from '../colorselect.js';
-import { TABLE_MAX, TABLE_PRESETS, HEAD_MAX, headCount, resizeTable, setHeadRows, applyPreset, newTable } from '../table/model.js';
+import {
+  TABLE_MAX,
+  TABLE_PRESETS,
+  HEAD_MAX,
+  FOOT_MAX,
+  headCount,
+  footCount,
+  resizeTable,
+  setHeadRows,
+  setFootRows,
+  applyPreset,
+  newTable,
+} from '../table/model.js';
+import { PRESET_ICONS } from '../table/panel-style.js';
+import { confirmBox } from '../dialogs.js';
 
-export const PRESET_ICONS = {
-  rules: 'border-horizontal',
-  zebra: 'layout-rows',
-  headfill: 'layout-navbar',
-  grid: 'border-all',
-  none: 'border-none',
-};
+export { PRESET_ICONS };
 
 export function tableEditor(k, col, sub, ci) {
   const { ctx, field, pair } = k;
@@ -33,7 +41,9 @@ export function tableEditor(k, col, sub, ci) {
         },
       }),
     );
-  const heads = { n: String(headCount(tb)) };
+  const heads = { n: String(headCount(tb)) },
+    foots = { n: String(footCount(tb)) };
+  const footChoices = Object.fromEntries(Array.from({ length: FOOT_MAX + 1 }, (_, i) => [String(i), String(i)]));
   const choices = Object.fromEntries(Array.from({ length: HEAD_MAX + 1 }, (_, i) => [String(i), String(i)]));
   const presets = Object.fromEntries(Object.entries(TABLE_PRESETS).map(([key, p]) => [key, p.label]));
   if (!TABLE_PRESETS[tb.look && tb.look.preset]) presets.custom = 'Personnalisé';
@@ -53,6 +63,10 @@ export function tableEditor(k, col, sub, ci) {
       setHeadRows(tb, +heads.n);
       ctx.restructure();
     }),
+    pair('Lignes de pied', foots, 'n', footChoices, () => {
+      setFootRows(tb, +foots.n);
+      ctx.restructure();
+    }),
     k.fieldDiv(
       'Préréglage',
       richSelect({
@@ -60,8 +74,13 @@ export function tableEditor(k, col, sub, ci) {
         options: presets,
         text: true,
         lead: (key) => ico(PRESET_ICONS[key] || 'table'),
-        onChange: (v) => {
+        onChange: async (v) => {
           if (v === 'custom') return;
+          if (
+            Object.keys(tb.edges || {}).length &&
+            !(await confirmBox(t('Les traits réglés sur des arêtes seront oubliés. Appliquer le préréglage ?'), { ok: t('Appliquer') }))
+          )
+            return;
           applyPreset(tb, v);
           ctx.restructure();
         },

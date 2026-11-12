@@ -1,7 +1,7 @@
 /* Documents de référence des tests de non-régression (construits dans la page, avec les vrais modules de l'app). */
 import { defaultDoc, newSection, newSub, newCol } from '../src/state.js';
 import { newViz as freshViz, VIZ_TYPES, withAxesOrigin } from '../src/viz/index.js';
-import { newTable, mergeCells, applyPreset, stroke } from '../src/table/model.js';
+import { newTable, mergeCells, applyPreset, stroke, setFootRows, setEdges } from '../src/table/model.js';
 
 /* Les captures de référence montrent l'aspect d'avant la carte « Axes et grille » (une fiche existante ne change pas) :
    les dataviz des documents de test le gardent ; la grille des nouvelles dataviz est vérifiée par tests/vizsidebar.spec.js. */
@@ -152,6 +152,30 @@ export function docTable() {
   return d;
 }
 
+/** Tableau habillé (phase 3) : en-tête et pied colorés, fond de cellule, de ligne et de colonne, contour en tirets sur une sélection, filets de 0,25 / 1,5 / 3 pt. */
+export function docTableStyle() {
+  const d = defaultDoc();
+  d.name = 'tableau-habille';
+  const tb = newTable(6, 3, 1);
+  applyPreset(tb, 'rules');
+  setFootRows(tb, 1);
+  Object.assign(tb.look, { headFill: 'slate', headFg: 'white', footFill: 'grey', foot: stroke(1.5, 'blue') });
+  tb.cells.forEach((cl) => (cl.text = `${cl.r}.${cl.c}`));
+  tb.rows[2].fill = 'sky'; // ligne entière
+  tb.cols[2].fill = 'tint-sky'; // colonne entière (sous la ligne)
+  tb.cells.find((cl) => cl.r === 3 && cl.c === 0).fill = 'yellow'; // cellule
+  setEdges(tb, { r0: 1, c0: 0, r1: 3, c1: 1 }, ['top', 'bottom', 'left', 'right'], stroke(1, 'slate', [3, 2]));
+  setEdges(tb, { r0: 4, c0: 0, r1: 4, c1: 2 }, ['top'], stroke(3, 'blue'));
+  const sec = newSection('recto');
+  sec.title = 'Styled table';
+  const a = newSub('1');
+  a.title = 'Fills and borders';
+  a.cols = [{ ...newCol('table'), table: tb }];
+  sec.subs = [a];
+  d.sections = [sec, ...d.sections.filter((x) => x.page === 'verso').slice(0, 1)];
+  return d;
+}
+
 export const DOCS = {
   ui: docUi,
   default: docDefault,
@@ -160,5 +184,6 @@ export const DOCS = {
   'iso-tight': docIsoTight,
   'iso-loose': docIsoLoose,
   table: docTable,
+  'table-style': docTableStyle,
 };
 export const DOC_NAMES = Object.keys(DOCS);

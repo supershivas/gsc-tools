@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.112.0 — 2026-11-12
+- Éditeur de tableau : fonds de cellule, de ligne et de colonne, alternance, en-tête et pied colorés
+- Contours par arête (schéma façon InDesign) : épaisseur de 0,25 à 3 pt, couleur, plein, tirets, pointillés ou aucun trait ; nouveaux préréglages avec vignettes
+
 ## 1.111.0 — 2026-11-12
 - Éditeur de tableau : double-clic sur un tableau pour écrire dans les cellules, sélectionner, fusionner, scinder, insérer ou supprimer des lignes et colonnes, régler largeurs et hauteurs
 - Coller un tableau de Word, Excel, Google Sheets ou d'une page web : fusions, gras, italique, souligné et alignements sont gardés ; copier une sélection vers Excel ou Word

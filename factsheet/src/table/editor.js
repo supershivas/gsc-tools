@@ -12,6 +12,7 @@ import { confirmBox } from '../dialogs.js';
 import { TABLE_MAX, cellAt, mergeCells, splitCell, insertRow, insertCol, deleteRow, deleteCol, resizeTable, checkTable } from './model.js';
 import { clipToGrid, pasteGrid, fillRect, rectToTsv, rectToHtml } from './paste.js';
 import { createGridUi, selRect, cellName } from './grid-ui.js';
+import { createStylePanel } from './panel-style.js';
 
 let current = null;
 
@@ -356,6 +357,7 @@ export function openTableEditor({ col, bg, width, ctx }) {
       ico(icon),
     ),
   );
+  const style = createStylePanel({ getTable: tb, getSel: () => sel, getDoc: () => doc, commit });
   const selLabel = h('strong', { class: 'te-where' });
   const card = (title, ...kids) => h('section', { class: 'te-card' }, h('h3', { textContent: title }), ...kids);
   form.append(
@@ -367,6 +369,7 @@ export function openTableEditor({ col, bg, width, ctx }) {
     ),
     card('Lignes', h('div', { class: 'te-col' }, B.above, B.below, B.delRow)),
     card('Colonnes', h('div', { class: 'te-col' }, B.left, B.right, B.delCol)),
+    ...style.nodes,
     msg,
     h('p', {
       class: 'hint',
@@ -394,6 +397,7 @@ export function openTableEditor({ col, bg, width, ctx }) {
       b.disabled = !R;
       b.classList.toggle('on', !!ah && b.dataset.al === ah && group.every((cl) => (cl.ah || 'left') === ah));
     });
+    style.sync();
     if (msg.textContent !== msgText) msg.textContent = msgText;
   }
 

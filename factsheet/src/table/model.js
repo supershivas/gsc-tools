@@ -4,11 +4,11 @@
 
    col.table = {
      v: 1,
-     cols:  [{ id, w }],                    w = poids relatif (fr)
-     rows:  [{ id, h, kind }],              h = hauteur mini en px (0 = selon le contenu) ; kind : 'head' | 'body' | 'foot'
+     cols:  [{ id, w, fill }],              w = poids relatif (fr) ; fill = fond de la colonne (clé de couleur)
+     rows:  [{ id, h, kind, fill }],        h = hauteur mini en px (0 = selon le contenu) ; kind : 'head' | 'body' | 'foot' (pied, en bas) ; fill = fond de la ligne
      cells: [{ id, r, c, rs, cs, text, st, ah, av, fill, fg }],
      edges: { 'h:i:j': trait, 'v:i:j': trait },   surcharges d'arêtes (creuses) ; un trait de largeur 0 = aucun trait
-     look:  { preset, top, bottom, sides, innerH, innerV, head, headFill, headFg, stripe },
+     look:  { preset, top, bottom, sides, innerH, innerV, head, foot, headFill, headFg, footFill, stripe },
    }
    Arête horizontale 'h:i:j' = limite de lignes i (0 … R), sur la colonne j ; arête verticale 'v:i:j' = limite de colonnes j (0 … C), sur la ligne i.
    Trait = { w (pt), color (clé de couleur), dash: [tiret, espace] (pt) | null } ; null = pas de trait.
@@ -18,6 +18,8 @@ import { t } from '../i18n.js';
 export const TABLE_V = 1;
 export const TABLE_MAX = { rows: 40, cols: 12 };
 export const HEAD_MAX = 2;
+export const FOOT_MAX = 2;
+const STROKE_KEYS = ['top', 'bottom', 'sides', 'innerH', 'innerV', 'head', 'foot'];
 
 let _n = 0;
 const tid = (p) => `${p}${Date.now().toString(36)}${(_n++).toString(36)}`;
@@ -45,6 +47,19 @@ export const TABLE_PRESETS = {
     label: 'Grille',
     look: { top: stroke(0.5), bottom: stroke(0.5), sides: stroke(0.5), head: stroke(0.5), innerH: stroke(0.25), innerV: stroke(0.25) },
   },
+  headzebra: {
+    label: 'En-tête coloré et zébré',
+    look: { headFill: 'blue', headFg: 'white', stripe: 'tint-blue', bottom: stroke(0.5, 'blue') },
+  },
+  hairline: {
+    label: 'Filets fins',
+    look: { top: stroke(0.25), bottom: stroke(0.25), head: stroke(0.25), innerH: stroke(0.25, 'tint-blue') },
+  },
+  footer: {
+    label: 'Avec pied',
+    foot: 1,
+    look: { top: stroke(0.5), bottom: stroke(0.5), head: stroke(0.5), foot: stroke(1), innerH: stroke(0.25), footFill: 'tint-blue' },
+  },
   none: { label: 'Aucun', look: {} },
 };
 const BARE_LOOK = () => ({
@@ -54,17 +69,21 @@ const BARE_LOOK = () => ({
   innerH: null,
   innerV: null,
   head: null,
+  foot: null,
   headFill: 'none',
   headFg: 'none',
+  footFill: 'none',
   stripe: 'none',
 });
 const clone = (o) => JSON.parse(JSON.stringify(o));
 
-/** Remplace l'habillage par un préréglage ; les surcharges d'arêtes sont oubliées (le préréglage s'applique à tout le tableau) */
+/** Remplace l'habillage par un préréglage (texte et fusions intacts) ; les surcharges d'arêtes sont oubliées (le préréglage s'applique
+    à tout le tableau). Un préréglage à pied (`foot`) fixe le nombre de lignes de pied ; les autres le laissent tel quel. */
 export function applyPreset(tb, key) {
   const p = TABLE_PRESETS[key] || TABLE_PRESETS.rules;
   tb.look = { preset: TABLE_PRESETS[key] ? key : 'rules', ...BARE_LOOK(), ...clone(p.look) };
   tb.edges = {};
+  if (p.foot !== undefined) setFootRows(tb, p.foot);
   return tb;
 }
 
@@ -88,6 +107,12 @@ export function newTable(nr = 4, nc = 3, head = 1) {
 export const headCount = (tb) => {
   let n = 0;
   while (n < tb.rows.length && tb.rows[n].kind === 'head') n++;
+  return n;
+};
+/** Nombre de lignes de pied (en bas du tableau) */
+export const footCount = (tb) => {
+  let n = 0;
+  while (n < tb.rows.length && tb.rows[tb.rows.length - 1 - n].kind === 'foot') n++;
   return n;
 };
 /** Carte des cases : map[r][c] = index de la cellule qui couvre la case (-1 = trou, -2 = chevauchement) */
@@ -241,6 +266,16 @@ export function setHeadRows(tb, n) {
   return tb;
 }
 
+/** Nombre de lignes de pied : les dernières lignes du tableau (jamais celles de l'en-tête) */
+export function setFootRows(tb, n) {
+  n = clampInt(n, 0, Math.min(FOOT_MAX, tb.rows.length - headCount(tb)), 0);
+  tb.rows.forEach((r, i) => {
+    if (i >= tb.rows.length - n) r.kind = 'foot';
+    else if (r.kind === 'foot') r.kind = 'body';
+  });
+  return tb;
+}
+
 /** Rectangle qui contient [r0, c0]–[r1, c1] et toute cellule qu'il coupe (une fusion ne coupe jamais une cellule) */
 export function mergeRect(tb, r0, c0, r1, c1) {
   let a = Math.min(r0, r1),
@@ -309,6 +344,7 @@ export function fillOf(tb, cl) {
   if (set(row.fill)) return row.fill;
   if (set(col.fill)) return col.fill;
   if (row.kind === 'head') return set(L.headFill) ? L.headFill : 'none';
+  if (row.kind === 'foot') return set(L.footFill) ? L.footFill : 'none';
   if (set(L.stripe) && row.kind === 'body') {
     const k = tb.rows.slice(0, cl.r).filter((x) => x.kind === 'body').length; // rang parmi les lignes du corps
     if (k % 2 === 1) return L.stripe;
@@ -329,11 +365,12 @@ export function edgeStroke(tb, o, i, j, map = coverMap(tb)) {
   const R = tb.rows.length,
     C = tb.cols.length,
     L = tb.look || {},
-    hc = headCount(tb);
+    hc = headCount(tb),
+    fc = footCount(tb);
   let base;
   if (o === 'h') {
     if (i > 0 && i < R && map[i - 1][j] === map[i][j]) return null;
-    base = i === 0 ? L.top : i === R ? L.bottom : i === hc ? L.head || L.innerH : L.innerH;
+    base = i === 0 ? L.top : i === R ? L.bottom : i === hc ? L.head || L.innerH : fc && i === R - fc ? L.foot || L.innerH : L.innerH;
   } else {
     if (j > 0 && j < C && map[i][j - 1] === map[i][j]) return null;
     base = j === 0 || j === C ? L.sides : L.innerV;
@@ -389,6 +426,82 @@ export function tableSegments(tb) {
   return segs.sort((p, q) => p.s.w - q.s.w);
 }
 
+/* ---------- Contours : surcharges d'arêtes d'une sélection, ou réglages du tableau ---------- */
+/** Arêtes que désigne un « côté » du rectangle [r0, c0]–[r1, c1] : clés 'h:i:j' / 'v:i:j'. Côtés : top, bottom, left, right, innerH, innerV
+    (extérieur = les quatre premiers, tout = les six) ; les arêtes à l'intérieur d'une fusion n'existent pas et sont omises. */
+export const EDGE_SIDES = ['top', 'bottom', 'left', 'right', 'innerH', 'innerV'];
+export function rectEdges(tb, R, sides) {
+  const map = coverMap(tb),
+    out = new Set(),
+    H = tb.rows.length,
+    W = tb.cols.length;
+  const h = (i, j) => {
+    if (!(i > 0 && i < H && map[i - 1][j] === map[i][j])) out.add(`h:${i}:${j}`);
+  };
+  const v = (i, j) => {
+    if (!(j > 0 && j < W && map[i][j - 1] === map[i][j])) out.add(`v:${i}:${j}`);
+  };
+  for (const side of sides) {
+    for (let j = R.c0; j <= R.c1; j++) {
+      if (side === 'top') h(R.r0, j);
+      if (side === 'bottom') h(R.r1 + 1, j);
+      if (side === 'innerH') for (let i = R.r0 + 1; i <= R.r1; i++) h(i, j);
+    }
+    for (let i = R.r0; i <= R.r1; i++) {
+      if (side === 'left') v(i, R.c0);
+      if (side === 'right') v(i, R.c1 + 1);
+      if (side === 'innerV') for (let j = R.c0 + 1; j <= R.c1; j++) v(i, j);
+    }
+  }
+  return [...out];
+}
+/** Pose un trait sur des arêtes de la sélection (`s` : trait, `stroke(0)` = aucun trait, `undefined` = retire la surcharge : l'arête reprend le tableau) */
+export function setEdges(tb, R, sides, s) {
+  tb.edges = tb.edges || {};
+  for (const k of rectEdges(tb, R, sides)) {
+    if (s === undefined) delete tb.edges[k];
+    else tb.edges[k] = clone(s);
+  }
+  return tb;
+}
+/** Trait effectif (surcharge comprise) d'un côté de la sélection, ou null si ses arêtes diffèrent ou n'ont pas de trait ; `none` : tout est sans trait */
+export function sideStroke(tb, R, side) {
+  const map = coverMap(tb),
+    keys = rectEdges(tb, R, [side]),
+    all = keys.map((k) => {
+      const [o, i, j] = k.split(':');
+      return edgeStroke(tb, o, +i, +j, map);
+    });
+  if (!all.length) return { none: true, s: null };
+  const first = all[0];
+  if (!first) return { none: all.every((x) => !x), s: null };
+  return all.every((x) => x && styleKey(x) === styleKey(first)) ? { none: false, s: first } : { none: false, s: null };
+}
+/** Côtés du tableau (sans sélection) : correspondance avec les réglages `look` */
+export const LOOK_SIDES = {
+  top: ['top'],
+  bottom: ['bottom'],
+  left: ['sides'],
+  right: ['sides'],
+  innerH: ['innerH'],
+  innerV: ['innerV'],
+  head: ['head'],
+  foot: ['foot'],
+};
+/** Pose un trait sur des réglages du tableau (`s` null = pas de trait) ; le préréglage devient « personnalisé » */
+export function setLookStroke(tb, sides, s) {
+  tb.look = tb.look || {};
+  for (const side of sides) for (const k of LOOK_SIDES[side] || []) tb.look[k] = s ? clone(s) : null;
+  tb.look.preset = 'custom';
+  return tb;
+}
+/** Trait du tableau pour un côté (sans sélection) */
+export function lookStroke(tb, side) {
+  const L = tb.look || {},
+    k = (LOOK_SIDES[side] || [])[0];
+  return k && L[k] && L[k].w > 0 ? L[k] : null;
+}
+
 /* ---------- Couleurs ---------- */
 /** Parcourt les couleurs du tableau : fn(clé) pour les traits et le texte, fill(clé) pour les fonds */
 export function remapTableColors(tb, fn, fill = fn) {
@@ -397,8 +510,9 @@ export function remapTableColors(tb, fn, fill = fn) {
     if (s && typeof s.color === 'string') s.color = fn(s.color);
   };
   const L = tb.look || {};
-  ['top', 'bottom', 'sides', 'innerH', 'innerV', 'head'].forEach((k) => st(L[k]));
+  STROKE_KEYS.forEach((k) => st(L[k]));
   if (L.headFill) L.headFill = fill(L.headFill);
+  if (L.footFill) L.footFill = fill(L.footFill);
   if (L.stripe) L.stripe = fill(L.stripe);
   if (L.headFg) L.headFg = fn(L.headFg);
   Object.values(tb.edges || {}).forEach(st);
@@ -477,6 +591,16 @@ export function repairTable(src) {
     tb.cells.push(cl);
   }
   for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) if (!taken[r][c]) tb.cells.push(newCell(r, c));
+  /* fonds de lignes et de colonnes : des clés de couleur, sinon retirés */
+  [...tb.rows, ...tb.cols].forEach((x) => {
+    if (x.fill != null && !isKey(x.fill)) delete x.fill;
+  });
+  /* le pied reste en bas : une ligne 'foot' suivie d'une ligne du corps ou de l'en-tête devient du corps */
+  let tail = true;
+  for (let i = tb.rows.length - 1; i >= 0; i--) {
+    if (tb.rows[i].kind !== 'foot') tail = false;
+    else if (!tail) tb.rows[i].kind = 'body';
+  }
   /* l'en-tête reste en haut : une ligne 'head' après une ligne du corps devient du corps */
   let body = false;
   tb.rows.forEach((r) => {
@@ -497,11 +621,11 @@ export function repairTable(src) {
   else {
     const base = BARE_LOOK();
     tb.look = { ...L, preset: TABLE_PRESETS[L.preset] ? L.preset : 'custom' };
-    for (const k of ['top', 'bottom', 'sides', 'innerH', 'innerV', 'head']) {
+    for (const k of STROKE_KEYS) {
       const s = cleanStroke(L[k]);
       tb.look[k] = s === undefined ? null : s;
     }
-    for (const k of ['headFill', 'headFg', 'stripe']) tb.look[k] = isKey(L[k]) ? L[k] : base[k];
+    for (const k of ['headFill', 'headFg', 'footFill', 'stripe']) tb.look[k] = isKey(L[k]) ? L[k] : base[k];
   }
   return tb;
 }

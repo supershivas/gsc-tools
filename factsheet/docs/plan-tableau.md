@@ -113,6 +113,8 @@ Estimation : phases 0 à 2 = le cœur (≈ 3 sessions longues) ; 3 à 5 = finiti
 
 **Phase 2 faite (1.111.0)** : éditeur de tableau (`table/editor.js`, `grid-ui.js`) et copier-coller (`table/paste.js` : HTML de Word / Excel / Google Sheets / pages web, repli TSV). Ajouts au plan : alignement horizontal des cellules dans l'éditeur, Cmd/Ctrl + B / I / U sur des cellules entières. Format inchangé.
 
+**Phase 3 faite (1.112.0)** : fonds et contours dans l'éditeur (`table/panel-style.js`). Ajouts au modèle, sans renommer de clé : lignes de pied (`kind: 'foot'`, `footCount`, `setFootRows`, 2 au plus), `look.footFill`, `look.foot` (trait au-dessus du pied), `setEdges` / `rectEdges` / `sideStroke`, `setLookStroke` / `lookStroke` ; fonds de ligne et de colonne validés par `repairTable`. Préréglages ajoutés : « En-tête coloré et zébré », « Filets fins », « Avec pied » (le préréglage à pied fixe le nombre de lignes de pied) ; les Propriétés demandent aussi confirmation avant d'oublier des surcharges. Aucune capture de référence modifiée.
+
 Versions : `main` était déjà en 1.108.0 à la fin de la phase 0, d'où le décalage du tableau du §3 (phase 1 = 1.109.0).
 
 ## 6. Hors périmètre (à rediscuter)

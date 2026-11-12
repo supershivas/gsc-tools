@@ -214,6 +214,31 @@ body.ve-open{overflow:hidden}
 .te-al{min-height:36px;display:inline-flex;align-items:center;justify-content:center}
 .te-al.on{background:var(--ui-ink);color:var(--ui-panel)}
 .te-msg:empty{display:none}
+.te-blk{margin:0 0 8px}
+.te-blk .cs{width:100%}
+.te-prio{margin:-2px 0 8px}
+.te-seg-n{grid-template-columns:repeat(auto-fit,minmax(36px,1fr))}
+.te-edgebox{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;margin:0 0 8px}
+.te-schema{position:relative;width:76px;height:76px;border-radius:var(--radius-sm);background:var(--ui-bg)}
+.te-es{position:absolute;margin:0;padding:0;min-height:0;min-width:0;border:0;border-radius:0;background:transparent;cursor:pointer}
+.te-es::before{content:"";position:absolute;background:var(--ui-line)}
+.te-es.on::before{background:var(--ui-ink)}
+.te-es-t,.te-es-b,.te-es-ih{left:18px;right:18px;height:14px}
+.te-es-t{top:3px}.te-es-b{bottom:3px}.te-es-ih{top:31px}
+.te-es-t::before,.te-es-b::before,.te-es-ih::before{left:0;right:0;top:6px;height:2px}
+.te-es-l,.te-es-r,.te-es-iv{top:18px;bottom:18px;width:14px}
+.te-es-l{left:3px}.te-es-r{right:3px}.te-es-iv{left:31px}
+.te-es-l::before,.te-es-r::before,.te-es-iv::before{top:0;bottom:0;left:6px;width:2px}
+@media (hover:hover){.te-es:hover::before{background:var(--handle)}}
+.te-short{min-height:30px;font-size:var(--fs-sm)}
+.te-chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}
+.te-chip{min-height:30px;font-size:var(--fs-sm)}
+.te-chip.on{background:var(--ui-ink);color:var(--ui-panel)}
+.te-presets{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:0 0 8px}
+.te-pre{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:0;padding:6px 4px;font-size:var(--fs-xs);text-align:center;color:var(--c-blue)}
+.te-pre span{color:var(--ui-ink)}
+.te-pre.on{outline:2px solid var(--ui-ink);outline-offset:-2px}
+.te-thumb{display:block;fill:none;overflow:visible}
 @media print{.ve{display:none}}
 
 /* ---------- Barre contextuelle au survol ---------- */
