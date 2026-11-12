@@ -79,11 +79,11 @@ Chaque phase = une session, un commit propre, `cd factsheet && npm run check && 
 | Phase | Contenu | Version | Modèle conseillé |
 |---|---|---|---|
 | **0 — Spike** | Page jetable : grille CSS + calque SVG, fusions, filets 0,25 pt, pointillés. Export PDF et aperçu 3D vérifiés. Décide D2 (SVG ou repli bordures). Rien de livré. | inchangée | Opus |
-| **1 — Modèle, rendu, PDF** | `src/table/model.js` (opérations pures + invariants), `src/table/render.js`, type `table` dans `COL_TYPES`/`newCol`/`migrate`/`renderCol`/`tree.js`, extension de `remapColors`, branche `else` explicite dans `renderCol`, CSS dans `doc.css`, document de test, `tests/table.spec.js` (opérations pures par `page.evaluate`, rendu, PDF). Propriétés minimales : nombre de lignes/colonnes, ligne d'en-tête, préréglage. | 1.108.0 | Opus |
-| **2 — Éditeur** | Fenêtre modale (`src/table/editor.js`, `grid-ui.js`) : sélection (clic, glisser, Maj, en-têtes de ligne/colonne, Ctrl+A), saisie dans la cellule (Entrée, Tab, flèches, Échap), insérer/supprimer ligne/colonne, **fusionner / scinder**, poignées de largeur/hauteur (`dragSplit`), copier-coller de cellules (TSV), historique propre, Échap en couches. | 1.109.0 | Opus |
-| **3 — Fonds et contours** | Fond par cellule/ligne/colonne, alternance, en-tête/pied de tableau ; carte « Contours » avec **sélecteur d'arêtes** (extérieur, intérieur, côtés individuels), épaisseur (0,25 → 3 pt), couleur, pointillés, aucun ; `colorSelect` partout ; préréglages complets. | 1.110.0 | Sonnet |
-| **4 — Texte et import** | Style de paragraphe par cellule (`PSTYLES`), couleur de texte, marges intérieures, alignement H/V, colonnes numériques (chiffres tabulaires, alignées à droite), import CSV/TSV/collage Excel via `dataparse.js` + aperçu (en-têtes, séparateur décimal), export TSV/CSV. | 1.111.0 | Sonnet |
-| **5 — Confort** | Réordonner lignes/colonnes (moteur `dnd.js`, règles de glisser-déposer), « répartir uniformément », ajustement au contenu, avertissements de colonne trop étroite, dupliquer ligne/colonne ; (option) styles de tableau liés dans `doc.tableStyles`. | 1.112.0 | Sonnet |
+| **1 — Modèle, rendu, PDF** | `src/table/model.js` (opérations pures + invariants), `src/table/render.js`, type `table` dans `COL_TYPES`/`newCol`/`migrate`/`renderCol`/`tree.js`, extension de `remapColors`, branche `else` explicite dans `renderCol`, CSS dans `doc.css`, document de test, `tests/table.spec.js` (opérations pures par `page.evaluate`, rendu, PDF). Propriétés minimales : nombre de lignes/colonnes, ligne d'en-tête, préréglage. | 1.109.0 | Opus |
+| **2 — Éditeur** | Fenêtre modale (`src/table/editor.js`, `grid-ui.js`) : sélection (clic, glisser, Maj, en-têtes de ligne/colonne, Ctrl+A), saisie dans la cellule (Entrée, Tab, flèches, Échap), insérer/supprimer ligne/colonne, **fusionner / scinder**, poignées de largeur/hauteur (`dragSplit`), copier-coller de cellules (TSV), historique propre, Échap en couches. | 1.110.0 | Opus |
+| **3 — Fonds et contours** | Fond par cellule/ligne/colonne, alternance, en-tête/pied de tableau ; carte « Contours » avec **sélecteur d'arêtes** (extérieur, intérieur, côtés individuels), épaisseur (0,25 → 3 pt), couleur, pointillés, aucun ; `colorSelect` partout ; préréglages complets. | 1.111.0 | Sonnet |
+| **4 — Texte et import** | Style de paragraphe par cellule (`PSTYLES`), couleur de texte, marges intérieures, alignement H/V, colonnes numériques (chiffres tabulaires, alignées à droite), import CSV/TSV/collage Excel via `dataparse.js` + aperçu (en-têtes, séparateur décimal), export TSV/CSV. | 1.112.0 | Sonnet |
+| **5 — Confort** | Réordonner lignes/colonnes (moteur `dnd.js`, règles de glisser-déposer), « répartir uniformément », ajustement au contenu, avertissements de colonne trop étroite, dupliquer ligne/colonne ; (option) styles de tableau liés dans `doc.tableStyles`. | 1.113.0 | Sonnet |
 | **6 — Sur demande** | Barres de données / échelle de couleur dans les cellules, icônes et images (via `safeImgSrc`), conversion tableau ↔ dataviz, coupure sur deux pages, sujet « Tableau » dans le Labo pour comparer des habillages. | à décider | — |
 
 Estimation : phases 0 à 2 = le cœur (≈ 3 sessions longues) ; 3 à 5 = finitions (≈ 3 sessions). Le tableau est utilisable pour de vrai dès la fin de la phase 2 (texte + fusions), joli à la fin de la phase 3.
@@ -101,13 +101,15 @@ Estimation : phases 0 à 2 = le cœur (≈ 3 sessions longues) ; 3 à 5 = finiti
 | Fichier ouvert dans une ancienne version | Branche `else` explicite dans `renderCol` (placeholder « tableau ») livrée en phase 1. |
 | `migrate` du tableau | `table.v` + migration dédiée ; ne jamais renommer une clé existante. |
 
-## 5. Questions à trancher avant la phase 1
+## 5. Décisions prises (2026-11-12)
 
-1. **Pointillés et filets très fins** (0,25 pt) : indispensables ? Si oui → calque SVG (recommandé). Si non → bordures CSS, plus simples.
-2. **Taille maximale** : 12 colonnes × 40 lignes vous convient-il ?
-3. **Fusion** : le texte des cellules absorbées est-il perdu (comme InDesign avec confirmation) ou concaténé ?
-4. **Tableau sur deux pages** : jamais en v1, d'accord ?
-5. **Styles liés** (phase 5) : voulus d'emblée ou seulement des préréglages ?
+1. **Pointillés et filets de 0,25 pt** : oui → calque SVG des traits (validé par la phase 0, voir D2).
+2. **Taille maximale** : 12 colonnes × 40 lignes.
+3. **Fusion** : le texte des cellules absorbées est **mis bout à bout** dans la cellule d'ancre (rien ne se perd ; annulable).
+4. **Tableau sur deux pages** : jamais en v1.
+5. **Styles** : préréglages appliqués une fois ; styles liés seulement en phase 5, si utiles.
+
+Versions : `main` était déjà en 1.108.0 à la fin de la phase 0, d'où le décalage du tableau du §3 (phase 1 = 1.109.0).
 
 ## 6. Hors périmètre (à rediscuter)
 
