@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.115.1 — 2026-11-12
+- Chiffre clé avec contour : la hauteur du cadre s'adapte au contenu
+
 ## 1.115.0 — 2026-11-12
 - Tableau : petit bouton « Tableau… » dans la barre au survol du bloc, comme pour les dataviz
 - Éditeur de tableau : options de la barre latérale rangées en cartes repliables (Sélection, Texte, Remplissage, Contours, Préréglages, Lignes, Colonnes, Fichier)

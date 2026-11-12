@@ -1,8 +1,7 @@
 {
-  "version": "1.115.0",
+  "version": "1.115.1",
   "date": "2026-11-12",
   "changes": [
-    "Tableau : petit bouton « Tableau… » dans la barre au survol du bloc, comme pour les dataviz",
-    "Éditeur de tableau : options de la barre latérale rangées en cartes repliables (Sélection, Texte, Remplissage, Contours, Préréglages, Lignes, Colonnes, Fichier)"
+    "Chiffre clé avec contour : la hauteur du cadre s'adapte au contenu"
   ]
 }

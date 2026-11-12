@@ -84,6 +84,7 @@
 .dash{position:absolute;inset:calc(-1 * var(--bw,var(--stroke)));z-index:1;pointer-events:none}
 .dash svg{display:block}
 .col.stroked{align-self:stretch;display:flex;flex-direction:column}
+.col-figure.stroked{align-self:start}
 .img-box.fit{aspect-ratio:4/3;height:auto}.img-box.fit.has{background:none}
 .img-box.fit img{width:100%;height:100%;object-fit:contain}
 .img-box.custom{max-width:100%}
