@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.115.3 — 2026-11-12
+- Chiffre clé : l'interrupteur « Hauteur ajustée au contenu » passe dans la carte Hauteur ; éteint, on saisit la hauteur en pixels
+
 ## 1.115.2 — 2026-11-12
 - Chiffre clé avec contour : interrupteur « Hauteur du cadre ajustée au contenu », sinon hauteur saisie en pixels
 

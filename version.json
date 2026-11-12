@@ -1,7 +1,7 @@
 {
-  "version": "1.115.2",
+  "version": "1.115.3",
   "date": "2026-11-12",
   "changes": [
-    "Chiffre clé avec contour : interrupteur « Hauteur du cadre ajustée au contenu », sinon hauteur saisie en pixels"
+    "Chiffre clé : l'interrupteur « Hauteur ajustée au contenu » passe dans la carte Hauteur ; éteint, on saisit la hauteur en pixels"
   ]
 }

@@ -296,11 +296,6 @@ function renderCol(col, w, path, env) {
     wrap.append(side(strip(col.card.content && col.card.content.title), (ww) => ({ node: renderCard(col.card, ww, env) })));
   } else if (col.type === 'figure') {
     wrap.append(renderFigure(col.figure || {}, w, col.align, env));
-    const fg = col.figure || {};
-    if (fg.fitH === false && +fg.boxH > 0 && isBox(col)) {
-      wrap.style.height = Math.round(+fg.boxH) + 'px'; // hauteur fixe saisie en pixels (sinon le cadre suit son contenu : doc.css)
-      wrap.style.boxSizing = 'border-box';
-    }
   } else if (col.type === 'table' && col.table) {
     wrap.append(renderTable(col.table, env));
   } else if (col.type === 'viz') {
@@ -354,7 +349,7 @@ function renderCol(col, w, path, env) {
       minHeight: col.minH + 'px',
       display: 'flex',
       flexDirection: 'column',
-      alignSelf: isBox(col) ? 'stretch' : 'start',
+      alignSelf: isBox(col) && col.type !== 'figure' ? 'stretch' : 'start', // chiffre clé : jamais étiré à la rangée, seulement à sa hauteur réglée
       justifyContent: { start: 'flex-start', center: 'center', end: 'flex-end' }[al],
     });
   }

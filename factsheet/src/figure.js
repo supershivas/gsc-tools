@@ -55,13 +55,6 @@ export const FIGURE_FIELDS = [
     when: (o) => o.iconStyle === 'circle',
     why: 'Choisissez « Dans une pastille » pour régler son trait.',
   },
-  { k: 'fitH', t: 'bool', def: true, label: 'Hauteur du cadre ajustée au contenu' },
-  {
-    k: 'boxH',
-    t: 'number',
-    label: 'Hauteur du cadre (px)',
-    when: (o) => o.fitH === false,
-  },
   { k: 'headText', t: 'text', label: 'En-tête (petites capitales, ex. « Sous occupation »)' },
   {
     k: 'headIcon',

@@ -22,7 +22,7 @@ const ICONS = { text: 'text-size', image: 'photo', card: 'layout-cards', figure:
 const HMODE = { auto: 'Auto', ratio: 'Proportion', fixed: 'Fixe', fill: 'Remplir', match: 'Voisine' };
 
 export function columnPanel(k, { si, bi, ci, sec, sub, col }) {
-  const { doc, ctx, root, title, card, field, fieldDiv, segmented, boxControls, sumBox } = k;
+  const { doc, ctx, root, title, card, field, fieldDiv, segmented, boxControls, sumBox, switchRow } = k;
   const nb = sub.cols.length,
     vt0 = col.type === 'viz' && col.viz && VIZ_TYPES[col.viz.kind];
   const nudge = (d) => () => {
@@ -161,24 +161,38 @@ export function columnPanel(k, { si, bi, ci, sec, sub, col }) {
       'ruler-2',
       t('Hauteur'),
       [
-        field(
-          'Hauteur minimale de la colonne (px)',
-          h('input', {
-            type: 'number',
-            min: 0,
-            max: 1000,
-            step: 3,
-            value: col.minH || 0,
-            oninput: (e) => {
-              col.minH = Math.max(0, +e.target.value || 0);
-              ctx.changed();
-            },
-          }),
-        ),
-        h('p', {
-          class: 'hint',
-          textContent: t('Ou glisser la poignée sous la colonne dans l’aperçu : elle se cale sur la colonne voisine.'),
-        }),
+        /* chiffre clé : « ajusté au contenu » = pas de hauteur réglée ; éteint, la hauteur actuelle devient la valeur de départ */
+        col.type === 'figure'
+          ? switchRow('Hauteur ajustée au contenu', !col.minH, () => {
+              if (col.minH) col.minH = 0;
+              else {
+                const n = document.querySelector(`.stage .col[data-sel="col:${si}:${bi}:${ci}"]:not(.ovf-clone *)`);
+                col.minH = Math.max(3, Math.round(((n && n.offsetHeight) || 150) / 3) * 3);
+              }
+            })
+          : null,
+        col.type === 'figure' && !col.minH
+          ? null
+          : field(
+              col.type === 'figure' ? 'Hauteur (px)' : 'Hauteur minimale de la colonne (px)',
+              h('input', {
+                type: 'number',
+                min: 0,
+                max: 1000,
+                step: 3,
+                value: col.minH || 0,
+                oninput: (e) => {
+                  col.minH = Math.max(0, +e.target.value || 0);
+                  ctx.changed();
+                },
+              }),
+            ),
+        col.type === 'figure' && !col.minH
+          ? null
+          : h('p', {
+              class: 'hint',
+              textContent: t('Ou glisser la poignée sous la colonne dans l’aperçu : elle se cale sur la colonne voisine.'),
+            }),
       ],
       null,
       col.minH ? col.minH + ' px' : t('Auto'),
