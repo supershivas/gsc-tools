@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.109.0 — 2026-11-12
+- Nouveau type de contenu « Tableau » (lignes, colonnes, lignes d'en-tête, préréglages : filets horizontaux, zébré, en-tête coloré, grille) ; texte des cellules et fusions arrivent avec l'éditeur de tableau
+
 ## 1.108.0 — 2026-11-12
 - Carte « Exporter » sur le header, chaque section, sous-section et colonne : l'élément seul en PNG (transparent ou avec fond), JPG, SVG ou PDF (résolution 150/300 dpi, profil PDF au choix)
 

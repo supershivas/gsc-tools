@@ -14,13 +14,14 @@ const strip = (t) =>
     .replace(PREFIX_RE, '')
     .replace(/\s+/g, ' ')
     .trim();
-const ICON = { text: 'text-size', image: 'photo', figure: 'number', card: 'layout-cards', viz: 'chart-bar' };
+const ICON = { text: 'text-size', image: 'photo', figure: 'number', card: 'layout-cards', viz: 'chart-bar', table: 'table' };
 
 function colLabel(col) {
   if (col.type === 'text') return strip(col.text).slice(0, 34) || 'Texte vide';
   if (col.type === 'image') return col.caption ? 'Image · ' + col.caption : 'Image';
   if (col.type === 'card') return 'Carte · ' + (strip(col.card && col.card.content && col.card.content.title) || '—');
   if (col.type === 'figure') return 'Chiffre clé · ' + ((col.figure && col.figure.value) || '—');
+  if (col.type === 'table') return 'Tableau · ' + (col.table ? `${col.table.rows.length} × ${col.table.cols.length}` : '—');
   const t = col.viz && VIZ_TYPES[col.viz.kind];
   return 'Dataviz · ' + (t ? t.label : '—');
 }

@@ -109,6 +109,8 @@ Estimation : phases 0 à 2 = le cœur (≈ 3 sessions longues) ; 3 à 5 = finiti
 4. **Tableau sur deux pages** : jamais en v1.
 5. **Styles** : préréglages appliqués une fois ; styles liés seulement en phase 5, si utiles.
 
+**Phase 1 faite (1.109.0)** : modèle, rendu, PDF, propriétés minimales (voir `docs/architecture.md`, « Tableau »). Écart au plan : `HEAD_MAX` = 2 lignes d'en-tête (choix en 3 boutons). La phase 2 branche l'éditeur sur `table/model.js` sans changer le format.
+
 Versions : `main` était déjà en 1.108.0 à la fin de la phase 0, d'où le décalage du tableau du §3 (phase 1 = 1.109.0).
 
 ## 6. Hors périmètre (à rediscuter)

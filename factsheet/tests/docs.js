@@ -1,6 +1,7 @@
 /* Documents de référence des tests de non-régression (construits dans la page, avec les vrais modules de l'app). */
 import { defaultDoc, newSection, newSub, newCol } from '../src/state.js';
 import { newViz as freshViz, VIZ_TYPES, withAxesOrigin } from '../src/viz/index.js';
+import { newTable, mergeCells, applyPreset, stroke } from '../src/table/model.js';
 
 /* Les captures de référence montrent l'aspect d'avant la carte « Axes et grille » (une fiche existante ne change pas) :
    les dataviz des documents de test le gardent ; la grille des nouvelles dataviz est vérifiée par tests/vizsidebar.spec.js. */
@@ -114,6 +115,43 @@ function docIso(density, typo, markup) {
 export const docIsoTight = () => docIso('tight', true, '<path d="M12 2l3 7h7l-6 5 2 8-6-4-6 4 2-8-6-5h7z"/>');
 export const docIsoLoose = () => docIso('loose', false, '<circle cx="12" cy="12" r="9"/>');
 
+/** Tableaux : grille avec fusions (2 colonnes, 2 lignes, 2 × 2), filets de 0,25 pt, en-tête en tirets ; un tableau zébré et un à en-tête coloré. */
+export function docTable() {
+  const d = defaultDoc();
+  d.name = 'tableau';
+  const grid = newTable(5, 4, 1);
+  applyPreset(grid, 'grid');
+  grid.look.top = grid.look.bottom = grid.look.sides = stroke(1);
+  grid.look.head = stroke(0.5, 'blue', [2, 1.5]);
+  const txt = (r, c, v) => (grid.cells.find((x) => x.r === r && x.c === c).text = v);
+  ['Country', 'Budget', 'Share', 'Trend'].forEach((v, c) => txt(0, c, v));
+  txt(1, 0, 'Belgium');
+  txt(1, 1, '€1.2 bn');
+  txt(2, 0, 'France');
+  txt(3, 0, 'Germany and Austria');
+  txt(3, 2, '**12 %**');
+  mergeCells(grid, 1, 2, 1, 3); // 2 colonnes
+  mergeCells(grid, 2, 1, 3, 1); // 2 lignes
+  mergeCells(grid, 3, 2, 4, 3); // 2 × 2
+  grid.cells.find((x) => x.r === 4 && x.c === 0).fill = 'tint-sky';
+  const zebra = newTable(5, 2, 1);
+  applyPreset(zebra, 'zebra');
+  const head = newTable(4, 3, 1);
+  applyPreset(head, 'headfill');
+  const tableCol = (tb) => ({ ...newCol('table'), table: tb });
+  const sec = newSection('recto');
+  sec.title = 'Tables';
+  const a = newSub('1');
+  a.title = 'Merged cells';
+  a.cols = [tableCol(grid)];
+  const b = newSub('1-1');
+  b.title = 'Presets';
+  b.cols = [tableCol(zebra), tableCol(head)];
+  sec.subs = [a, b];
+  d.sections = [sec, ...d.sections.filter((x) => x.page === 'verso').slice(0, 1)];
+  return d;
+}
+
 export const DOCS = {
   ui: docUi,
   default: docDefault,
@@ -121,5 +159,6 @@ export const DOCS = {
   ...Object.fromEntries([0, 1, 2].map((i) => [`dataviz-${i + 1}`, () => docsViz()[i]])),
   'iso-tight': docIsoTight,
   'iso-loose': docIsoLoose,
+  table: docTable,
 };
 export const DOC_NAMES = Object.keys(DOCS);

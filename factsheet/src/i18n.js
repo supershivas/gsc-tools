@@ -1385,6 +1385,14 @@ const EN = {
   'Barre de texte': 'Text bar',
   'Panneau texte': 'Text panel',
   'Pistes à ajouter': 'Ideas to add',
+  Tableau: 'Table',
+  Lignes: 'Rows',
+  Préréglage: 'Preset',
+  Personnalisé: 'Custom',
+  Zébré: 'Striped',
+  'Filets horizontaux': 'Horizontal rules',
+  'En-tête coloré': 'Coloured header',
+  'Le préréglage remplace les traits et les fonds du tableau.': 'The preset replaces the rules and fills of the table.',
 };
 export const DICT = { en: EN }; // exporté pour scripts/check-i18n.mjs
 
@@ -1404,6 +1412,7 @@ const PATTERNS = [
   [/^Chiffre clé · (.+)$/, (_, x) => `Key figure · ${x}`],
   [/^Teinte · (.+)$/, (_, x) => `Tint · ${tr(x)}`],
   [/^Carte · (.+)$/, (_, x) => `Card · ${x}`],
+  [/^Tableau · (.+)$/, (_, x) => `Table · ${x}`],
   [/^Dataviz · (.+)$/, (_, x) => `Dataviz · ${tr(x)}`],
   [/^(\d+) images? à publier — ouvrir l’Atelier$/, (_, n) => `${n} image${n === '1' ? '' : 's'} to publish — open the Atelier`],
   [

@@ -5,13 +5,14 @@ import { newCard, cardPresetFor } from './cardmodel.js';
 import { newViz, withAxesOrigin, VIZ_TYPES } from './viz/index.js';
 import { t } from './i18n.js';
 import { FIGURE_DEFAULTS } from './figure.js';
+import { newTable, repairTable, remapTableColors } from './table/model.js';
 
 export const SCHEMA = 1;
 let _id = 0;
 export const uid = (p) => `${p}${Date.now().toString(36)}${(_id++).toString(36)}`;
 
 export const IMAGE_RATIOS = { '16:9': 16 / 9, '4:3': 4 / 3, '1:1': 1, '3:4': 3 / 4 };
-export const COL_TYPES = { text: 'Texte', image: 'Image', figure: 'Chiffre clé', card: 'Carte', viz: 'Dataviz' };
+export const COL_TYPES = { text: 'Texte', image: 'Image', figure: 'Chiffre clé', card: 'Carte', viz: 'Dataviz', table: 'Tableau' };
 /* Les 4 versions du logo ont la même taille (HEADER.logo). `label` = clé de traduction. */
 export const LOGO_VARIANTS = { default: 'Défaut', mono: 'Mono', white: 'Blanc (white)', negative: 'Négatif' };
 export const newHeaderImage = (n = 1) => ({ id: uid('img'), name: `${t('Image')} ${n}`, src: null });
@@ -51,6 +52,7 @@ export const newCol = (type = 'text') => ({
   viz: type === 'viz' ? newViz('bars') : null, // { kind, opts } — voir viz/index.js
   figure: type === 'figure' ? FIGURE_DEFAULTS() : null,
   card: type === 'card' ? newCard() : null, // carte : options + contenu (voir cardmodel.js)   // chiffre clé : { value, icon, iconStyle, text }
+  table: type === 'table' ? newTable() : null, // tableau : grille, cellules, traits (voir table/model.js)
   imgMode: 'ratio',
   imgW: 100,
   imgH: 150,
@@ -249,6 +251,7 @@ export function migrate(j) {
         const k = Object.assign(newCol(c.type || 'text'), c);
         if (k.type === 'figure' && !k.figure) k.figure = FIGURE_DEFAULTS();
         if (k.type === 'card' && !k.card) k.card = newCard();
+        if (k.type === 'table') k.table = repairTable(k.table);
         if (k.src && !safeImgSrc(k.src)) k.src = null;
         if (k.card && k.card.src && !safeImgSrc(k.card.src)) k.card.src = null;
         if (k.src) k.src = upgradeAsset(k.src);
@@ -477,6 +480,7 @@ export function remapColors(doc, fn, bg = fn, fill = bg) {
         if (c.strokeColor) c.strokeColor = fn(c.strokeColor);
         if (c.fillColor) c.fillColor = fill(c.fillColor);
         walk(c.viz);
+        remapTableColors(c.table, fn, fill);
       });
     });
   });

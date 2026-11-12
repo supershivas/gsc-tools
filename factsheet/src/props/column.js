@@ -14,10 +14,11 @@ import { imageEditor } from './col-image.js';
 import { cardEditor } from './col-card.js';
 import { figureEditor } from './col-figure.js';
 import { vizEditor } from './col-viz.js';
+import { tableEditor } from './col-table.js';
 import { freeTexts } from './col-free.js';
 import { textColorCard } from './section.js';
 
-const ICONS = { text: 'text-size', image: 'photo', card: 'layout-cards', figure: 'number', viz: 'chart-bar' };
+const ICONS = { text: 'text-size', image: 'photo', card: 'layout-cards', figure: 'number', viz: 'chart-bar', table: 'table' };
 const HMODE = { auto: 'Auto', ratio: 'Proportion', fixed: 'Fixe', fill: 'Remplir', match: 'Voisine' };
 
 export function columnPanel(k, { si, bi, ci, sec, sub, col }) {
@@ -110,6 +111,7 @@ export function columnPanel(k, { si, bi, ci, sec, sub, col }) {
   else if (col.type === 'image') editor = imageEditor(k, col);
   else if (col.type === 'card') editor = [cardEditor(k, col, columnWidth(doc, si, bi, ci))];
   else if (col.type === 'figure') editor = figureEditor(k, col);
+  else if (col.type === 'table') editor = tableEditor(k, col);
   else editor = vizEditor(k, col, sub, ci);
 
   const swapSelect = () => {

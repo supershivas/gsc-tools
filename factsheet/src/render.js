@@ -22,6 +22,7 @@ import { inlineMk, s, stripInline } from './viz/util.js';
 import { parseLine, PREFIX_RE, applyAdv, blockStyle } from './textstyles.js';
 import { renderFigure } from './figure.js';
 import { renderCard } from './card.js';
+import { renderTable, layoutTable } from './table/render.js';
 
 export const ico = (name) => h('i', { class: 'ti ti-' + name });
 export function h(tag, props = {}, ...kids) {
@@ -295,11 +296,16 @@ function renderCol(col, w, path, env) {
     wrap.append(side(strip(col.card.content && col.card.content.title), (ww) => ({ node: renderCard(col.card, ww, env) })));
   } else if (col.type === 'figure') {
     wrap.append(renderFigure(col.figure || {}, w, col.align, env));
-  } else {
+  } else if (col.type === 'table' && col.table) {
+    wrap.append(renderTable(col.table, env));
+  } else if (col.type === 'viz') {
     const node = renderViz(col.viz, w, env);
     wrap.append(node || h('div', { class: 'viz-ph' }, h('span', { textContent: 'dataviz' })));
     if (node && env.fills && col.viz.opts && (col.viz.opts.hmode === 'fill' || col.viz.opts.hmode === 'match'))
       env.fills.push({ page: env.page, col, w, node, wrap, env, mode: col.viz.opts.hmode });
+  } else {
+    /* type inconnu (fichier enregistré par une version plus récente) : emplacement vide, le contenu reste dans le fichier */
+    wrap.append(h('div', { class: 'viz-ph' }, h('span', { textContent: String(col.type || '?') })));
   }
   /* textes de la colonne : « libre » = posé où l'on veut (x et largeur en % de la colonne, y en px, déplaçable à la souris) ;
      « au-dessus » / « en dessous » = dans le flux, sur toute la largeur, avant ou après le contenu */
@@ -590,6 +596,7 @@ export function measure(result) {
       });
       overflows.push({ page: p.key, over: Math.ceil(p.used - p.max), hidden: Math.max(0, Math.ceil(p.top + p.used - PAGE.h)), secs });
     }
+    p.el.querySelectorAll('.tbl').forEach(layoutTable); // traits des tableaux : calés sur les tailles réelles des lignes et colonnes
     p.el.querySelectorAll('.dash').forEach((d) => {
       // cadre des pointillés : taille réelle du contenant, trait centré sur la bordure
       const box = d.parentElement,
