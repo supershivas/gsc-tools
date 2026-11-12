@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.109.0 — 2026-11-12
+- Carte « Exporter » du header et des sections : option « Fond perdu 3 mm » (PDF avec TrimBox et BleedBox, PNG, JPG, SVG) ; le fond déborde sur les bords de la page touchés par l'élément
+
 ## 1.108.0 — 2026-11-12
 - Carte « Exporter » sur le header, chaque section, sous-section et colonne : l'élément seul en PNG (transparent ou avec fond), JPG, SVG ou PDF (résolution 150/300 dpi, profil PDF au choix)
 

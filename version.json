@@ -1,7 +1,7 @@
 {
-  "version": "1.108.0",
+  "version": "1.109.0",
   "date": "2026-11-12",
   "changes": [
-    "Carte « Exporter » sur le header, chaque section, sous-section et colonne : l'élément seul en PNG (transparent ou avec fond), JPG, SVG ou PDF"
+    "Export d'un élément (header, section) avec fond perdu 3 mm : le fond coloré déborde sur les bords de la page, en PDF, PNG, JPG et SVG"
   ]
 }

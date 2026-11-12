@@ -181,7 +181,7 @@ export function createExport(ctx) {
     if (f === 'pdf') {
       if (!window.FSPDF) await loadBundle('pdfexport.js');
       const profile = PDF_PROFILES[opts.profile] ? opts.profile : 'x4';
-      const { bytes, missing } = await window.FSPDF.build(ctx.getDoc(), 'net', { profile, only: path });
+      const { bytes, missing } = await window.FSPDF.build(ctx.getDoc(), 'net', { profile, only: path, bleed: !!opts.bleed });
       if (
         missing.length &&
         !(await confirmBox(
@@ -194,13 +194,19 @@ export function createExport(ctx) {
         ))
       )
         return false;
-      download(new Blob([bytes], { type: 'application/pdf' }), fileStem(base + PDF_PROFILES[profile].suffix) + '.pdf');
+      download(
+        new Blob([bytes], { type: 'application/pdf' }),
+        fileStem(base + (opts.bleed ? '-bleed' : '') + PDF_PROFILES[profile].suffix) + '.pdf',
+      );
       return true;
     }
     const doc = ctx.getDoc();
     if (f === 'svg') {
-      const { svg } = await elementSvg(doc, path, { transparent: true });
-      download(new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n' + svg], { type: 'image/svg+xml' }), fileStem(base) + '.svg');
+      const { svg } = await elementSvg(doc, path, { transparent: true, bleed: !!opts.bleed });
+      download(
+        new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n' + svg], { type: 'image/svg+xml' }),
+        fileStem(base + (opts.bleed ? '-bleed' : '')) + '.svg',
+      );
       return true;
     }
     const dpi = opts.dpi || 300,
@@ -209,12 +215,13 @@ export function createExport(ctx) {
       scale: dpi / 96,
       fill: f === 'png-t' ? null : '#ffffff',
       transparent: f === 'png-t',
+      bleed: !!opts.bleed,
     });
     const blob = await toBlob(canvas, jpg ? 'image/jpeg' : 'image/png', 0.95);
     const raw = new Uint8Array(await blob.arrayBuffer());
     download(
       new Blob([jpg ? jpgDpi(raw, dpi) : pngDpi(raw, dpi)], { type: blob.type }),
-      fileStem(base + (f === 'png-t' ? '-transparent' : '')) + (jpg ? '.jpg' : '.png'),
+      fileStem(base + (opts.bleed ? '-bleed' : '') + (f === 'png-t' ? '-transparent' : '')) + (jpg ? '.jpg' : '.png'),
     );
     return true;
   }

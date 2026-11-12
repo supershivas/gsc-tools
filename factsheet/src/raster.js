@@ -3,6 +3,7 @@
    CSS du document et polices (latin, en base64) y sont embarquées, car une image SVG ne charge rien d'extérieur. */
 import { PAGE, cssVars } from './tokens.js';
 import { renderDocument, measure, h } from './render.js';
+import { bleedSides } from './bleed.js';
 import { loadFonts } from './viz/util.js';
 
 const linkHref = (name) => {
@@ -257,7 +258,7 @@ export async function rasterizeNode(node, { width, vars, scale = 2, fill = null,
 /** Un élément du document (en-tête, section, sous-section, colonne) → SVG autonome de sa taille exacte (`data-sel`, ex. `sec:0`).
     La page est rendue comme à l'écran, puis décalée pour que seul l'élément reste visible ; `transparent` retire le fond de la page.
     → { svg, width, height } (px CSS) */
-export async function elementSvg(doc, path, { transparent = false } = {}) {
+export async function elementSvg(doc, path, { transparent = false, bleed = false } = {}) {
   await loadFonts();
   const css = await documentCss();
   const stage = h('div', { style: { position: 'absolute', left: '-20000px', top: '0' } });
@@ -273,8 +274,11 @@ export async function elementSvg(doc, path, { transparent = false } = {}) {
       P = page.el.getBoundingClientRect(),
       r = target.getBoundingClientRect();
     if (transparent) page.el.style.background = 'none';
-    const width = Math.max(1, Math.ceil(r.width)),
-      height = Math.max(1, Math.ceil(r.height));
+    /* fond perdu : le fond de l'élément est prolongé de 3 mm sur les côtés qui touchent le bord de la feuille */
+    const bl = (bleed && bleedSides(target, page.el)) || { l: 0, r: 0, t: 0, b: 0 },
+      fillBleed = bl.l + bl.r + bl.t + bl.b ? getComputedStyle(target).backgroundColor : 'transparent';
+    const width = Math.max(1, Math.ceil(r.width + bl.l + bl.r)),
+      height = Math.max(1, Math.ceil(r.height + bl.t + bl.b));
     const vars = Object.entries(cssVars(doc.theme, doc.colors, doc.density))
       .map(([k, v]) => `${k}:${v}`)
       .join(';')
@@ -282,8 +286,8 @@ export async function elementSvg(doc, path, { transparent = false } = {}) {
       .replace(/"/g, '&quot;');
     const inner = new XMLSerializer().serializeToString(page.el);
     const body =
-      `<div xmlns="http://www.w3.org/1999/xhtml" style="position:relative;width:${width}px;height:${height}px;overflow:hidden">` +
-      `<div style="position:absolute;left:${P.left - r.left}px;top:${P.top - r.top}px;width:${P.width}px;height:${P.height}px">${inner}</div></div>`;
+      `<div xmlns="http://www.w3.org/1999/xhtml" style="position:relative;width:${width}px;height:${height}px;overflow:hidden;background:${fillBleed}">` +
+      `<div style="position:absolute;left:${P.left - r.left + bl.l}px;top:${P.top - r.top + bl.t}px;width:${P.width}px;height:${P.height}px">${inner}</div></div>`;
     return { svg: pageSvg(vars, css, body, width, height), width, height };
   } finally {
     stage.remove();
