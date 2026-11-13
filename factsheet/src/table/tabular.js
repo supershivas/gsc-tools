@@ -5,36 +5,88 @@ import { h } from '../render.js';
 import { t } from '../i18n.js';
 import { stripMk } from '../viz/util.js';
 import { decimalOf, num, padMatrix, numericColumns, headerRows, parseMatrix } from '../dataparse.js';
-import { TABLE_MAX, HEAD_MAX, cellAt } from './model.js';
+import { TABLE_MAX, HEAD_MAX, cellAt, headCount, isNumCol } from './model.js';
 
 const SP = " \\u00a0\\u202f'’";
 const CORE = new RegExp(`^([^\\d+\\-−–]*)([+\\-−–]?\\d(?:[\\d.,${SP}]*\\d)?)([^\\d]*)$`);
+
+/** Lecture d'un texte « préfixe nombre suffixe » écrit avec le séparateur décimal `from` : null si ce n'est pas un nombre */
+function readNumber(raw, from) {
+  const s = String(raw ?? '').trim(),
+    m = CORE.exec(s);
+  if (!m) return { s, v: null };
+  const [, pre, core, post] = m,
+    v = num(core, from);
+  if (v === null) return { s, v: null };
+  const d = (/[.,](\d+)$/.exec(core) || [])[1],
+    thousands = d && d.length === 3 && Math.abs(v) >= 1000 && Number.isInteger(v),
+    dec = d && !thousands ? d.length : 0;
+  const grouped = new RegExp(`\\d[${SP}.,]\\d{3}(?!\\d)`).test(dec ? core.slice(0, -dec - 1) : core);
+  return { s, v, pre, post, dec, grouped, sign: v < 0 ? '−' : /^\+/.test(core) ? '+' : '' };
+}
+
+/** Comme `reformatNumber`, mais écrit selon la convention d'une langue du document (`doc.locale`) : séparateur décimal ET regroupement
+    des milliers (1,227.5 · 1 227,5 · 1.227,5 · 1227,5 en espagnol), mêmes décimales, regroupement gardé seulement si le texte l'était */
+export function localizeNumber(raw, from, locale) {
+  const r = readNumber(raw, from);
+  if (r.v === null) return r.s;
+  let body;
+  try {
+    const opts = { minimumFractionDigits: r.dec, maximumFractionDigits: r.dec };
+    if (!r.grouped) opts.useGrouping = false;
+    body = new Intl.NumberFormat(locale || 'en-GB', opts).format(Math.abs(r.v)).replace(/[\u202f\u00a0]/g, '\u00a0'); // milliers : espace insécable ordinaire, comme à l'import
+  } catch (e) {
+    return reformatNumber(raw, from, from);
+  }
+  return `${r.pre}${r.sign}${body}${r.post}`;
+}
+
+/** Après un changement de « Format des nombres » : les nombres des colonnes numériques de tous les tableaux (hors lignes d'en-tête, texte sans
+    mise en forme) sont réécrits de la convention de `fromLocale` à celle de `toLocale`. Renvoie le nombre de cellules changées. */
+export function convertDocNumbers(doc, fromLocale, toLocale) {
+  const from = decimalOf(fromLocale);
+  let n = 0;
+  for (const sec of doc.sections || [])
+    for (const sb of sec.subs || [])
+      for (const col of sb.cols || []) {
+        const tb = col.type === 'table' && col.table;
+        if (!tb || !Array.isArray(tb.cells) || !Array.isArray(tb.cols)) continue;
+        const hc = headCount(tb);
+        for (const cl of tb.cells) {
+          if (cl.r < hc || !isNumCol(tb, cl.c) || typeof cl.text !== 'string' || !cl.text.trim() || cl.text !== stripMk(cl.text)) continue;
+          const out = localizeNumber(cl.text, from, toLocale);
+          if (out !== cl.text.trim()) {
+            cl.text = out;
+            n++;
+          }
+        }
+      }
+  return n;
+}
 
 /** Un nombre écrit avec le séparateur décimal `from` → le même, écrit pour `to` (mêmes décimales, milliers regroupés si le texte l'était,
     espace insécable en milliers pour la virgule décimale, virgule pour le point). Préfixe et suffixe (€, %, unité) sont gardés ;
     ce qui n'est pas un nombre est rendu tel quel. */
 export function reformatNumber(raw, from, to) {
-  const s = String(raw ?? '').trim(),
-    m = CORE.exec(s);
-  if (!m) return s;
-  const [, pre, core, post] = m,
-    v = num(core, from);
-  if (v === null) return s;
-  const d = (/[.,](\d+)$/.exec(core) || [])[1],
-    thousands = d && d.length === 3 && Math.abs(v) >= 1000 && Number.isInteger(v),
-    dec = d && !thousands ? d.length : 0;
-  const grouped = new RegExp(`\\d[${SP}.,]\\d{3}(?!\\d)`).test(dec ? core.slice(0, -dec - 1) : core);
+  const r = readNumber(raw, from);
+  if (r.v === null) return r.s;
+  const { pre, post, dec, grouped, v } = r,
+    core = r.sign === '+' ? '+' : '';
   const [int, frac] = Math.abs(v).toFixed(dec).split('.');
   const body = (grouped ? int.replace(/\B(?=(\d{3})+(?!\d))/g, to === ',' ? ' ' : ',') : int) + (frac ? to + frac : '');
-  return `${pre}${v < 0 ? '−' : /^\+/.test(core) ? '+' : ''}${body}${post}`;
+  return `${pre}${v < 0 ? '−' : core}${body}${post}`;
 }
 
 /** Matrice lue → { matrix (textes, nombres écrits au format du document), head, numCols } selon les réglages de l'aperçu */
-export function readTableImport(m0, { head = 0, dec = '.', docDec = '.', numCols } = {}) {
+export function readTableImport(m0, { head = 0, dec = '.', docDec = '.', docLocale, numCols } = {}) {
   const m = padMatrix(m0),
     cols = numCols || numericColumns(m, dec);
   return {
-    matrix: m.map((row, i) => row.map((v, j) => (i >= head && cols.includes(j) && v !== '' ? reformatNumber(v, dec, docDec) : v))),
+    matrix: m.map((row, i) =>
+      row.map((v, j) =>
+        i >= head && cols.includes(j) && v !== '' ? (docLocale ? localizeNumber(v, dec, docLocale) : reformatNumber(v, dec, docDec)) : v,
+      ),
+    ),
     head,
     numCols: cols,
   };
@@ -123,7 +175,7 @@ export function tablePreview(m0, locale) {
         b.classList.toggle('on', n === st.head);
         b.setAttribute('aria-pressed', String(n === st.head));
       });
-      const res = readTableImport(m, { head: st.head, dec: decOf(), docDec, numCols: [...st.cols] });
+      const res = readTableImport(m, { head: st.head, dec: decOf(), docDec, docLocale: locale, numCols: [...st.cols] });
       const table = h('table', { class: 'dg imp' });
       table.append(
         h(

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.116.3 — 2026-11-13
+- Tableau : les nombres suivent le format du document, à l'import et quand on change « Format des nombres »
+
 ## 1.116.2 — 2026-11-12
 - Raccourcis W, Alt + N et Alt + W : suivent la lettre du clavier (AZERTY compris)
 

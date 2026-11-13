@@ -232,3 +232,41 @@ test('PDF : style, couleur et taille propres à chaque cellule', async ({ page }
   expect(sizes.size, `tailles ${[...sizes]}`).toBeGreaterThanOrEqual(3);
   expect(errors).toEqual([]);
 });
+
+test('nombres des tableaux : convention du document (import et changement de « Format des nombres »)', async ({ page }) => {
+  await page.goto('/factsheet/tests/blank.html');
+  const r = await page.evaluate(() => {
+    const T = window.FSTEST.table,
+      X = window.FSTEST.tableTabular;
+    const tb = T.newTable(3, 2, 1);
+    tb.cols[1].num = true;
+    const at = (r, c) => T.cellAt(tb, r, c);
+    at(0, 1).text = '1,5'; // en-tête : jamais converti
+    at(1, 1).text = '1,227.5';
+    at(2, 1).text = '**12,000**'; // mise en forme : laissé tel quel
+    at(1, 0).text = '1,227.5'; // colonne non numérique : laissé tel quel
+    const doc = { sections: [{ subs: [{ cols: [{ type: 'table', table: tb }] }] }] };
+    const n1 = X.convertDocNumbers(doc, 'en-GB', 'fr-BE');
+    const fr = [at(0, 1).text, at(1, 1).text, at(2, 1).text, at(1, 0).text];
+    const n2 = X.convertDocNumbers(doc, 'fr-BE', 'de-DE');
+    const de = at(1, 1).text;
+    X.convertDocNumbers(doc, 'de-DE', 'en-GB');
+    return {
+      n1,
+      n2,
+      fr,
+      de,
+      back: at(1, 1).text,
+      loc: [
+        X.localizeNumber('1227,5', ',', 'es-ES'),
+        X.localizeNumber('12 227,5 €', ',', 'es-ES'),
+        X.localizeNumber('−3.0 %', '.', 'fr-BE'),
+      ],
+    };
+  });
+  expect(r.n1).toBe(1);
+  expect(r.fr).toEqual(['1,5', '1\u00a0227,5', '**12,000**', '1,227.5']);
+  expect(r.de).toBe('1.227,5');
+  expect(r.back).toBe('1,227.5');
+  expect(r.loc).toEqual(['1227,5', '12.227,5 €', '−3,0 %']);
+});

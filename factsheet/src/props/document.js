@@ -3,6 +3,7 @@ import { h } from '../render.js';
 import { t } from '../i18n.js';
 import { DENSITIES } from '../tokens.js';
 import { buildPalette } from '../palette.js';
+import { convertDocNumbers } from '../table/tabular.js';
 import { LOCALES, useLogoFamily, useHeaderImage } from '../state.js';
 import { withAssets, logoFamilies, logoVariantOf } from '../assetlib.js';
 import { assetBrowser, assetDialog, localEntries } from './assetgrid.js';
@@ -18,7 +19,9 @@ export function documentPanel(k) {
       'select',
       {
         onchange: (e) => {
+          const before = doc.locale || 'en-GB';
           doc.locale = e.target.value;
+          convertDocNumbers(doc, before, doc.locale); // les nombres des tableaux suivent la nouvelle convention
           ctx.restructure();
         },
       },
