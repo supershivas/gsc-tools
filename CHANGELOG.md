@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.118.0 — 2026-11-13
+- Nouveau type de colonne « Vide » (place réservée, sans contenu)
+- Filet entre sous-sections : espaces dédiés au-dessus et en dessous, selon la densité
+- Cartes : l'option « Puces » est retirée (les anciennes puces passent dans le texte) ; une option décochée masque son champ de texte
+
 ## 1.117.0 — 2026-11-13
 - Tableau : carte « Texte avancé » (police, taille, gras, italique, interlignage, tracking, kerning, retrait, espaces) par cellule
 

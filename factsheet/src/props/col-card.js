@@ -11,7 +11,6 @@ const CONTENT_FIELDS = [
   { k: 'title', t: 'text', rich: true, label: 'Titre' },
   { k: 'figure', t: 'text', rich: true, label: 'Chiffre' },
   { k: 'text', t: 'area', label: 'Texte' },
-  { k: 'bullets', t: 'lines', rich: true, label: 'Puces (une par ligne)' },
   { k: 'link', t: 'text', rich: true, label: 'Lien' },
 ];
 
@@ -73,7 +72,14 @@ export function cardEditor(k, col, W) {
   return h(
     'div',
     {},
-    ...buildFields(CONTENT_FIELDS, ct, ctx, palOpts, h),
+    /* une option décochée masque son champ de texte (le texte reste dans le document) */
+    ...buildFields(
+      CONTENT_FIELDS.filter((f) => C[f.k]),
+      ct,
+      ctx,
+      palOpts,
+      h,
+    ),
     C.image
       ? imgPicker(
           'Image de la carte',

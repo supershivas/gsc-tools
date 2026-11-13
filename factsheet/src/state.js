@@ -12,7 +12,15 @@ let _id = 0;
 export const uid = (p) => `${p}${Date.now().toString(36)}${(_id++).toString(36)}`;
 
 export const IMAGE_RATIOS = { '16:9': 16 / 9, '4:3': 4 / 3, '1:1': 1, '3:4': 3 / 4 };
-export const COL_TYPES = { text: 'Texte', image: 'Image', figure: 'Chiffre clé', card: 'Carte', viz: 'Dataviz', table: 'Tableau' };
+export const COL_TYPES = {
+  text: 'Texte',
+  image: 'Image',
+  figure: 'Chiffre clé',
+  card: 'Carte',
+  viz: 'Dataviz',
+  table: 'Tableau',
+  empty: 'Vide',
+};
 /* Les 4 versions du logo ont la même taille (HEADER.logo). `label` = clé de traduction. */
 export const LOGO_VARIANTS = { default: 'Défaut', mono: 'Mono', white: 'Blanc (white)', negative: 'Négatif' };
 export const newHeaderImage = (n = 1) => ({ id: uid('img'), name: `${t('Image')} ${n}`, src: null });
@@ -206,6 +214,16 @@ export function saveDoc(doc) {
     storage.ok = false;
   }
 }
+/** Anciennes cartes : l'option « Puces » est retirée (le texte sait faire des listes) ; ses lignes passent en liste « - … » à la fin du texte */
+function dropCardBullets(card) {
+  const c = card.content;
+  if (card.bullets && c && c.bullets) {
+    const items = (Array.isArray(c.bullets) ? c.bullets : String(c.bullets).split('\n')).map((x) => String(x).trim()).filter(Boolean);
+    if (items.length) c.text = [String(c.text || '').trimEnd(), ...items.map((x) => '- ' + x)].filter(Boolean).join('\n');
+  }
+  delete card.bullets;
+  if (c) delete c.bullets;
+}
 export function migrate(j) {
   const d = Object.assign(defaultDoc(), j);
   /* icônes importées : anciennes icônes propres à une dataviz → bibliothèque du document */
@@ -254,6 +272,7 @@ export function migrate(j) {
         const k = Object.assign(newCol(c.type || 'text'), c);
         if (k.type === 'figure' && !k.figure) k.figure = FIGURE_DEFAULTS();
         if (k.type === 'card' && !k.card) k.card = newCard();
+        if (k.card) dropCardBullets(k.card);
         if (k.type === 'table') k.table = repairTable(k.table);
         if (k.src && !safeImgSrc(k.src)) k.src = null;
         if (k.card && k.card.src && !safeImgSrc(k.card.src)) k.card.src = null;
@@ -572,7 +591,8 @@ export const MAX_COLS = 5;
 export const isFreeCol = (col) =>
   !col ||
   (col.type === 'text' && (!String(col.text || '').trim() || col.text === newCol('text').text)) ||
-  (col.type === 'image' && !col.src);
+  (col.type === 'image' && !col.src) ||
+  col.type === 'empty';
 /** Duplique la colonne ci de la sous-section bi. `mode` : `replace` (la copie prend la place de la colonne suivante), `insert` (la copie s'ajoute à droite, les colonnes deviennent égales,
     comme à la suppression d'une colonne), `sub` (nouvelle sous-section dessous, même gabarit, la copie à la même place). Retourne le chemin de la copie. */
 export function duplicateCol(doc, si, bi, ci, mode) {

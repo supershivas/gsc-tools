@@ -1,6 +1,6 @@
 /* Carte (card) : prototype pour le Labo — pas encore branchée dans l'éditeur.
    Toutes les options sont des interrupteurs : image (haut / gauche / droite, avec ou sans marge), icône (au-dessus ou à côté du titre,
-   pictogramme ou pastille), étiquette, titre, chiffre, texte, puces, lien, contour, fond blanc, alignement. */
+   pictogramme ou pastille), étiquette, titre, chiffre, texte, lien, contour, fond blanc, alignement. */
 import { h, richText, inline } from './render.js';
 import { figureIcon } from './figure.js';
 import { insetW, GAP } from './tokens.js';
@@ -19,7 +19,6 @@ export const SAMPLE_IMG =
 export function renderCard(o, W, env) {
   const C = o.content || SAMPLE,
     src = o.src || SAMPLE_IMG;
-  const bullets = (Array.isArray(C.bullets) ? C.bullets : String(C.bullets || '').split('\n')).map((x) => x.trim()).filter(Boolean);
   const card = h('div', {
     class:
       `card card-${o.layout}` +
@@ -42,13 +41,6 @@ export function renderCard(o, W, env) {
       : null,
     o.figure ? h('div', { class: 'vf-value', innerHTML: inline(C.figure, env) }) : null,
     o.text ? richText(C.text, o.align === 'center' ? 'center' : 'left', undefined, env) : null,
-    o.bullets
-      ? h(
-          'ul',
-          { class: 'card-list' },
-          bullets.map((b) => h('li', { innerHTML: inline(b, env) })),
-        )
-      : null,
     o.link ? h('div', { class: 'card-link' }, h('span', { innerHTML: inline(C.link, env) }), h('i', { class: 'ti ti-arrow-right' })) : null,
   );
   if (o.layout === 'vertical' || !pic) card.append(...[pic, body].filter(Boolean));

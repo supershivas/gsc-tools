@@ -28,7 +28,8 @@
 /* filet de 0,5 pt entre sous-sections, sur toute la largeur de la page : blanc sur un fond de section, bleu UE sur fond blanc */
 .sec{--rule-ext:var(--margin);--rule:#fff}
 .sec-box{--rule-ext:var(--gap-boxPad)}
-.sub-rule{position:absolute;left:calc(-1 * var(--rule-ext));right:calc(-1 * var(--rule-ext));top:calc(-0.5 * var(--gap-subsectionBefore) - var(--stroke) / 2);height:0;border-top:var(--stroke) solid var(--rule);pointer-events:none}
+.sec:not(.sec-norules) .sub + .sub{margin-top:calc(var(--gap-subRuleAbove) + var(--gap-subRuleBelow))}
+.sub-rule{position:absolute;left:calc(-1 * var(--rule-ext));right:calc(-1 * var(--rule-ext));top:calc(-1 * var(--gap-subRuleBelow) - var(--stroke) / 2);height:0;border-top:var(--stroke) solid var(--rule);pointer-events:none}
 .sec-norules .sub-rule{display:none}
 .sub-title{margin:0 0 var(--gap-subsectionTitle);font-size:var(--t-subsection-size);line-height:var(--t-subsection-lh);font-weight:var(--t-subsection-weight)}
 .cols{display:grid;column-gap:var(--gap-columns);align-items:start}
@@ -103,10 +104,9 @@
 .card-head{display:flex;align-items:center;gap:var(--s2)}
 .card-title{margin:0;font-size:var(--t-subsection-size);line-height:var(--t-subsection-lh);font-weight:var(--t-subsection-weight)}
 .card-ico{display:flex}
-.card-list{margin:0;padding-left:var(--s5)}.card-list li+li{margin-top:var(--gap-paragraph)}
+
 .card-link{display:flex;align-items:center;gap:var(--s1);font-weight:700;margin-top:var(--s1)}
 .card.center{text-align:center}.card.center .card-head,.card.center .card-ico,.card.center .card-link{justify-content:center}
-.card.center .card-list{text-align:left;align-self:center}
 /* image jusqu'au bord du contour */
 .card.bleed.card-vertical>.card-img{margin:calc(-1 * var(--gap-boxPad)) calc(-1 * var(--gap-boxPad)) 0;border-radius:var(--radius) var(--radius) 0 0}
 .card.bleed.card-left>.card-img{margin:calc(-1 * var(--gap-boxPad)) 0 calc(-1 * var(--gap-boxPad)) calc(-1 * var(--gap-boxPad));border-radius:var(--radius) 0 0 var(--radius)}
@@ -115,7 +115,7 @@
 .card.img-square>.card-img,.card.img-square.bleed.card-vertical>.card-img,.card.img-square.bleed.card-left>.card-img,.card.img-square.bleed.card-right>.card-img{border-radius:0}
 
 /* retours à la ligne saisis dans les champs texte (titres, légendes, cartes…) */
-.hd-over,.hd-title,.hd-sub,.sec-title,.sub-title,.cap,.card-tag,.card-title,.card-link,.card-list li,.vi-text,.vf-value,.vf-text,.viz-title,.viz-source{white-space:pre-line}
+.hd-over,.hd-title,.hd-sub,.sec-title,.sub-title,.cap,.card-tag,.card-title,.card-link,.vi-text,.vf-value,.vf-text,.viz-title,.viz-source{white-space:pre-line}
 
 sup,sub{font-size:.7em;line-height:0}
 

@@ -1157,7 +1157,7 @@ const EN = {
   'Comme B, mais l’image touche le contour (coins hauts arrondis de 3 px).':
     'Like B, but the image touches the outline (top corners rounded to 3 px).',
   'Icône en tête': 'Icon first',
-  'Pastille d’icône centrée au-dessus du titre, avec des puces.': 'Icon circle centred above the title, with bullets.',
+  'Pastille d’icône centrée au-dessus du titre, avec un texte.': 'Icon circle centred above the title, with a text.',
   'Image à côté': 'Image beside',
   'Image à gauche (40 %), contenu à droite : pour les colonnes larges.':
     'Image on the left (40 %), content on the right: for wide columns.',
@@ -1253,15 +1253,11 @@ const EN = {
   Carte: 'Card',
   'Options de la carte': 'Card options',
   'Type de carte selon la largeur de la colonne': 'Card type follows the column width',
-  'Puces (une par ligne)': 'Bullets (one per line)',
   'Image de la carte': 'Card image',
   NOUVEAU: 'NEW',
   'Titre de la carte': 'Card title',
   'Texte de la carte. Une ligne = un paragraphe, **gras** avec les astérisques.':
     'Card text. One line = one paragraph, **bold** with asterisks.',
-  'Premier point': 'First point',
-  'Deuxième point': 'Second point',
-  'Troisième point': 'Third point',
   'En savoir plus': 'Read more',
   'retenue — colonnes moyennes': 'chosen — medium columns',
   'retenue — colonnes étroites': 'chosen — narrow columns',
@@ -1371,6 +1367,9 @@ const EN = {
   'Police et taille': 'Font and size',
   Police: 'Font',
   'Texte avancé': 'Advanced text',
+  Vide: 'Empty',
+  'Colonne vide : une place réservée dans la rangée, sans contenu. Fond et contour restent réglables.':
+    'Empty column: a reserved space in the row, with no content. Fill and outline can still be set.',
   'Les cellules ont des réglages différents : le premier s’affiche, toute modification s’applique à toutes.':
     'The cells have different settings: the first one is shown, any change applies to all.',
   'Taille du texte courant': 'Body text size',

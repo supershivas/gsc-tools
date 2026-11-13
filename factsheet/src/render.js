@@ -297,6 +297,8 @@ function renderCol(col, w, path, env) {
     wrap.append(side(strip(col.card.content && col.card.content.title), (ww) => ({ node: renderCard(col.card, ww, env) })));
   } else if (col.type === 'figure') {
     wrap.append(renderFigure(col.figure || {}, w, col.align, env));
+  } else if (col.type === 'empty') {
+    wrap.style.alignSelf = 'stretch'; // colonne vide : une place réservée, sans contenu ; elle prend la hauteur de la rangée (cliquable dans l'aperçu, rien dessiné)
   } else if (col.type === 'table' && col.table) {
     wrap.append(renderTable(col.table, env));
   } else if (col.type === 'viz') {

@@ -18,7 +18,15 @@ import { tableEditor } from './col-table.js';
 import { freeTexts } from './col-free.js';
 import { textColorCard } from './section.js';
 
-const ICONS = { text: 'text-size', image: 'photo', card: 'layout-cards', figure: 'number', viz: 'chart-bar', table: 'table' };
+const ICONS = {
+  text: 'text-size',
+  image: 'photo',
+  card: 'layout-cards',
+  figure: 'number',
+  viz: 'chart-bar',
+  table: 'table',
+  empty: 'square-dashed',
+};
 const HMODE = { auto: 'Auto', ratio: 'Proportion', fixed: 'Fixe', fill: 'Remplir', match: 'Voisine' };
 
 export function columnPanel(k, { si, bi, ci, sec, sub, col }) {
@@ -112,6 +120,13 @@ export function columnPanel(k, { si, bi, ci, sec, sub, col }) {
   else if (col.type === 'card') editor = [cardEditor(k, col, columnWidth(doc, si, bi, ci))];
   else if (col.type === 'figure') editor = figureEditor(k, col);
   else if (col.type === 'table') editor = tableEditor(k, col, sub, ci);
+  else if (col.type === 'empty')
+    editor = [
+      h('p', {
+        class: 'hint',
+        textContent: t('Colonne vide : une place réservée dans la rangée, sans contenu. Fond et contour restent réglables.'),
+      }),
+    ];
   else editor = vizEditor(k, col, sub, ci);
 
   const swapSelect = () => {

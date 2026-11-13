@@ -57,10 +57,10 @@ const TOPICS = [
     { title: 'Carte simple', base: true, desc: 'Titre et texte dans un contour : le minimum, point de départ.', opts: card({}) },
     { title: 'Image en haut', kept: 'colonnes moyennes', desc: 'Image au-dessus, étiquette, titre, texte et lien ; l’image reste dans les marges du contour.', opts: card({ image: true, tag: true, link: true }) },
     { title: 'Image jusqu’au bord', desc: 'Comme B, mais l’image touche le contour (coins hauts arrondis de 3 px).', opts: card({ image: true, bleed: true, tag: true, link: true }) },
-    { title: 'Icône en tête', kept: 'colonnes étroites', desc: 'Pastille d’icône centrée au-dessus du titre, avec des puces.', opts: card({ icon: true, align: 'center', bullets: true }) },
+    { title: 'Icône en tête', kept: 'colonnes étroites', desc: 'Pastille d’icône centrée au-dessus du titre, avec un texte.', opts: card({ icon: true, align: 'center' }) },
     { title: 'Image à côté', kept: 'colonnes larges', desc: 'Image à gauche (40 %), contenu à droite : pour les colonnes larges.', opts: card({ image: true, layout: 'left', link: true }) },
     { title: 'Chiffre clé', desc: 'Carte statistique : icône à côté du titre, grand chiffre, texte.', opts: card({ icon: true, iconInline: true, iconCircle: false, figure: true, fill: true }) },
-    { title: 'Complète', desc: 'Toutes les options activées ; décochez ce que vous ne voulez pas garder.', opts: card({ image: true, icon: true, iconInline: true, tag: true, figure: true, bullets: true, link: true, fill: true }) },
+    { title: 'Complète', desc: 'Toutes les options activées ; décochez ce que vous ne voulez pas garder.', opts: card({ image: true, icon: true, iconInline: true, tag: true, figure: true, link: true, fill: true }) },
   ] },
   { id: 'chiffre', icon: 'number', label: 'Chiffre clé', controls: figureControls, render: (o, W) => {
       const box = h('div', { class: 'col col-figure' + (o.stroke ? ' stroked' + (o.fill ? ' filled' : '') : ''), style: { width: W + 'px' } });

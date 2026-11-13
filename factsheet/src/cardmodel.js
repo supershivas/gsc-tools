@@ -13,7 +13,6 @@ export const CARD_DEFAULTS = () => ({
   title: true,
   figure: false,
   text: true,
-  bullets: false,
   link: false,
   stroke: true,
   fill: false,
@@ -26,14 +25,12 @@ export const SAMPLE = {
   title: 'Digital Europe Programme',
   figure: '€7.5 billion',
   text: 'Lorem ipsum dolor sit amet, **consectetuer** adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat.',
-  bullets: 'First key point\nSecond key point\nThird key point',
   link: 'Read more',
 };
 
 /** Type de carte par défaut selon la largeur de la colonne (px) : large → image à côté, moyenne → image en haut, étroite → icône en tête */
 export function cardPresetFor(W) {
-  if (W >= 450)
-    return { layout: 'left', image: true, bleed: false, icon: false, tag: false, link: true, bullets: false, figure: false, align: 'left' };
+  if (W >= 450) return { layout: 'left', image: true, bleed: false, icon: false, tag: false, link: true, figure: false, align: 'left' };
   if (W >= 300)
     return {
       layout: 'vertical',
@@ -42,7 +39,6 @@ export function cardPresetFor(W) {
       icon: false,
       tag: true,
       link: true,
-      bullets: false,
       figure: false,
       align: 'left',
     };
@@ -55,7 +51,6 @@ export function cardPresetFor(W) {
     iconInline: false,
     tag: false,
     link: false,
-    bullets: false,
     figure: false,
     align: 'left',
   };
@@ -72,7 +67,6 @@ export const newCard = (W = 336) => ({
     title: t('Titre de la carte'),
     figure: '5 000',
     text: t('Texte de la carte. Une ligne = un paragraphe, **gras** avec les astérisques.'),
-    bullets: [t('Premier point'), t('Deuxième point'), t('Troisième point')].join('\n'),
     link: t('En savoir plus'),
   },
 });
@@ -88,7 +82,6 @@ export const CARD_CHECKS = [
   ['title', 'Titre'],
   ['figure', 'Chiffre'],
   ['text', 'Texte'],
-  ['bullets', 'Puces'],
   ['link', 'Lien'],
   ['stroke', 'Contour'],
   ['fill', 'Fond blanc'],

@@ -490,7 +490,14 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
       if (lastSec) {
         if (subIt && subIt.bi === sec.subs.length - 1) {
           const sb = subIt.el.getBoundingClientRect();
-          y = place(addSubBtn, subIt, 0, sb.bottom + gap.subsectionBefore * sc, subH) || y;
+          y =
+            place(
+              addSubBtn,
+              subIt,
+              0,
+              sb.bottom + (sec.subRules === false ? gap.subsectionBefore : gap.subRuleAbove + gap.subRuleBelow) * sc,
+              subH,
+            ) || y;
         }
         place(
           addSecBtn,

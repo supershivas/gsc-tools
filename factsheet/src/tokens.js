@@ -47,6 +47,8 @@ export const GAP = Object.freeze({
   sectionRuleBelow: SPACE[8], // 24 — avec filet : filet → titre de la section (18 / 24 / 30 selon la densité)
   sectionTitle: SPACE[4], // 12 — titre de section → 1re sous-section
   subsectionBefore: SPACE[6], // 18 — entre deux sous-sections
+  subRuleAbove: SPACE[5], // 15 — avec filet : sous-section précédente → filet (12 / 15 / 18 selon la densité)
+  subRuleBelow: SPACE[6], // 18 — avec filet : filet → 1er élément de la sous-section (15 / 18 / 24)
   subsectionTitle: SPACE[3], // 9  — titre de sous-section → colonnes
   columns: SPACE[6], // 18 — gouttière entre colonnes
   paragraph: SPACE[2], // 6  — entre paragraphes / items de liste
@@ -63,6 +65,8 @@ const DENSE_KEYS = [
   'sectionBefore',
   'sectionRuleAbove',
   'sectionRuleBelow',
+  'subRuleAbove',
+  'subRuleBelow',
   'sectionTitle',
   'subsectionBefore',
   'subsectionTitle',
