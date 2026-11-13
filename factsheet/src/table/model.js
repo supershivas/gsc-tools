@@ -6,7 +6,7 @@
      v: 1,
      cols:  [{ id, w, fill, num }],         w = poids relatif (fr) ; fill = fond de la colonne (clé de couleur) ; num = colonne numérique (chiffres tabulaires, à droite)
      rows:  [{ id, h, kind, fill }],        h = hauteur mini en px (0 = selon le contenu) ; kind : 'head' | 'body' | 'foot' (pied, en bas) ; fill = fond de la ligne
-     cells: [{ id, r, c, rs, cs, text, st, ah, av, pad, fill, fg }],   st = style de paragraphe (CELL_STYLES) ; pad = marges intérieures (clé de PADS)
+     cells: [{ id, r, c, rs, cs, text, st, ah, av, pad, fill, fg }],   st = style de paragraphe (CELL_STYLES) ; pad = marges intérieures (clé de PADS), adv = réglages avancés du texte (f, s, b, it, lh, ls, kern, indent, before, after : voir cleanAdv)
      edges: { 'h:i:j': trait, 'v:i:j': trait },   surcharges d'arêtes (creuses) ; un trait de largeur 0 = aucun trait
      look:  { preset, top, bottom, sides, innerH, innerV, head, foot, headFill, headFg, footFill, stripe },
    }
@@ -443,6 +443,19 @@ export function fgOf(tb, cl) {
 export const CELL_STYLES = ['body', 'bold', 'small', 'quote', 'cap', 'label', 'source', 'note', 'figsm'];
 /** Marges intérieures [haut/bas, gauche/droite] en px, sur la grille de 3 px ; 'normal' = défaut (clé absente) */
 export const PADS = { none: [0, 0], tight: [3, 3], normal: [3, 6], roomy: [6, 9], wide: [9, 12] };
+/** Réglages de texte d'une cellule (`adv`, comme un bloc de texte + gras et italique) : clés connues, valeurs valides, sinon retirées ; null si rien ne reste */
+const ADV_NUM = { s: [1, 200], lh: [1, 300], ls: [-100, 1000] };
+export function cleanAdv(adv) {
+  if (!adv || typeof adv !== 'object') return null;
+  const out = {};
+  if (adv.f === 'serif') out.f = 'serif';
+  for (const [k, [lo, hi]] of Object.entries(ADV_NUM))
+    if (Number.isFinite(+adv[k]) && +adv[k] !== 0) out[k] = Math.max(lo, Math.min(hi, +adv[k]));
+  if (adv.kern === 'none') out.kern = 'none';
+  for (const k of ['b', 'it']) if (adv[k] === true) out[k] = true;
+  for (const k of ['indent', 'before', 'after']) if (+adv[k] > 0) out[k] = Math.min(200, +adv[k]);
+  return Object.keys(out).length ? out : null;
+}
 export const padOf = (cl) => PADS[cl.pad] || PADS.normal;
 /** Colonne numérique ? (la cellule fusionnée suit sa colonne d'ancre) */
 export const isNumCol = (tb, c) => !!(tb.cols[c] && tb.cols[c].num);
@@ -684,6 +697,11 @@ export function repairTable(src) {
     for (const k of ['fill', 'fg']) if (cl[k] != null && !isKey(cl[k])) delete cl[k];
     if (cl.st != null && !CELL_STYLES.includes(cl.st)) delete cl.st;
     if (cl.pad != null && !PADS[cl.pad]) delete cl.pad;
+    if (cl.adv != null) {
+      const a = cleanAdv(cl.adv);
+      if (a) cl.adv = a;
+      else delete cl.adv;
+    }
     tb.cells.push(cl);
   }
   for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) if (!taken[r][c]) tb.cells.push(newCell(r, c));

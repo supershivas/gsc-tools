@@ -56,6 +56,8 @@ export function applyAdv(el, adv, plain) {
   if (!adv) return el;
   const s = el.style;
   if (adv.f) s.fontFamily = FONT[adv.f];
+  if (adv.b) s.fontWeight = '700'; // gras et italique : réglages de cellule de tableau (props/table), absents du burger
+  if (adv.it) s.fontStyle = 'italic';
   if (plain && adv.s > 0) {
     s.fontSize = adv.s + 'pt';
     if (!(adv.lh > 0)) s.lineHeight = Math.ceil((((adv.s * 4) / 3) * 1.3) / 3) * 3 + 'px';

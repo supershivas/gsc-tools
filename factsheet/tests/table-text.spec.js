@@ -208,9 +208,19 @@ test('export TSV et CSV nommés par fileStem', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('PDF : style, couleur et taille propres à chaque cellule', async ({ page }) => {
+test('PDF : style, couleur et taille propres à chaque cellule, texte avancé', async ({ page }) => {
   const errors = watchErrors(page);
   await openApp(page, 'table-text');
+  /* texte avancé : gras serif interlettré dans « Quoted » : le PDF se construit sans erreur et la police serif en gras est incorporée */
+  await page.evaluate((key) => {
+    const d = JSON.parse(localStorage.getItem(key)),
+      tb = d.sections[0].subs[0].cols[0].table,
+      cl = tb.cells.find((x) => x.text === 'Quoted');
+    cl.adv = { f: 'serif', b: true, it: true, ls: 40, lh: 24, kern: 'none' };
+    localStorage.setItem(key, JSON.stringify(d));
+  }, DOC_KEY);
+  await page.reload();
+  await page.waitForSelector('#stage .page');
   await addBundle(page, 'pdfexport.js');
   const b64 = await page.evaluate(async (key) => {
     const { bytes } = await window.FSPDF.build(JSON.parse(localStorage.getItem(key)), 'net', { profile: 'x4' });
@@ -269,4 +279,66 @@ test('nombres des tableaux : convention du document (import et changement de « 
   expect(r.de).toBe('1.227,5');
   expect(r.back).toBe('1,227.5');
   expect(r.loc).toEqual(['1227,5', '12.227,5 €', '−3,0 %']);
+});
+
+test('éditeur : texte avancé (gras, police, taille, interlettrage, interlignage) sur la sélection', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'table-text');
+  await open(page);
+  const look = (r, c) =>
+    page.evaluate(
+      ([r, c]) => {
+        const n = [...document.querySelectorAll('.te .tbl .tbl-cell')].find(
+          (n) => n.style.gridRow.startsWith(`${r + 1} `) && n.style.gridColumn.startsWith(`${c + 1} `),
+        );
+        const cs = getComputedStyle(n.querySelector('p') || n);
+        return { w: cs.fontWeight, st: cs.fontStyle, ls: cs.letterSpacing, lh: cs.lineHeight, ff: cs.fontFamily, fs: cs.fontSize };
+      },
+      [r, c],
+    );
+  const before = await look(2, 2);
+  await click(page, 2, 2);
+  const card = page.locator('.te [data-card="adv"]');
+  await card.locator('summary').click();
+  await card.locator('[data-k="adv-b"]').click();
+  expect(parseInt((await look(2, 2)).w)).toBeGreaterThanOrEqual(700);
+  expect((await look(1, 2)).w).toBe(before.w); // les autres cellules ne bougent pas
+  await card.locator('[data-k="adv-it"]').click();
+  expect((await look(2, 2)).st).toBe('italic');
+  await card.locator('select[data-k="adv-f"]').selectOption('serif');
+  expect((await look(2, 2)).ff).toMatch(/serif 4/i);
+  await card.locator('select[data-k="adv-s"]').selectOption('16');
+  const big = await look(2, 2);
+  expect(parseFloat(big.fs)).toBeGreaterThan(parseFloat(before.fs));
+  /* interlettrage et interlignage : glisseurs du panneau des options avancées */
+  const setRange = (name, v) =>
+    card
+      .locator('.ra-sl', { hasText: name })
+      .locator('input[type=range]')
+      .evaluate((n, v) => {
+        n.value = v;
+        n.dispatchEvent(new Event('input', { bubbles: true }));
+      }, v);
+  await setRange('Tracking', '100');
+  await setRange('Line spacing', '20');
+  const adj = await look(2, 2);
+  expect(parseFloat(adj.ls)).toBeGreaterThan(0);
+  expect(parseFloat(adj.lh)).toBeCloseTo(20 * (4 / 3), 0);
+  /* plusieurs cellules : la modification s'applique à toutes */
+  await click(page, 1, 2);
+  await page.keyboard.down('Shift');
+  await click(page, 3, 2);
+  await page.keyboard.up('Shift');
+  await card.locator('[data-k="adv-b"]').click();
+  expect(parseInt((await look(1, 2)).w)).toBeGreaterThanOrEqual(700);
+  expect(parseInt((await look(3, 2)).w)).toBeGreaterThanOrEqual(700);
+  /* « tout remettre » */
+  await click(page, 2, 2);
+  await card.locator('.pp-btn').click();
+  const back = await look(2, 2);
+  expect(back.w).toBe(before.w);
+  expect(back.st).toBe(before.st);
+  await page.locator('.te .ve-br button.primary').click();
+  await expect(page.locator('.te')).toHaveCount(0);
+  expect(errors).toEqual([]);
 });

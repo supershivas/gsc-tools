@@ -241,7 +241,7 @@ test('bloc tableau : le petit bouton « Table… » de la barre au survol ouvre 
   await page.locator('[data-sel="col:0:0:0"] .tbl-cell').last().hover();
   await page.locator('.hv-bar button', { hasText: 'Table…' }).click();
   await expect(page.locator('.te')).toBeVisible();
-  await expect(page.locator('.te details.te-card')).toHaveCount(8);
+  await expect(page.locator('.te details.te-card')).toHaveCount(9);
   await expect(page.locator('.te details.te-card summary').first()).toHaveText('Selection');
   expect(errors).toEqual([]);
 });

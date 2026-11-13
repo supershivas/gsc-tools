@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.117.0 — 2026-11-13
+- Tableau : carte « Texte avancé » (police, taille, gras, italique, interlignage, tracking, kerning, retrait, espaces) par cellule
+
 ## 1.116.3 — 2026-11-13
 - Tableau : les nombres suivent le format du document, à l'import et quand on change « Format des nombres »
 

@@ -13,6 +13,7 @@ import { s } from '../viz/util.js';
 import { colorSelect } from '../colorselect.js';
 import { toneKeys, colorLabel } from '../tokens.js';
 import { styleOf as paraStyle } from '../textstyles.js';
+import { advPanel } from '../textadv.js';
 import { confirmBox } from '../dialogs.js';
 import {
   TABLE_PRESETS,
@@ -597,7 +598,98 @@ export function createStylePanel({ getTable, getSel, getDoc, commit }) {
     true,
   );
 
-  const cards = [fillCard, textCard, edgeCard, presetCard];
+  /* ---------- Texte avancé : police, taille, gras, italique + le panneau des options avancées d'un bloc (interlignage, tracking, kerning…) ---------- */
+  let selfWrite = null; // dernier `adv` écrit par ce panneau : un glisseur ne doit pas reconstruire la carte pendant le geste (undo : il la reconstruit)
+  const SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 21, 24, 30];
+  const advCard = makeCard(
+    'Texte avancé',
+    'adv',
+    () => {
+      const T = tb(),
+        R = selRect(T, getSel()),
+        group = R ? cellsIn(R) : [];
+      const first = group[0] ? group[0].adv || {} : {},
+        cur = JSON.stringify(first),
+        differs = group.some((cl) => JSON.stringify(cl.adv || {}) !== cur);
+      return {
+        sig: [R, group.length, cur === selfWrite ? 'self' : cur, differs],
+        draw: () => {
+          if (!R) return [h('p', { class: 'hint', textContent: t('Sélectionnez des cellules pour régler leur texte.') })];
+          const box = { adv: { ...first } }; // objet de travail : `advPanel` y écrit, chaque changement est recopié dans toutes les cellules choisies
+          const write = (rebuild) => {
+            const a = box.adv && Object.keys(box.adv).length ? { ...box.adv } : null;
+            selfWrite = JSON.stringify(a || {});
+            group.forEach((cl) => (a ? (cl.adv = { ...a }) : delete cl.adv));
+            if (rebuild) invalidate();
+            commit();
+          };
+          const put = (k, v) => {
+            box.adv ||= {};
+            if (v == null || v === '' || v === false) delete box.adv[k];
+            else box.adv[k] = v;
+            write(true);
+          };
+          const a = box.adv;
+          const sel = (k, opts, cur) =>
+            h(
+              'select',
+              {
+                dataset: { k: 'adv-' + k },
+                onchange: (e) => put(k, e.target.value === '' ? null : k === 's' ? +e.target.value : e.target.value),
+              },
+              opts.map(([v, l]) => h('option', { value: v, textContent: l, selected: String(cur ?? '') === String(v) })),
+            );
+          const tog = (k, icon, label) =>
+            h(
+              'button',
+              {
+                type: 'button',
+                class: 'te-act' + (a[k] ? ' on' : ''),
+                'aria-pressed': String(!!a[k]),
+                dataset: { k: 'adv-' + k },
+                onclick: () => put(k, !a[k]),
+              },
+              ico(icon),
+              h('span', { textContent: t(label) }),
+            );
+          return [
+            differs
+              ? h('p', {
+                  class: 'hint',
+                  textContent: t(
+                    'Les cellules ont des réglages différents : le premier s’affiche, toute modification s’applique à toutes.',
+                  ),
+                })
+              : null,
+            block(
+              t('Police'),
+              sel(
+                'f',
+                [
+                  ['', 'Source Sans 3'],
+                  ['serif', 'Source Serif 4'],
+                ],
+                a.f || '',
+              ),
+            ),
+            block(t('Taille'), sel('s', [['', t('Selon le style')], ...SIZES.map((n) => [n, n + ' pt'])], a.s || '')),
+            h('div', { class: 'te-row' }, tog('b', 'bold', 'Gras'), tog('it', 'italic', 'Italique')),
+            advPanel(
+              box,
+              () => write(false),
+              () => {
+                write(false);
+                invalidate();
+                advCard.sync();
+              },
+            ),
+          ];
+        },
+      };
+    },
+    false,
+  );
+  const cards = [fillCard, textCard, advCard, edgeCard, presetCard];
   let lastSel = null;
   function syncAll() {
     /* la sélection a changé : le réglage de trait reprend ce qui est posé sur les côtés choisis */
@@ -613,6 +705,7 @@ export function createStylePanel({ getTable, getSel, getDoc, commit }) {
     nodes: cards.map((c) => c.node),
     fill: fillCard.node,
     text: textCard.node,
+    adv: advCard.node,
     edges: edgeCard.node,
     presets: presetCard.node,
     sync: syncAll,

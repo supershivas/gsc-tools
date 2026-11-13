@@ -46,7 +46,7 @@ export function renderTable(tb, env) {
         },
         dataset: { cell: cl.id },
       },
-      richText(styled(cl.text, cl.st), ahOf(tb, cl), null, env),
+      richText(styled(cl.text, cl.st), ahOf(tb, cl), cl.adv || null, env),
     );
     if (fill !== 'none') el.style.background = `var(--c-${fill})`;
     if (fg !== 'none') {

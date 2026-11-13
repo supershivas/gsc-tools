@@ -508,6 +508,7 @@ export function openTableEditor({ col, bg, width, ctx, fileStem = (x) => 'tablea
       h('div', { class: 'te-seg', role: 'group', 'aria-label': t('Alignement') }, alignBtns),
     ),
     style.text,
+    style.adv,
     style.fill,
     style.edges,
     style.presets,

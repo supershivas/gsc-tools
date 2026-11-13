@@ -1370,6 +1370,9 @@ const EN = {
   mots: 'words',
   'Police et taille': 'Font and size',
   Police: 'Font',
+  'Texte avancé': 'Advanced text',
+  'Les cellules ont des réglages différents : le premier s’affiche, toute modification s’applique à toutes.':
+    'The cells have different settings: the first one is shown, any change applies to all.',
   'Taille du texte courant': 'Body text size',
   'Selon le style': 'From the style',
   Style: 'Style',
