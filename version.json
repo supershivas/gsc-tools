@@ -1,6 +1,6 @@
 {
   "version": "1.116.3",
-  "date": "2026-11-12",
+  "date": "2026-11-13",
   "changes": [
     "Tableau : les nombres suivent le format du document, à l'import et quand on change « Format des nombres »"
   ]
