@@ -4,6 +4,7 @@ import { DEFAULT_THEME, GRID, MAX_EXTRA_COLORS } from './tokens.js';
 import { newCard, cardPresetFor } from './cardmodel.js';
 import { newViz, withAxesOrigin, VIZ_TYPES } from './viz/index.js';
 import { t } from './i18n.js';
+import { SPACE_LOCALE } from './numfmt.js';
 import { FIGURE_DEFAULTS } from './figure.js';
 import { newTable, repairTable, remapTableColors } from './table/model.js';
 
@@ -42,6 +43,7 @@ export const VALIGNS = { top: 'align-box-top-center', center: 'align-box-center-
 export const ALIGNS = { left: 'align-left', center: 'align-center', right: 'align-right', justify: 'align-justified' };
 export const LOCALES = {
   'en-GB': 'EN — 1,227.5',
+  [SPACE_LOCALE]: 'EN — 1 227.5',
   'fr-BE': 'FR — 1 227,5',
   'de-DE': 'DE — 1.227,5',
   'nl-BE': 'NL — 1.227,5',

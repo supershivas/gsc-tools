@@ -9,6 +9,7 @@ import { pictoChoices } from './viz/picto.js';
 import { ctxIcons } from './viz/icons.js';
 import { alertBox, confirmBox } from './dialogs.js';
 import { num, parseMatrix, fileToMatrix, padMatrix, headerRows, autoRoles, readImport, decimalOf } from './dataparse.js';
+import { numberFormat } from './numfmt.js';
 
 export { parseMatrix, fileToMatrix, num };
 export const toCSV = (m) =>
@@ -342,7 +343,7 @@ export function importPreview(m0, ad, locale) {
     let result = null;
     const nf = (v) => {
       try {
-        return new Intl.NumberFormat(loc, { maximumFractionDigits: 6 }).format(v);
+        return numberFormat(loc, { maximumFractionDigits: 6 }).format(v);
       } catch (e) {
         return String(v);
       }

@@ -342,3 +342,31 @@ test('éditeur : texte avancé (gras, police, taille, interlettrage, interlignag
   await expect(page.locator('.te')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
+
+test('format des nombres « EN — 1 227.5 » : milliers en espace insécable, point décimal (dataviz et tableau)', async ({ page }) => {
+  await page.goto('/factsheet/tests/blank.html');
+  const r = await page.evaluate(() => {
+    const X = window.FSTEST.tableTabular,
+      D = window.FSTEST.dataparse,
+      L = 'en-GB-x-space';
+    const doc = { sections: [{ subs: [{ cols: [{ type: 'table', table: null }] }] }] };
+    const T = window.FSTEST.table,
+      tb = T.newTable(2, 2, 1);
+    tb.cols[1].num = true;
+    T.cellAt(tb, 1, 1).text = '1 227,5';
+    doc.sections[0].subs[0].cols[0].table = tb;
+    X.convertDocNumbers(doc, 'fr-BE', L);
+    const fr = T.cellAt(tb, 1, 1).text;
+    X.convertDocNumbers(doc, L, 'en-GB');
+    return {
+      loc: [X.localizeNumber('1,227.5', '.', L), X.localizeNumber('1 227,5 €', ',', L), X.localizeNumber('12345', '.', L)],
+      fr,
+      en: T.cellAt(tb, 1, 1).text,
+      dec: D.decimalOf(L),
+    };
+  });
+  expect(r.loc).toEqual(['1 227.5', '1 227.5 €', '12345']);
+  expect(r.fr).toBe('1 227.5');
+  expect(r.en).toBe('1,227.5');
+  expect(r.dec).toBe('.');
+});

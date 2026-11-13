@@ -4,6 +4,7 @@
 import { h } from '../render.js';
 import { t } from '../i18n.js';
 import { stripMk } from '../viz/util.js';
+import { numberFormat } from '../numfmt.js';
 import { decimalOf, num, padMatrix, numericColumns, headerRows, parseMatrix } from '../dataparse.js';
 import { TABLE_MAX, HEAD_MAX, cellAt, headCount, isNumCol } from './model.js';
 
@@ -34,7 +35,9 @@ export function localizeNumber(raw, from, locale) {
   try {
     const opts = { minimumFractionDigits: r.dec, maximumFractionDigits: r.dec };
     if (!r.grouped) opts.useGrouping = false;
-    body = new Intl.NumberFormat(locale || 'en-GB', opts).format(Math.abs(r.v)).replace(/[\u202f\u00a0]/g, '\u00a0'); // milliers : espace insécable ordinaire, comme à l'import
+    body = numberFormat(locale, opts)
+      .format(Math.abs(r.v))
+      .replace(/[\u202f\u00a0]/g, '\u00a0'); // milliers : espace insécable ordinaire, comme à l'import
   } catch (e) {
     return reformatNumber(raw, from, from);
   }

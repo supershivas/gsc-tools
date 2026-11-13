@@ -1,5 +1,6 @@
 /* Utilitaires partagés par les dataviz (SVG, mesure de texte, couleurs, nombres). */
 import { FONT, TYPE, STROKE, VIZ } from '../tokens.js';
+import { numberFormat } from '../numfmt.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 export function s(tag, attrs = {}, ...kids) {
@@ -176,7 +177,7 @@ export function drawLines(lines, x, y0, lh, size, align = 'start') {
 export function fmt(v, locale, decimals) {
   const d = Math.max(0, Math.min(6, Math.round(+decimals || 0)));
   try {
-    return new Intl.NumberFormat(locale || 'en-GB', { minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
+    return numberFormat(locale, { minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
   } catch (e) {
     return String(v);
   }

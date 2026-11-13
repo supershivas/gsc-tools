@@ -1,9 +1,7 @@
 {
-  "version": "1.118.0",
+  "version": "1.119.0",
   "date": "2026-11-13",
   "changes": [
-    "Nouveau type de colonne « Vide » (place réservée, sans contenu)",
-    "Filet entre sous-sections : espaces dédiés au-dessus et en dessous, selon la densité",
-    "Cartes : l'option « Puces » est retirée (les anciennes puces passent dans le texte) ; une option décochée masque son champ de texte"
+    "Format des nombres « EN — 1 227.5 » : milliers séparés par une espace (comme en France), point pour les décimales"
   ]
 }

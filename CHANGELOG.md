@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.119.0 — 2026-11-13
+- Format des nombres « EN — 1 227.5 » : milliers séparés par une espace (comme en France), point pour les décimales
+
 ## 1.118.0 — 2026-11-13
 - Nouveau type de colonne « Vide » (place réservée, sans contenu)
 - Filet entre sous-sections : espaces dédiés au-dessus et en dessous, selon la densité
