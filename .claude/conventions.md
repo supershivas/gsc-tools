@@ -165,6 +165,15 @@ Le motif est simple, lisible à 16 px, dans les couleurs des tokens.
 ## 8. Interface
 
 - Interface en français.
+- **Écran de chargement, toujours** (Jérôme, 2026-11-14). Tant que l'app n'est
+  pas prête (code, données, polices, session), un écran de chargement couvre
+  tout : la page d'accueil n'apparaît qu'ensuite. Il est dans le HTML servi (ou
+  le rendu serveur), affiché d'emblée, pas créé après coup par le JS, et
+  disparaît quand l'accueil est utilisable. Aux couleurs de l'app (tokens),
+  une barre indéterminée, figée sous `prefers-reduced-motion`. Si le chargement
+  échoue, il le dit à la place du texte (jamais une page blanche ni un bouton
+  sans effet). Pourquoi : un bouton visible avant que l'app soit prête ne fait
+  rien, et l'utilisateur la croit cassée.
 - Cible : par défaut, une app fonctionne sur téléphone et sur ordinateur. Une app
   peut être déclarée « uniquement mobile » ou « uniquement bureau » : c'est
   indiqué dans la section Description de son `CLAUDE.md`.
