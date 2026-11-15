@@ -595,15 +595,16 @@ export const isFreeCol = (col) =>
   (col.type === 'text' && (!String(col.text || '').trim() || col.text === newCol('text').text)) ||
   (col.type === 'image' && !col.src) ||
   col.type === 'empty';
-/** Duplique la colonne ci de la sous-section bi. `mode` : `replace` (la copie prend la place de la colonne suivante), `insert` (la copie s'ajoute à droite, les colonnes deviennent égales,
-    comme à la suppression d'une colonne), `sub` (nouvelle sous-section dessous, même gabarit, la copie à la même place). Retourne le chemin de la copie. */
-export function duplicateCol(doc, si, bi, ci, mode) {
+/** Place la colonne `copy` dans la sous-section bi, à partir de la colonne ci. `mode` : `replace` (la copie prend la place de la colonne
+    `replaceAt`), `insert` (la copie s'ajoute à droite de ci, les colonnes deviennent égales, comme à la suppression d'une colonne),
+    `sub` (nouvelle sous-section dessous, même gabarit, la copie à la place ci, les autres colonnes vides). Retourne le chemin de la copie.
+    Commun à « Dupliquer » (replaceAt = ci + 1) et au collage d'une colonne (replaceAt = ci, editor/clip.js). */
+export function placeCol(doc, si, bi, ci, copy, mode, replaceAt = ci + 1) {
   const sec = doc.sections[si],
-    sub = sec.subs[bi],
-    copy = JSON.parse(JSON.stringify(sub.cols[ci]));
-  if (mode === 'replace' && sub.cols[ci + 1]) {
-    sub.cols[ci + 1] = copy;
-    return `col:${si}:${bi}:${ci + 1}`;
+    sub = sec.subs[bi];
+  if (mode === 'replace' && sub.cols[replaceAt]) {
+    sub.cols[replaceAt] = copy;
+    return `col:${si}:${bi}:${replaceAt}`;
   }
   if (mode === 'sub') {
     const n = JSON.parse(JSON.stringify(sub));
@@ -616,4 +617,8 @@ export function duplicateCol(doc, si, bi, ci, mode) {
   sub.layout = EQUAL_LAYOUT[sub.cols.length] || sub.layout;
   delete sub.widths;
   return `col:${si}:${bi}:${ci + 1}`;
+}
+/** Duplique la colonne ci de la sous-section bi (modes de `placeCol` ; `replace` = la colonne suivante). Retourne le chemin de la copie. */
+export function duplicateCol(doc, si, bi, ci, mode) {
+  return placeCol(doc, si, bi, ci, JSON.parse(JSON.stringify(doc.sections[si].subs[bi].cols[ci])), mode);
 }

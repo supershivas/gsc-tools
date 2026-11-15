@@ -13,6 +13,7 @@ import * as table from '../src/table/model.js';
 import * as tablePaste from '../src/table/paste.js';
 import * as tableTabular from '../src/table/tabular.js';
 import { removeColor, colorUses } from '../src/state.js';
+import * as clip from '../src/editor/clip.js';
 
 window.FSTEST = {
   defaultDoc,
@@ -42,4 +43,5 @@ window.FSTEST = {
   tableTabular,
   removeColor,
   colorUses,
+  clip,
 };

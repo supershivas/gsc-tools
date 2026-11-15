@@ -67,6 +67,59 @@ export function docEvilIcon() {
   return d;
 }
 
+/** Source du copier-coller de structure (tests/clip.spec.js) : format « FR — 1 227,5 », une couleur ajoutée (x1, rouge brique) en fond, en contour
+    et dans le texte, une image du dépôt, une image incorporée, un chiffre clé à icône importée (SVG avec script), un tableau à nombres. */
+export function docClip() {
+  const d = defaultDoc();
+  d.name = 'clip';
+  d.locale = 'fr-BE';
+  d.colors = { ...(d.colors || {}), x1: '#B03A2E' };
+  d.colorNames = { ...(d.colorNames || {}), x1: 'Rouge brique' };
+  d.customIcons = [
+    {
+      id: 'star',
+      name: 'star',
+      vb: [0, 0, 24, 24],
+      markup: '<path d="M12 2l3 7h7l-6 4 2 8-6-5-6 5 2-8-6-4h7z"/><script>window.__pwn=1</script>',
+    },
+  ];
+  const sec = newSection('recto');
+  sec.title = 'Source section';
+  sec.bg = 'tint-x1';
+  const a = newSub('1-1-1');
+  a.title = 'Mixed';
+  a.cols = [
+    { ...newCol('text'), text: 'Texte {c:x1|rouge} et suite', fillColor: 'x1', stroke: true, strokeColor: 'x1' },
+    { ...newCol('image'), src: 'assets/others/lantern-emblem.png' },
+    { ...newCol('figure'), figure: { ...newCol('figure').figure, value: '42', icon: 'custom:star', barColor: 'x1' } },
+  ];
+  const tb = newTable(3, 2, 1);
+  tb.cols[1].num = true;
+  const txt = (r, c, v) => (tb.cells.find((x) => x.r === r && x.c === c).text = v);
+  txt(0, 0, 'Pays');
+  txt(0, 1, 'Budget');
+  txt(1, 0, 'Belgique');
+  txt(1, 1, '1 227,5');
+  txt(2, 0, 'France');
+  txt(2, 1, '3,25');
+  tb.cells.find((x) => x.r === 1 && x.c === 0).fill = 'tint-x1';
+  const b = newSub('1');
+  b.title = 'Table';
+  b.cols = [{ ...newCol('table'), table: tb }];
+  sec.subs = [a, b];
+  const img = newSub('1');
+  img.title = 'Embedded';
+  img.cols = [
+    {
+      ...newCol('image'),
+      src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    },
+  ];
+  sec.subs.push(img);
+  d.sections = [sec, ...d.sections];
+  return d;
+}
+
 /** Document pour l'interface : un exemplaire de chaque sorte de colonne (texte, image, chiffre clé, carte, dataviz de plusieurs types). */
 export function docUi() {
   const d = defaultDoc();
@@ -211,5 +264,6 @@ export const DOCS = {
   table: docTable,
   'table-style': docTableStyle,
   'table-text': docTableText,
+  clip: docClip,
 };
 export const DOC_NAMES = Object.keys(DOCS);

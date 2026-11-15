@@ -23,6 +23,7 @@ import { createProjectFile } from './editor/project-file.js';
 import { initLang, declareMenus } from './editor/menus.js';
 import { loadWorkspace, createWorkspace } from './editor/workspace.js';
 import { createTabsUi } from './editor/tabs-ui.js';
+import { createClip } from './editor/clip.js';
 
 /* Éditeur du Factsheet creator : `ctx` (ce que les panneaux et les modules d'`editor/` se partagent) et assemblage.
    Chaque module d'`editor/` reçoit `ctx` ; ceux qui y ajoutent des méthodes le disent en tête de fichier
@@ -72,7 +73,7 @@ window.FS_READY = (async () => {
   }
 
   const ctx = {
-    /* onglet actif et accès aux autres documents ouverts (lecture ; copie entre fichiers : session suivante) */
+    /* onglet actif et accès aux autres documents ouverts (lecture ; copie entre fichiers : editor/clip.js, par le presse-papiers) */
     tab,
     tabs: () => ws.tabs.map((x) => ({ id: x.id, name: ws.nameOf(x), doc: x.doc, active: x === tab() })),
     getDocOf: (id) => (ws.get(id) || {}).doc || null,
@@ -91,8 +92,8 @@ window.FS_READY = (async () => {
     },
     /* zoom, filigrane, sélection : enregistrés avec la liste des onglets */
     viewChanged: () => ws && ws.viewChanged(),
-    /* petit message en bas à gauche, sans bouton */
-    note: (label) => historyUi.noteToast(label),
+    /* petit message en bas à gauche ; `undoLabel` : bouton qui annule le dernier pas */
+    note: (label, undoLabel) => historyUi.noteToast(label, undoLabel),
     /* un glissement ou un geste vient de finir : le clic qui suit n'est pas une sélection */
     suppressNextClick() {
       suppressClick = true;
@@ -242,6 +243,7 @@ window.FS_READY = (async () => {
   };
   tabsUi = createTabsUi(ws, document.getElementById('fsTabs'));
   ws.loadRecents();
+  ctx.clip = createClip(ctx, ws); // copier-coller de structure (sections, sous-sections, colonnes) entre onglets
   initShortcuts(ctx, history, exporter, ws, spacing);
   const langSel = initLang(ctx);
   declareMenus({ ctx, history, historyUi, preview, spacing, hand, project, exporter, langSel, ws });

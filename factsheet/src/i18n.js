@@ -413,6 +413,35 @@ const EN = {
   'Titre de sous-section (vide = masqué)': 'Subsection title (empty = hidden)',
   Colonnes: 'Columns',
   Dupliquer: 'Duplicate',
+  /* copier-coller de structure (editor/clip.js) */
+  Copier: 'Copy',
+  Coller: 'Paste',
+  'Copier l’élément sélectionné': 'Copy the selected element',
+  'Coller l’élément': 'Paste the element',
+  copiée: 'copied',
+  collée: 'pasted',
+  'Copie lourde': 'Heavy copy',
+  Mo: 'MB',
+  'elle contient des images incorporées.': 'it contains embedded images.',
+  'Sélectionnez une section, une sous-section ou une colonne à copier.': 'Select a section, a subsection or a column to copy.',
+  'Le presse-papiers ne contient pas d’élément copié dans la Factsheet : rien n’a été collé.':
+    'The clipboard does not contain an element copied in the Factsheet: nothing was pasted.',
+  'L’élément copié est illisible ou incomplet : rien n’a été collé.': 'The copied element is unreadable or incomplete: nothing was pasted.',
+  'Cet élément a été copié depuis une version plus récente de l’app : rechargez la page, puis collez à nouveau.':
+    'This element was copied from a newer version of the app: reload the page, then paste again.',
+  'Sélectionnez d’abord l’endroit où coller (section, sous-section ou colonne).':
+    'First select where to paste (section, subsection or column).',
+  'Une colonne copiée se colle sur une colonne : sélectionnez la colonne à remplacer ou à côté de laquelle coller.':
+    'A copied column is pasted onto a column: select the column to replace or to paste next to.',
+  'Remplacer la colonne sélectionnée': 'Replace the selected column',
+  'Coller dans une nouvelle sous-section, en dessous': 'Paste into a new subsection, below',
+  'La colonne sélectionnée contient déjà du contenu. Où coller la colonne copiée ?':
+    'The selected column already has content. Where should the copied column go?',
+  'Annuler le collage': 'Undo the paste',
+  'Couleurs ajoutées au document': 'Colours added to the document',
+  'Plus de place dans la palette : couleurs remplacées par la plus proche':
+    'No room left in the palette: colours replaced by the closest one',
+  'nombre(s) de tableau réécrit(s) au format du document.': 'table number(s) rewritten in the document’s number format.',
   'Supprimer cette sous-section ?': 'Delete this subsection?',
   '1 colonne': '1 column',
   '2 colonnes': '2 columns',

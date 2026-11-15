@@ -75,6 +75,7 @@ Détail et raisons dans `factsheet/docs/architecture.md`.
 - **Choix de type** : `richSelect` avec icônes ; 2–3 valeurs courtes : `pair` ; jamais un bouton dans un `<label>`.
 - **Factsheet par défaut** (`defaultDoc`, `state.js`) : recto et verso remplis sans avertissement de débordement ; relire les avertissements si on y change des tailles.
 - **Images à l'import** : toute image lue dans un projet passe par `safeImgSrc` (`state.js`, appelé par `migrate`) : seules `data:image/…` et les chemins relatifs du dépôt (`assets/…`) sont gardées, jamais une adresse distante (pixel espion). Toute nouvelle source d'image d'un document doit y passer.
+- **Copier-coller de structure** (`src/editor/clip.js`) : toute nouvelle propriété qui porte une clé de couleur a un nom reconnu par `COLOR_PROP` (finit par `color`, `colors`, `fill`, `fg`, `bg`…) ; toute nouvelle référence à une ressource du document (comme `custom:<id>`) doit être suivie par `adoptClip`. Le presse-papiers ne transporte que du JSON vérifié par `readClip`, jamais de HTML.
 - **Identifiants stables** : ne jamais renommer une clé existante (`sub.layout`, couleurs, gabarits) ; les anciens fichiers sont migrés dans `state.js` (`migrate`).
 
 ## Pièges connus

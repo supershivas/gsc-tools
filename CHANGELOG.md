@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.120.0 — 2026-11-15
+- Copier-coller d'une section, d'une sous-section ou d'une colonne entre factsheets ouvertes (Ctrl/Cmd + C / V, boutons Copier / Coller, menu Édition)
+- Couleurs ajoutées, icônes importées et format des nombres suivent l'élément collé
+
 ## 1.119.0 — 2026-11-13
 - Format des nombres « EN — 1 227.5 » : milliers séparés par une espace (comme en France), point pour les décimales
 

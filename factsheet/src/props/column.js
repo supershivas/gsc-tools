@@ -90,6 +90,8 @@ export function columnPanel(k, { si, bi, ci, sec, sub, col }) {
             ].filter(Boolean)
           : []),
         ['copy', t('Dupliquer la colonne'), duplicate],
+        ['clipboard-copy', t('Copier'), () => ctx.clip.copy()],
+        ['clipboard-plus', t('Coller'), () => ctx.clip.paste()],
         ['trash', t('Supprimer la colonne'), () => ctx.remove(`col:${si}:${bi}:${ci}`), 'danger'],
       ],
     },

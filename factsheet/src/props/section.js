@@ -47,6 +47,8 @@ export function sectionPanel(k, { si, sec }) {
     acts: [
       ['arrow-up', t('Monter'), struct(() => stepSection(doc, si, -1))],
       ['arrow-down', t('Descendre'), struct(() => stepSection(doc, si, 1))],
+      ['clipboard-copy', t('Copier'), () => ctx.clip.copy()],
+      ['clipboard-plus', t('Coller'), () => ctx.clip.paste()],
       ['trash', t('Supprimer'), () => ctx.remove(`sec:${si}`), 'danger'],
     ],
   });

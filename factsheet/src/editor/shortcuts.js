@@ -1,6 +1,7 @@
 /* Raccourcis clavier de l'éditeur, inactifs pendant une saisie ou quand une fenêtre est ouverte.
    Suppr / Retour arrière : supprime l'élément sélectionné.
    Cmd/Ctrl + Z : annuler ; + Maj (ou Ctrl + Y) : rétablir — un champ de saisie garde son propre annuler.
+   Cmd/Ctrl + C / V (hors saisie, sans texte sélectionné) : copier-coller de structure, événements copy / paste écoutés par editor/clip.js.
    Cmd/Ctrl + P : fenêtre d'export PDF, partout (l'impression du navigateur ne donne pas le document).
    W : affiche / masque « Marges et espaces ».
    Alt (⌥) + N : nouvel onglet ; Alt (⌥) + W : fermer l'onglet. Ctrl/Cmd + T et + W sont réservés par Firefox et Chrome

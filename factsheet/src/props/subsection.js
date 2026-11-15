@@ -93,6 +93,8 @@ export function subPanel(k, { si, bi, sec, sub }) {
       ['arrow-up', t('Monter'), struct(swapWith(bi - 1))],
       ['arrow-down', t('Descendre'), struct(swapWith(bi + 1))],
       ['copy', t('Dupliquer'), struct(duplicate)],
+      ['clipboard-copy', t('Copier'), () => ctx.clip.copy()],
+      ['clipboard-plus', t('Coller'), () => ctx.clip.paste()],
       ['trash', t('Supprimer'), () => ctx.remove(`sub:${si}:${bi}`), 'danger'],
     ],
   });
