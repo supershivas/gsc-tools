@@ -16,6 +16,12 @@ export const search = { q: '', focus: false }; // recherche de réglage (gardée
 const accs = {};
 const FIRST = { doc: 'doc-main', header: 'hd-text', sec: 'sec-main', sub: 'sub-main', col: 'col-content' };
 
+/** Ouvre une carte du panneau (au prochain dessin) : `kind` = sorte d'élément (col, sec…), `id` = identifiant de la carte */
+export function openCard(kind, id) {
+  const acc = (accs[kind] ||= { cur: null, first: FIRST[kind] });
+  acc.cur = id;
+}
+
 export function createKit(root, ctx, doc, kind) {
   const acc = (accs[kind] ||= { cur: null, first: FIRST[kind] });
   const palOpts = paletteOptions(doc);

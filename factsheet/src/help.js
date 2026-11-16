@@ -84,6 +84,17 @@ export const HELP = {
   'Extrémités de la ligne':
     'Avant le premier et après le dernier cercle, la ligne se prolonge (un tiers plein puis des tirets) ou non : « Aucune » fait commencer la ligne au premier cercle.',
   'Largeur des nœuds (px)': 'Épaisseur des barres verticales du diagramme de Sankey.',
+  /* carte et chiffre clé */
+  'Adapter à la largeur de la colonne':
+    'La carte choisit seule sa forme : image à côté dans une colonne large, image en haut dans une colonne moyenne, icône seule dans une colonne étroite. Se coupe dès que vous modifiez la carte.',
+  'Libellé du lien': 'Texte suivi d’une flèche, en bas de la carte. Sans adresse, c’est un simple libellé.',
+  'Adresse du lien': 'Adresse complète (https://… ou mailto:…). Le lien devient cliquable dans le PDF.',
+  'Barre de progression (%)': '0 = pas de barre. La barre se dessine sous le texte, sur la largeur du chiffre.',
+  'Chiffres à côté':
+    'Jusqu’à deux chiffres de plus dans le même cadre. Dans l’aperçu, glissez la poignée entre deux chiffres pour régler leurs largeurs.',
+  'En-tête des chiffres': 'Petite ligne en capitales au-dessus des chiffres, par exemple « Sous occupation », avec une icône facultative.',
+  'Image jusqu’au bord': 'L’image touche le bord de la carte au lieu de garder une marge.',
+  Chiffre: 'Texte libre : « 5 000 », « 64 % », « €7,5 Md »… Dans un chiffre clé, un chiffre trop long rétrécit pour tenir sur une ligne.',
 };
 
 let tip = null;

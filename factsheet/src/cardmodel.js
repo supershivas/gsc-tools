@@ -62,12 +62,15 @@ export const newCard = (W = 336) => ({
   ...cardPresetFor(W),
   auto: true,
   src: null,
+  strokeColor: 'text', // couleur du contour et fond de la carte (clés de couleur ; 'none' = sans fond)
+  fillColor: 'none',
   content: {
     tag: t('NOUVEAU'),
     title: t('Titre de la carte'),
     figure: '5 000',
     text: t('Texte de la carte. Une ligne = un paragraphe, **gras** avec les astérisques.'),
     link: t('En savoir plus'),
+    url: '', // adresse du lien (vide = simple libellé)
   },
 });
 

@@ -5,7 +5,7 @@ import { t } from '../i18n.js';
 import { COL_TYPES, VALIGNS, ALIGNS, newCol, swapCols, allCols, duplicateCol, isFreeCol, MAX_COLS, refreshAutoCards } from '../state.js';
 import { chooseBox } from '../dialogs.js';
 import { VIZ_TYPES, SIDE_FIELDS, newColSide } from '../viz/index.js';
-import { newCard } from '../cardmodel.js';
+import { newCard, cardPresetFor } from '../cardmodel.js';
 import { richSelect } from '../colorselect.js';
 import { buildFields } from '../editor.js';
 import { heightNodes } from '../vizheight.js';
@@ -97,15 +97,19 @@ export function columnPanel(k, { si, bi, ci, sec, sub, col }) {
     },
   );
 
-  /* Changer de type garde l'alignement, le cadre et le fond ; le texte est conservé si on revient au texte */
+  /* Changer de type garde l'alignement, le cadre et le fond, et **le contenu de chaque type** : texte, image, chiffre clé, carte, dataviz
+     et tableau restent dans la colonne (inactifs) et reviennent tels quels quand on retourne à leur type — comme `stash` pour les types de dataviz */
+  const KEPT = ['text', 'src', 'caption', 'ratio', 'imgMode', 'imgW', 'imgH', 'imgFit', 'natural', 'viz', 'figure', 'card', 'table'];
   const changeType = (v) => {
-    const keep = col.text,
-      { valign, align, stroke, strokeColor, fillColor, fg } = col;
-    Object.assign(col, newCol(v), { valign, align, stroke, strokeColor, fillColor });
+    const { valign, align, stroke, strokeColor, fillColor, fg } = col,
+      kept = Object.fromEntries(KEPT.filter((key) => col[key] != null && col[key] !== '').map((key) => [key, col[key]])),
+      hadCard = !!col.card,
+      W = columnWidth(doc, si, bi, ci);
+    Object.assign(col, newCol(v), kept, { type: v, valign, align, stroke, strokeColor, fillColor });
     if (fg) col.fg = fg;
-    if (v === 'text' && keep) col.text = keep;
     if (v === 'card') {
-      col.card = newCard(columnWidth(doc, si, bi, ci));
+      if (!hadCard) col.card = newCard(W);
+      else if (col.card.auto) Object.assign(col.card, cardPresetFor(W));
       col.stroke = false;
       col.fillColor = 'none';
     }
@@ -116,11 +120,12 @@ export function columnPanel(k, { si, bi, ci, sec, sub, col }) {
     richSelect({ value: col.type, options: COL_TYPES, text: true, lead: (key) => ico(ICONS[key] || 'text-size'), onChange: changeType }),
   );
 
-  let editor;
+  let editor,
+    extra = []; // cartes de réglages propres au type (carte, chiffre clé), placées juste après « Contenu »
   if (col.type === 'text') editor = textEditor(k, col);
   else if (col.type === 'image') editor = imageEditor(k, col);
-  else if (col.type === 'card') editor = [cardEditor(k, col, columnWidth(doc, si, bi, ci))];
-  else if (col.type === 'figure') editor = figureEditor(k, col);
+  else if (col.type === 'card') ({ content: editor, cards: extra } = cardEditor(k, col, columnWidth(doc, si, bi, ci)));
+  else if (col.type === 'figure') ({ content: editor, cards: extra } = figureEditor(k, col));
   else if (col.type === 'table') editor = tableEditor(k, col, sub, ci);
   else if (col.type === 'empty')
     editor = [
@@ -225,6 +230,7 @@ export function columnPanel(k, { si, bi, ci, sec, sub, col }) {
       null,
       t(COL_TYPES[col.type]) + (vt ? ' · ' + t(vt.label) : ''),
     ),
+    ...extra,
     col.type === 'text' ? fontCard(k, col) : null,
     col.type === 'text' ? paraCard(k, col) : null,
     heightCard(),

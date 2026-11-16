@@ -76,6 +76,8 @@ Détail et raisons dans `factsheet/docs/architecture.md`.
 - **Factsheet par défaut** (`defaultDoc`, `state.js`) : recto et verso remplis sans avertissement de débordement ; relire les avertissements si on y change des tailles.
 - **Images à l'import** : toute image lue dans un projet passe par `safeImgSrc` (`state.js`, appelé par `migrate`) : seules `data:image/…` et les chemins relatifs du dépôt (`assets/…`) sont gardées, jamais une adresse distante (pixel espion). Toute nouvelle source d'image d'un document doit y passer.
 - **Copier-coller de structure** (`src/editor/clip.js`) : toute nouvelle propriété qui porte une clé de couleur a un nom reconnu par `COLOR_PROP` (finit par `color`, `colors`, `fill`, `fg`, `bg`…) ; toute nouvelle référence à une ressource du document (comme `custom:<id>`) doit être suivie par `adoptClip`. Le presse-papiers ne transporte que du JSON vérifié par `readClip`, jamais de HTML.
+- **Contenu gardé au changement de type** : une colonne garde, inactif, le contenu des types quittés (`changeType`, `props/column.js`) ; ne jamais lire `col.card`, `col.figure`, `col.viz`, `col.table` ou `col.src` sans vérifier `col.type`.
+- **Cartes et chiffres clés** : « Contenu » ne porte que les textes, les réglages vont dans des cartes à la suite (`props/col-card.js`, `props/col-figure.js` ; un champ de `FIGURE_FIELDS` déclare sa carte par `c:`). Jamais d'icône de webfont (`ti ti-*`) dans le document : pseudo-élément, absent du PDF — un vrai SVG.
 - **Identifiants stables** : ne jamais renommer une clé existante (`sub.layout`, couleurs, gabarits) ; les anciens fichiers sont migrés dans `state.js` (`migrate`).
 
 ## Pièges connus

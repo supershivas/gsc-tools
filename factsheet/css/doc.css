@@ -106,6 +106,11 @@
 .card-ico{display:flex}
 
 .card-link{display:flex;align-items:center;gap:var(--s1);font-weight:700;margin-top:var(--s1)}
+.card-a{color:inherit;text-decoration:none}
+.card-arrow{flex:none;display:block;width:1.2em;height:1.2em}
+.card-img-empty{background:#eef1fb;color:var(--c-steel);display:flex;align-items:center;justify-content:center;aspect-ratio:4/3}
+.card-left>.card-img-empty,.card-right>.card-img-empty{aspect-ratio:auto}
+.card.filled:not(.stroked){padding:var(--gap-boxPad);border-radius:var(--radius)}   /* fond sans contour : même retrait qu'avec */
 .card.center{text-align:center}.card.center .card-head,.card.center .card-ico,.card.center .card-link{justify-content:center}
 /* image jusqu'au bord du contour */
 .card.bleed.card-vertical>.card-img{margin:calc(-1 * var(--gap-boxPad)) calc(-1 * var(--gap-boxPad)) 0;border-radius:var(--radius) var(--radius) 0 0}

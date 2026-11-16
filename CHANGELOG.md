@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.121.0 — 2026-11-16
+- Cartes et chiffres clés : réglages regroupés (éléments, image, style ; icône, barre, en-tête, chiffres à côté), couleurs du contour et du fond d'une carte, lien avec adresse
+- Changer de type de contenu ne perd plus rien ; double-clic sur un texte, une carte ou un chiffre pour l'éditer
+- PDF : la flèche du lien d'une carte est exportée, plus d'image d'exemple à la place d'une image manquante
+
 ## 1.120.1 — 2026-11-16
 - Factsheet creator : l'aperçu zoomé ne déborde plus sur le panneau de droite (zoom du navigateur)
 - La barre au-dessus de l'aperçu (jauges, marges, espacement) reste lisible dans une fenêtre étroite

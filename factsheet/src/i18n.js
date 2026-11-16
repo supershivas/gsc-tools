@@ -1535,6 +1535,41 @@ const EN = {
   'Les traits réglés sur des arêtes seront oubliés. Appliquer le préréglage ?':
     'Borders set on individual edges will be lost. Apply the preset?',
   Appliquer: 'Apply',
+  /* carte et chiffre clé : réglages regroupés par carte */
+  'Libellé du lien': 'Link label',
+  'Adresse du lien': 'Link address',
+  'Place de l’icône': 'Icon position',
+  'Au-dessus du titre': 'Above the title',
+  'À côté du titre': 'Next to the title',
+  'Adapter à la largeur de la colonne': 'Adapt to the column width',
+  'Éléments de la carte': 'Card elements',
+  'Avec un contour ou un fond, l’image peut aller jusqu’au bord de la carte.':
+    'With an outline or a background, the image can go to the edge of the card.',
+  'Style de la carte': 'Card style',
+  'Réglez une barre au-dessus de 0 % pour choisir son aspect.': 'Set a bar above 0 % to choose its look.',
+  'Choisissez d’abord une icône.': 'Choose an icon first.',
+  'Barre de progression (%)': 'Progress bar (%)',
+  'Chiffres placés à côté du premier, dans le même cadre.': 'Figures placed beside the first one, in the same frame.',
+  'Deux chiffres au plus à côté du premier.': 'Two figures at most beside the first one.',
+  Importée: 'Imported',
+  'Barre de progression': 'Progress bar',
+  'En-tête des chiffres': 'Heading of the figures',
+  'Chiffres à côté': 'Figures beside',
+  'La carte choisit seule sa forme : image à côté dans une colonne large, image en haut dans une colonne moyenne, icône seule dans une colonne étroite. Se coupe dès que vous modifiez la carte.':
+    'The card picks its own shape: image beside in a wide column, image on top in a medium one, icon only in a narrow one. Turns off as soon as you edit the card.',
+  'Texte suivi d’une flèche, en bas de la carte. Sans adresse, c’est un simple libellé.':
+    'Text followed by an arrow, at the bottom of the card. Without an address it is just a label.',
+  'Adresse complète (https://… ou mailto:…). Le lien devient cliquable dans le PDF.':
+    'Full address (https://… or mailto:…). The link becomes clickable in the PDF.',
+  '0 = pas de barre. La barre se dessine sous le texte, sur la largeur du chiffre.':
+    '0 = no bar. The bar is drawn under the text, across the width of the figure.',
+  'Jusqu’à deux chiffres de plus dans le même cadre. Dans l’aperçu, glissez la poignée entre deux chiffres pour régler leurs largeurs.':
+    'Up to two more figures in the same frame. In the preview, drag the handle between two figures to set their widths.',
+  'Petite ligne en capitales au-dessus des chiffres, par exemple « Sous occupation », avec une icône facultative.':
+    'Small line in capitals above the figures, e.g. “Under occupation”, with an optional icon.',
+  'L’image touche le bord de la carte au lieu de garder une marge.': 'The image touches the edge of the card instead of keeping a margin.',
+  'Texte libre : « 5 000 », « 64 % », « €7,5 Md »… Dans un chiffre clé, un chiffre trop long rétrécit pour tenir sur une ligne.':
+    'Free text: “5,000”, “64 %”, “€7.5 bn”… In a key figure, a figure that is too long shrinks to fit on one line.',
 };
 export const DICT = { en: EN }; // exporté pour scripts/check-i18n.mjs
 

@@ -38,17 +38,96 @@ test('éditeur : pas de champ « Puces », une option décochée masque son cham
   expect(all.join('|')).not.toMatch(/Bullet/i);
   expect(all).toContain('Title');
   expect(all).toContain('Label'); // étiquette : cochée par défaut pour cette largeur
-  await props
-    .locator('details.opts label.row', { hasText: /^Label$/ })
-    .locator('input')
-    .uncheck();
-  await expect.poll(async () => (await labels()).includes('Label')).toBe(false);
+  /* accordéon : « Éléments de la carte » ouverte, « Contenu » se replie ; on y revient pour lire les champs */
+  const openCard = (name) => props.locator('.pp-card-h', { hasText: name }).click();
+  const part = (name) => props.locator('.pp-switchrow', { hasText: new RegExp(`^${name}`) }).locator('[role=switch]');
+  await openCard('Card elements');
+  await expect(part('Label')).toHaveAttribute('aria-checked', 'true');
+  await part('Label').click();
+  await openCard('Content');
+  expect(await labels()).not.toContain('Label');
   expect(await labels()).toContain('Title');
-  await props
-    .locator('details.opts label.row', { hasText: /^Label$/ })
-    .locator('input')
-    .check();
-  await expect.poll(async () => (await labels()).includes('Label')).toBe(true);
+  await openCard('Card elements');
+  await part('Label').click();
+  await openCard('Content');
+  expect(await labels()).toContain('Label');
+  expect(errors).toEqual([]);
+});
+
+const COL = (path) => `#stage .page:not(.ovf-clone) [data-sel="${path}"]`;
+const colOf = (page, si, bi, ci) =>
+  page.evaluate(([si, bi, ci]) => JSON.parse(localStorage.getItem('factsheet-creator-v1')).sections[si].subs[bi].cols[ci], [si, bi, ci]);
+const setType = async (page, name) => {
+  await page.locator('#props .pp-body .f').first().locator('button').first().click();
+  await page.getByText(name, { exact: true }).last().click();
+};
+
+test('changer de type garde le contenu de chaque type ; saisir dans une carte quitte le mode automatique', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await page.locator(COL('col:0:1:0')).click({ position: { x: 12, y: 12 } });
+  const text = (await colOf(page, 0, 1, 0)).text;
+  expect(text.length).toBeGreaterThan(20);
+  await setType(page, 'Card');
+  await expect.poll(async () => (await colOf(page, 0, 1, 0)).type).toBe('card');
+  let col = await colOf(page, 0, 1, 0);
+  expect(col.text).toBe(text);
+  expect(col.card.auto).toBe(true);
+  const title = page.locator('#props [data-fk="title"] .re');
+  await title.click();
+  await page.keyboard.type(' 42');
+  await expect.poll(async () => (await colOf(page, 0, 1, 0)).card.auto).toBe(false);
+  await setType(page, 'Text');
+  await expect.poll(async () => (await colOf(page, 0, 1, 0)).type).toBe('text');
+  col = await colOf(page, 0, 1, 0);
+  expect(col.text).toBe(text);
+  await setType(page, 'Card');
+  await expect.poll(async () => (await colOf(page, 0, 1, 0)).type).toBe('card');
+  expect((await colOf(page, 0, 1, 0)).card.content.title).toMatch(/ 42$/);
+  expect(errors).toEqual([]);
+});
+
+test('carte : flèche du lien en SVG, lien réel avec une adresse, jamais d’image d’exemple dans le document', async ({ page }) => {
+  await page.goto('/factsheet/tests/blank.html');
+  const r = await page.evaluate(() => {
+    const F = window.FSTEST;
+    const d = F.defaultDoc();
+    const col = F.newCol('card');
+    Object.assign(col.card, { auto: false, image: true, link: true, src: null, stroke: false, fillColor: 'yellow' });
+    col.card.content.url = 'https://example.org/a';
+    const plain = F.newCol('card');
+    Object.assign(plain.card, { auto: false, image: false, link: true });
+    plain.card.content.url = 'javascript:alert(1)';
+    const sub = F.newSub('1-1');
+    sub.cols = [col, plain];
+    d.sections[0].subs = [sub];
+    const host = document.createElement('div');
+    document.body.append(host);
+    F.renderDocument(F.migrate(d)).pages.forEach((p) => host.append(p.el));
+    const [a, b] = host.querySelectorAll('.card');
+    return {
+      arrow: !!a.querySelector('.card-link svg path') && !a.querySelector('.card-link .ti'),
+      href: a.querySelector('.card-link a')?.getAttribute('href'),
+      unsafe: !!b.querySelector('.card-link a'),
+      img: a.querySelectorAll('.card-img img').length,
+      empty: a.querySelectorAll('.card-img-empty').length,
+      filled: a.classList.contains('filled') && !a.classList.contains('stroked'),
+    };
+  });
+  expect(r).toEqual({ arrow: true, href: 'https://example.org/a', unsafe: false, img: 0, empty: 1, filled: true });
+});
+
+test('double-clic sur une carte ou un chiffre clé : le curseur va dans le champ visé', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  const where = () => page.evaluate(() => (document.activeElement.closest('[data-fk]') || { dataset: {} }).dataset.fk || '');
+  await page.locator(COL('col:0:1:1') + ' .card-title').dblclick();
+  await expect.poll(where).toBe('title');
+  await page.locator(COL('col:0:0:1') + ' .vf-text').dblclick();
+  await expect.poll(where).toBe('text');
+  await page.locator(COL('col:0:0:1') + ' .vf-value').dblclick();
+  await expect.poll(where).toBe('value');
+  await expect(page.locator('#props .fmt button.on')).toHaveCount(0); // le bouton Gras ne reflète pas un texte sélectionné ailleurs
   expect(errors).toEqual([]);
 });
 

@@ -314,7 +314,8 @@ body.v3d-open{overflow:hidden}
 .seg{display:inline-flex;border:1px solid var(--ui-line);border-radius:var(--radius-sm);overflow:hidden;margin-top:4px}
 .seg button{border:0;border-right:1px solid var(--ui-line);border-radius:0;background:#fff;padding:5px 9px;font-size:var(--fs-lg);line-height:1;cursor:pointer;color:var(--ui-ink)}
 .seg button:last-child{border-right:0}
-.seg button.on{background:var(--ui-blue);color:#fff}
+.seg button.on{background:var(--ui-ink);color:#fff}   /* état choisi : neutre (le rouge est réservé à ce qui agit) */
+.pp-nest{margin:0 0 4px 12px;padding-left:12px;border-left:1px solid var(--ui-line)}   /* sous-réglages d'un interrupteur */
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .outline{border-top:1px solid var(--ui-line);margin-top:10px;padding-top:8px}
 

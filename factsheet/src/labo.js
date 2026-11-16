@@ -6,7 +6,7 @@ import { initI18n, t } from './i18n.js';
 import { h } from './render.js';
 import { cssVars, applyVars, colWidth, insetW, DEFAULT_THEME, paletteOf, GAP } from './tokens.js';
 import { renderCtx } from './renderctx.js';
-import { renderCard } from './card.js';
+import { renderCard, SAMPLE_IMG } from './card.js';
 import { CARD_DEFAULTS, CARD_CHECKS } from './cardmodel.js';
 import { renderFigure, FIGURE_DEFAULTS } from './figure.js';
 import { ICON_OPTIONS } from './viz/icons.js';
@@ -34,7 +34,7 @@ const vizVariant = kind => { const ty = VIZ_TYPES[kind]; return { title: ty.labe
 
 /* Le Labo rend avec les réglages par défaut d'un document : densité normale, pas de typographie automatique, aucune icône importée */
 const LABO_ICONS = []; // icônes importées dans le Labo (le temps de la page)
-const LABO_ENV = { locale: 'en-GB', pal: paletteOf(DEFAULT_THEME, {}), rc: renderCtx({ customIcons: LABO_ICONS }) };
+const LABO_ENV = { locale: 'en-GB', pal: paletteOf(DEFAULT_THEME, {}), rc: renderCtx({ customIcons: LABO_ICONS }), sampleImg: SAMPLE_IMG };
 const WIDTHS = { '1/3': colWidth('1-1-1', 0, GAP.columns), '1/2': colWidth('1-1', 0, GAP.columns), '2/3': colWidth('2-1', 0, GAP.columns), 'full': colWidth('1', 0, GAP.columns) };
 
 const cardControls = [

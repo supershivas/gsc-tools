@@ -670,9 +670,11 @@ export function richEditor(value, onChange, opts = {}) {
   const sync = () => {
     [bar, inl].filter(Boolean).forEach((r) =>
       r.querySelectorAll('[data-cmd]').forEach((b) => {
+        /* l'état ne vaut que si le curseur est dans ce champ : sinon le bouton reflète le texte sélectionné ailleurs (un titre gras de l'aperçu) */
+        const sl = window.getSelection();
         let on = false;
         try {
-          on = document.queryCommandState(b.dataset.cmd);
+          on = !!sl && sl.rangeCount > 0 && ed.contains(sl.anchorNode) && document.queryCommandState(b.dataset.cmd);
         } catch (e) {}
         b.classList.toggle('on', on);
       }),
@@ -755,6 +757,7 @@ const STEPS_KEYS = new Set(['groupSpace', 'serSpace', 'rowSpace']);
 function choiceKind(f) {
   if (f.icons || typeof f.options === 'function') return null;
   const v = Object.values(f.options);
+  if (f.seg) return 'seg'; // deux ou trois valeurs à montrer côte à côte, même si leurs libellés sont un peu longs
   if (STEPS_KEYS.has(f.k) && v.length === 4) return 'steps';
   if (f.k === 'barSize') return 'thumbs';
   if (f.k === 'lineWidth') return 'widths';
@@ -804,7 +807,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
       out.push(
         h2(
           'div',
-          { class: 'f' },
+          { class: 'f', dataset: { fk: f.k } }, // `fk` : le double-clic sur l'aperçu retrouve le champ de l'élément visé (editor/selection.js)
           h2('div', { class: 'hint pp-fh' }, f.label, helpBtn(f.label), h2('span', { class: 'pp-sp' })),
           richEditor(
             getP(obj, f.k) ?? '',
@@ -829,7 +832,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
       out.push(
         h2(
           'div',
-          { class: 'f' },
+          { class: 'f', dataset: { fk: f.k } },
           h2(
             'div',
             { class: 'hint pp-fh' },
@@ -1102,6 +1105,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
             },
           }),
         );
+      else if (f.full) box.append(h2('p', { class: 'hint', textContent: t(f.full) })); // maximum atteint : on dit pourquoi le bouton a disparu
       out.push(box);
     } else if (f.t === 'table') out.push(tableField(f, obj, ctx, palOpts, h2));
     if (f.when) {

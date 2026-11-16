@@ -11,57 +11,74 @@ export const FIGURE_DEFAULTS = () => ({
   iconStyle: 'plain',
   text: 'Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim',
 });
+const ICON_CHOICES = (root, icons) => ({ none: 'Aucune', ...ICON_OPTIONS, ...customChoices(null, icons) });
+/** une barre est-elle dessinée (chiffre principal ou chiffres à côté) ? Ses réglages d'aspect n'ont de sens qu'alors */
+const anyBar = (o) => +o.bar > 0 || (Array.isArray(o.more) && o.more.some((m) => +m.bar > 0));
+const NO_BAR = 'Réglez une barre au-dessus de 0 % pour choisir son aspect.';
+/* `c` : carte du panneau qui porte le champ (main = Contenu, icon, bar, head, more) — voir props/col-figure.js */
 export const FIGURE_FIELDS = [
-  { k: 'value', t: 'text', rich: true, label: 'Chiffre (texte libre : « 5 000 », « 64 % »…)' },
+  { c: 'main', k: 'value', t: 'text', rich: true, label: 'Chiffre' },
+  { c: 'main', k: 'text', t: 'area', fmt: 'inline', label: 'Texte' },
+  { c: 'icon', k: 'icon', t: 'select', label: 'Icône devant le chiffre', options: ICON_CHOICES, icons: true },
   {
-    k: 'icon',
+    c: 'icon',
+    k: 'iconStyle',
     t: 'select',
-    label: 'Icône devant le chiffre',
-    options: (root, icons) => ({ none: 'Aucune', ...ICON_OPTIONS, ...customChoices(null, icons) }),
-    icons: true,
+    seg: true,
+    label: 'Style de l’icône',
+    options: { plain: 'Pictogramme seul', circle: 'Dans une pastille' },
+    def: 'plain',
+    when: (o) => !!o.icon && o.icon !== 'none',
+    why: 'Choisissez d’abord une icône.',
   },
-  { k: 'iconStyle', t: 'select', label: 'Style de l’icône', options: { plain: 'Pictogramme seul', circle: 'Dans une pastille' } },
-  { k: 'text', t: 'area', label: 'Texte' },
-  { k: 'bar', t: 'number', label: 'Barre de progression sous le chiffre (% ; 0 = pas de barre)', min: 0, max: 100 },
   {
-    k: 'more',
-    t: 'list',
-    label: 'Autres chiffres à côté (jusqu’à 2)',
-    min: 0,
-    max: 2,
-    item: () => ({ value: '50 %', text: 'Lorem ipsum', bar: 0 }),
-    fields: [
-      { k: 'value', t: 'text', rich: true, label: 'Chiffre' },
-      { k: 'text', t: 'text', rich: true, label: 'Texte' },
-      { k: 'bar', t: 'number', label: 'Barre de progression (% ; 0 = pas de barre)', min: 0, max: 100 },
-    ],
-  },
-  { k: 'barColor', t: 'color', label: 'Couleur de la barre', def: 'yellow' },
-  { k: 'barRest', t: 'color', label: 'Couleur du reste de la barre', def: 'tint-blue' },
-  {
-    k: 'barHeight',
-    t: 'select',
-    label: 'Hauteur de la barre',
-    options: { thin: 'Fine', normal: 'Normale', thick: 'Épaisse' },
-    def: 'normal',
-  },
-  { k: 'barCorners', t: 'select', label: 'Coins de la barre', options: { round: 'Arrondis', square: 'Droits' }, def: 'round' },
-  {
+    c: 'icon',
     k: 'iconRing',
     t: 'select',
     label: 'Trait de la pastille de l’icône',
     options: { thin: 'Fin', medium: 'Moyen', thick: 'Épais' },
     def: 'thin',
-    when: (o) => o.iconStyle === 'circle',
+    when: (o) => !!o.icon && o.icon !== 'none' && o.iconStyle === 'circle',
     why: 'Choisissez « Dans une pastille » pour régler son trait.',
   },
-  { k: 'headText', t: 'text', label: 'En-tête (petites capitales, ex. « Sous occupation »)' },
+  { c: 'bar', k: 'bar', t: 'number', label: 'Barre de progression (%)', min: 0, max: 100 },
+  { c: 'bar', k: 'barColor', t: 'color', label: 'Couleur de la barre', def: 'yellow', when: anyBar, why: NO_BAR },
+  { c: 'bar', k: 'barRest', t: 'color', label: 'Couleur du reste de la barre', def: 'tint-blue', when: anyBar },
   {
-    k: 'headIcon',
+    c: 'bar',
+    k: 'barHeight',
     t: 'select',
-    label: 'Icône de l’en-tête',
-    options: (root, icons) => ({ none: 'Aucune', ...ICON_OPTIONS, ...customChoices(null, icons) }),
-    icons: true,
+    label: 'Hauteur de la barre',
+    options: { thin: 'Fine', normal: 'Normale', thick: 'Épaisse' },
+    def: 'normal',
+    when: anyBar,
+  },
+  {
+    c: 'bar',
+    k: 'barCorners',
+    t: 'select',
+    label: 'Coins de la barre',
+    options: { round: 'Arrondis', square: 'Droits' },
+    def: 'round',
+    when: anyBar,
+  },
+  { c: 'head', k: 'headText', t: 'text', label: 'Texte de l’en-tête' },
+  { c: 'head', k: 'headIcon', t: 'select', label: 'Icône de l’en-tête', options: ICON_CHOICES, icons: true },
+  {
+    c: 'more',
+    k: 'more',
+    t: 'list',
+    label: 'Chiffres placés à côté du premier, dans le même cadre.',
+    full: 'Deux chiffres au plus à côté du premier.',
+    min: 0,
+    max: 2,
+    item: () => ({ value: '50 %', text: '', icon: 'none', bar: 0 }),
+    fields: [
+      { k: 'value', t: 'text', rich: true, label: 'Chiffre' },
+      { k: 'text', t: 'area', fmt: 'inline', label: 'Texte' },
+      { k: 'icon', t: 'select', label: 'Icône devant le chiffre', options: ICON_CHOICES, icons: true },
+      { k: 'bar', t: 'number', label: 'Barre de progression (%)', min: 0, max: 100 },
+    ],
   },
 ];
 
@@ -215,7 +232,11 @@ function oneFigure(o, W, align, g, fsAll, env) {
   const base0 = pxOf(TYPE.figure.size),
     base = base0 * (+o.scale || 1),
     lh = TYPE.figure.lh,
-    icon = o.icon && o.icon !== 'none' ? figureIcon(o.icon, lh, o.iconStyle === 'circle', env.rc.icons, RING_K[g.iconRing] ?? 1) : null;
+    /* un chiffre « à côté » n'a pas son propre style d'icône : il reprend celui du premier */
+    icon =
+      o.icon && o.icon !== 'none'
+        ? figureIcon(o.icon, lh, (o.iconStyle ?? g.iconStyle) === 'circle', env.rc.icons, RING_K[g.iconRing] ?? 1)
+        : null;
   const avail = (W || 9999) - (icon ? lh + VIZ.iconGap : 0) - 1;
   const fs =
     fsAll != null
