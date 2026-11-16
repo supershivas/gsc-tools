@@ -95,10 +95,11 @@ export function figureIcon(key, size, circle, icons, ring = 1) {
   if (!ic && !custom) return null;
   const G = circle ? size * 0.58 : size * 0.82,
     k = G / 24,
-    o = (size - G) / 2;
+    box = circle ? size : G, // pictogramme seul : la boîte est celle du dessin, sans marge autour (il s'aligne sur le texte, sans écart de trop)
+    o = (box - G) / 2;
   return s(
     'svg',
-    { width: size, height: size, viewBox: `0 0 ${size} ${size}`, class: 'vi-ic fg-ic' },
+    { width: box, height: box, viewBox: `0 0 ${box} ${box}`, class: 'vi-ic fg-ic' },
     circle
       ? s('circle', {
           cx: size / 2,
@@ -148,7 +149,7 @@ function progressBar(pct, W, o) {
         }); // sans clipPath : l'export PDF ne le lit pas
   return s(
     'svg',
-    { width: w, height: H, viewBox: `0 0 ${w} ${H}`, class: 'fg-bar', style: { display: 'block', marginTop: '9px', overflow: 'visible' } },
+    { width: w, height: H, viewBox: `0 0 ${w} ${H}`, class: 'fg-bar', style: { display: 'block', overflow: 'visible' } },
     s('rect', { x, y: x, width: iw, height: hh, rx: r, fill: colorRef(o.barRest || 'tint-blue') }),
     p > 0 ? part : null,
     s('rect', { x, y: x, width: iw, height: H - SW, rx: r, fill: 'none', stroke: 'var(--c-blue)', 'stroke-width': SW }),
@@ -258,6 +259,6 @@ function oneFigure(o, W, align, g, fsAll, env) {
     { class: 'fg', style: align && align !== 'left' ? { textAlign: align } : {} },
     head,
     o.text && o.text.trim() ? el('div', { class: 'vf-text', innerHTML: inlineMk(o.text, false, env.rc.typo) }) : null,
-    +o.bar > 0 ? progressBar(o.bar, W, g) : null,
+    +o.bar > 0 ? el('div', { class: 'fg-barbox' }, progressBar(o.bar, W, g)) : null, // poussée en bas de la cellule : les barres de chiffres voisins s'alignent
   );
 }

@@ -73,9 +73,11 @@
 .vf-text,.vi-text,.vf-value{overflow-wrap:anywhere;min-width:0}
 .fg-head{display:flex;align-items:center;gap:var(--viz-iconGap)}
 .fg-ic{flex:none;display:block}
-.fg-row{display:flex;align-items:flex-start}
-.fg-cell{min-width:0}
-.fg-over{display:flex;align-items:center;gap:var(--viz-iconGap);margin-bottom:18px;color:var(--c-blue);font-weight:600;letter-spacing:.06em;line-height:1.3}
+.fg-row{display:flex;align-items:stretch}
+.fg-cell{min-width:0;display:flex}
+.fg-cell>.fg{flex:1;min-width:0;display:flex;flex-direction:column}
+.fg-barbox{margin-top:auto;padding-top:9px}
+.fg-over{display:flex;align-items:center;gap:var(--viz-iconGap);margin-bottom:var(--s2);color:var(--c-blue);font-weight:600;letter-spacing:.06em;line-height:1.3}
 /* Contours : trait 0,5 pt, coins de 3 px, retrait = padding des encadrés (largeurs déduites dans render.js) */
 .stroked{border:var(--bw,var(--stroke)) solid var(--stroke-color,var(--c-text));border-radius:var(--rad,var(--radius));padding:var(--gap-boxPad)}
 .card.stroked{--bw:var(--stroke);--rad:var(--radius)}   /* la carte ne reprend jamais le contour d'un cadre parent */

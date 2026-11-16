@@ -196,3 +196,21 @@ test('colonne « Vide » : place réservée, rien de dessiné, hauteur de la ran
   await expect(page.locator('#props')).toContainText('Empty');
   expect(errors).toEqual([]);
 });
+
+test('chiffre clé : choisir une icône débloque aussitôt « Dans une pastille »', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await page.locator(COL('col:0:1:0')).click({ position: { x: 12, y: 12 } });
+  await setType(page, 'Key figure');
+  await expect.poll(async () => (await colOf(page, 0, 1, 0)).type).toBe('figure');
+  await page.locator('#props .pp-card-h', { hasText: 'Icon' }).click();
+  const circle = page.locator('#props [role=radio]', { hasText: 'In a circle' });
+  await expect(circle.locator('xpath=ancestor::div[contains(@class,"f-dep")]')).toHaveClass(/dep-off/);
+  await page.locator('#props .pp-body .f').first().locator('button').first().click();
+  await page.getByText('Euro', { exact: true }).last().click();
+  await expect(circle.locator('xpath=ancestor::div[contains(@class,"f-dep")]')).not.toHaveClass(/dep-off/);
+  await circle.click();
+  await expect.poll(async () => (await colOf(page, 0, 1, 0)).figure.iconStyle).toBe('circle');
+  await expect(page.locator(COL('col:0:1:0') + ' .fg-ic circle')).toHaveCount(1);
+  expect(errors).toEqual([]);
+});

@@ -999,6 +999,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
             onChange: (v) => {
               setP(obj, f.k, v);
               ctx.changed();
+              syncAll(); // les champs qui dépendent de l'icône (style, trait de la pastille) se débloquent tout de suite
             },
           }),
         ),

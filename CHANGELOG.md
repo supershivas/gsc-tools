@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.121.1 — 2026-11-16
+- Chiffre clé : le cercle autour de l'icône se choisit dès qu'une icône est posée
+- Moins d'espace sous l'en-tête des chiffres ; pictogrammes seuls calés sur le texte ; barres de progression alignées entre chiffres voisins
+
 ## 1.121.0 — 2026-11-16
 - Cartes et chiffres clés : réglages regroupés (éléments, image, style ; icône, barre, en-tête, chiffres à côté), couleurs du contour et du fond d'une carte, lien avec adresse
 - Changer de type de contenu ne perd plus rien ; double-clic sur un texte, une carte ou un chiffre pour l'éditer
