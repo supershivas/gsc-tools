@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.120.1 — 2026-11-16
+- Factsheet creator : l'aperçu zoomé ne déborde plus sur le panneau de droite (zoom du navigateur)
+- La barre au-dessus de l'aperçu (jauges, marges, espacement) reste lisible dans une fenêtre étroite
+
 ## 1.120.0 — 2026-11-15
 - Copier-coller d'une section, d'une sous-section ou d'une colonne entre factsheets ouvertes (Ctrl/Cmd + C / V, boutons Copier / Coller, menu Édition)
 - Couleurs ajoutées, icônes importées et format des nombres suivent l'élément collé

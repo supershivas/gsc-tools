@@ -4,7 +4,7 @@ html,body{height:100%}
 body{display:flex;flex-direction:column}
 .app{display:grid;grid-template-columns:270px minmax(0,1fr) 340px;grid-template-rows:minmax(0,1fr);flex:1;min-height:0}
 .panel{background:var(--ui-panel);border-right:1px solid var(--ui-line);overflow:auto;padding:14px 14px 40px}
-.stage-wrap{display:flex;flex-direction:column;min-width:0;min-height:0}
+.stage-wrap{display:flex;flex-direction:column;min-width:0;min-height:0;container:stage/size}   /* conteneur nommé : la marge du zoom manuel et la barre se calent sur la zone d'aperçu, pas sur la fenêtre (zoom du navigateur) */
 .bar{display:flex;align-items:center;gap:18px;padding:10px 22px;background:#fff;border-bottom:1px solid var(--ui-line)}
 .brand{color:var(--ui-blue);font-size:var(--fs-lg)}
 .gauges{display:flex;gap:16px;flex:1}
@@ -555,7 +555,11 @@ textarea.dg-ml{display:block;width:100%;min-width:90px;border:0;border-radius:0;
 @media (hover:hover){.cs-opt:hover{background:var(--ui-bg)}.cs:hover{border-color:var(--ui-blue)}}
 @media print{.cs-pop{display:none!important}}
 
-.stage.free{padding:min(45vh,420px) min(38vw,520px)}
+.stage.free{padding:min(40cqh,420px) min(38cqw,520px)}   /* jamais plus large ni plus haut que la zone d'aperçu : sinon la scène déborde sur le panneau de droite et écrase la barre */
+.stage-wrap>.bar{flex:none}
+@container stage (max-width:760px){.bar .sp-ctl .sp-toggle span{display:none}.bar .sp-ctl .sp-toggle{padding:3px 6px}}
+@container stage (max-width:560px){.bar .gauge i{width:32px}.bar{gap:8px;padding:8px 10px}.bar .gauges{gap:8px}}
+@container stage (max-width:440px){.bar .gauge span:first-child{display:none}.bar .gauge i{width:24px}}
 
 /* gabarit de colonnes : schéma + libellé */
 .ls-schema{flex:none;color:var(--ui-blue)}.ls-btn .ls-schema{margin-right:2px}.ls-pop{grid-template-columns:1fr}
