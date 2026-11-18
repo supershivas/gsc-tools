@@ -165,45 +165,91 @@ export const TYPE = {
 
 /* ---------- Réglages du texte du document (`doc.textSet`, menu Texte) ----------
    `scale` multiplie le corps de tous les styles (0,5–1,5) ; `lead` = crans d'interlignage de 1,5 px (0 = normal, négatif = serré) ;
-   `hyph` = césure automatique dans tous les textes. L'interlignage reste sur une grille de 1,5 px (demi-unité) et jamais sous le corps.
-   À l'échelle 1 sans cran, `typeOf` rend exactement TYPE. Se lit par le contexte de rendu (`rc.type`) ou par `cssVars`, jamais
-   dans une variable de module. */
+   `hyph` = césure automatique dans tous les textes ; `styles` = corps (pt) et interlignage (px) choisis par style
+   (`{ [clé de TYPE]: { size, lh } }`, fenêtre « Styles de paragraphe », seulement les clés de `TEXT_STYLE_KEYS`).
+   Le header (surtitre, titre, sous-titre) ne bouge jamais. L'interlignage reste sur une grille de 1,5 px et jamais sous le corps.
+   Sans réglage, `typeOf` rend exactement TYPE. Se lit par le contexte de rendu (`rc.type`) ou par `cssVars`, jamais dans une
+   variable de module. */
 export const TEXT_SCALES = [1, 0.95, 0.9, 0.85, 0.8];
 export const TEXT_SCALE_MIN = 0.5;
 export const TEXT_SCALE_MAX = 1.5;
 export const LEAD_STEP = BASE / 2; // 1,5 px
 export const LEADS = [0, -1, -2]; // normal, serré, très serré
+/** styles réglables (ceux des paragraphes) ; le header et les textes des graphiques n'en font pas partie */
+export const TEXT_STYLE_KEYS = [
+  'section',
+  'subsection',
+  'lead',
+  'body',
+  'bodyBold',
+  'small',
+  'quote',
+  'caption',
+  'label',
+  'source',
+  'note',
+  'figure',
+  'figureSm',
+];
+const HEADER_TYPES = ['overline', 'title', 'subtitle'];
+export const STYLE_SIZE = { min: 5, max: 72 }; // pt
 const roundTo = (n, q) => Math.round(n / q) * q;
-/** réglages du texte lus dans un document (ou absents) → { scale, lead, hyph } valides */
+const clampNum = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+/** réglages du texte lus dans un document (ou absents) → { scale, lead, hyph, styles } valides */
 export function textSetOf(ts) {
   const o = ts && typeof ts === 'object' ? ts : {};
   const sc = +o.scale;
+  const styles = {};
+  if (o.styles && typeof o.styles === 'object')
+    for (const k of TEXT_STYLE_KEYS) {
+      const st = o.styles[k];
+      if (!st || typeof st !== 'object') continue;
+      const v = {};
+      if (+st.size > 0) v.size = Math.round(clampNum(+st.size, STYLE_SIZE.min, STYLE_SIZE.max) * 10) / 10;
+      if (+st.lh > 0) v.lh = clampNum(roundTo(+st.lh, LEAD_STEP), LEAD_STEP * 2, 150);
+      if (Object.keys(v).length) styles[k] = v;
+    }
   return {
     scale: sc > 0 ? Math.min(TEXT_SCALE_MAX, Math.max(TEXT_SCALE_MIN, Math.round(sc * 1000) / 1000)) : 1,
     lead: Number.isInteger(o.lead) ? Math.max(-4, Math.min(4, o.lead)) : 0,
     hyph: o.hyph === true,
+    styles,
   };
 }
 /** réglages par défaut ? (rien à réinitialiser) */
 export const textSetIsDefault = (ts) => {
   const o = textSetOf(ts);
-  return o.scale === 1 && o.lead === 0 && !o.hyph;
+  return o.scale === 1 && o.lead === 0 && !o.hyph && !Object.keys(o.styles).length;
 };
-/** corps (pt, au 0,1) et interlignage (px, grille de 1,5 px, au moins le corps) d'un style à l'échelle du document */
-export function scaledType(t, ts) {
-  const o = textSetOf(ts);
-  if (o.scale === 1 && o.lead === 0) return t;
-  const size = Math.round(t.size * o.scale * 10) / 10,
+/** corps et interlignage d'un style avant l'échelle : réglage du document, sinon TYPE ; un corps choisi sans interlignage
+    garde la proportion du gabarit */
+export function baseType(k, ts) {
+  const t = TYPE[k],
+    st = textSetOf(ts).styles[k];
+  if (!st) return t;
+  const size = st.size || t.size;
+  return { ...t, size, lh: st.lh || roundTo((t.lh * size) / t.size, LEAD_STEP) };
+}
+/** corps (pt, au 0,1) et interlignage (px, grille de 1,5 px, au moins le corps) du style `k` dans le document */
+export function scaledType(k, ts) {
+  const t = TYPE[k];
+  if (HEADER_TYPES.includes(k)) return t;
+  const o = textSetOf(ts),
+    b = baseType(k, o);
+  if (b === t && o.scale === 1 && o.lead === 0) return t;
+  const size = Math.round(b.size * o.scale * 10) / 10,
     floor = Math.ceil((size * 4) / 3 / LEAD_STEP) * LEAD_STEP;
-  return { ...t, size, lh: Math.max(floor, roundTo(t.lh * o.scale, LEAD_STEP) + o.lead * LEAD_STEP) };
+  return { ...b, size, lh: Math.max(floor, roundTo(b.lh * o.scale, LEAD_STEP) + o.lead * LEAD_STEP) };
 }
 const TYPE_CACHE = new Map();
-/** TYPE à l'échelle du document (figé ; même objet pour les mêmes réglages) */
+/** TYPE aux réglages du document (figé ; même objet pour les mêmes réglages) */
 export function typeOf(ts) {
   const o = textSetOf(ts),
-    key = `${o.scale}|${o.lead}`;
-  if (!TYPE_CACHE.has(key))
-    TYPE_CACHE.set(key, Object.freeze(Object.fromEntries(Object.entries(TYPE).map(([k, t]) => [k, Object.freeze(scaledType(t, o))]))));
+    key = JSON.stringify([o.scale, o.lead, o.styles]);
+  if (!TYPE_CACHE.has(key)) {
+    if (TYPE_CACHE.size > 200) TYPE_CACHE.clear(); // la fenêtre des styles essaie beaucoup de valeurs
+    TYPE_CACHE.set(key, Object.freeze(Object.fromEntries(Object.keys(TYPE).map((k) => [k, Object.freeze(scaledType(k, o))]))));
+  }
   return TYPE_CACHE.get(key);
 }
 

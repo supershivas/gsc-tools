@@ -14,6 +14,7 @@ export function createPreview(ctx, { spacing, selection }) {
   let raf = 0;
   /* le zoom est propre à chaque onglet (`tab.view.zoom`) ; le document candidat ne vit que le temps d'un geste (annulé au changement d'onglet) */
   const zoomOf = () => ctx.tab().view.zoom || 'fit';
+  const drawnFns = new Set();
   let previewDoc = null,
     previewMark = null; // glisser-déposer : document candidat dessiné pendant le geste
 
@@ -92,6 +93,7 @@ export function createPreview(ctx, { spacing, selection }) {
     if (previewDoc && previewMark) stage.querySelectorAll(`[data-sel="${previewMark}"]`).forEach((n) => n.classList.add('drag-live'));
     selection.draw();
     watchLayout();
+    drawnFns.forEach((fn) => fn(r));
   }
 
   /* ----- dépassement : rien ne disparaît sans qu'on le voie ----- */
@@ -195,6 +197,17 @@ export function createPreview(ctx, { spacing, selection }) {
     raf = requestAnimationFrame(draw);
   };
 
+  /* Aperçu d'un réglage en cours (fenêtre des styles de texte) : `doc` est dessiné à la place du document sans le modifier ;
+     null = retour au vrai document. `ctx.onDrawn(fn)` : appelé après chaque dessin (rend la fonction de désabonnement). */
+  ctx.previewAs = (c) => {
+    previewDoc = c || null;
+    previewMark = null;
+    schedule();
+  };
+  ctx.onDrawn = (fn) => {
+    drawnFns.add(fn);
+    return () => drawnFns.delete(fn);
+  };
   ctx.schedule = schedule;
   ctx.shown = () => previewDoc || ctx.getDoc();
   ctx.previewing = () => !!previewDoc;

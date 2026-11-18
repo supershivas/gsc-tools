@@ -48,7 +48,7 @@ test('taille des textes, interlignage, césure et réinitialisation', async ({ p
   expect(s.body.fs).toBeCloseTo(14.4, 1); // 10,8 pt
   expect(s.body.lh).toBe(19.5); // 18,9 → grille de 1,5 px
   expect(s.sec.fs).toBeCloseTo(s0.sec.fs * 0.9, 0);
-  expect(s.title.fs).toBeCloseTo(s0.title.fs * 0.9, 0); // le header suit l'échelle
+  expect(s.title).toEqual(s0.title); // le header ne bouge jamais
   await pick(page, 'Tight');
   s = await sizes(page);
   expect(s.body.lh).toBe(18); // un cran de 1,5 px
@@ -57,7 +57,7 @@ test('taille des textes, interlignage, césure et réinitialisation', async ({ p
   expect(s.hyph).toBe(true);
   expect(s.lang).toBe('en');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('factsheet-creator-v1')).textSet);
-  expect(saved).toEqual({ scale: 0.9, lead: -1, hyph: true });
+  expect(saved).toEqual({ scale: 0.9, lead: -1, hyph: true, styles: {} });
   await pick(page, 'Reset text settings');
   s = await sizes(page);
   expect(s.body).toEqual(s0.body);
@@ -94,5 +94,60 @@ test('taille choisie à la main et chiffres clés suivent l’échelle ; réglag
   expect(r.lh % 1.5).toBe(0);
   expect(r.bodyLh).toBe(16.5); // 21 × 0,8 = 16,8 → 16,5 ; cran invalide = interlignage normal
   expect(r.hyph).toBe(false);
+  expect(errors).toEqual([]);
+});
+
+/* Fenêtre « Styles de paragraphe » : aperçu en direct sans toucher au document, Appliquer = une étape d'historique, Échap annule */
+const docTextSet = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('factsheet-creator-v1')).textSet);
+test('styles de paragraphe : aperçu, appliquer, annuler, revenir au gabarit', async ({ page }) => {
+  const errors = watchErrors(page);
+  await load(page);
+  const s0 = await sizes(page);
+  await pick(page, 'Paragraph styles');
+  const dlg = page.locator('dialog.tsd');
+  await expect(dlg).toBeVisible();
+  await expect(dlg.locator('.tsd-page')).toHaveCount(2);
+  await expect(dlg.locator('[data-style=overline], [data-style=title], [data-style=subtitle]')).toHaveCount(0); // pas de header
+  const body = dlg.locator('.tsd-row[data-style=body]');
+  await expect(body.locator('.tsd-uses')).toContainText('in the document');
+  await body.locator('input').first().fill('10');
+  await body.locator('input').first().press('Tab');
+  await page.waitForTimeout(300);
+  let s = await sizes(page);
+  expect(s.body.fs).toBeCloseTo((10 * 4) / 3, 1);
+  expect(s.body.lh).toBe(18); // 21 × 10/12 = 17,5 → 18
+  expect(s.title).toEqual(s0.title);
+  expect((await docTextSet(page)).styles).toEqual({}); // aperçu seulement
+  await expect(body).toHaveClass(/mod/);
+  /* Échap : rien n'a changé */
+  await page.keyboard.press('Escape');
+  await expect(dlg).toHaveCount(0);
+  await page.waitForTimeout(300);
+  expect((await sizes(page)).body).toEqual(s0.body);
+  /* Appliquer */
+  await pick(page, 'Paragraph styles');
+  await dlg.locator('.tsd-row[data-style=body] input').first().fill('10');
+  await dlg.locator('.tsd-row[data-style=body] input').first().press('Tab');
+  await dlg.locator('.tsd-row[data-style=source] input').nth(1).fill('7.5');
+  await dlg.locator('.tsd-row[data-style=source] input').nth(1).press('Tab');
+  await dlg.getByRole('button', { name: 'Apply' }).click();
+  await expect(dlg).toHaveCount(0);
+  await page.waitForTimeout(400);
+  expect((await docTextSet(page)).styles).toEqual({ body: { size: 10 }, source: { lh: 10.5 } });
+  s = await sizes(page);
+  expect(s.body.fs).toBeCloseTo((10 * 4) / 3, 1);
+  /* une seule étape d'historique */
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+  await page.waitForTimeout(400);
+  expect((await sizes(page)).body).toEqual(s0.body);
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+Shift+z' : 'Control+y');
+  await page.waitForTimeout(400);
+  /* retour au gabarit d'un style */
+  await pick(page, 'Paragraph styles');
+  await dlg.locator('.tsd-row[data-style=body] .tsd-reset').click();
+  await expect(dlg.locator('.tsd-row[data-style=body]')).not.toHaveClass(/mod/);
+  await dlg.getByRole('button', { name: 'Apply' }).click();
+  await page.waitForTimeout(400);
+  expect((await docTextSet(page)).styles).toEqual({ source: { lh: 10.5 } });
   expect(errors).toEqual([]);
 });

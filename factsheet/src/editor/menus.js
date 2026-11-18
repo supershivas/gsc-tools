@@ -5,6 +5,7 @@ import { openMedia } from '../media.js';
 import { LOCALES } from '../state.js';
 import { initI18n, getLang, LANGS, t } from '../i18n.js';
 import { promptBox, alertBox } from '../dialogs.js';
+import { openTextStyles } from './textstyles-ui.js';
 import { MAC, MOD, TAB_KEYS } from './keys.js';
 
 /* Langue de l'interface (anglais par défaut) : sélecteur des réglages, renvoyé pour `declareMenus` */
@@ -39,6 +40,8 @@ function textItems(ctx) {
   };
   const leadLabel = { 0: 'Normal', [-1]: 'Serré', [-2]: 'Très serré' };
   return [
+    { label: 'Styles de paragraphe…', icon: 'typography', run: () => openTextStyles(ctx) },
+    '-',
     { heading: 'Taille des textes' },
     ...TEXT_SCALES.map((f) => ({ label: pct(f), checked: () => cur().scale === f, run: () => set({ scale: f }) })),
     {
@@ -60,7 +63,7 @@ function textItems(ctx) {
     {
       label: 'Réinitialiser le texte',
       icon: 'restore',
-      run: () => set({ scale: 1, lead: 0, hyph: false }),
+      run: () => set({ scale: 1, lead: 0, hyph: false, styles: {} }),
       disabled: () => textSetIsDefault(ctx.getDoc().textSet),
     },
   ];

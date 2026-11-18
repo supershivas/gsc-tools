@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.123.0 — 2026-11-18
+- Menu Texte › Styles de paragraphe : régler la taille et l'interlignage de chaque style pour tout le document, avec la page en direct et le retour au gabarit
+- Le header garde toujours ses styles, quels que soient les réglages du texte
+
 ## 1.122.0 — 2026-11-18
 - Nouveau menu Texte : réduire ou agrandir tous les textes d'un coup (100 % à 80 % ou autre), resserrer l'interlignage, césure partout, retour au gabarit
 - Pour gagner de la place quand le contenu dépasse, sans changer le dessin
