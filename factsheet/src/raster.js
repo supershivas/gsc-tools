@@ -166,7 +166,7 @@ export async function rasterizeDocument(doc, scale = 2) {
     await inlineImages(stage);
     const out = [];
     for (const p of result.pages) {
-      const vars = Object.entries(cssVars(doc.theme, doc.colors, doc.density))
+      const vars = Object.entries(cssVars(doc.theme, doc.colors, doc.density, doc.textSet))
         .map(([k, v]) => `${k}:${v}`)
         .join(';')
         .replace(/&/g, '&amp;')
@@ -279,7 +279,7 @@ export async function elementSvg(doc, path, { transparent = false, bleed = false
       fillBleed = bl.l + bl.r + bl.t + bl.b ? getComputedStyle(target).backgroundColor : 'transparent';
     const width = Math.max(1, Math.ceil(r.width + bl.l + bl.r)),
       height = Math.max(1, Math.ceil(r.height + bl.t + bl.b));
-    const vars = Object.entries(cssVars(doc.theme, doc.colors, doc.density))
+    const vars = Object.entries(cssVars(doc.theme, doc.colors, doc.density, doc.textSet))
       .map(([k, v]) => `${k}:${v}`)
       .join(';')
       .replace(/&/g, '&amp;')

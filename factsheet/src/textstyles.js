@@ -50,6 +50,9 @@ export function specOf(k) {
   return `${ty.size} / ${fmt(ty.lh * 0.75)} pt${p.italic ? ' · ' + t('italique') : ''}${p.upper ? ' · ' + t('capitales') : ''}${ty.family === 'serif' ? ' · serif' : ''}`;
 }
 
+/** interlignage (px) choisi pour un bloc, à l'échelle du document, arrondi à 1,5 px ; `lead` : avec les crans d'interlignage */
+const scaledLh = (px, lead) => `round(calc(${px}px * var(--t-scale, 1)${lead ? ' + var(--t-lead, 0px)' : ''}), 1.5px)`;
+
 /** Applique les réglages avancés d'un bloc à un paragraphe ou un élément de liste. `plain` : texte courant (sans style de paragraphe),
     seul concerné par la taille choisie dans « Police et taille » (les styles gardent leur corps). */
 export function applyAdv(el, adv, plain) {
@@ -58,11 +61,13 @@ export function applyAdv(el, adv, plain) {
   if (adv.f) s.fontFamily = FONT[adv.f];
   if (adv.b) s.fontWeight = '700'; // gras et italique : réglages de cellule de tableau (props/table), absents du burger
   if (adv.it) s.fontStyle = 'italic';
+  /* tailles choisies à la main : suivent l'échelle du texte du document (`--t-scale`, menu Texte), interlignage sur la grille de 1,5 px ;
+     l'interlignage automatique suit aussi les crans d'interlignage (`--t-lead`), pas celui saisi à la main */
   if (plain && adv.s > 0) {
-    s.fontSize = adv.s + 'pt';
-    if (!(adv.lh > 0)) s.lineHeight = Math.ceil((((adv.s * 4) / 3) * 1.3) / 3) * 3 + 'px';
+    s.fontSize = `calc(${adv.s}pt * var(--t-scale, 1))`;
+    if (!(adv.lh > 0)) s.lineHeight = scaledLh(Math.ceil((((adv.s * 4) / 3) * 1.3) / 3) * 3, true);
   }
-  if (adv.lh > 0) s.lineHeight = adv.lh + 'px';
+  if (adv.lh > 0) s.lineHeight = scaledLh(adv.lh, false);
   if (adv.ls) s.letterSpacing = adv.ls / 1000 + 'em';
   if (adv.kern === 'none') s.fontKerning = 'none';
   if (adv.indent > 0) s.textIndent = adv.indent + 'px';

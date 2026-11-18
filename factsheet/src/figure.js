@@ -3,7 +3,7 @@
 import { el, s, SW, SERIF, SANS, pxOf, fitSize, inlineMk, stripMk, colorRef, mw } from './viz/util.js';
 import { ICONS, ICON_OPTIONS, customChoices } from './viz/icons.js';
 import { iconNode } from './viz/picto.js';
-import { TYPE, VIZ } from './tokens.js';
+import { VIZ } from './tokens.js';
 
 export const FIGURE_DEFAULTS = () => ({
   value: '5 000',
@@ -166,7 +166,8 @@ export function renderFigure(o, W, align, env) {
     items = [o, ...more],
     n = items.length,
     avail = (W || 9999) - gap * (n - 1),
-    bodyPx = pxOf(TYPE.body.size);
+    T = env.rc.type, // styles à l'échelle du document (menu Texte)
+    bodyPx = pxOf(T.body.size);
   /* largeur de chaque cellule : égale, mais jamais plus étroite que son mot le plus long (le texte ne se coupe pas en plein mot) */
   const minW = items.map((it) =>
     Math.ceil(
@@ -191,15 +192,15 @@ export function renderFigure(o, W, align, env) {
     ws = o.widths.map((f) => (avail * f) / sum);
   }
   /* un seul corps pour tous les chiffres : le plus petit de ceux qui rentrent dans leur cellule */
-  const base = pxOf(TYPE.figure.size) * (+o.scale || 1);
+  const base = pxOf(T.figure.size) * (+o.scale || 1);
   const fsAll = Math.min(
     ...items.map((it, i) =>
       fitSize(
         stripMk(it.value),
-        TYPE.figure.weight,
+        T.figure.weight,
         SERIF,
         base,
-        ws[i] - (it.icon && it.icon !== 'none' ? TYPE.figure.lh + VIZ.iconGap : 0) - 1,
+        ws[i] - (it.icon && it.icon !== 'none' ? T.figure.lh + VIZ.iconGap : 0) - 1,
         0.4,
       ),
     ),
@@ -230,9 +231,10 @@ export function renderFigure(o, W, align, env) {
 }
 
 function oneFigure(o, W, align, g, fsAll, env) {
-  const base0 = pxOf(TYPE.figure.size),
+  const T = env.rc.type, // styles à l'échelle du document (menu Texte)
+    base0 = pxOf(T.figure.size),
     base = base0 * (+o.scale || 1),
-    lh = TYPE.figure.lh,
+    lh = T.figure.lh,
     /* un chiffre « à côté » n'a pas son propre style d'icône : il reprend celui du premier */
     icon =
       o.icon && o.icon !== 'none'
@@ -241,8 +243,8 @@ function oneFigure(o, W, align, g, fsAll, env) {
   const avail = (W || 9999) - (icon ? lh + VIZ.iconGap : 0) - 1;
   const fs =
     fsAll != null
-      ? Math.min(fsAll, fitSize(stripMk(o.value), TYPE.figure.weight, SERIF, base, avail, 0.4))
-      : fitSize(stripMk(o.value), TYPE.figure.weight, SERIF, base, avail, 0.4);
+      ? Math.min(fsAll, fitSize(stripMk(o.value), T.figure.weight, SERIF, base, avail, 0.4))
+      : fitSize(stripMk(o.value), T.figure.weight, SERIF, base, avail, 0.4);
   const jc = { center: 'center', right: 'flex-end' }[align] || 'flex-start';
   const head = el(
     'div',

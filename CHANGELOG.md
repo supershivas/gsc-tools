@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.122.0 — 2026-11-18
+- Nouveau menu Texte : réduire ou agrandir tous les textes d'un coup (100 % à 80 % ou autre), resserrer l'interlignage, césure partout, retour au gabarit
+- Pour gagner de la place quand le contenu dépasse, sans changer le dessin
+
 ## 1.121.1 — 2026-11-16
 - Chiffre clé : le cercle autour de l'icône se choisit dès qu'une icône est posée
 - Moins d'espace sous l'en-tête des chiffres ; pictogrammes seuls calés sur le texte ; barres de progression alignées entre chiffres voisins

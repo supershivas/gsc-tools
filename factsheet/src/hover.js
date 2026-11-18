@@ -443,7 +443,7 @@ export function initHover({ stage, getDoc, ctx, select, canShow }) {
       else grip.style.display = 'none';
     }
     const doc = getDoc();
-    applyVars(bar, cssVars(doc.theme, doc.colors, doc.density));
+    applyVars(bar, cssVars(doc.theme, doc.colors, doc.density, doc.textSet));
     bar.innerHTML = '';
     bar.append(...groups(chain, doc));
     bar.style.display = 'flex';

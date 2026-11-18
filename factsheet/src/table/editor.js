@@ -51,7 +51,7 @@ export function openTableEditor({ col, bg, width, ctx, fileStem = (x) => 'tablea
     msgText = '';
 
   const root = h('div', { class: 've te', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('Éditeur de tableau'), tabindex: -1 });
-  applyVars(root, cssVars(doc.theme, doc.colors, doc.density));
+  applyVars(root, cssVars(doc.theme, doc.colors, doc.density, doc.textSet));
   const holder = h('div', { class: 'col col-table te-holder', style: { width: width + 'px' } });
   const sheet = h(
     'div',

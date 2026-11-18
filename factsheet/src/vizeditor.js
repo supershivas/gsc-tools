@@ -136,7 +136,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     svgW = baseW;
 
   const root = h('div', { class: 've', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('Éditeur de dataviz'), tabindex: -1 });
-  applyVars(root, cssVars(doc.theme, doc.colors, doc.density));
+  applyVars(root, cssVars(doc.theme, doc.colors, doc.density, doc.textSet));
   const sheet = h('div', { class: 'page viz-sheet', style: { background: bg && bg !== 'none' ? `var(--c-${bg})` : '#fff' } });
   const holder = h('div', { class: 'col col-viz' });
   sheet.append(holder);
@@ -329,12 +329,12 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
   const palCtx = {
     getDoc: ctx.getDoc,
     changed: () => {
-      applyVars(root, cssVars(doc.theme, doc.colors, doc.density));
+      applyVars(root, cssVars(doc.theme, doc.colors, doc.density, doc.textSet));
       draw();
       ctx.changed();
     },
     restructure: () => {
-      applyVars(root, cssVars(doc.theme, doc.colors, doc.density));
+      applyVars(root, cssVars(doc.theme, doc.colors, doc.density, doc.textSet));
       buildForm();
       draw();
     },

@@ -163,6 +163,50 @@ export const TYPE = {
   note: { family: 'sans', size: 8, weight: 400, lh: u(4) },
 };
 
+/* ---------- Réglages du texte du document (`doc.textSet`, menu Texte) ----------
+   `scale` multiplie le corps de tous les styles (0,5–1,5) ; `lead` = crans d'interlignage de 1,5 px (0 = normal, négatif = serré) ;
+   `hyph` = césure automatique dans tous les textes. L'interlignage reste sur une grille de 1,5 px (demi-unité) et jamais sous le corps.
+   À l'échelle 1 sans cran, `typeOf` rend exactement TYPE. Se lit par le contexte de rendu (`rc.type`) ou par `cssVars`, jamais
+   dans une variable de module. */
+export const TEXT_SCALES = [1, 0.95, 0.9, 0.85, 0.8];
+export const TEXT_SCALE_MIN = 0.5;
+export const TEXT_SCALE_MAX = 1.5;
+export const LEAD_STEP = BASE / 2; // 1,5 px
+export const LEADS = [0, -1, -2]; // normal, serré, très serré
+const roundTo = (n, q) => Math.round(n / q) * q;
+/** réglages du texte lus dans un document (ou absents) → { scale, lead, hyph } valides */
+export function textSetOf(ts) {
+  const o = ts && typeof ts === 'object' ? ts : {};
+  const sc = +o.scale;
+  return {
+    scale: sc > 0 ? Math.min(TEXT_SCALE_MAX, Math.max(TEXT_SCALE_MIN, Math.round(sc * 1000) / 1000)) : 1,
+    lead: Number.isInteger(o.lead) ? Math.max(-4, Math.min(4, o.lead)) : 0,
+    hyph: o.hyph === true,
+  };
+}
+/** réglages par défaut ? (rien à réinitialiser) */
+export const textSetIsDefault = (ts) => {
+  const o = textSetOf(ts);
+  return o.scale === 1 && o.lead === 0 && !o.hyph;
+};
+/** corps (pt, au 0,1) et interlignage (px, grille de 1,5 px, au moins le corps) d'un style à l'échelle du document */
+export function scaledType(t, ts) {
+  const o = textSetOf(ts);
+  if (o.scale === 1 && o.lead === 0) return t;
+  const size = Math.round(t.size * o.scale * 10) / 10,
+    floor = Math.ceil((size * 4) / 3 / LEAD_STEP) * LEAD_STEP;
+  return { ...t, size, lh: Math.max(floor, roundTo(t.lh * o.scale, LEAD_STEP) + o.lead * LEAD_STEP) };
+}
+const TYPE_CACHE = new Map();
+/** TYPE à l'échelle du document (figé ; même objet pour les mêmes réglages) */
+export function typeOf(ts) {
+  const o = textSetOf(ts),
+    key = `${o.scale}|${o.lead}`;
+  if (!TYPE_CACHE.has(key))
+    TYPE_CACHE.set(key, Object.freeze(Object.fromEntries(Object.entries(TYPE).map(([k, t]) => [k, Object.freeze(scaledType(t, o))]))));
+  return TYPE_CACHE.get(key);
+}
+
 /* ---------- Traits ---------- */
 export const STROKE = {
   pt: 0.5,
@@ -278,14 +322,18 @@ export function colorLabel(doc, key) {
 }
 
 /* ---------- Application en variables CSS ---------- */
-/** density : densité du document (`doc.density`) pour les variables --gap-* ; absente = normale */
-export function cssVars(themeKey, colors, density) {
+/** density : densité du document (`doc.density`) pour les variables --gap-* ; absente = normale.
+    textSet : réglages du texte (`doc.textSet`) pour les variables --t-* et --t-scale / --t-lead ; absents = gabarit */
+export function cssVars(themeKey, colors, density, textSet) {
   const th = THEMES[themeKey] || THEMES[DEFAULT_THEME];
   const pal = paletteOf(themeKey, colors);
   const v = {};
   for (const [k, n] of Object.entries(SPACE)) v[`--s${k}`] = n + 'px';
   for (const [k, val] of Object.entries(densityGaps(density))) v[`--gap-${k}`] = val + 'px';
-  for (const [k, t] of Object.entries(TYPE)) {
+  const ts = textSetOf(textSet);
+  v['--t-scale'] = ts.scale;
+  v['--t-lead'] = ts.lead * LEAD_STEP + 'px';
+  for (const [k, t] of Object.entries(typeOf(ts))) {
     v[`--t-${k}-size`] = t.size + 'pt';
     v[`--t-${k}-lh`] = t.lh + 'px';
     v[`--t-${k}-weight`] = t.weight;

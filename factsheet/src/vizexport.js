@@ -234,7 +234,7 @@ function vizToSvg(node) {
 export function openVizExport({ root, viz, doc, width, bgCss, render, fileStem }) {
   const p = pref(),
     hasHead = !!((viz.head && viz.head.title) || (viz.head && viz.head.source)),
-    vars = cssVars(doc.theme, doc.colors, doc.density);
+    vars = cssVars(doc.theme, doc.colors, doc.density, doc.textSet);
   const dlg = h('dialog', { class: 'vexp', 'aria-label': t('Exporter la dataviz') });
   const go = h('button', { type: 'button', class: 'primary' });
   const info = h('p', { class: 'tip', role: 'status' });

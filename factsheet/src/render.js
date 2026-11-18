@@ -482,13 +482,18 @@ function renderSection(sec, si, env, pos) {
 
 /** → { pages: [{el, key, content, top, max, used, overflow}], warnings: [] } */
 export function renderDocument(doc) {
-  const vars = cssVars(doc.theme, doc.colors, doc.density);
+  const vars = cssVars(doc.theme, doc.colors, doc.density, doc.textSet);
   const env = { locale: doc.locale || 'en-GB', pal: paletteOf(doc.theme, doc.colors), fills: [], page: '', rc: renderCtx(doc) };
   const pages = [];
   for (const key of ['recto', 'verso']) {
     env.page = key;
     const page = h('div', { class: `page page-${key}${doc.wrapFix ? ' wrapfix' : ''}`, dataset: { page: key } });
     applyVars(page, vars);
+    /* césure automatique partout (menu Texte) : langue des coupures = celle du format des nombres */
+    if (env.rc.textSet.hyph) {
+      page.classList.add('hyph');
+      page.setAttribute('lang', (doc.locale || 'en-GB').slice(0, 2));
+    }
     const top = key === 'recto' ? HEADER.h : 0;
     if (key === 'recto') page.append(renderHeader(doc, env));
     const content = h('div', { class: 'content', style: { top: top + 'px' } });

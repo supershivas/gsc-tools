@@ -1,6 +1,6 @@
 /* Modèle de document — un JSON, source unique de tous les exports.
    Les textes acceptent **gras**, une ligne = un paragraphe, "- " = puce. */
-import { DEFAULT_THEME, GRID, MAX_EXTRA_COLORS } from './tokens.js';
+import { DEFAULT_THEME, GRID, MAX_EXTRA_COLORS, textSetOf } from './tokens.js';
 import { newCard, cardPresetFor } from './cardmodel.js';
 import { newViz, withAxesOrigin, VIZ_TYPES } from './viz/index.js';
 import { t } from './i18n.js';
@@ -145,6 +145,7 @@ export function defaultDoc() {
     name: 'factsheet',
     locale: 'en-GB',
     density: 'normal',
+    textSet: textSetOf(null), // réglages du texte (menu Texte) : échelle, crans d'interlignage, césure — voir tokens.js
     footer: { recto: '', verso: '' }, // pied de page (style Source) dans la marge basse de chaque page
     theme: DEFAULT_THEME,
     colors: {},
@@ -230,6 +231,7 @@ export function migrate(j) {
   const d = Object.assign(defaultDoc(), j);
   /* icônes importées : anciennes icônes propres à une dataviz → bibliothèque du document */
   d.customIcons = Array.isArray(j.customIcons) ? j.customIcons : [];
+  d.textSet = textSetOf(j.textSet); // absent (ancien fichier) = gabarit
   const ft = j.footer && typeof j.footer === 'object' ? j.footer : {};
   d.footer = { recto: typeof ft.recto === 'string' ? ft.recto : '', verso: typeof ft.verso === 'string' ? ft.verso : '' };
   /* identifiant stable du fichier (espace de travail : un fichier déjà ouvert bascule sur son onglet ; fichiers récents) */

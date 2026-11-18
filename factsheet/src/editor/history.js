@@ -22,6 +22,7 @@ const FIELDS = {
   valign: 'alignement vertical',
   align: 'alignement',
   density: 'espacement',
+  textSet: 'réglages du texte',
   locale: 'format des nombres',
   src: 'image',
   caption: 'légende',

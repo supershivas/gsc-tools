@@ -263,7 +263,7 @@ window.FS_READY = (async () => {
   }
   function applyDocVars() {
     const doc = ctx.getDoc(),
-      v = cssVars(doc.theme, doc.colors, doc.density);
+      v = cssVars(doc.theme, doc.colors, doc.density, doc.textSet);
     applyVars(propsEl, v);
     applyVars(treeEl, v);
   }

@@ -1,9 +1,10 @@
-import { DENSITIES } from '../tokens.js';
+import { DENSITIES, TEXT_SCALES, TEXT_SCALE_MIN, TEXT_SCALE_MAX, LEADS, LEAD_STEP, textSetOf, textSetIsDefault } from '../tokens.js';
 import { h } from '../render.js';
 import { openPalette } from '../palette.js';
 import { openMedia } from '../media.js';
 import { LOCALES } from '../state.js';
-import { initI18n, getLang, LANGS } from '../i18n.js';
+import { initI18n, getLang, LANGS, t } from '../i18n.js';
+import { promptBox, alertBox } from '../dialogs.js';
 import { MAC, MOD, TAB_KEYS } from './keys.js';
 
 /* Langue de l'interface (anglais par défaut) : sélecteur des réglages, renvoyé pour `declareMenus` */
@@ -17,6 +18,52 @@ export function initLang(ctx) {
   const i18n = initI18n(() => ctx.restructure());
   langSel.addEventListener('change', () => i18n.set(langSel.value));
   return langSel;
+}
+
+/* Menu Texte : réglages du texte de tout le document (`doc.textSet`, voir tokens.js) pour gagner de la place sans changer le dessin.
+   Taille de tous les styles (échelle), crans d'interlignage de 1,5 px, césure automatique, retour au gabarit. */
+const pct = (f) => String(Math.round(f * 1000) / 10).replace('.', getLang() === 'fr' ? ',' : '.') + ' %';
+function textItems(ctx) {
+  const cur = () => textSetOf(ctx.getDoc().textSet);
+  const set = (patch) => {
+    const doc = ctx.getDoc();
+    doc.textSet = { ...textSetOf(doc.textSet), ...patch };
+    ctx.restructure();
+  };
+  const other = async () => {
+    const v = await promptBox(t('Taille de tous les textes, en % (50 à 150) :'), String(Math.round(cur().scale * 1000) / 10));
+    if (v == null) return;
+    const n = parseFloat(String(v).replace(',', '.').replace('%', ''));
+    if (!(n >= TEXT_SCALE_MIN * 100 && n <= TEXT_SCALE_MAX * 100)) return alertBox(t('Indiquez un nombre entre 50 et 150.'));
+    set({ scale: Math.round(n * 10) / 1000 });
+  };
+  const leadLabel = { 0: 'Normal', [-1]: 'Serré', [-2]: 'Très serré' };
+  return [
+    { heading: 'Taille des textes' },
+    ...TEXT_SCALES.map((f) => ({ label: pct(f), checked: () => cur().scale === f, run: () => set({ scale: f }) })),
+    {
+      label: 'Autre taille…',
+      checked: () => !TEXT_SCALES.includes(cur().scale),
+      hint: TEXT_SCALES.includes(cur().scale) ? '' : pct(cur().scale),
+      run: other,
+    },
+    { heading: 'Interlignage' },
+    ...LEADS.map((n) => ({
+      label: leadLabel[n],
+      hint: n ? `−${String(-n * LEAD_STEP).replace('.', getLang() === 'fr' ? ',' : '.')} px` : '',
+      checked: () => cur().lead === n,
+      run: () => set({ lead: n }),
+    })),
+    '-',
+    { label: 'Césure automatique partout', checked: () => cur().hyph, run: () => set({ hyph: !cur().hyph }) },
+    '-',
+    {
+      label: 'Réinitialiser le texte',
+      icon: 'restore',
+      run: () => set({ scale: 1, lead: 0, hyph: false }),
+      disabled: () => textSetIsDefault(ctx.getDoc().textSet),
+    },
+  ];
 }
 
 /* Fichier / Édition / Affichage : menus de l'en-tête (rendus par js/shell.js, lus dans `window.FS_UI` par factsheet/index.html) ;
@@ -111,6 +158,7 @@ export function declareMenus({ ctx, history, historyUi, preview, spacing, hand, 
           })),
         ],
       },
+      { label: 'Texte', items: () => textItems(ctx) },
       {
         label: 'Affichage',
         items: [

@@ -1,8 +1,8 @@
 /* Contexte de rendu d'un document : ce qui dépend des réglages du document et que le rendu lisait autrefois dans des variables
    de module modifiées à chaque rendu (densité → écarts et gouttière, typographie automatique, bibliothèque d'icônes importées,
-   identifiants des clipPath). Construit par renderDocument (ou par qui rend une partie du document : éditeur de dataviz, Labo),
+   identifiants des clipPath, styles de texte à l'échelle du document). Construit par renderDocument (ou par qui rend une partie du document : éditeur de dataviz, Labo),
    il descend par `env.rc` jusqu'aux dataviz, chiffres clés, cartes, richText et inlineMk. Deux rendus ne partagent rien. */
-import { densityGaps } from './tokens.js';
+import { densityGaps, typeOf, textSetOf } from './tokens.js';
 
 /** doc : le document (ou {} pour les réglages par défaut : densité normale, pas de typographie automatique, aucune icône importée) */
 export function renderCtx(doc) {
@@ -13,6 +13,8 @@ export function renderCtx(doc) {
   return Object.freeze({
     gap, // écarts selon la densité (GAP pour les autres clés)
     gutter: gap.columns, // gouttière entre colonnes
+    type: typeOf(d.textSet), // TYPE à l'échelle du document (menu Texte) : corps et interlignages calculés en JS (chiffres clés)
+    textSet: Object.freeze(textSetOf(d.textSet)),
     typo: Object.freeze({ fr: !!d.frTypo, ord: !!d.ordinals }), // typographie automatique (inlineMk)
     icons: Array.isArray(d.customIcons) ? d.customIcons : [], // icônes importées du document (customList, iconNode)
     uid: (prefix) => `${prefix}${tag}-${++n}`, // identifiant d'élément SVG (clipPath…)

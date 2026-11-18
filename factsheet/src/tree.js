@@ -43,7 +43,7 @@ export function buildTree(root, ctx) {
     mark = previewing ? ctx.previewMark() : null,
     collapsed = ctx.collapsed;
   root.innerHTML = '';
-  applyVars(root, cssVars(doc.theme, doc.colors, doc.density));
+  applyVars(root, cssVars(doc.theme, doc.colors, doc.density, doc.textSet));
   queueMicrotask(() => ctx.markTree && ctx.markTree()); // pastilles de dépassement (calculées par l'aperçu)
   const row = (path, cls, kids) =>
     h(
