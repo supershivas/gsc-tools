@@ -1,7 +1,7 @@
 /* Pictogrammes : quatre variantes (barres, barres verticales, simple vertical, simple horizontal), un pictogramme au choix
    (bibliothèque ou SVG importé, stocké dans le JSON de la dataviz). */
-import { VIZ, TYPE } from '../tokens.js';
-import { reorderHit, s, el, SW, colorRef, pxOf, fmt, SANS, drawLegend, fitText, mw, heightOf, round3 } from './util.js';
+import { VIZ } from '../tokens.js';
+import { reorderHit, s, el, SW, colorRef, pxOf, fmt, SANS, drawLegend, fitText, mw, heightOf, round3, typeIn } from './util.js';
 import { ICONS, customList, customChoices, ctxIcons } from './icons.js';
 import { iconSelect } from '../iconselect.js';
 import { t } from '../i18n.js';
@@ -341,13 +341,14 @@ function make(variant) {
     /* choix du pictogramme et import SVG (carte « Pictogramme » de l'éditeur) */
     panel: pictoPanel,
     render(o, W, env) {
+      const T = typeIn(env); // styles du document (menu Texte)
       const rows = (o.rows || []).map((r) => ({
         label: String(r.label || ''),
         value: Math.max(0, +r.value || 0),
         color: r.color || o.color || 'blue',
       }));
-      const capPx = pxOf(TYPE.caption.size),
-        numPx = pxOf(TYPE.captionNum.size),
+      const capPx = pxOf(T.caption.size),
+        numPx = pxOf(T.captionNum.size),
         suffix = o.suffix || '',
         per = +o.perIcon > 0 ? +o.perIcon : 1,
         G = ICON_GAP[o.iconGap] ?? ICON_GAP.normal; // écart entre pictogrammes (def 3 px)
@@ -365,12 +366,12 @@ function make(variant) {
         return { node: v };
       }
       const label = (txt, x, y, maxW, anchor = 'start') => {
-        const f = fitText(txt, TYPE.caption.weight, SANS, capPx, maxW, 0.7);
+        const f = fitText(txt, T.caption.weight, SANS, capPx, maxW, 0.7);
         return s('text', { x, y: y + 0.33 * f.size, 'text-anchor': anchor, 'font-size': f.size }, f.text);
       };
 
       if (variant === 'rows') {
-        const labW = Math.min(W * 0.35, Math.max(0, ...rows.map((r) => mw(r.label, TYPE.caption.weight, SANS, capPx))) + VIZ.iconGap),
+        const labW = Math.min(W * 0.35, Math.max(0, ...rows.map((r) => mw(r.label, T.caption.weight, SANS, capPx))) + VIZ.iconGap),
           valW = o.showValues ? mw(val(1000), 700, '"Source Serif 4", serif', numPx) + 6 : 0;
         const span = Math.max(40, W - labW - valW),
           maxN = Math.max(1, ...rows.map((r) => Math.ceil(r.value / per)));
@@ -446,7 +447,7 @@ function make(variant) {
         return { node: svg };
       }
       /* single_h : un pictogramme par ligne, rempli de gauche à droite */
-      const labW = Math.min(W * 0.32, Math.max(0, ...rows.map((r) => mw(r.label, TYPE.caption.weight, SANS, capPx))) + VIZ.iconGap),
+      const labW = Math.min(W * 0.32, Math.max(0, ...rows.map((r) => mw(r.label, T.caption.weight, SANS, capPx))) + VIZ.iconGap),
         valW = o.showValues ? mw(val(1000), 700, '"Source Serif 4", serif', numPx) + 6 : 0;
       const H = heightOf(o, W, env, null, '3:2'),
         rh = Math.max(24, (H - (rows.length - 1) * 9) / rows.length),

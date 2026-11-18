@@ -1,7 +1,7 @@
 /* Frise chronologique : verticale ou horizontale. Une ligne de 0,5 pt, un repère rond par événement (couleur au choix),
    date en chiffres Source Serif, titre en gras puis texte qui passe à la ligne ; « Alterner » répartit les événements de part et d'autre. */
-import { VIZ, TYPE } from '../tokens.js';
-import { reorderHit, s, SW, colorRef, pxOf, fmt, mw, SANS, SERIF, textLines, drawLines, heightOf } from './util.js';
+import { VIZ } from '../tokens.js';
+import { reorderHit, s, SW, colorRef, pxOf, fmt, mw, SANS, SERIF, textLines, drawLines, heightOf, typeIn } from './util.js';
 import { t } from '../i18n.js';
 
 /** Valeurs d'origine : trait 0,5 pt, repères de 5 px de rayon */
@@ -71,10 +71,11 @@ export default {
   },
   dataHint: 'Une ligne par événement, dans l’ordre d’affichage. Entrée = retour à la ligne dans le titre et le texte.',
   render(o, W, env) {
+    const T = typeIn(env); // styles du document (menu Texte)
     const items = (o.rows || []).filter((r) => r.date || r.title || r.text),
-      capPx = pxOf(TYPE.caption.size),
-      lh = TYPE.caption.lh,
-      numPx = pxOf(TYPE.captionNum.size);
+      capPx = pxOf(T.caption.size),
+      lh = T.caption.lh,
+      numPx = pxOf(T.captionNum.size);
     const R = MARK_R[o.markSize] ?? MARK_R[LOOK.markSize],
       lw = SW * (WIDTH_K[o.lineWidth] ?? WIDTH_K[LOOK.lineWidth]);
     const showDates = o.showDates !== false,

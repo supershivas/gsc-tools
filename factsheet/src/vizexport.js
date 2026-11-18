@@ -3,7 +3,7 @@
    (1 px CSS = 1/96 pouce, donc 300 dpi = ×3,125) ; la densité est écrite dans le fichier (pHYs / JFIF) pour que l'image se place à la bonne taille.
    Le SVG est vectoriel : graphique, titre et source en vrais textes, styles résolus (couleurs, polices) ; sans le chiffre à côté (du HTML). */
 import { h, ico } from './render.js';
-import { cssVars } from './tokens.js';
+import { cssVars, textSetFor } from './tokens.js';
 import { rasterizeNode, XML_BAD } from './raster.js';
 import { alertBox } from './dialogs.js';
 import { t } from './i18n.js';
@@ -234,7 +234,7 @@ function vizToSvg(node) {
 export function openVizExport({ root, viz, doc, width, bgCss, render, fileStem }) {
   const p = pref(),
     hasHead = !!((viz.head && viz.head.title) || (viz.head && viz.head.source)),
-    vars = cssVars(doc.theme, doc.colors, doc.density, doc.textSet);
+    vars = cssVars(doc.theme, doc.colors, doc.density, textSetFor(doc.textSet, 'viz'));
   const dlg = h('dialog', { class: 'vexp', 'aria-label': t('Exporter la dataviz') });
   const go = h('button', { type: 'button', class: 'primary' });
   const info = h('p', { class: 'tip', role: 'status' });

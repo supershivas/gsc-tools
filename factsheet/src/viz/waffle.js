@@ -1,7 +1,7 @@
 /* Grille de pourcentage (« waffle chart ») : une grille de cases (10 × 10 par défaut), les premières sont remplies à hauteur de la valeur,
    en lisant ligne par ligne. Une catégorie = une couleur ; un repère (croix, point, coche) peut marquer les cases pleines. */
-import { VIZ, TYPE } from '../tokens.js';
-import { s, SW, colorRef, layoutLegend, drawLegendWrap } from './util.js';
+import { VIZ } from '../tokens.js';
+import { s, SW, colorRef, layoutLegend, drawLegendWrap, typeIn } from './util.js';
 import { ICONS, customChoices } from './icons.js';
 import { iconNode } from './picto.js';
 import { t } from '../i18n.js';
@@ -79,6 +79,7 @@ export default {
   dataHint:
     'Une ligne par catégorie : les cases se remplissent dans cet ordre, ligne par ligne ; une catégorie blanche reste une case vide. Le repère se choisit par catégorie.',
   render(o, W, env) {
+    const T = typeIn(env); // styles du document (menu Texte)
     const cols = Math.max(1, Math.round(+o.cols) || 10),
       rowsN = Math.max(1, Math.round(+o.gridRows) || 10),
       n = cols * rowsN,
@@ -112,6 +113,7 @@ export default {
           ? layoutLegend(
               cats.map((c) => ({ name: c.label, color: c.color })),
               W,
+              T,
             )
           : null,
       legH = LG ? VIZ.legendGap + LG.h : 0,

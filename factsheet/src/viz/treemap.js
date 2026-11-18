@@ -1,7 +1,7 @@
 /* Treemap : rectangles proportionnels aux valeurs, groupés par niveau 1 (étiquette de groupe en tête). */
-import { layoutLegend, drawLegendWrap } from './util.js';
+import { layoutLegend, drawLegendWrap, typeIn } from './util.js';
 import { treemap, treemapSquarify } from 'd3-hierarchy';
-import { VIZ, TYPE } from '../tokens.js';
+import { VIZ } from '../tokens.js';
 import { s, SW, colorRef, pxOf, fmt, mw, SANS, drawLegend, fitText, heightOf, inkOn, round3 } from './util.js';
 import { HIER_DATA, hierRows, buildHier, topOf, depthAlpha, lineAttrs, toneAlpha, LINE_FIELD, TONE_FIELD } from './hier.js';
 import { t } from '../i18n.js';
@@ -68,13 +68,15 @@ export default {
   data: HIER_DATA,
   dataHint: 'Une ligne par feuille ; laissez vides les niveaux inutiles. La couleur du niveau 1 s’applique à toute sa branche.',
   render(o, W, env) {
+    const T = typeIn(env); // styles du document (menu Texte)
     const { root, tops } = buildHier(o.rows),
-      capPx = pxOf(TYPE.caption.size),
-      numPx = pxOf(TYPE.captionNum.size),
+      capPx = pxOf(T.caption.size),
+      numPx = pxOf(T.captionNum.size),
       LG = o.legend
         ? layoutLegend(
             buildHier(o.rows).tops.map((x) => ({ name: x.name, color: x.color })),
             W,
+            T,
           )
         : null,
       legH = LG ? VIZ.legendGap + LG.h : 0;

@@ -140,6 +140,7 @@ s{text-decoration:line-through;text-decoration-thickness:var(--stroke)}
 
 /* césure automatique partout (menu Texte, `doc.textSet.hyph`) : textes courants seulement, jamais les titres, chiffres et étiquettes */
 .page.hyph .rich{hyphens:auto}
+.page.hyph .ts-off .rich{hyphens:manual}
 .page.hyph .rich :is(.p-h1,.p-h2,.p-fig,.p-figsm,.p-label){hyphens:manual}
 /* styles de paragraphe ajoutés (voir textstyles.js) */
 .rich .p-lead,.viz-title .p-lead{font-family:var(--t-lead-family);font-size:var(--t-lead-size);line-height:var(--t-lead-lh);font-weight:var(--t-lead-weight)}

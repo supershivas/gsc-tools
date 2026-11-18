@@ -57,7 +57,7 @@ test('taille des textes, interlignage, césure et réinitialisation', async ({ p
   expect(s.hyph).toBe(true);
   expect(s.lang).toBe('en');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('factsheet-creator-v1')).textSet);
-  expect(saved).toEqual({ scale: 0.9, lead: -1, hyph: true, styles: {} });
+  expect(saved).toEqual({ scale: 0.9, lead: -1, hyph: true, styles: {}, skip: [] });
   await pick(page, 'Reset text settings');
   s = await sizes(page);
   expect(s.body).toEqual(s0.body);
@@ -149,5 +149,53 @@ test('styles de paragraphe : aperçu, appliquer, annuler, revenir au gabarit', a
   await dlg.getByRole('button', { name: 'Apply' }).click();
   await page.waitForTimeout(400);
   expect((await docTextSet(page)).styles).toEqual({ source: { lh: 10.5 } });
+  expect(errors).toEqual([]);
+});
+
+/* Phase 3 : les textes des graphiques suivent l'échelle ; un type décoché dans « Appliquer aux » garde les styles du gabarit */
+const vizSizes = (page) =>
+  page.evaluate(() => {
+    const pg = [...document.querySelectorAll('.page:not(.ovf-clone)')];
+    const all = (sel) => pg.flatMap((p) => [...p.querySelectorAll(sel)]);
+    const svgText = all('.col-viz svg text').map((t) => +t.getAttribute('font-size') || parseFloat(getComputedStyle(t).fontSize));
+    const fig = all('.vf-value')[0];
+    return {
+      viz: Math.max(...svgText),
+      vizMin: Math.min(...svgText),
+      fig: fig ? parseFloat(getComputedStyle(fig).fontSize) : null,
+      body: parseFloat(getComputedStyle(all('.col-text .rich p:not([class])')[0]).fontSize),
+      excluded: all('.ts-off').length,
+    };
+  });
+test('dataviz et chiffres clés suivent l’échelle ; « Appliquer aux » les en exclut', async ({ page }) => {
+  const errors = watchErrors(page);
+  await load(page);
+  const v0 = await vizSizes(page);
+  expect(v0.excluded).toBe(0);
+  await pick(page, '80 %');
+  const v1 = await vizSizes(page);
+  expect(v1.vizMin / v0.vizMin).toBeCloseTo(0.8, 1);
+  expect(v1.fig / v0.fig).toBeLessThan(0.9);
+  expect(v1.body / v0.body).toBeCloseTo(0.8, 1);
+  /* décocher Dataviz puis Chiffres clés : ils reviennent au gabarit, le texte reste à 80 % */
+  await pick(page, 'Dataviz');
+  await pick(page, 'Key figures');
+  const v2 = await vizSizes(page);
+  expect(v2.vizMin).toBeCloseTo(v0.vizMin, 2);
+  expect(v2.viz).toBeCloseTo(v0.viz, 2);
+  expect(v2.fig).toBeCloseTo(v0.fig, 2);
+  expect(v2.body).toBeCloseTo(v1.body, 2);
+  expect(v2.excluded).toBeGreaterThan(0);
+  expect((await docTextSet(page)).skip).toEqual(['figure', 'viz']);
+  /* la fenêtre des styles montre les mêmes cases */
+  await pick(page, 'Paragraph styles');
+  await expect(page.locator('dialog.tsd #tsdOn-viz')).not.toBeChecked();
+  await expect(page.locator('dialog.tsd #tsdOn-text')).toBeChecked();
+  await page.locator('dialog.tsd #tsdOn-viz').check();
+  await page.waitForTimeout(300);
+  expect((await vizSizes(page)).vizMin / v0.vizMin).toBeCloseTo(0.8, 1); // aperçu en direct
+  await page.keyboard.press('Escape');
+  await pick(page, 'Reset text settings');
+  expect((await vizSizes(page)).viz).toBeCloseTo(v0.viz, 2);
   expect(errors).toEqual([]);
 });

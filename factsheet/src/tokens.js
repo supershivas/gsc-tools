@@ -192,6 +192,8 @@ export const TEXT_STYLE_KEYS = [
   'figureSm',
 ];
 const HEADER_TYPES = ['overline', 'title', 'subtitle'];
+/** types de colonne qu'on peut laisser hors des réglages du texte (`textSet.skip`, « Appliquer aux ») ; tous suivent par défaut */
+export const TEXT_SKIP_KEYS = ['text', 'figure', 'card', 'viz', 'table'];
 export const STYLE_SIZE = { min: 5, max: 72 }; // pt
 const roundTo = (n, q) => Math.round(n / q) * q;
 const clampNum = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -214,13 +216,16 @@ export function textSetOf(ts) {
     lead: Number.isInteger(o.lead) ? Math.max(-4, Math.min(4, o.lead)) : 0,
     hyph: o.hyph === true,
     styles,
+    skip: TEXT_SKIP_KEYS.filter((k) => Array.isArray(o.skip) && o.skip.includes(k)),
   };
 }
 /** réglages par défaut ? (rien à réinitialiser) */
 export const textSetIsDefault = (ts) => {
   const o = textSetOf(ts);
-  return o.scale === 1 && o.lead === 0 && !o.hyph && !Object.keys(o.styles).length;
+  return o.scale === 1 && o.lead === 0 && !o.hyph && !Object.keys(o.styles).length && !o.skip.length;
 };
+/** réglages du texte qui s'appliquent à une colonne de type `colType` : ceux du document, ou aucun (gabarit) si ce type est exclu */
+export const textSetFor = (ts, colType) => (textSetOf(ts).skip.includes(colType) ? null : ts);
 /** corps et interlignage d'un style avant l'échelle : réglage du document, sinon TYPE ; un corps choisi sans interlignage
     garde la proportion du gabarit */
 export function baseType(k, ts) {
@@ -368,15 +373,10 @@ export function colorLabel(doc, key) {
 }
 
 /* ---------- Application en variables CSS ---------- */
-/** density : densité du document (`doc.density`) pour les variables --gap-* ; absente = normale.
-    textSet : réglages du texte (`doc.textSet`) pour les variables --t-* et --t-scale / --t-lead ; absents = gabarit */
-export function cssVars(themeKey, colors, density, textSet) {
-  const th = THEMES[themeKey] || THEMES[DEFAULT_THEME];
-  const pal = paletteOf(themeKey, colors);
-  const v = {};
-  for (const [k, n] of Object.entries(SPACE)) v[`--s${k}`] = n + 'px';
-  for (const [k, val] of Object.entries(densityGaps(density))) v[`--gap-${k}`] = val + 'px';
-  const ts = textSetOf(textSet);
+/** variables CSS du texte (--t-*, --t-scale, --t-lead) pour des réglages du texte ; null = gabarit (colonne exclue, `render.js`) */
+export function typeVars(textSet) {
+  const ts = textSetOf(textSet),
+    v = {};
   v['--t-scale'] = ts.scale;
   v['--t-lead'] = ts.lead * LEAD_STEP + 'px';
   for (const [k, t] of Object.entries(typeOf(ts))) {
@@ -385,6 +385,17 @@ export function cssVars(themeKey, colors, density, textSet) {
     v[`--t-${k}-weight`] = t.weight;
     v[`--t-${k}-family`] = FONT[t.family];
   }
+  return v;
+}
+/** density : densité du document (`doc.density`) pour les variables --gap-* ; absente = normale.
+    textSet : réglages du texte (`doc.textSet`) pour les variables --t-* et --t-scale / --t-lead ; absents = gabarit */
+export function cssVars(themeKey, colors, density, textSet) {
+  const th = THEMES[themeKey] || THEMES[DEFAULT_THEME];
+  const pal = paletteOf(themeKey, colors);
+  const v = {};
+  for (const [k, n] of Object.entries(SPACE)) v[`--s${k}`] = n + 'px';
+  for (const [k, val] of Object.entries(densityGaps(density))) v[`--gap-${k}`] = val + 'px';
+  Object.assign(v, typeVars(textSet));
   for (const [k, c] of Object.entries(pal)) {
     v[`--c-${k}`] = c;
     v[`--c-tint-${k}`] = tintOf(c);

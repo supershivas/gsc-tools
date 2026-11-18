@@ -1,5 +1,5 @@
 /* Barres horizontales : libellés à gauche, valeur au bout de la barre. Groupées ou empilées. */
-import { VIZ, TYPE } from '../tokens.js';
+import { VIZ } from '../tokens.js';
 import {
   reorderHit,
   heightOf,
@@ -26,6 +26,7 @@ import {
   refVal,
   refTxt,
   refV,
+  typeIn,
 } from './util.js';
 import { iconNode, iconImportPanel } from './picto.js';
 import { axesFields, refFields } from './axes.js';
@@ -172,19 +173,19 @@ export default {
     },
   ],
   render(o, W, env) {
+    const T = typeIn(env); // styles du document (menu Texte)
     const legIn = o.legendPos === 'inside' || o.legendIn; // noms des séries écrits dans les barres (legendIn : ancien réglage)
     const series = o.series || [],
       rows = o.rows || [],
       k = Math.max(1, series.length);
     const stacked = o.style === 'stacked';
-    const capPx = pxOf(TYPE.caption.size),
-      numPx = pxOf(TYPE.captionNum.size),
+    const capPx = pxOf(T.caption.size),
+      numPx = pxOf(T.captionNum.size),
       suffix = o.suffix || '';
     const icW = rows.some((r) => r.icon && r.icon !== 'none') ? 24 + VIZ.iconGap : 0; // icône ou image (drapeau…) à gauche du libellé
     const labW =
-      (o.labelIn
-        ? 0
-        : Math.min(W * 0.4, Math.max(0, ...rows.map((r) => mw(r.label || '', TYPE.caption.weight, SANS, capPx))) + VIZ.iconGap)) + icW;
+      (o.labelIn ? 0 : Math.min(W * 0.4, Math.max(0, ...rows.map((r) => mw(r.label || '', T.caption.weight, SANS, capPx))) + VIZ.iconGap)) +
+      icW;
     const total = (r) => series.reduce((a, _, j) => a + numVal(r, j), 0);
     const valW =
       o.showValues && !o.valuesIn
@@ -267,16 +268,12 @@ export default {
         if (xx < x0 + w - 0.5) svg.append(s('line', { x1: xx, y1: yy, x2: xx, y2: yy + bh, stroke: 'currentColor', 'stroke-width': SW }));
       }
       const vw = valTxt && o.valuesIn ? mw(valTxt, 700, '"Source Serif 4", serif', numPx) : 0,
-        lw = lab ? mw(lab, TYPE.caption.weight, SANS, capPx) : 0;
+        lw = lab ? mw(lab, T.caption.weight, SANS, capPx) : 0;
       const fitsVal = vw > 0 && w >= (lw ? lw + VIZ.iconGap : 0) + vw + VIZ.iconGap * 2; // la valeur rentre dans la barre, après le libellé
       if (lab) {
-        const f = fitText(lab, TYPE.caption.weight, SANS, capPx, Math.max(20, w - VIZ.iconGap * 2 - (fitsVal ? vw + VIZ.iconGap : 0)), 0.6);
+        const f = fitText(lab, T.caption.weight, SANS, capPx, Math.max(20, w - VIZ.iconGap * 2 - (fitsVal ? vw + VIZ.iconGap : 0)), 0.6);
         svg.append(
-          s(
-            'text',
-            { x: x0 + VIZ.iconGap, y: yy + bh / 2 + 0.33 * f.size, 'font-size': f.size, 'font-weight': TYPE.caption.weight },
-            f.text,
-          ),
+          s('text', { x: x0 + VIZ.iconGap, y: yy + bh / 2 + 0.33 * f.size, 'font-size': f.size, 'font-weight': T.caption.weight }, f.text),
         );
       }
       if (fitsVal) svg.append(s('text', { ...NUMF, x: x0 + w - VIZ.iconGap, y: yy + bh / 2 + 0.33 * numPx, 'text-anchor': 'end' }, valTxt));
@@ -286,8 +283,8 @@ export default {
       const y = i * (rh + rGap);
       if (r.icon && r.icon !== 'none') svg.append(iconNode(o, r.icon, 0, y + rh / 2 - 12, 24, 24, 'blue', env.rc.icons));
       if (!o.labelIn) {
-        const f = fitText(r.label || '', TYPE.caption.weight, SANS, capPx, labW - icW - VIZ.iconGap, 0.7);
-        svg.append(s('text', { x: icW, y: y + rh / 2 + 0.33 * f.size, 'font-size': f.size, 'font-weight': TYPE.caption.weight }, f.text));
+        const f = fitText(r.label || '', T.caption.weight, SANS, capPx, labW - icW - VIZ.iconGap, 0.7);
+        svg.append(s('text', { x: icW, y: y + rh / 2 + 0.33 * f.size, 'font-size': f.size, 'font-weight': T.caption.weight }, f.text));
       }
       let end = x0,
         inside = false;
@@ -310,7 +307,7 @@ export default {
               'stroke-linejoin': 'round',
             }),
           );
-          if ((legIn || (o.labelIn && !r.label)) && sr.name && w > mw(sr.name, TYPE.caption.weight, SANS, capPx) + VIZ.iconGap * 2)
+          if ((legIn || (o.labelIn && !r.label)) && sr.name && w > mw(sr.name, T.caption.weight, SANS, capPx) + VIZ.iconGap * 2)
             svg.append(
               s(
                 'text',
@@ -319,7 +316,7 @@ export default {
                   y: y + bh / 2 + 0.33 * capPx,
                   'text-anchor': 'middle',
                   'font-size': capPx,
-                  'font-weight': TYPE.caption.weight,
+                  'font-weight': T.caption.weight,
                 },
                 sr.name,
               ),
@@ -379,7 +376,7 @@ export default {
           ),
         );
     });
-    if (o.legend && !legIn) drawLegend(svg, series, H - VIZ.legendH, W);
+    if (o.legend && !legIn) drawLegend(svg, series, H - VIZ.legendH, W, null, null, T);
     rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'y', 0, i * (rh + rGap) - rGap / 2, W, rh + rGap)));
     return { node: root };
   },

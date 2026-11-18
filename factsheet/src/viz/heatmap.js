@@ -21,6 +21,7 @@ import {
   scaleTop,
   drawLegend,
   classBarHeight,
+  typeIn,
 } from './util.js';
 
 const NEUTRAL = 'grey'; // couleur neutre de la palette : cases de référence et écart nul
@@ -609,6 +610,7 @@ export default {
   dataHint:
     'Une ligne par ligne du tableau, une colonne par colonne (12 au plus). Une cellule laissée vide est dessinée « en attente ». Les écarts sont calculés par rapport à la colonne de référence (Structure). Type de ligne : Titre ou Total mettent la ligne en gras sur un fond neutre léger ; Gras et Taille la règlent une à une.',
   render(o, W, env) {
+    const T = typeIn(env); // styles du document (menu Texte)
     const all = heatCells(o),
       ref = all.ref,
       allRows = o.rows || [],
@@ -621,8 +623,8 @@ export default {
       cells = ri.map((i) => cj.map((j) => all.cells[i][j])),
       nc = Math.max(1, series.length),
       nr = Math.max(1, rows.length);
-    const capPx = pxOf(TYPE.caption.size),
-      numBase = pxOf(TYPE.captionNum.size),
+    const capPx = pxOf(T.caption.size),
+      numBase = pxOf(T.captionNum.size),
       gap = Math.max(0, +(o.gap ?? LOOK.gap) || 0),
       radius = (o.corners || LOOK.corners) === 'square' ? 0 : VIZ.barRadius,
       lw = SW * (LINE_K[o.cellLine] ?? 0),
@@ -670,7 +672,7 @@ export default {
     let H = Math.max(90, heightOf(o, W, env, null));
     const lg = o.legend !== false ? heatLegend(o, loc) : null;
     if (lg && o.legendNote === false) lg.note = '';
-    const lgH = lg ? classBarHeight(W, lg) + VIZ.legendGap : 0; // la légende est dessinée en bas ; « en haut » la remonte (legendTop)
+    const lgH = lg ? classBarHeight(W, lg, T) + VIZ.legendGap : 0; // la légende est dessinée en bas ; « en haut » la remonte (legendTop)
     /* hauteur des lignes : égale (aspect d'origine), sauf si un nom sur plusieurs lignes demande plus ; les autres lignes se partagent le reste */
     const avail = H - lgH - headH - gap * (nr - 1);
     const need = rows.map((r, i) => (nameLines[i] && nameLines[i].length > 1 ? nameLines[i].length * namePx(fmts[i]) * LH + 4 : 0));
@@ -786,7 +788,7 @@ export default {
         const px = (l.num ? numPx : smallPx) * k,
           f = l.num
             ? fitText(l.txt, 700, SERIF, px, maxW, 0.5)
-            : fitText(l.txt, l.small && !l.num ? 400 : TYPE.caption.weight, SANS, px, maxW, 0.6);
+            : fitText(l.txt, l.small && !l.num ? 400 : T.caption.weight, SANS, px, maxW, 0.6);
         g.append(
           s(
             'text',
@@ -896,7 +898,7 @@ export default {
         svg.append(textBlock(linesOf(c), x + cw / 2, y + ch / 2, cw - 6, ch - 4, ink, rk));
       });
     });
-    if (lg) drawLegend(svg, [], H - lgH + VIZ.legendGap, W, null, lg);
+    if (lg) drawLegend(svg, [], H - lgH + VIZ.legendGap, W, null, lg, T);
     rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', ri[i], 'y', 0, ys[i] - gap / 2, W, chs[i] + gap)));
     /* éditeur : glisser un nom vers la droite ou la gauche change son niveau (au-dessus de la zone de réordonnancement) */
     if (env.ui && rowNames)

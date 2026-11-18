@@ -1,7 +1,7 @@
 /* Sunburst : anneaux concentriques, un par niveau de la hiérarchie ; la couleur est celle du niveau 1, de plus en plus claire vers l'extérieur. */
-import { layoutLegend, drawLegendWrap } from './util.js';
+import { layoutLegend, drawLegendWrap, typeIn } from './util.js';
 import { partition } from 'd3-hierarchy';
-import { VIZ, TYPE } from '../tokens.js';
+import { VIZ } from '../tokens.js';
 import { s, SW, colorRef, pxOf, fmt, mw, SANS, drawLegend, fitText, heightOf, inkOn } from './util.js';
 import { HIER_DATA, hierRows, buildHier, topOf, depthAlpha, lineAttrs, toneAlpha, LINE_FIELD, TONE_FIELD } from './hier.js';
 
@@ -82,12 +82,14 @@ export default {
   data: HIER_DATA,
   dataHint: 'Une ligne par feuille ; laissez vides les niveaux inutiles. La couleur du niveau 1 s’applique à toute sa branche.',
   render(o, W, env) {
+    const T = typeIn(env); // styles du document (menu Texte)
     const { root, tops } = buildHier(o.rows),
-      capPx = pxOf(TYPE.caption.size),
+      capPx = pxOf(T.caption.size),
       LG = o.legend
         ? layoutLegend(
             buildHier(o.rows).tops.map((x) => ({ name: x.name, color: x.color })),
             W,
+            T,
           )
         : null,
       legH = LG ? VIZ.legendGap + LG.h : 0;
@@ -149,7 +151,7 @@ export default {
     g.append(labels);
     if (o.showTotal && hole > 28) {
       const total = fmt(root.value, env.locale, o.decimals) + (o.suffix || ''),
-        f = fitText(total, 700, SANS, pxOf(TYPE.captionNum.size) * 1.2, hole * 1.7, 0.5);
+        f = fitText(total, 700, SANS, pxOf(T.captionNum.size) * 1.2, hole * 1.7, 0.5);
       g.append(s('text', { x: 0, y: 0.33 * f.size, 'text-anchor': 'middle', 'font-size': f.size, 'font-weight': 700 }, f.text));
     }
     if (LG) drawLegendWrap(svg, LG, H - LG.h);

@@ -1,7 +1,7 @@
 /* Diagramme de Sankey : flux source → cible (d3-sankey). Les colonnes se déduisent des liens ; les flux circulaires ne sont pas pris en charge. */
 import { sankey, sankeyJustify, sankeyLeft, sankeyRight, sankeyCenter } from 'd3-sankey';
-import { VIZ, TYPE } from '../tokens.js';
-import { s, SW, STROKE_K, strokeAttrs, colorRef, pxOf, fmt, mw, SANS, fitText, heightOf, autoColor, inkOn } from './util.js';
+import { VIZ } from '../tokens.js';
+import { s, SW, STROKE_K, strokeAttrs, colorRef, pxOf, fmt, mw, SANS, fitText, heightOf, autoColor, inkOn, typeIn } from './util.js';
 import { t } from '../i18n.js';
 
 const LINK_OPACITY = { light: 0.2, normal: 0.4, strong: 0.65 }; // opacité des flux (audit des options, lot 5a : `def` du champ, 0,4 d'origine)
@@ -97,8 +97,9 @@ export default {
   dataHint:
     'Une ligne par flux. Les nœuds sont créés d’après les noms ; la couleur d’un flux est celle de sa source si elle n’est pas choisie.',
   render(o, W, env) {
-    const capPx = pxOf(TYPE.caption.size),
-      numPx = pxOf(TYPE.captionNum.size),
+    const T = typeIn(env); // styles du document (menu Texte)
+    const capPx = pxOf(T.caption.size),
+      numPx = pxOf(T.captionNum.size),
       suffix = o.suffix || '';
     const H = heightOf(o, W, env, null, '16:9');
     const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });

@@ -1,5 +1,5 @@
 /* Nuage de points / bulles : x, y, taille facultative, groupe facultatif (une couleur par groupe). */
-import { VIZ, TYPE } from '../tokens.js';
+import { VIZ } from '../tokens.js';
 import {
   s,
   SW,
@@ -22,6 +22,7 @@ import {
   refRoom,
   refH,
   refV,
+  typeIn,
 } from './util.js';
 import { axesFields, axisTitleFields, refFieldsXY } from './axes.js';
 import { t } from '../i18n.js';
@@ -129,18 +130,20 @@ export default {
   },
   dataHint: 'Une ligne par point. Le groupe donne la couleur ; la taille (facultative) en fait une bulle.',
   render(o, W, env) {
+    const T = typeIn(env); // styles du document (menu Texte)
     const pts = (o.rows || [])
       .map((r) => ({ ...r, x: +r.x, y: +r.y, size: +r.size || 0, group: String(r.group || '').trim() }))
       .filter((r) => isFinite(r.x) && isFinite(r.y));
     const groups = [...new Set(pts.map((p) => p.group))],
-      capPx = pxOf(TYPE.caption.size),
-      numPx = pxOf(TYPE.captionNum.size),
+      capPx = pxOf(T.caption.size),
+      numPx = pxOf(T.captionNum.size),
       suffix = o.suffix || '';
     const legend = o.legend && groups.filter(Boolean).length > 1,
       LG = legend
         ? layoutLegend(
             groups.filter(Boolean).map((g) => ({ name: g, color: autoColor('', groups.indexOf(g)) })),
             W,
+            T,
           )
         : null,
       legH = LG ? VIZ.legendGap + LG.h : 0;

@@ -10,13 +10,23 @@ export function renderCtx(doc) {
   const gap = densityGaps(d.density);
   const tag = Math.random().toString(36).slice(2, 7); // identifiants uniques dans la page même si plusieurs rendus y cohabitent
   let n = 0;
-  return Object.freeze({
+  const common = {
     gap, // écarts selon la densité (GAP pour les autres clés)
     gutter: gap.columns, // gouttière entre colonnes
-    type: typeOf(d.textSet), // TYPE à l'échelle du document (menu Texte) : corps et interlignages calculés en JS (chiffres clés)
-    textSet: Object.freeze(textSetOf(d.textSet)),
     typo: Object.freeze({ fr: !!d.frTypo, ord: !!d.ordinals }), // typographie automatique (inlineMk)
     icons: Array.isArray(d.customIcons) ? d.customIcons : [], // icônes importées du document (customList, iconNode)
     uid: (prefix) => `${prefix}${tag}-${++n}`, // identifiant d'élément SVG (clipPath…)
+  };
+  const ts = Object.freeze(textSetOf(d.textSet));
+  /* même contexte aux styles du gabarit : colonnes d'un type exclu des réglages du texte (« Appliquer aux », `textSet.skip`) */
+  const plain = Object.freeze({ ...common, type: typeOf(null), textSet: Object.freeze(textSetOf(null)) });
+  const rc = Object.freeze({
+    ...common,
+    type: typeOf(ts), // TYPE aux réglages du document (menu Texte) : corps et interlignages calculés en JS (chiffres clés, dataviz)
+    textSet: ts,
+    plain,
+    /** contexte d'une colonne de type `colType` : celui du document, ou `plain` si ce type est exclu */
+    forType: (colType) => (ts.skip.includes(colType) ? plain : rc),
   });
+  return rc;
 }

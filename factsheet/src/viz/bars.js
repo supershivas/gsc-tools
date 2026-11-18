@@ -1,5 +1,5 @@
 /* Barres verticales : une série, groupées, jumelées (barre arrière décalée, comme sur les captures) ou empilées. */
-import { VIZ, TYPE } from '../tokens.js';
+import { VIZ } from '../tokens.js';
 import { iconNode, iconImportPanel } from './picto.js';
 import {
   reorderHit,
@@ -32,6 +32,7 @@ import {
   refTxt,
   refRoom,
   refH,
+  typeIn,
 } from './util.js';
 import { axesFields, axisTitleFields, refFields } from './axes.js';
 
@@ -208,6 +209,7 @@ export default {
     },
   ],
   render(o, W, env) {
+    const T = typeIn(env); // styles du document (menu Texte)
     const legIn = o.legendPos === 'inside' || o.legendIn; // noms des séries écrits dans les barres (legendIn : ancien réglage)
     const series = o.series || [],
       rows = o.rows || [],
@@ -221,8 +223,8 @@ export default {
     const hasIcons = rows.some((r) => r.icon && r.icon !== 'none'),
       iconSz = 33,
       catH = (o.labelIn || !rows.some((r) => String(r.label || '').trim()) ? 6 : VIZ.catH) + (hasIcons ? iconSz + 6 : 0);
-    const capPx = pxOf(TYPE.caption.size),
-      numPx = pxOf(TYPE.captionNum.size);
+    const capPx = pxOf(T.caption.size),
+      numPx = pxOf(T.captionNum.size);
     const ref = refVal(o),
       refOk = ref != null && ref >= 0, // pas de valeur négative sur des barres
       refText = refOk ? refTxt(o) : '',
@@ -333,26 +335,22 @@ export default {
           s('path', { d: `M${bx - VIZ.calloutGap},${yLast}H${bx}V${yFirst}` }),
         ),
       );
-      const cPx = pxOf(TYPE.callout.size),
+      const cPx = pxOf(T.callout.size),
         midY = (yFirst + yLast) / 2,
         tx = bx + VIZ.calloutGap + VIZ.leaderGap;
       const tl = textLines('', co.text || '', capPx, VIZ.calloutW - (tx - xc) - 3);
-      const blockH = TYPE.callout.lh + tl.length * TYPE.caption.lh,
+      const blockH = T.callout.lh + tl.length * T.caption.lh,
         top = Math.max(0, midY - blockH / 2);
-      const cv = fitText(co.value || '', TYPE.callout.weight, SANS, cPx, VIZ.calloutW - (tx - xc) - 3);
+      const cv = fitText(co.value || '', T.callout.weight, SANS, cPx, VIZ.calloutW - (tx - xc) - 3);
       svg.append(
-        s(
-          'text',
-          { x: tx, y: top + TYPE.callout.lh / 2 + 0.33 * cv.size, 'font-size': cv.size, 'font-weight': TYPE.callout.weight },
-          cv.text,
-        ),
+        s('text', { x: tx, y: top + T.callout.lh / 2 + 0.33 * cv.size, 'font-size': cv.size, 'font-weight': T.callout.weight }, cv.text),
       );
       svg.append(
         drawLines(
           tl.map((l) => ({ ...l, runs: l.runs.map((r) => ({ ...r, b: false })) })),
           tx,
-          top + TYPE.callout.lh,
-          TYPE.caption.lh,
+          top + T.callout.lh,
+          T.caption.lh,
           capPx,
         ),
       );
@@ -416,12 +414,12 @@ export default {
         }
       }
       if (o.labelIn && j === 0 && rows[i].label) {
-        const f = fitIn(rows[i].label, TYPE.caption.weight, SANS, capPx);
+        const f = fitIn(rows[i].label, T.caption.weight, SANS, capPx);
         if (bot - top >= f.size + 2) {
           svg.append(
             s(
               'text',
-              { x: cx, y: bot - 0.2 * f.size, 'text-anchor': 'middle', 'font-size': f.size, 'font-weight': TYPE.caption.weight },
+              { x: cx, y: bot - 0.2 * f.size, 'text-anchor': 'middle', 'font-size': f.size, 'font-weight': T.caption.weight },
               f.text,
             ),
           );
@@ -429,7 +427,7 @@ export default {
         }
       }
       if (legIn && !stacked && sr && sr.name) {
-        const tw = mw(sr.name, TYPE.caption.weight, SANS, capPx);
+        const tw = mw(sr.name, T.caption.weight, SANS, capPx);
         if (bot - top >= tw + 6) {
           const cy = (top + bot) / 2;
           svg.append(
@@ -440,7 +438,7 @@ export default {
                 y: cy + 0.33 * capPx,
                 'text-anchor': 'middle',
                 'font-size': capPx,
-                'font-weight': TYPE.caption.weight,
+                'font-weight': T.caption.weight,
                 transform: `rotate(-90 ${cx} ${cy})`,
               },
               sr.name,
@@ -473,7 +471,7 @@ export default {
       });
     if (!o.labelIn)
       rows.forEach((r, i) => {
-        const f = fitText(r.label || '', TYPE.caption.weight, SANS, capPx, slot - 3, 0.6);
+        const f = fitText(r.label || '', T.caption.weight, SANS, capPx, slot - 3, 0.6);
         svg.append(
           s(
             'text',
@@ -482,7 +480,7 @@ export default {
               y: baseY + (catH - VIZ.catH) + VIZ.catH / 2 + 0.33 * f.size + 1,
               'text-anchor': 'middle',
               'font-size': f.size,
-              'font-weight': TYPE.caption.weight,
+              'font-weight': T.caption.weight,
             },
             f.text,
           ),
@@ -493,7 +491,7 @@ export default {
         if (r.icon && r.icon !== 'none')
           svg.append(iconNode(o, r.icon, px0 + slot * (i + 0.5) - iconSz / 2, baseY + 6, iconSz, iconSz, 'blue', env.rc.icons));
       });
-    if (o.legend && !legIn) drawLegend(svg, series, H - VIZ.legendH, W);
+    if (o.legend && !legIn) drawLegend(svg, series, H - VIZ.legendH, W, null, null, T);
     rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'x', px0 + slot * i, 0, slot, baseY + catH)));
     return { node: svg };
   },

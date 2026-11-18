@@ -1,5 +1,5 @@
 /* Courbes : trait 0,5 pt (design system), points remplis de la couleur de la série et cerclés 0,5 pt. */
-import { VIZ, TYPE } from '../tokens.js';
+import { VIZ } from '../tokens.js';
 import {
   reorderHit,
   heightOf,
@@ -25,6 +25,7 @@ import {
   refTxt,
   refRoom,
   refH,
+  typeIn,
 } from './util.js';
 import { axesFields, axisTitleFields, refFields } from './axes.js';
 import { t } from '../i18n.js';
@@ -201,12 +202,13 @@ export default {
     { t: 'table', k: 'rows', series: 'series', maxSeries: 4, dash: true, label: 'Données' },
   ],
   render(o, W, env) {
+    const T = typeIn(env); // styles du document (menu Texte)
     const series = o.series || [],
       rows = o.rows || [],
       n = Math.max(1, rows.length);
     const H = Math.max(120, heightOf(o, W, env, null));
-    const capPx = pxOf(TYPE.caption.size),
-      numPx = pxOf(TYPE.captionNum.size),
+    const capPx = pxOf(T.caption.size),
+      numPx = pxOf(T.captionNum.size),
       suffix = o.suffix || '';
     const yT = o.yTitle ? capPx * 1.7 : 0, // titre de l'axe vertical, au-dessus du graphique
       xT = o.xTitle ? capPx * 1.5 : 0; // titre de l'axe horizontal, sous les catégories
@@ -336,7 +338,7 @@ export default {
       }),
     );
     rows.forEach((r, i) => {
-      const f = fitText(r.label || '', TYPE.caption.weight, SANS, capPx, slot - 3, 0.6);
+      const f = fitText(r.label || '', T.caption.weight, SANS, capPx, slot - 3, 0.6);
       svg.append(
         s(
           'text',
@@ -345,7 +347,7 @@ export default {
             y: baseY + VIZ.catH / 2 + 0.33 * f.size + 1,
             'text-anchor': 'middle',
             'font-size': f.size,
-            'font-weight': TYPE.caption.weight,
+            'font-weight': T.caption.weight,
           },
           f.text,
         ),
@@ -376,7 +378,15 @@ export default {
       );
     }
     if (legend)
-      drawLegend(svg, series, H - VIZ.legendH, W, series.some((sr) => dashOf(sr, lw)) ? { dashOf: (sr) => dashOf(sr, lw), w: lw } : null);
+      drawLegend(
+        svg,
+        series,
+        H - VIZ.legendH,
+        W,
+        series.some((sr) => dashOf(sr, lw)) ? { dashOf: (sr) => dashOf(sr, lw), w: lw } : null,
+        null,
+        T,
+      );
     rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'x', px0 + slot * i, 0, slot, baseY + VIZ.catH)));
     return { node: svg };
   },

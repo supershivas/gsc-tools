@@ -7,7 +7,7 @@ import { h, ico } from './render.js';
 import { HAS_PREFIX } from './textstyles.js';
 import { openPalette } from './palette.js';
 import { buildFields, paletteOptions, richEditor, linkButton, getP, setP } from './editor.js';
-import { colWidth, subColWidth, cssVars, applyVars, paletteOf, densityGaps } from './tokens.js';
+import { colWidth, subColWidth, cssVars, applyVars, paletteOf, densityGaps, textSetFor } from './tokens.js';
 import { renderCtx } from './renderctx.js';
 import { ctxIcons } from './viz/icons.js';
 import { VIZ_TYPES, VIZ_FAMILIES, switchKind, renderVizFull } from './viz/index.js';
@@ -136,7 +136,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     svgW = baseW;
 
   const root = h('div', { class: 've', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('Éditeur de dataviz'), tabindex: -1 });
-  applyVars(root, cssVars(doc.theme, doc.colors, doc.density, doc.textSet));
+  applyVars(root, cssVars(doc.theme, doc.colors, doc.density, textSetFor(doc.textSet, 'viz')));
   const sheet = h('div', { class: 'page viz-sheet', style: { background: bg && bg !== 'none' ? `var(--c-${bg})` : '#fff' } });
   const holder = h('div', { class: 'col col-viz' });
   sheet.append(holder);
@@ -214,7 +214,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
       ui,
       pal: paletteOf(doc.theme, doc.colors),
       fillH: availH,
-      rc: renderCtx(doc),
+      rc: renderCtx(doc).forType('viz'),
     });
     holder.innerHTML = '';
     if (r && r.node) {
@@ -248,7 +248,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
       locale: doc.locale || 'en-GB',
       pal: paletteOf(doc.theme, doc.colors),
       fillH: availH,
-      rc: renderCtx(doc),
+      rc: renderCtx(doc).forType('viz'),
     });
     miniHold.innerHTML = '';
     if (!r || !r.node) return;
@@ -329,12 +329,12 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
   const palCtx = {
     getDoc: ctx.getDoc,
     changed: () => {
-      applyVars(root, cssVars(doc.theme, doc.colors, doc.density, doc.textSet));
+      applyVars(root, cssVars(doc.theme, doc.colors, doc.density, textSetFor(doc.textSet, 'viz')));
       draw();
       ctx.changed();
     },
     restructure: () => {
-      applyVars(root, cssVars(doc.theme, doc.colors, doc.density, doc.textSet));
+      applyVars(root, cssVars(doc.theme, doc.colors, doc.density, textSetFor(doc.textSet, 'viz')));
       buildForm();
       draw();
     },
@@ -741,7 +741,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
           locale: doc.locale || 'en-GB',
           pal: paletteOf(doc.theme, doc.colors),
           fillH: availH,
-          rc: renderCtx(doc),
+          rc: renderCtx(doc).forType('viz'),
         }),
       fileStem: fileStem || ((x) => 'dataviz' + (x || '')),
     });

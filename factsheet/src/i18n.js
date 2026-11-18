@@ -102,6 +102,9 @@ const EN = {
   'Normal — 100 %': 'Normal — 100 %',
   'Large — 125 %': 'Wide — 125 %',
   'Taille des textes': 'Text size',
+  'Appliquer aux': 'Apply to',
+  'Le header garde toujours ses styles. Un type décoché garde ceux du gabarit.':
+    'The header always keeps its styles. An unticked type keeps the template ones.',
   'Styles de paragraphe…': 'Paragraph styles…',
   'Tout rétablir (gabarit)': 'Reset all (template)',
   'Taille de tous les textes (%)': 'Size of all text (%)',
@@ -125,8 +128,6 @@ const EN = {
   Tient: 'Fits',
   'dans le document': 'in the document',
   'Non utilisé': 'Not used',
-  'Le header garde toujours ses styles. Les textes à l’intérieur des graphiques ne suivent pas encore.':
-    'The header always keeps its styles. Text inside charts does not follow yet.',
   'Autre taille…': 'Other size…',
   'Très serré': 'Very tight',
   'Césure automatique partout': 'Automatic hyphenation everywhere',

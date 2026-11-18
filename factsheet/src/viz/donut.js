@@ -2,11 +2,10 @@
    libellés autour de l'anneau avec traits de repère (colonnes larges)
    ou en légende sous l'anneau (colonnes étroites). Logique reprise de donut-export. */
 import { VIZ, TYPE } from '../tokens.js';
-import { s, SW, lineAttrs, LINE_FIELD, colorRef, pxOf, fmt, mw, SERIF, SANS, round3, textLines, drawLines } from './util.js';
+import { s, SW, lineAttrs, LINE_FIELD, colorRef, pxOf, fmt, mw, SERIF, SANS, round3, textLines, drawLines, typeIn } from './util.js';
 import { t } from '../i18n.js';
 
-const BODY = pxOf(TYPE.body.size),
-  LEAD = { tight: 15, normal: 18, loose: 21 }; // interlignage des textes (px) : « normal » = 18, un peu plus serré que le corps de texte (21)
+const LEAD = { tight: 15, normal: 18, loose: 21 }; // interlignage des textes (px) : « normal » = 18, un peu plus serré que le corps de texte (21)
 const rad = (d) => (d * Math.PI) / 180;
 
 function resolveColumn(items, topLim, gap) {
@@ -262,7 +261,11 @@ export default {
     },
   },
   render(o, W, env) {
-    const LH = LEAD[o.leading] || LEAD.normal;
+    const T = typeIn(env); // styles du document (menu Texte)
+    /* corps et interlignage des textes autour de l'anneau : à la proportion du texte courant du document (grille de 1,5 px) */
+    const BODY = pxOf(T.body.size),
+      kBody = T.body.size / TYPE.body.size;
+    const LH = Math.round(((LEAD[o.leading] || LEAD.normal) * kBody) / 1.5) * 1.5;
     const segs = (o.segments || []).filter((g) => +g.value > 0);
     const total = segs.reduce((a, g) => a + +g.value, 0);
     const bare = o.layout === 'none',
@@ -316,7 +319,7 @@ export default {
     const centerNode = (cx, cy) => {
       if (pie) return s('g');
       const n = fmt(total, env.locale, o.decimals),
-        BASE = pxOf(TYPE.figure.size);
+        BASE = pxOf(T.figure.size);
       const LV = {
         1: { k: 1, w: 700, f: SERIF, fam: 'var(--t-figure-family)' },
         2: { k: 0.62, w: 700, f: SERIF, fam: 'var(--t-figure-family)' },

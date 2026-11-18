@@ -14,6 +14,7 @@ import {
   STYLE_SIZE,
   TEXT_SCALE_MIN,
   TEXT_SCALE_MAX,
+  TEXT_SKIP_KEYS,
   textSetOf,
   textSetIsDefault,
   baseType,
@@ -45,6 +46,8 @@ const ALSO = {
   source: 'Pied de page',
   figure: 'Chiffres clés',
 };
+/* libellés de « Appliquer aux » (clés de traduction) */
+export const APPLY_TO = { text: 'Textes', figure: 'Chiffres clés', card: 'Cartes', viz: 'Dataviz', table: 'Tableaux' };
 const NOTES = ['caption', 'label', 'source', 'note']; // petits textes : seuil de lisibilité plus bas
 const MIN_PT = { text: 8, note: 6 };
 
@@ -110,6 +113,16 @@ export function openTextStyles(ctx) {
     ),
   );
   const hyphBox = h('input', { type: 'checkbox', id: 'tsdHyph', onchange: () => set({ ...draft, hyph: hyphBox.checked }) });
+  /* « Appliquer aux » : une case par type de colonne ; décochée = ce type garde les styles du gabarit (`textSet.skip`) */
+  const skipBoxes = TEXT_SKIP_KEYS.map((k) => {
+    const box = h('input', {
+      type: 'checkbox',
+      id: 'tsdOn-' + k,
+      dataset: { type: k },
+      onchange: () => set({ ...draft, skip: box.checked ? draft.skip.filter((x) => x !== k) : [...draft.skip, k] }),
+    });
+    return h('label', { class: 'tsd-check', for: 'tsdOn-' + k }, box, h('span', { textContent: t(APPLY_TO[k]) }));
+  });
 
   /* ----- un style ----- */
   const rows = {};
@@ -220,6 +233,10 @@ export function openTextStyles(ctx) {
       b.setAttribute('aria-checked', String(on));
     });
     hyphBox.checked = draft.hyph;
+    skipBoxes.forEach((l) => {
+      const box = l.querySelector('input');
+      box.checked = !draft.skip.includes(box.dataset.type);
+    });
     for (const [k, r] of Object.entries(rows)) {
       const b = baseType(k, draft),
         e = T[k],
@@ -305,11 +322,17 @@ export function openTextStyles(ctx) {
       ),
       h('div', { class: 'tsd-ctl' }, h('span', { textContent: t('Interlignage') }), leadSeg),
       h('label', { class: 'tsd-check', for: 'tsdHyph' }, hyphBox, h('span', { textContent: t('Césure automatique partout') })),
+      h(
+        'div',
+        { class: 'tsd-apply', role: 'group', 'aria-label': t('Appliquer aux') },
+        h('span', { textContent: t('Appliquer aux') }),
+        skipBoxes,
+      ),
       status,
     ),
     h('p', {
       class: 'tsd-lead',
-      textContent: t('Le header garde toujours ses styles. Les textes à l’intérieur des graphiques ne suivent pas encore.'),
+      textContent: t('Le header garde toujours ses styles. Un type décoché garde ceux du gabarit.'),
     }),
     list,
     h(

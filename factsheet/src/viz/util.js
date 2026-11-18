@@ -182,20 +182,21 @@ export function fmt(v, locale, decimals) {
     return String(v);
   }
 }
-export const typePx = (k) => ({ size: pxOf(TYPE[k].size), lh: TYPE[k].lh, weight: TYPE[k].weight });
+export const typePx = (k, T = TYPE) => ({ size: pxOf(T[k].size), lh: T[k].lh, weight: T[k].weight });
+/** styles du document pendant un rendu (`env.rc.type`, menu Texte) ; sans contexte : TYPE */
+export const typeIn = (env) => (env && env.rc && env.rc.type) || TYPE;
 
 /** Légende commune (pastille arrondie 0,5 pt + libellé), posée à la hauteur y.
     `line` = { dashOf(série) → tirets ou null, w } : légende de courbes avec au moins une série en tirets, la pastille devient un trait (même tirets, même épaisseur)
     traversé d'un point de la couleur de la série, comme dans le graphique */
-export function drawLegend(svg, series, y, W = Infinity, line = null, scale = null) {
-  if (scale) return drawClassBar(svg, y, W, scale);
-  const base = pxOf(TYPE.caption.size),
+export function drawLegend(svg, series, y, W = Infinity, line = null, scale = null, T = TYPE) {
+  if (scale) return drawClassBar(svg, y, W, scale, T);
+  const base = pxOf(T.caption.size),
     swW = line ? VIZ.legendSwatch * 2.4 : VIZ.legendSwatch,
     fixed = swW + VIZ.barGap * 2,
     gap = VIZ.legendH * 1.2;
   const names = series.map((sr) => sr.name || '');
-  const need = (size) =>
-    names.reduce((a, t) => a + fixed + mw(t, TYPE.caption.weight, SANS, size), 0) + gap * Math.max(0, names.length - 1);
+  const need = (size) => names.reduce((a, t) => a + fixed + mw(t, T.caption.weight, SANS, size), 0) + gap * Math.max(0, names.length - 1);
   let capPx = base;
   if (need(base) > W)
     capPx = Math.max(
@@ -242,9 +243,9 @@ export function drawLegend(svg, series, y, W = Infinity, line = null, scale = nu
         }),
       );
     const lx = x + fixed,
-      t = need(base) > W ? ellipsize(names[i], TYPE.caption.weight, SANS, capPx, room) : names[i];
-    g.append(s('text', { x: lx, y: y + VIZ.legendH / 2 + 0.33 * capPx, 'font-size': capPx, 'font-weight': TYPE.caption.weight }, t));
-    x = lx + mw(t, TYPE.caption.weight, SANS, capPx) + gap;
+      t = need(base) > W ? ellipsize(names[i], T.caption.weight, SANS, capPx, room) : names[i];
+    g.append(s('text', { x: lx, y: y + VIZ.legendH / 2 + 0.33 * capPx, 'font-size': capPx, 'font-weight': T.caption.weight }, t));
+    x = lx + mw(t, T.caption.weight, SANS, capPx) + gap;
   });
   svg.append(g);
 }
@@ -252,8 +253,8 @@ export function drawLegend(svg, series, y, W = Infinity, line = null, scale = nu
 /* ---------- Légende en « barre de classes » (heatmap) ----------
    `scale` = { cells: [{ color, alpha, path? }], labels: [texte × (cells + 1)] (aux limites des classes), note?: texte }.
    Une rangée de cases jointives, les libellés sous les limites de classe — ou aux deux extrémités seulement si la place manque —, puis la note. */
-function classBarLayout(W, scale) {
-  const base = pxOf(TYPE.caption.size),
+function classBarLayout(W, scale, T = TYPE) {
+  const base = pxOf(T.caption.size),
     px = base * 0.9,
     n = scale.cells.length,
     barW = Math.max(30, Math.min(W, n * 40)),
@@ -261,7 +262,7 @@ function classBarLayout(W, scale) {
     barH = VIZ.legendSwatch,
     lh = px * 1.25;
   const lab = scale.labels.map((t) => String(t ?? ''));
-  const wide = lab.map((t) => mw(t, TYPE.caption.weight, SANS, px));
+  const wide = lab.map((t) => mw(t, T.caption.weight, SANS, px));
   const span = (i) => (i === 0 ? [0, wide[0]] : i === n ? [barW - wide[n], barW] : [i * cw - wide[i] / 2, i * cw + wide[i] / 2]);
   let all = true;
   for (let i = 0; i < n; i++) if (span(i)[1] + 8 > span(i + 1)[0]) all = false;
@@ -283,9 +284,9 @@ function classBarLayout(W, scale) {
   return { px, n, barW, cw, barH, lh, lab, shown, note, h };
 }
 /** Hauteur de la légende en barre de classes (note comprise), pour réserver la place avant de dessiner le reste */
-export const classBarHeight = (W, scale) => classBarLayout(W, scale).h;
-function drawClassBar(svg, y, W, scale) {
-  const L = classBarLayout(W, scale),
+export const classBarHeight = (W, scale, T = TYPE) => classBarLayout(W, scale, T).h;
+function drawClassBar(svg, y, W, scale, T = TYPE) {
+  const L = classBarLayout(W, scale, T),
     g = s('g', { class: 'lg', 'data-y': y, 'data-reserve': L.h + VIZ.legendGap });
   scale.cells.forEach((c, i) => {
     const d = `M${i * L.cw},${y}h${L.cw}v${L.barH}h${-L.cw}Z`;
@@ -315,7 +316,7 @@ function drawClassBar(svg, y, W, scale) {
   L.shown.forEach((i) => {
     const first = i === 0,
       last = i === L.n,
-      f = fitText(L.lab[i], TYPE.caption.weight, SANS, L.px, L.shown.length === 2 ? L.barW / 2 - 4 : L.cw - 4, 0.6);
+      f = fitText(L.lab[i], T.caption.weight, SANS, L.px, L.shown.length === 2 ? L.barW / 2 - 4 : L.cw - 4, 0.6);
     g.append(
       s(
         'text',
@@ -324,7 +325,7 @@ function drawClassBar(svg, y, W, scale) {
           y: ty - L.px * 0.2,
           'text-anchor': first ? 'start' : last ? 'end' : 'middle',
           'font-size': f.size,
-          'font-weight': TYPE.caption.weight,
+          'font-weight': T.caption.weight,
         },
         f.text,
       ),
@@ -374,15 +375,15 @@ export function heightOf(o, W, env, auto, ratioDef = '16:9') {
 }
 
 /* ---------- Légende qui passe à la ligne ---------- */
-export function layoutLegend(items, W) {
-  const capPx = pxOf(TYPE.caption.size),
+export function layoutLegend(items, W, T = TYPE) {
+  const capPx = pxOf(T.caption.size),
     fixed = VIZ.legendSwatch + VIZ.barGap * 2,
     gap = VIZ.legendH * 1.2,
     lines = [[]];
   let x = 0;
   for (const it of items) {
-    const name = ellipsize(it.name || '', TYPE.caption.weight, SANS, capPx, Math.max(30, W - fixed)),
-      w = fixed + mw(name, TYPE.caption.weight, SANS, capPx);
+    const name = ellipsize(it.name || '', T.caption.weight, SANS, capPx, Math.max(30, W - fixed)),
+      w = fixed + mw(name, T.caption.weight, SANS, capPx);
     if (x > 0 && x + w > W) {
       lines.push([]);
       x = 0;
@@ -390,7 +391,7 @@ export function layoutLegend(items, W) {
     lines[lines.length - 1].push({ color: it.color, name, x, w });
     x += w + gap;
   }
-  return { lines, h: lines.length * VIZ.legendH + (lines.length - 1) * 3, capPx, fixed };
+  return { lines, h: lines.length * VIZ.legendH + (lines.length - 1) * 3, capPx, fixed, weight: T.caption.weight };
 }
 export function drawLegendWrap(svg, L, y) {
   const g = s('g', { class: 'lg', 'data-y': y, 'data-reserve': L.lines.length * (VIZ.legendH + 3) + VIZ.legendGap });
@@ -410,11 +411,7 @@ export function drawLegendWrap(svg, L, y) {
         }),
       );
       g.append(
-        s(
-          'text',
-          { x: e.x + L.fixed, y: yy + VIZ.legendH / 2 + 0.33 * L.capPx, 'font-size': L.capPx, 'font-weight': TYPE.caption.weight },
-          e.name,
-        ),
+        s('text', { x: e.x + L.fixed, y: yy + VIZ.legendH / 2 + 0.33 * L.capPx, 'font-size': L.capPx, 'font-weight': L.weight }, e.name),
       );
     }),
   );

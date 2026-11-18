@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.124.0 — 2026-11-18
+- Menu Texte : les textes des graphiques (axes, légendes, valeurs) suivent aussi la taille et les styles
+- « Appliquer aux » : laisser les dataviz, chiffres clés, cartes, tableaux ou textes à la taille du gabarit
+
 ## 1.123.0 — 2026-11-18
 - Menu Texte › Styles de paragraphe : régler la taille et l'interlignage de chaque style pour tout le document, avec la page en direct et le retour au gabarit
 - Le header garde toujours ses styles, quels que soient les réglages du texte

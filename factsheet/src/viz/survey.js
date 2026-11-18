@@ -1,7 +1,7 @@
 /* Résultats d'enquête : un point par répondant (ou par lot de répondants), rangés en nuage hexagonal ; les réponses forment des anneaux
    concentriques (la 1re au centre). Sans groupe : un seul nuage ; avec des groupes (Femmes / Hommes…) : un nuage par groupe, à la même échelle. */
-import { VIZ, TYPE } from '../tokens.js';
-import { s, colorRef, pxOf, fmt, SANS, layoutLegend, drawLegendWrap, fitText, autoColor, round3 } from './util.js';
+import { VIZ } from '../tokens.js';
+import { s, colorRef, pxOf, fmt, SANS, layoutLegend, drawLegendWrap, fitText, autoColor, round3, typeIn } from './util.js';
 import { t } from '../i18n.js';
 
 const SQ3 = Math.sqrt(3);
@@ -102,6 +102,7 @@ export default {
   dataHint:
     'Une ligne par groupe et par réponse. L’ordre des réponses va du centre vers l’extérieur ; laissez le groupe vide pour un seul nuage.',
   render(o, W, env) {
+    const T = typeIn(env); // styles du document (menu Texte)
     const rows = (o.rows || [])
       .map((r) => ({
         group: String(r.group || '').trim(),
@@ -110,7 +111,7 @@ export default {
         color: r.color || '',
       }))
       .filter((r) => r.answer && r.count > 0);
-    const capPx = pxOf(TYPE.caption.size);
+    const capPx = pxOf(T.caption.size);
     const mk = (H) => s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });
     if (!rows.length) {
       const v = mk(60);
@@ -149,6 +150,7 @@ export default {
               color: colorOf(a),
             })),
             W,
+            T,
           )
         : null,
       legH = LG ? VIZ.legendGap + LG.h : 0,

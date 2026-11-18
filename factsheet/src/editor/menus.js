@@ -1,11 +1,21 @@
-import { DENSITIES, TEXT_SCALES, TEXT_SCALE_MIN, TEXT_SCALE_MAX, LEADS, LEAD_STEP, textSetOf, textSetIsDefault } from '../tokens.js';
+import {
+  DENSITIES,
+  TEXT_SCALES,
+  TEXT_SCALE_MIN,
+  TEXT_SCALE_MAX,
+  LEADS,
+  LEAD_STEP,
+  TEXT_SKIP_KEYS,
+  textSetOf,
+  textSetIsDefault,
+} from '../tokens.js';
 import { h } from '../render.js';
 import { openPalette } from '../palette.js';
 import { openMedia } from '../media.js';
 import { LOCALES } from '../state.js';
 import { initI18n, getLang, LANGS, t } from '../i18n.js';
 import { promptBox, alertBox } from '../dialogs.js';
-import { openTextStyles } from './textstyles-ui.js';
+import { openTextStyles, APPLY_TO } from './textstyles-ui.js';
 import { MAC, MOD, TAB_KEYS } from './keys.js';
 
 /* Langue de l'interface (anglais par défaut) : sélecteur des réglages, renvoyé pour `declareMenus` */
@@ -28,7 +38,7 @@ function textItems(ctx) {
   const cur = () => textSetOf(ctx.getDoc().textSet);
   const set = (patch) => {
     const doc = ctx.getDoc();
-    doc.textSet = { ...textSetOf(doc.textSet), ...patch };
+    doc.textSet = textSetOf({ ...textSetOf(doc.textSet), ...patch });
     ctx.restructure();
   };
   const other = async () => {
@@ -57,13 +67,19 @@ function textItems(ctx) {
       checked: () => cur().lead === n,
       run: () => set({ lead: n }),
     })),
+    { heading: 'Appliquer aux' },
+    ...TEXT_SKIP_KEYS.map((k) => ({
+      label: APPLY_TO[k],
+      checked: () => !cur().skip.includes(k),
+      run: () => set({ skip: cur().skip.includes(k) ? cur().skip.filter((x) => x !== k) : [...cur().skip, k] }),
+    })),
     '-',
     { label: 'Césure automatique partout', checked: () => cur().hyph, run: () => set({ hyph: !cur().hyph }) },
     '-',
     {
       label: 'Réinitialiser le texte',
       icon: 'restore',
-      run: () => set({ scale: 1, lead: 0, hyph: false, styles: {} }),
+      run: () => set({ scale: 1, lead: 0, hyph: false, styles: {}, skip: [] }),
       disabled: () => textSetIsDefault(ctx.getDoc().textSet),
     },
   ];

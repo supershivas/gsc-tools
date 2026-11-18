@@ -14,6 +14,7 @@ import {
   boxRadius,
   densityGaps,
   paletteOf,
+  typeVars,
 } from './tokens.js';
 import { renderCtx } from './renderctx.js';
 import { IMAGE_RATIOS } from './state.js';
@@ -263,6 +264,12 @@ function renderImage(col, w) {
 /** w = largeur de la colonne (avant son propre retrait) */
 function renderCol(col, w, path, env) {
   const wrap = h('div', { class: `col col-${col.type}`, dataset: { sel: path } });
+  /* type exclu des réglages du texte (menu Texte, « Appliquer aux ») : la colonne garde les styles du gabarit, en CSS et au calcul */
+  if (env.rc.forType(col.type) !== env.rc) {
+    env = { ...env, rc: env.rc.plain };
+    applyVars(wrap, typeVars(null));
+    wrap.classList.add('ts-off');
+  }
   applyFg(wrap, col);
   const al = { top: 'start', center: 'center', bottom: 'end' }[col.valign] || 'start';
   if (isBox(col) && col.type !== 'card') {

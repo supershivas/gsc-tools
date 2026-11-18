@@ -1,6 +1,6 @@
 /* Liste à icônes : pastille ronde 0,5 pt + pictogramme + texte. */
-import { VIZ, TYPE } from '../tokens.js';
-import { s, el, SW, pxOf, inlineMk } from './util.js';
+import { VIZ } from '../tokens.js';
+import { s, el, SW, pxOf, inlineMk, typeIn } from './util.js';
 import { ICONS, ICON_OPTIONS, customChoices } from './icons.js';
 import { iconNode, iconImportPanel } from './picto.js';
 import { t } from '../i18n.js';
@@ -93,11 +93,12 @@ export default {
     },
   ],
   render(o, W, env) {
+    const T = typeIn(env); // styles du document (menu Texte)
     const sc = +o.scale || 1,
       ring = o.circle !== false,
       C = VIZ.iconCircle * sc,
       G = (ring ? VIZ.iconGlyph : VIZ.iconCircle * 0.9) * sc,
-      bodyPx = pxOf(TYPE.body.size) * sc,
+      bodyPx = pxOf(T.body.size) * sc,
       cw = SW * (STROKE_K[o.circleWidth] ?? 1),
       iw = SW * (STROKE_K[o.iconStroke] ?? 1);
     const list = el('div', { class: 'viz-icons', style: o.rowGap === 'tight' ? { gap: '3px' } : o.rowGap === 'none' ? { gap: '0' } : {} });
@@ -132,7 +133,7 @@ export default {
           svg,
           el('div', {
             class: 'vi-text',
-            style: sc !== 1 ? { fontSize: bodyPx + 'px', lineHeight: TYPE.body.lh * sc + 'px' } : null,
+            style: sc !== 1 ? { fontSize: bodyPx + 'px', lineHeight: T.body.lh * sc + 'px' } : null,
             innerHTML: inlineMk(it.text, false, env.rc.typo),
           }),
         ),

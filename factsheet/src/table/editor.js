@@ -5,7 +5,7 @@
 import { h, ico } from '../render.js';
 import { t } from '../i18n.js';
 import { mkToHtml, htmlToMk } from '../editor.js';
-import { cssVars, applyVars } from '../tokens.js';
+import { cssVars, applyVars, textSetFor } from '../tokens.js';
 import { renderCtx } from '../renderctx.js';
 import { loadFonts, typoOf, inlineMk } from '../viz/util.js';
 import { confirmBox } from '../dialogs.js';
@@ -51,7 +51,7 @@ export function openTableEditor({ col, bg, width, ctx, fileStem = (x) => 'tablea
     msgText = '';
 
   const root = h('div', { class: 've te', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('Éditeur de tableau'), tabindex: -1 });
-  applyVars(root, cssVars(doc.theme, doc.colors, doc.density, doc.textSet));
+  applyVars(root, cssVars(doc.theme, doc.colors, doc.density, textSetFor(doc.textSet, 'table')));
   const holder = h('div', { class: 'col col-table te-holder', style: { width: width + 'px' } });
   const sheet = h(
     'div',
@@ -101,7 +101,7 @@ export function openTableEditor({ col, bg, width, ctx, fileStem = (x) => 'tablea
     holder,
     host: root,
     getTable: tb,
-    getEnv: () => ({ rc: renderCtx(doc) }),
+    getEnv: () => ({ rc: renderCtx(doc).forType('table') }),
     getSel: () => sel,
     setSel: (s) => {
       if (editing) endEdit(true);

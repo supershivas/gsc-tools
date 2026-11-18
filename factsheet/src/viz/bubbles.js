@@ -1,7 +1,7 @@
 /* Bulles hiérarchiques (pack) : un cercle par feuille, proportionnel à sa valeur, regroupé dans le cercle de son parent. */
-import { layoutLegend, drawLegendWrap } from './util.js';
+import { layoutLegend, drawLegendWrap, typeIn } from './util.js';
 import { pack } from 'd3-hierarchy';
-import { VIZ, TYPE } from '../tokens.js';
+import { VIZ } from '../tokens.js';
 import { s, SW, colorRef, pxOf, fmt, mw, SANS, drawLegend, fitText, heightOf, inkOn } from './util.js';
 import { HIER_DATA, hierRows, buildHier, topOf, depthAlpha, lineAttrs, toneAlpha, LINE_FIELD, TONE_FIELD } from './hier.js';
 import { t } from '../i18n.js';
@@ -62,13 +62,15 @@ export default {
   data: HIER_DATA,
   dataHint: 'Une ligne par feuille ; laissez vides les niveaux inutiles. La couleur du niveau 1 s’applique à toute sa branche.',
   render(o, W, env) {
+    const T = typeIn(env); // styles du document (menu Texte)
     const { root, tops } = buildHier(o.rows),
-      capPx = pxOf(TYPE.caption.size),
-      numPx = pxOf(TYPE.captionNum.size),
+      capPx = pxOf(T.caption.size),
+      numPx = pxOf(T.captionNum.size),
       LG = o.legend
         ? layoutLegend(
             buildHier(o.rows).tops.map((x) => ({ name: x.name, color: x.color })),
             W,
+            T,
           )
         : null,
       legH = LG ? VIZ.legendGap + LG.h : 0;
