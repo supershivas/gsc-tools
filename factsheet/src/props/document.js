@@ -1,6 +1,7 @@
 /* Propriétés du document (rien de sélectionné) : nom, espacement, typographie, format des nombres, couleurs. */
 import { h } from '../render.js';
 import { t } from '../i18n.js';
+import { rangeControl, resetButton } from '../controls.js';
 import { DENSITIES, textSetOf } from '../tokens.js';
 import { buildPalette } from '../palette.js';
 import { convertDocNumbers } from '../table/tabular.js';
@@ -14,6 +15,29 @@ export function documentPanel(k) {
     doc[key] = !doc[key];
   };
   const leadOf = { lead: String(textSetOf(doc.textSet).lead) };
+  /* Taille de tous les textes (menu Texte, `doc.textSet.scale`) : curseur de 80 à 120 % ; une taille hors de cette plage
+     (fenêtre des styles) reste affichée dans le champ. Le glissé se regroupe en une étape d'historique (`ctx.changed`). */
+  const textScale = () => {
+    const pctNow = () => Math.round(textSetOf(doc.textSet).scale * 1000) / 10;
+    const setScale = (v) => {
+      if (!(v >= 50 && v <= 150)) return; // saisie en cours (« 9 » avant « 95 ») : rien
+      doc.textSet = textSetOf({ ...textSetOf(doc.textSet), scale: v / 100 });
+      reset.refresh(pctNow() === 100);
+      ctx.changed();
+    };
+    const rg = rangeControl(h, 'docTextScale', 'Taille du texte', { min: 80, max: 120, step: 1, unit: '%' }, pctNow(), setScale);
+    const reset = resetButton(h, 'Taille du texte', () => {
+      rg.set(100);
+      setScale(100);
+    });
+    reset.refresh(pctNow() === 100);
+    return h(
+      'div',
+      { class: 'f doc-scale' },
+      h('div', { class: 'hint' }, h('label', { for: 'docTextScale', textContent: t('Taille du texte') }), reset),
+      rg.node,
+    );
+  };
   const densities = Object.fromEntries(Object.entries(DENSITIES).map(([key, d]) => [key, t(d.label)]));
   const localeSelect = () => {
     const s = h(
@@ -123,6 +147,7 @@ export function documentPanel(k) {
           densities,
           struct(() => {}),
         ),
+        textScale(),
         /* crans d'interlignage de tout le document (menu Texte › Styles de paragraphe, `doc.textSet.lead`) */
         pair(
           'Interlignage',

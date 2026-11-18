@@ -645,6 +645,9 @@ textarea.dg-ml{display:block;width:100%;min-width:90px;border:0;border-radius:0;
 .pp-reset[aria-disabled=true]{opacity:.3;cursor:default}
 .pp-body .pp-range input[type=number].pp-num{width:64px;flex:none;min-height:32px;padding:3px 6px;font:var(--fs-sm) var(--font-mono,monospace)}
 .pp-body .pp-range input[type=range]{flex:1;min-width:0;width:auto}
+.doc-scale .hint{display:flex;align-items:center;justify-content:space-between}
+.doc-scale .pp-range input[type=range]{flex:1;min-width:0}
+.doc-scale .pp-range input[type=number].pp-num{flex:none;width:64px;min-height:32px;padding:3px 6px;font:var(--fs-sm) var(--font-mono,monospace)}
 .pp-range .pp-unit,.pp-range .pp-val{font:var(--fs-xs) var(--font-mono,monospace);color:var(--ui-mute)}
 .pp-range .pp-val{min-width:56px;text-align:right}
 

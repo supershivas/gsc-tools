@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.126.0 — 2026-11-18
+- Carte Document : curseur « Taille du texte » de 80 à 120 % (100 % par défaut), avec retour à 100 %
+
 ## 1.125.0 — 2026-11-18
 - Contenu qui dépasse : « Gagner de la place » (un cran à la fois) et « Ajuster le texte pour tenir » (plus grande taille où tout tient), annulables
 - Menu Texte plus court ; l'interlignage se règle aussi dans la carte Document, sous Espacement

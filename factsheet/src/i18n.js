@@ -102,6 +102,7 @@ const EN = {
   'Normal — 100 %': 'Normal — 100 %',
   'Large — 125 %': 'Wide — 125 %',
   'Taille des textes': 'Text size',
+  'Taille du texte': 'Text size',
   'Ajuster pour tenir': 'Fit to page',
   'Réduire le texte': 'Smaller text',
   'Agrandir le texte': 'Larger text',

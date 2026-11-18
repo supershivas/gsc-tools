@@ -1,8 +1,7 @@
 {
-  "version": "1.125.0",
+  "version": "1.126.0",
   "date": "2026-11-18",
   "changes": [
-    "Contenu qui dépasse : « Gagner de la place » (un cran à la fois) et « Ajuster le texte pour tenir » (plus grande taille où tout tient), annulables",
-    "Menu Texte plus court ; l'interlignage se règle aussi dans la carte Document, sous Espacement"
+    "Carte Document : curseur « Taille du texte » de 80 à 120 % (100 % par défaut), avec retour à 100 %"
   ]
 }

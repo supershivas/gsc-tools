@@ -33,7 +33,7 @@ Chemins : `cssVars(…, doc.textSet)` → variables `--t-*` (paragraphes, tablea
 
 ## Menu Texte (v1.125.0)
 
-Court, pour les gestes rapides : Styles de paragraphe… · Ajuster pour tenir · Réduire / Agrandir le texte (±5 %, taille actuelle en indication) · Césure automatique partout · Réinitialiser le texte. Le détail (taille exacte, interlignage, styles, « Appliquer aux ») est dans la fenêtre ; l'interlignage est aussi dans la carte Document, sous « Espacement ».
+Court, pour les gestes rapides : Styles de paragraphe… · Ajuster pour tenir · Réduire / Agrandir le texte (±5 %, taille actuelle en indication) · Césure automatique partout · Réinitialiser le texte. Le détail (taille exacte, interlignage, styles, « Appliquer aux ») est dans la fenêtre ; la carte Document a aussi un curseur « Taille du texte » (80–120 %, défaut 100 %, ↺ ; glissé regroupé en une étape d'historique par `ctx.changed`, saisie hors 50–150 % ignorée) et l'interlignage, sous « Espacement ».
 
 ## Pistes écartées pour l'instant
 

@@ -267,3 +267,29 @@ test('ajuster pour tenir : un document qui tient revient à 100 %', async ({ pag
   await page.keyboard.press('Escape');
   expect(errors).toEqual([]);
 });
+
+test('carte Document : curseur de taille du texte (80–120 %) et retour à 100 %', async ({ page }) => {
+  const errors = watchErrors(page);
+  await load(page);
+  const s0 = await sizes(page);
+  const range = page.locator('#props .doc-scale input[type=range]');
+  await expect(range).toHaveAttribute('min', '80');
+  await expect(range).toHaveAttribute('max', '120');
+  await expect(range).toHaveValue('100');
+  await range.fill('90');
+  await page.waitForTimeout(400);
+  let s = await sizes(page);
+  expect(s.body.fs).toBeCloseTo(14.4, 1);
+  expect(s.title).toEqual(s0.title);
+  await page.locator('#props .doc-scale input[type=number]').fill('110');
+  await page.waitForTimeout(400);
+  expect((await sizes(page)).body.fs).toBeCloseTo(17.6, 1);
+  /* le menu met le curseur à jour */
+  await pick(page, 'Smaller text');
+  await expect(page.locator('#props .doc-scale input[type=range]')).toHaveValue('105');
+  await page.locator('#props .doc-scale .pp-reset').click();
+  await page.waitForTimeout(400);
+  expect((await sizes(page)).body).toEqual(s0.body);
+  await expect(page.locator('#props .doc-scale input[type=range]')).toHaveValue('100');
+  expect(errors).toEqual([]);
+});
