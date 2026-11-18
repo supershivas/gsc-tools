@@ -1,7 +1,7 @@
 /* Propriétés du document (rien de sélectionné) : nom, espacement, typographie, format des nombres, couleurs. */
 import { h } from '../render.js';
 import { t } from '../i18n.js';
-import { DENSITIES } from '../tokens.js';
+import { DENSITIES, textSetOf } from '../tokens.js';
 import { buildPalette } from '../palette.js';
 import { convertDocNumbers } from '../table/tabular.js';
 import { LOCALES, useLogoFamily, useHeaderImage } from '../state.js';
@@ -13,6 +13,7 @@ export function documentPanel(k) {
   const toggle = (key) => () => {
     doc[key] = !doc[key];
   };
+  const leadOf = { lead: String(textSetOf(doc.textSet).lead) };
   const densities = Object.fromEntries(Object.entries(DENSITIES).map(([key, d]) => [key, t(d.label)]));
   const localeSelect = () => {
     const s = h(
@@ -121,6 +122,14 @@ export function documentPanel(k) {
           'density',
           densities,
           struct(() => {}),
+        ),
+        /* crans d'interlignage de tout le document (menu Texte › Styles de paragraphe, `doc.textSet.lead`) */
+        pair(
+          'Interlignage',
+          leadOf,
+          'lead',
+          { 0: t('Normal'), '-1': t('Serré'), '-2': t('Très serré') },
+          struct(() => (doc.textSet = textSetOf({ ...textSetOf(doc.textSet), lead: +leadOf.lead }))),
         ),
       ],
       null,

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.125.0 — 2026-11-18
+- Contenu qui dépasse : « Gagner de la place » (un cran à la fois) et « Ajuster le texte pour tenir » (plus grande taille où tout tient), annulables
+- Menu Texte plus court ; l'interlignage se règle aussi dans la carte Document, sous Espacement
+
 ## 1.124.0 — 2026-11-18
 - Menu Texte : les textes des graphiques (axes, légendes, valeurs) suivent aussi la taille et les styles
 - « Appliquer aux » : laisser les dataviz, chiffres clés, cartes, tableaux ou textes à la taille du gabarit

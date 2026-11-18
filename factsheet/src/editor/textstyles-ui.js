@@ -6,6 +6,7 @@
 import { h, ico } from '../render.js';
 import { t, getLang } from '../i18n.js';
 import { PSTYLES, GROUPS } from '../textstyles.js';
+import { fitScale } from './fit.js';
 import {
   TYPE,
   FONT,
@@ -123,6 +124,14 @@ export function openTextStyles(ctx) {
     });
     return h('label', { class: 'tsd-check', for: 'tsdOn-' + k }, box, h('span', { textContent: t(APPLY_TO[k]) }));
   });
+
+  /* « Ajuster pour tenir » sur le brouillon : plus grande taille où le recto et le verso tiennent (editor/fit.js) */
+  const fitNote = h('span', { class: 'tsd-fitnote', 'aria-live': 'polite' });
+  const fitDraft = () => {
+    const r = fitScale({ ...ctx.getDoc(), textSet: draft });
+    fitNote.textContent = r.fits ? '' : t('Même à 80 %, le contenu dépasse.');
+    if (r.fits) set({ ...draft, scale: r.scale });
+  };
 
   /* ----- un style ----- */
   const rows = {};
@@ -318,6 +327,7 @@ export function openTextStyles(ctx) {
           scaleIn,
           scaleStep(5, 'plus', 'Augmenter'),
           h('span', { class: 'tsd-unit', textContent: '%' }),
+          h('button', { type: 'button', class: 'btn tsd-fit', onclick: fitDraft }, ico('arrows-minimize'), t('Ajuster pour tenir')),
         ),
       ),
       h('div', { class: 'tsd-ctl' }, h('span', { textContent: t('Interlignage') }), leadSeg),
@@ -329,6 +339,7 @@ export function openTextStyles(ctx) {
         skipBoxes,
       ),
       status,
+      fitNote,
     ),
     h('p', {
       class: 'tsd-lead',

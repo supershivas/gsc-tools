@@ -95,6 +95,9 @@ dialog.modal::backdrop { background: var(--modal-overlay); }
 @media (hover: hover) { .fs-name:hover { border-color: rgba(255,255,255,.25); } }
 .fs-name:focus { outline: 0; border-color: rgba(255,255,255,.6); background: rgba(255,255,255,.08); }
 .menu-item:disabled { opacity: .4; pointer-events: none; }
+.menu-pop { width: max-content; max-width: min(440px, calc(100vw - 16px)); }
+.menu-item > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.menu-item > span, .menu-hint { white-space: nowrap; }
 .menu-hint { margin-left: auto; padding-left: 16px; font: 11px var(--font-mono); color: var(--mute); }
 .app-header .fs-hbtn, .app-header .fs-hbtn:hover { color: #fff; }
 .app-header input.fs-name { background: transparent; color: #fff; border: 1px solid transparent; padding: 6px 8px; font: 500 14px var(--font-sans); }

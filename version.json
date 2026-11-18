@@ -1,8 +1,8 @@
 {
-  "version": "1.124.0",
+  "version": "1.125.0",
   "date": "2026-11-18",
   "changes": [
-    "Menu Texte : les textes des graphiques (axes, légendes, valeurs) suivent aussi la taille et les styles",
-    "« Appliquer aux » : laisser les dataviz, chiffres clés, cartes, tableaux ou textes à la taille du gabarit"
+    "Contenu qui dépasse : « Gagner de la place » (un cran à la fois) et « Ajuster le texte pour tenir » (plus grande taille où tout tient), annulables",
+    "Menu Texte plus court ; l'interlignage se règle aussi dans la carte Document, sous Espacement"
   ]
 }

@@ -20,6 +20,21 @@ const pick = async (page, item) => {
   await page.locator('.menu-pop:not([hidden]) .menu-item', { hasText: item }).first().click();
   await page.waitForTimeout(300);
 };
+/* interlignage de tout le document : carte Document, sous « Espacement » */
+const lineSpacing = async (page, label) => {
+  await page
+    .locator('#props .f', { hasText: 'Line spacing' })
+    .locator('button', { hasText: new RegExp('^' + label + '$') })
+    .click();
+  await page.waitForTimeout(300);
+};
+/* « Appliquer aux » : cases de la fenêtre des styles, puis Appliquer */
+const applyTo = async (page, changes) => {
+  await pick(page, 'Paragraph styles');
+  for (const [k, on] of Object.entries(changes)) await page.locator(`dialog.tsd #tsdOn-${k}`).setChecked(on);
+  await page.locator('dialog.tsd').getByRole('button', { name: 'Apply' }).click();
+  await page.waitForTimeout(300);
+};
 /* corps et interlignage (px) du premier paragraphe courant, d'un titre de section et du titre du header */
 const sizes = (page) =>
   page.evaluate(() => {
@@ -43,13 +58,14 @@ test('taille des textes, interlignage, césure et réinitialisation', async ({ p
   await load(page);
   const s0 = await sizes(page);
   expect(s0.body).toEqual({ fs: 16, lh: 21 }); // 12 pt / 21 px
-  await pick(page, '90 %');
+  await pick(page, 'Smaller text');
+  await pick(page, 'Smaller text');
   let s = await sizes(page);
   expect(s.body.fs).toBeCloseTo(14.4, 1); // 10,8 pt
   expect(s.body.lh).toBe(19.5); // 18,9 → grille de 1,5 px
   expect(s.sec.fs).toBeCloseTo(s0.sec.fs * 0.9, 0);
   expect(s.title).toEqual(s0.title); // le header ne bouge jamais
-  await pick(page, 'Tight');
+  await lineSpacing(page, 'Tight');
   s = await sizes(page);
   expect(s.body.lh).toBe(18); // un cran de 1,5 px
   await pick(page, 'Automatic hyphenation everywhere');
@@ -172,14 +188,13 @@ test('dataviz et chiffres clés suivent l’échelle ; « Appliquer aux » les e
   await load(page);
   const v0 = await vizSizes(page);
   expect(v0.excluded).toBe(0);
-  await pick(page, '80 %');
+  for (let i = 0; i < 4; i++) await pick(page, 'Smaller text');
   const v1 = await vizSizes(page);
   expect(v1.vizMin / v0.vizMin).toBeCloseTo(0.8, 1);
   expect(v1.fig / v0.fig).toBeLessThan(0.9);
   expect(v1.body / v0.body).toBeCloseTo(0.8, 1);
   /* décocher Dataviz puis Chiffres clés : ils reviennent au gabarit, le texte reste à 80 % */
-  await pick(page, 'Dataviz');
-  await pick(page, 'Key figures');
+  await applyTo(page, { viz: false, figure: false });
   const v2 = await vizSizes(page);
   expect(v2.vizMin).toBeCloseTo(v0.vizMin, 2);
   expect(v2.viz).toBeCloseTo(v0.viz, 2);
@@ -197,5 +212,58 @@ test('dataviz et chiffres clés suivent l’échelle ; « Appliquer aux » les e
   await page.keyboard.press('Escape');
   await pick(page, 'Reset text settings');
   expect((await vizSizes(page)).viz).toBeCloseTo(v0.viz, 2);
+  expect(errors).toEqual([]);
+});
+
+/* Phase 4 : contenu qui dépasse → « Gagner de la place » (espacement, interlignage, −5 %), « Ajuster pour tenir » ; annulables */
+const longText = `const c = d.sections.flatMap((x) => x.subs).flatMap((x) => x.cols).find((x) => x.type === 'text');
+  c.text += '\\n' + Array(2).fill('Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat.').join(' ');`;
+const overflowing = (page) => page.evaluate(() => document.querySelectorAll('#warnings .ovf-save').length > 0);
+test('gagner de la place et ajuster pour tenir', async ({ page }) => {
+  const errors = watchErrors(page);
+  await load(page, longText);
+  expect(await overflowing(page)).toBe(true);
+  const save = page.locator('#warnings .ovf-save button', { hasText: 'Save space' });
+  await save.click();
+  await page.waitForTimeout(400);
+  let d = await page.evaluate(() => JSON.parse(localStorage.getItem('factsheet-creator-v1')));
+  expect(d.density).toBe('tight');
+  if (await overflowing(page)) {
+    await save.click();
+    await page.waitForTimeout(400);
+    d = await page.evaluate(() => JSON.parse(localStorage.getItem('factsheet-creator-v1')));
+    expect(d.textSet.lead).toBe(-1);
+  }
+  /* annuler les gestes, puis « Ajuster pour tenir » depuis l'alerte */
+  await page.keyboard.press('Control+z');
+  await page.keyboard.press('Control+z');
+  await page.waitForTimeout(400);
+  expect(await overflowing(page)).toBe(true);
+  await page.locator('#warnings .ovf-save button', { hasText: 'Fit text to page' }).click();
+  await page.waitForTimeout(500);
+  d = await page.evaluate(() => JSON.parse(localStorage.getItem('factsheet-creator-v1')));
+  expect(d.textSet.scale).toBeLessThan(1);
+  expect(d.textSet.scale).toBeGreaterThanOrEqual(0.8);
+  expect(await overflowing(page)).toBe(false);
+  await expect(page.locator('.fs-toast')).toContainText('Text fitted at');
+  /* la taille trouvée est la plus grande : un cran au-dessus dépasse */
+  await pick(page, 'Larger text');
+  expect(await overflowing(page)).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('ajuster pour tenir : un document qui tient revient à 100 %', async ({ page }) => {
+  const errors = watchErrors(page);
+  await load(page, `d.textSet = { scale: 0.85 };`);
+  await pick(page, 'Fit to page');
+  await page.waitForTimeout(400);
+  const d = await page.evaluate(() => JSON.parse(localStorage.getItem('factsheet-creator-v1')));
+  expect(d.textSet.scale).toBe(1);
+  /* la fenêtre : même calcul sur le brouillon */
+  await pick(page, 'Smaller text');
+  await pick(page, 'Paragraph styles');
+  await page.locator('dialog.tsd .tsd-fit').click();
+  await expect(page.locator('dialog.tsd input[aria-label="Size of all text (%)"]')).toHaveValue('100');
+  await page.keyboard.press('Escape');
   expect(errors).toEqual([]);
 });

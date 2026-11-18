@@ -3,6 +3,7 @@ import { renderDocument, measure, h, ico } from '../render.js';
 import { storage, moveSection } from '../state.js';
 import { stripMk } from '../viz/util.js';
 import { t } from '../i18n.js';
+import { nextSaving, saveSpace, fitText, pctLabel } from './fit.js';
 
 /* Aperçu : dessin des pages (échelle, jauges, avertissements), zoom, et document candidat d'un glisser-déposer.
    Ajoute à ctx : `schedule`, `preview(fn)`, `shown()`, `previewing()`, `previewMark()`.
@@ -81,6 +82,7 @@ export function createPreview(ctx, { spacing, selection }) {
     });
     warnEl.innerHTML = '';
     r.warnings.forEach((w) => warnEl.append(h('div', { textContent: w })));
+    if (r.overflows.length && !previewDoc) warnEl.append(saveRow(doc));
     r.overflows.forEach((o) => o.secs.forEach(({ si, state }) => warnEl.append(overflowRow(doc, o, si, state))));
     if (!storage.ok)
       warnEl.append(
@@ -135,6 +137,24 @@ export function createPreview(ctx, { spacing, selection }) {
     );
   }
   /* Avertissement par section : son état, et de quoi y remédier (aller à la section, la déplacer sur l'autre page : annulable) */
+  /* Le contenu dépasse : gagner de la place en un geste (espacement, interlignage, taille −5 %) ou ajuster la taille du texte (editor/fit.js) */
+  function saveRow(doc) {
+    const next = nextSaving(doc);
+    return h(
+      'div',
+      { class: 'ovf-row ovf-save' },
+      h('span', { class: 'ovf-txt', textContent: t('Le contenu dépasse de la page.') }),
+      h('button', {
+        type: 'button',
+        class: 'mini',
+        textContent: t('Gagner de la place'),
+        title: next ? (next.pct ? `${t(next.label)} ${pctLabel(next.pct)}` : t(next.label)) : '',
+        disabled: !next,
+        onclick: () => saveSpace(ctx),
+      }),
+      h('button', { type: 'button', class: 'mini', textContent: t('Ajuster le texte pour tenir'), onclick: () => fitText(ctx) }),
+    );
+  }
   function overflowRow(doc, o, si, state) {
     const sec = doc.sections[si],
       other = o.page === 'recto' ? 'verso' : 'recto',

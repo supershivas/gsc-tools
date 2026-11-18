@@ -1,21 +1,11 @@
-import {
-  DENSITIES,
-  TEXT_SCALES,
-  TEXT_SCALE_MIN,
-  TEXT_SCALE_MAX,
-  LEADS,
-  LEAD_STEP,
-  TEXT_SKIP_KEYS,
-  textSetOf,
-  textSetIsDefault,
-} from '../tokens.js';
+import { DENSITIES, TEXT_SCALE_MIN, TEXT_SCALE_MAX, textSetOf, textSetIsDefault } from '../tokens.js';
 import { h } from '../render.js';
 import { openPalette } from '../palette.js';
 import { openMedia } from '../media.js';
 import { LOCALES } from '../state.js';
-import { initI18n, getLang, LANGS, t } from '../i18n.js';
-import { promptBox, alertBox } from '../dialogs.js';
-import { openTextStyles, APPLY_TO } from './textstyles-ui.js';
+import { initI18n, getLang, LANGS } from '../i18n.js';
+import { openTextStyles } from './textstyles-ui.js';
+import { fitText, pctLabel } from './fit.js';
 import { MAC, MOD, TAB_KEYS } from './keys.js';
 
 /* Langue de l'interface (anglais par défaut) : sélecteur des réglages, renvoyé pour `declareMenus` */
@@ -31,9 +21,9 @@ export function initLang(ctx) {
   return langSel;
 }
 
-/* Menu Texte : réglages du texte de tout le document (`doc.textSet`, voir tokens.js) pour gagner de la place sans changer le dessin.
-   Taille de tous les styles (échelle), crans d'interlignage de 1,5 px, césure automatique, retour au gabarit. */
-const pct = (f) => String(Math.round(f * 1000) / 10).replace('.', getLang() === 'fr' ? ',' : '.') + ' %';
+/* Menu Texte : gestes rapides sur le texte de tout le document (`doc.textSet`, voir tokens.js) ; le détail (taille exacte,
+   interlignage, styles, « Appliquer aux ») est dans la fenêtre « Styles de paragraphe » ; l'interlignage aussi dans la carte Document. */
+const SCALE_STEP = 0.05;
 function textItems(ctx) {
   const cur = () => textSetOf(ctx.getDoc().textSet);
   const set = (patch) => {
@@ -41,41 +31,32 @@ function textItems(ctx) {
     doc.textSet = textSetOf({ ...textSetOf(doc.textSet), ...patch });
     ctx.restructure();
   };
-  const other = async () => {
-    const v = await promptBox(t('Taille de tous les textes, en % (50 à 150) :'), String(Math.round(cur().scale * 1000) / 10));
-    if (v == null) return;
-    const n = parseFloat(String(v).replace(',', '.').replace('%', ''));
-    if (!(n >= TEXT_SCALE_MIN * 100 && n <= TEXT_SCALE_MAX * 100)) return alertBox(t('Indiquez un nombre entre 50 et 150.'));
-    set({ scale: Math.round(n * 10) / 1000 });
+  /* ±5 % sur la grille de 5 % (92,5 % → 90 % ou 95 %) */
+  const stepScale = (dir) => {
+    const n = cur().scale / SCALE_STEP,
+      k = dir < 0 ? Math.ceil(n - 1e-6) - 1 : Math.floor(n + 1e-6) + 1;
+    return Math.min(TEXT_SCALE_MAX, Math.max(TEXT_SCALE_MIN, Math.round(k * SCALE_STEP * 1000) / 1000));
   };
-  const leadLabel = { 0: 'Normal', [-1]: 'Serré', [-2]: 'Très serré' };
+  const now = pctLabel(cur().scale);
   return [
     { label: 'Styles de paragraphe…', icon: 'typography', run: () => openTextStyles(ctx) },
     '-',
-    { heading: 'Taille des textes' },
-    ...TEXT_SCALES.map((f) => ({ label: pct(f), checked: () => cur().scale === f, run: () => set({ scale: f }) })),
+    { label: 'Ajuster pour tenir', icon: 'arrows-minimize', run: () => fitText(ctx) },
     {
-      label: 'Autre taille…',
-      checked: () => !TEXT_SCALES.includes(cur().scale),
-      hint: TEXT_SCALES.includes(cur().scale) ? '' : pct(cur().scale),
-      run: other,
+      label: 'Réduire le texte',
+      icon: 'text-decrease',
+      hint: now,
+      run: () => set({ scale: stepScale(-1) }),
+      disabled: () => cur().scale <= TEXT_SCALE_MIN,
     },
-    { heading: 'Interlignage' },
-    ...LEADS.map((n) => ({
-      label: leadLabel[n],
-      hint: n ? `−${String(-n * LEAD_STEP).replace('.', getLang() === 'fr' ? ',' : '.')} px` : '',
-      checked: () => cur().lead === n,
-      run: () => set({ lead: n }),
-    })),
-    { heading: 'Appliquer aux' },
-    ...TEXT_SKIP_KEYS.map((k) => ({
-      label: APPLY_TO[k],
-      checked: () => !cur().skip.includes(k),
-      run: () => set({ skip: cur().skip.includes(k) ? cur().skip.filter((x) => x !== k) : [...cur().skip, k] }),
-    })),
+    {
+      label: 'Agrandir le texte',
+      icon: 'text-increase',
+      run: () => set({ scale: stepScale(1) }),
+      disabled: () => cur().scale >= TEXT_SCALE_MAX,
+    },
     '-',
     { label: 'Césure automatique partout', checked: () => cur().hyph, run: () => set({ hyph: !cur().hyph }) },
-    '-',
     {
       label: 'Réinitialiser le texte',
       icon: 'restore',
