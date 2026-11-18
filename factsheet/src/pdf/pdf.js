@@ -41,6 +41,9 @@ import {
   setStrokingRgbColor,
   drawObject,
   setGraphicsState,
+  setTextRenderingMode,
+  setCharacterSpacing,
+  TextRenderingMode,
 } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { PAGE, STROKE } from '../tokens.js';
@@ -69,6 +72,20 @@ function parseCss(str) {
   if (!m) return null;
   let a = m[4] === undefined ? 1 : m[4].endsWith('%') ? parseFloat(m[4]) / 100 : parseFloat(m[4]);
   return { rgb: [+m[1], +m[2], +m[3]], a };
+}
+
+/* ---------- puce de liste ---------- */
+/** Puce « disc » telle que Chrome la dessine (Blink, ListMarker, en pixels entiers ; relevé sur 80 tailles des deux polices) :
+    A = ascendante = ⌊h − descendante⌋ (h = hauteur du rectangle de la 1re ligne de texte ; descendante non arrondie sous
+    `text-rendering: geometricPrecision`, celui de la page, arrondie sinon), t = ⌊2A/3⌋, disque de ⌊(t + 1)/2⌋ px de diamètre,
+    bord gauche à t + 7 px avant le texte, haut à ⌊3(A − t)/2⌋ px sous le haut du rectangle.
+    Renvoie le rayon et le centre relatif (dx avant le texte, dy sous le haut du rectangle). */
+function discMarker(cs, h, desc) {
+  const D = desc * parseFloat(cs.fontSize),
+    A = Math.floor(h - (cs.textRendering === 'geometricprecision' ? D : Math.round(D)) + 1e-6),
+    t = Math.floor((2 * A) / 3),
+    w = Math.floor((t + 1) / 2);
+  return { r: w / 2, dx: t + 7 - w / 2, dy: Math.floor((3 * (A - t)) / 2) + w / 2 };
 }
 
 /* ---------- chemins SVG ---------- */
@@ -418,14 +435,26 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
     pdf.setProducer(`GSC tools — Factsheet creator (PDF ${ink.n === 3 ? 'RVB' : 'CMJN'})`);
     pdf.setCreator('GSC tools');
     const fonts = new Map();
+    const fontName = (fam, weight, italic) =>
+      (fam === 'serif' ? 'SourceSerif4' : 'SourceSans3') + '-' + nearest(weight) + (italic ? '-italic' : '');
+    /** police déjà chargée d'un élément (toutes le sont avant le rendu) */
+    const fontOf = (cs) =>
+      fonts.get(
+        fontName(
+          /serif 4/i.test(cs.fontFamily) ? 'serif' : 'sans',
+          +cs.fontWeight || 400,
+          cs.fontStyle === 'italic' || cs.fontStyle.startsWith('oblique'),
+        ),
+      );
     const fontFor = async (fam, weight, italic) => {
-      const name = (fam === 'serif' ? 'SourceSerif4' : 'SourceSans3') + '-' + nearest(weight) + (italic ? '-italic' : '');
+      const name = fontName(fam, weight, italic);
       if (!fonts.has(name)) {
         const bytes = await fontBytes(name),
           fk = fontkit.create(new Uint8Array(bytes)),
           embedded = await pdf.embedFont(bytes, { subset: true });
         fonts.set(name, {
           embedded,
+          fk,
           asc: fk.ascent / fk.unitsPerEm,
           desc: -fk.descent / fk.unitsPerEm,
           chars: new Set(embedded.getCharacterSet()),
@@ -605,6 +634,19 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
           under = /underline/.test(cs.textDecorationLine),
           strike = /line-through/.test(cs.textDecorationLine),
           caps = cs.fontVariantCaps === 'small-caps';
+        /* contour du texte SVG (halo blanc des étiquettes : stroke + paint-order: stroke) : redessiné en mode de rendu « contour » */
+        const hs = isSvg ? parseCss(cs.stroke) : null,
+          hw = isSvg ? (parseFloat(cs.strokeWidth) || 0) * scale : 0;
+        const halo =
+          hs && hs.a > 0 && hw > 0
+            ? {
+                rgb: hs.rgb,
+                a: hs.a * alpha,
+                w: hw,
+                join: { round: 1, bevel: 2 }[cs.strokeLinejoin] || 0,
+                under: /^stroke/.test(cs.paintOrder),
+              }
+            : null;
         const data = node.data,
           re = /\S+/g;
         let w;
@@ -658,6 +700,7 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
                     under,
                     strike,
                     clip,
+                    halo,
                   });
                 } catch (e) {
                   ok = false;
@@ -730,6 +773,7 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
               under,
               strike,
               clip,
+              halo,
             });
         }
       };
@@ -758,8 +802,39 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
             emitPath(rectPath(j.clip.x, j.clip.y, j.clip.w, j.clip.h), [1, 0, 0, 1, 0, 0]);
             push(clip(), endPath());
           }
+          /* largeur du mot calée sur celle du navigateur : les polices du PDF n'ont pas de crénage (celles de l'écran si),
+             l'écart est réparti entre les lettres (Tc) ; sans cela, un grand titre gras mangeait l'espace entre deux mots */
+          const sizePt = j.size * KY,
+            n = t.length === j.text.length && j.w > 0 ? f.fk.layout(t).glyphs.length : 0,
+            tc0 = n > 1 ? (j.w * KX - f.embedded.widthOfTextAtSize(t, sizePt)) / (n - 1) : 0,
+            tc = Math.abs(tc0) > 0.001 && Math.abs(tc0) < sizePt * 0.1 ? tc0 : 0;
+          if (tc) push(pushGraphicsState(), setCharacterSpacing(tc));
+          /* halo : contour sous le remplissage (paint-order: stroke) ou par-dessus (ordre normal du SVG) */
+          const outline = () => {
+            let hc = resolve(j.halo.rgb),
+              ha = j.halo.a;
+            if (flat && ha < 0.999) {
+              hc = mix(hc, ha, backdrop(j.x + j.w / 2, baseline - j.size * 0.3));
+              ha = 1;
+            }
+            push(
+              pushGraphicsState(),
+              setTextRenderingMode(TextRenderingMode.Outline),
+              setLineWidth(j.halo.w * KY),
+              setLineJoin(j.halo.join),
+            );
+            const ga = alphaOps(1, ha);
+            if (ga) push(ga);
+            setStroke(hc);
+            flush();
+            page.drawText(t, { x, y, size: sizePt, font: f.embedded, color: ink.color(hc) });
+            push(popGraphicsState());
+          };
+          if (j.halo && j.halo.under) outline();
           flush();
-          page.drawText(t, { x, y, size: j.size * KY, font: f.embedded, color: ink.color(c), opacity: a < 0.999 ? a : undefined });
+          page.drawText(t, { x, y, size: sizePt, font: f.embedded, color: ink.color(c), opacity: a < 0.999 ? a : undefined });
+          if (j.halo && !j.halo.under) outline();
+          if (tc) push(popGraphicsState());
           const la = alphaOps(1, a);
           if (la && (j.strike || j.under)) push(pushGraphicsState(), la);
           if (j.strike) {
@@ -1082,29 +1157,18 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
         }
         if (el.localName === 'img') drawImg(el, cs, null, A2);
         if (cs.display === 'list-item' && cs.listStyleType !== 'none') {
-          // puce : disque devant la première ligne
+          // puce : disque devant la première ligne, à la géométrie de Chrome (discMarker)
           const rg = document.createRange();
           rg.selectNodeContents(el);
           const first = [...rg.getClientRects()].find((q) => q.width > 0);
-          const fs = parseFloat(cs.fontSize),
-            col = parseCss(cs.color);
-          const bx = first ? first.left - P.left - fs * 0.62 : 0,
-            by = first ? first.top - P.top + first.height * 0.52 : 0;
+          const col = parseCss(cs.color),
+            d = first && discMarker(cs, first.height, (fontOf(cs) || { desc: 0.4 }).desc);
+          const bx = first ? first.left - P.left - d.dx : 0,
+            by = first ? first.top - P.top + d.dy : 0;
           if (first && col)
-            paint(
-              ellipsePath(bx, by, fs * 0.17, fs * 0.17),
-              [1, 0, 0, 1, 0, 0],
-              resolve(col.rgb),
-              col.a * A2,
-              null,
-              1,
-              0,
-              null,
-              0,
-              0,
-              false,
-              { pt: [bx, by] },
-            );
+            paint(ellipsePath(bx, by, d.r, d.r), [1, 0, 0, 1, 0, 0], resolve(col.rgb), col.a * A2, null, 1, 0, null, 0, 0, false, {
+              pt: [bx, by],
+            });
         }
         for (const n of el.childNodes) {
           if (n.nodeType === 3) drawText(n, el, 1, false, A2);

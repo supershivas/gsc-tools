@@ -33,6 +33,8 @@ jobs:
       # traductions, compilation sans avertissement, bundles identiques à ceux du dépôt
       - run: npm run check
       - run: npx playwright install --with-deps chromium
+      # pdftoppm : rendu des PDF pour la parité aperçu ↔ PDF et la limite du fond perdu
+      - run: sudo apt-get install -y poppler-utils
       - name: Tests Playwright
         run: npx playwright test ${{ inputs.update_snapshots && '--update-snapshots' || '' }}
         env:

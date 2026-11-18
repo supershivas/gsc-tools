@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.121.2 — 2026-11-18
+- PDF : les puces des listes sont à la même place et de la même taille qu'à l'écran
+- PDF : les mots gardent la largeur de l'aperçu (un grand titre ne colle plus deux mots) ; halo blanc des étiquettes du Sankey rétabli
+
 ## 1.121.1 — 2026-11-16
 - Chiffre clé : le cercle autour de l'icône se choisit dès qu'une icône est posée
 - Moins d'espace sous l'en-tête des chiffres ; pictogrammes seuls calés sur le texte ; barres de progression alignées entre chiffres voisins
