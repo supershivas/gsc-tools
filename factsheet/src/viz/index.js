@@ -121,6 +121,15 @@ function boxed(t, o, W, env, node) {
   return box;
 }
 
+/** Style du titre de la dataviz (`head.style`, absent = « Légende (gras) », l'aspect d'origine) ; une ligne préfixée (# …) garde le sien */
+const HEAD_STYLES = ['cap', 'h2', 'h1', 'bold', 'body'];
+export const HEAD_STYLE_FIELD = {
+  k: 'style',
+  t: 'select',
+  label: 'Style du titre',
+  options: { cap: 'Légende (gras)', h2: 'Sous-section', h1: 'Titre de section', bold: 'Texte gras', body: 'Texte' },
+  def: 'cap',
+};
 /** Titre et source facultatifs, communs à tous les types (`viz.head`) */
 function withHead(viz, node, env) {
   const hd = viz.head || {};
@@ -135,7 +144,8 @@ function withHead(viz, node, env) {
       .filter((l) => l.trim())
       .forEach((l) => {
         const m = parseLine(l.trim());
-        T.append(el('div', { class: m.key ? 'p-' + m.key : '', innerHTML: inlineMk(m.text, false, env.rc.typo) }));
+        const st = m.key || (HEAD_STYLES.includes(hd.style) ? hd.style : ''); // ligne sans préfixe : style choisi pour le titre (`head.style`)
+        T.append(el('div', { class: st && st !== 'cap' ? 'p-' + st : '', innerHTML: inlineMk(m.text, false, env.rc.typo) }));
       });
     wrap.append(T);
   }

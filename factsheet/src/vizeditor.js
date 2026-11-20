@@ -16,7 +16,7 @@ import { helpBtn } from './help.js';
 import { loadFonts, typoOf, stripMk } from './viz/util.js';
 import { confirmBox } from './dialogs.js';
 import { startReorder } from './vizreorder.js';
-import { newSide, SIDE_FIELDS } from './viz/index.js';
+import { newSide, SIDE_FIELDS, HEAD_STYLE_FIELD } from './viz/index.js';
 import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
 import { t } from './i18n.js';
 import { openVizExport } from './vizexport.js';
@@ -658,7 +658,11 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
             'dv-head',
             'typography',
             t('Titre et source'),
-            [softField(head, 'title', 'Titre de la dataviz', {}), softField(head, 'source', 'Source de la dataviz', { bullets: false })],
+            [
+              softField(head, 'title', 'Titre de la dataviz', {}),
+              ...buildFields([HEAD_STYLE_FIELD], head, fctx, {}, h),
+              softField(head, 'source', 'Source de la dataviz', { bullets: false }),
+            ],
             headSummary(head),
           ),
           ty.panel ? card('dv-picto', 'mood-smile', t(ty.panelTitle || 'Pictogramme'), ty.panel(col.viz.opts, fctx)) : null,

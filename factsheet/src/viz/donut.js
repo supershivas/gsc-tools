@@ -2,7 +2,7 @@
    libellés autour de l'anneau avec traits de repère (colonnes larges)
    ou en légende sous l'anneau (colonnes étroites). Logique reprise de donut-export. */
 import { VIZ, TYPE } from '../tokens.js';
-import { s, SW, lineAttrs, LINE_FIELD, colorRef, pxOf, fmt, mw, SERIF, SANS, round3, textLines, drawLines, typeIn } from './util.js';
+import { s, SW, lineAttrs, LINE_FIELD, colorRef, pxOf, fmt, mw, SERIF, SANS, round3, richLines, drawRich, typeIn } from './util.js';
 import { t } from '../i18n.js';
 
 const LEAD = { tight: 15, normal: 18, loose: 21 }; // interlignage des textes (px) : « normal » = 18, un peu plus serré que le corps de texte (21)
@@ -32,7 +32,92 @@ const ORANGE = '#F28C28';
 const RING_PCT = { thin: 0.1, normal: VIZ.ringPct, thick: 0.24 }; // épaisseur de l'anneau / rayon extérieur
 const SEG_GAP = { none: 0, thin: 2, wide: 5 }; // largeur (px) du liseré de la couleur du fond entre les segments
 
-export default {
+/** Style d'une partie des libellés (titre ou texte) d'après un style du document (`T` = styles du rendu, menu Texte).
+    Défauts (titre « Texte gras », texte « Texte ») : corps du texte courant et interlignage `leading`, comme avant les styles. */
+function labelSpec(T, key, LH, title) {
+  const BODY = pxOf(T.body.size);
+  if (key === 'bold' || key === 'body') return { size: BODY, lh: LH, family: SANS, weight: 400, bold: key === 'bold' };
+  if (key === 'small' || key === 'caption') {
+    const size = pxOf(T[key].size);
+    return {
+      size,
+      lh: Math.max(Math.ceil((size * 1.15) / 1.5) * 1.5, Math.round((LH * (size / BODY)) / 1.5) * 1.5),
+      family: SANS,
+      weight: 400,
+      bold: title,
+    };
+  }
+  const ty = T[key] || T.bodyBold,
+    size = pxOf(ty.size),
+    serif = ty.family === 'serif';
+  return {
+    size,
+    lh: Math.max(ty.lh, Math.ceil((size * 1.05) / 1.5) * 1.5),
+    family: serif ? SERIF : SANS,
+    fam: serif ? `var(--t-${key}-family)` : null,
+    weight: ty.weight,
+    bold: false,
+  };
+}
+
+/** Comparaison : deux anneaux côte à côte (valeurs `value` puis `value2` de chaque segment), chacun avec son titre et ses libellés.
+    Le 2e part du même angle que le 1er (mêmes catégories au même endroit) ; « surface proportionnelle » rétrécit celui du plus petit total. */
+function renderCompare(o, W, env) {
+  const T = typeIn(env),
+    gapX = (env.rc && env.rc.gutter) || 18,
+    hw = Math.max(60, (W - gapX) / 2);
+  const segs = o.segments || [];
+  const half = (k) => ({
+    ...o,
+    _sub: true,
+    ringX: 0,
+    segments: segs.map((g) => ({
+      ...g,
+      value: k ? (g.value2 ?? 0) : g.value,
+      title: k && String(g.title2 || '').trim() ? g.title2 : g.title,
+    })),
+  });
+  const A = half(0),
+    B = half(1);
+  const sum = (x) => x.segments.reduce((a, g) => a + Math.max(0, +g.value || 0), 0),
+    tA = sum(A),
+    tB = sum(B);
+  if (o.cmpScale === 'area' && tA > 0 && tB > 0) {
+    if (tA > tB) B._k = Math.sqrt(tB / tA);
+    else A._k = Math.sqrt(tA / tB);
+  }
+  const rA = DONUT.render(A, hw, env);
+  B.orient = 'manual';
+  B.startAngle = rA.meta ? rA.meta.start : 0;
+  const rB = DONUT.render(B, hw, env);
+  /* titres des deux camemberts (ex. 2024 / 2025), au-dessus, dans le style choisi */
+  const BODY = pxOf(T.body.size),
+    st = o.cmpTitleStyle || 'caption',
+    spec =
+      st === 'caption'
+        ? { size: pxOf(T.caption.size), lh: T.caption.lh, family: SANS, weight: 400, bold: true }
+        : st === 'bold'
+          ? { size: BODY, lh: T.bodyBold.lh, family: SANS, weight: 400, bold: true }
+          : labelSpec(T, 'subsection', T.body.lh, true);
+  const tl = [o.cmpTitle1, o.cmpTitle2].map((x) => (String(x || '').trim() ? richLines(x, spec, hw) : []));
+  const th = Math.max(...tl.map((l) => l.reduce((a, x) => a + x.lh, 0)));
+  const titleH = th ? th + VIZ.blockGap : 0;
+  const hOf = (r) => (r && r.node ? +r.node.getAttribute('height') || 0 : 0);
+  const H = Math.ceil(titleH + Math.max(hOf(rA), hOf(rB)));
+  const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });
+  [rA, rB].forEach((r, k) => {
+    const x = k ? W - hw : 0;
+    if (tl[k].length) svg.append(drawRich(tl[k], x, 0));
+    if (!r || !r.node) return;
+    const g = s('g', { transform: `translate(${x} ${titleH})` });
+    g.append(...r.node.childNodes);
+    g.querySelectorAll('[data-hit]').forEach((n) => n.removeAttribute('data-hit')); // pas de glisser dans la comparaison : réglages par les champs
+    svg.append(g);
+  });
+  return { node: svg };
+}
+
+const DONUT = {
   label: 'Anneau / camembert',
   icon: 'chart-donut',
   family: 'part',
@@ -68,6 +153,86 @@ export default {
   }),
   fields: [
     { k: 'style', g: 'struct', t: 'select', label: 'Forme', options: { donut: 'Anneau (total au centre)', pie: 'Camembert' } },
+    {
+      k: 'showTotal',
+      g: 'labels',
+      when: (o) => o.style !== 'pie',
+      t: 'bool',
+      label: 'Texte au centre de l’anneau',
+      def: true,
+    },
+    {
+      k: 'ringX',
+      g: 'struct',
+      when: (o) => !o.compare,
+      why: 'Désactivez la comparaison pour déplacer l’anneau.',
+      t: 'number',
+      label:
+        'Position horizontale de l’anneau (−100 = à gauche, 0 = centré, 100 = à droite ; se règle aussi en tirant la poignée du centre)',
+      min: -100,
+      max: 100,
+      def: 0,
+    },
+    {
+      k: 'compare',
+      g: 'struct',
+      t: 'bool',
+      label: 'Comparer deux camemberts côte à côte (2e valeur de chaque segment)',
+    },
+    {
+      k: 'cmpScale',
+      g: 'struct',
+      when: (o) => !!o.compare,
+      why: 'Activez la comparaison pour choisir la taille des deux camemberts.',
+      t: 'select',
+      label: 'Taille des deux camemberts',
+      options: { same: 'Même taille', area: 'Surface proportionnelle au total' },
+      def: 'same',
+    },
+    {
+      k: 'cmpTitle1',
+      g: 'labels',
+      when: (o) => !!o.compare,
+      t: 'text',
+      fmt: 'chart',
+      label: 'Titre du 1er camembert (ex. 2024)',
+    },
+    {
+      k: 'cmpTitle2',
+      g: 'labels',
+      when: (o) => !!o.compare,
+      t: 'text',
+      fmt: 'chart',
+      label: 'Titre du 2e camembert (ex. 2025)',
+    },
+    {
+      k: 'cmpTitleStyle',
+      g: 'texts',
+      when: (o) => !!o.compare,
+      why: 'Activez la comparaison pour régler le style des titres des camemberts.',
+      t: 'select',
+      label: 'Style des titres des camemberts',
+      options: { caption: 'Légende (gras)', bold: 'Texte gras', subsection: 'Sous-section' },
+      def: 'caption',
+    },
+    {
+      k: 'labelTitle',
+      g: 'texts',
+      when: (o) => o.layout !== 'none',
+      t: 'select',
+      label: 'Style des titres des libellés',
+      options: { bold: 'Texte gras', body: 'Texte', subsection: 'Sous-section', figureSm: 'Chiffre clé (petit)' },
+      def: 'bold',
+    },
+    {
+      k: 'labelText',
+      g: 'texts',
+      when: (o) => o.layout !== 'none',
+      t: 'select',
+      label: 'Style des textes des libellés',
+      options: { body: 'Texte', small: 'Texte petit', caption: 'Légende' },
+      def: 'body',
+    },
     { ...LINE_FIELD, label: 'Contour des segments' },
     {
       k: 'ringWidth',
@@ -86,8 +251,16 @@ export default {
       options: { none: 'Aucune', thin: 'Fine', wide: 'Large' },
       def: 'none',
     },
-    { k: 'totalTpl', g: 'labels', when: (o) => o.style !== 'pie', t: 'ctext', label: 'Texte du centre' },
-    { k: 'decimals', g: 'labels', when: (o) => o.style !== 'pie', t: 'number', label: 'Décimales du total', min: 0, max: 4 },
+    { k: 'totalTpl', g: 'labels', when: (o) => o.style !== 'pie' && o.showTotal !== false, t: 'ctext', label: 'Texte du centre' },
+    {
+      k: 'decimals',
+      g: 'labels',
+      when: (o) => o.style !== 'pie' && o.showTotal !== false,
+      t: 'number',
+      label: 'Décimales du total',
+      min: 0,
+      max: 4,
+    },
     {
       k: 'ringAlign',
       g: 'struct',
@@ -165,8 +338,23 @@ export default {
       fields: [
         { k: 'color', t: 'color', label: 'Couleur' },
         { k: 'value', t: 'number', label: 'Valeur', min: 0, step: 'any' },
-        { k: 'title', t: 'text', fmt: 'basic', label: 'Titre (gras)' },
-        { k: 'text', t: 'area', fmt: 'basic', label: 'Texte' },
+        { k: 'title', t: 'text', fmt: 'chart', label: 'Titre (gras)' },
+        { k: 'text', t: 'area', fmt: 'chart', label: 'Texte' },
+        {
+          k: 'value2',
+          t: 'number',
+          label: 'Valeur du 2e camembert',
+          min: 0,
+          step: 'any',
+          when: (g, o) => !!(o && o.compare),
+        },
+        {
+          k: 'title2',
+          t: 'text',
+          fmt: 'chart',
+          label: 'Titre dans le 2e camembert (vide = le même)',
+          when: (g, o) => !!(o && o.compare),
+        },
         { k: 'side', t: 'select', label: 'Côté du libellé', options: { auto: 'Auto', left: 'Gauche', right: 'Droite' } },
         { k: 'link', t: 'bool', label: 'Trait de liaison vers l’extérieur (jusqu’au bord de la colonne et au-delà)' },
       ],
@@ -197,6 +385,17 @@ export default {
   /* Interactions de l'éditeur : retourne un gestionnaire de glissement { move(pt), end() } (pt en px du SVG) */
   edit: {
     start(hit, o, meta, api, pt0) {
+      if (hit.kind === 'move') {
+        if (!meta || !(meta.span > 0)) return null;
+        const x0 = meta.cx;
+        return {
+          move(pt) {
+            const v = Math.round(((x0 + pt.x - pt0.x - meta.W / 2) / meta.span) * 100);
+            o.ringX = Math.max(-100, Math.min(100, v));
+            api.redraw();
+          },
+        };
+      }
       const seg = (o.segments || [])[hit.i];
       if (!seg) return null;
       api.select(hit.i);
@@ -261,11 +460,20 @@ export default {
     },
   },
   render(o, W, env) {
+    if (o.compare && !o._sub) return renderCompare(o, W, env);
     const T = typeIn(env); // styles du document (menu Texte)
     /* corps et interlignage des textes autour de l'anneau : à la proportion du texte courant du document (grille de 1,5 px) */
     const BODY = pxOf(T.body.size),
       kBody = T.body.size / TYPE.body.size;
     const LH = Math.round(((LEAD[o.leading] || LEAD.normal) * kBody) / 1.5) * 1.5;
+    /* libellés : titre puis texte, chacun dans un style du document (`labelTitle`, `labelText`) ; défaut = texte gras puis texte, interlignage `leading` */
+    const titleSpec = labelSpec(T, o.labelTitle || 'bold', LH, true),
+      textSpec = labelSpec(T, o.labelText || 'body', LH, false);
+    const labelLines = (g, maxW) => [
+      ...(String(g.title || '').trim() ? richLines(g.title, titleSpec, maxW) : []),
+      ...(String(g.text || '').trim() ? richLines(g.text, textSpec, maxW) : []),
+    ];
+    const hOf = (lines) => lines.reduce((a, l) => a + l.lh, 0);
     const segs = (o.segments || []).filter((g) => +g.value > 0);
     const total = segs.reduce((a, g) => a + +g.value, 0);
     const bare = o.layout === 'none',
@@ -292,11 +500,15 @@ export default {
     });
 
     // anneau
-    const D = around
+    const Dfull = around
       ? Math.max(VIZ.ringMin, Math.min(VIZ.ringMax, round3(W * 0.3)))
       : bare
         ? Math.min(VIZ.ringMax, round3(W - 6))
         : Math.min(VIZ.ringLegend, round3(W - 6));
+    const D = o._k > 0 && o._k < 1 ? Math.max(12, Dfull * o._k) : Dfull; // comparaison « surface proportionnelle » : le plus petit total rétrécit
+    /* position horizontale (`ringX`, −100 à 100 % de la course possible) : le reste de la largeur va aux libellés du côté libéré */
+    const shift = Math.max(-1, Math.min(1, (+o.ringX || 0) / 100)),
+      span = Math.max(0, W / 2 - D / 2 - SW);
     const pie = o.style === 'pie';
     const Ro = D / 2 - SW,
       Ri = pie ? 0 : Ro * (1 - (RING_PCT[o.ringWidth] ?? RING_PCT.normal));
@@ -317,7 +529,7 @@ export default {
     /* Texte du centre : une ligne par paragraphe ; « ## » = titre 2, « ### » = texte courant (sans préfixe ou « # » = titre 1).
        Chaque ligne passe à la ligne dans l'anneau (mot trop long coupé), puis toutes les tailles baissent ensemble jusqu'à ce que tout tienne. */
     const centerNode = (cx, cy) => {
-      if (pie) return s('g');
+      if (pie || o.showTotal === false) return s('g');
       const n = fmt(total, env.locale, o.decimals),
         BASE = pxOf(T.figure.size);
       const LV = {
@@ -474,23 +686,42 @@ export default {
             'stroke-linecap': 'round',
           });
         });
+    /* éditeur : poignée au centre de l'anneau, à tirer horizontalement (`ringX`) ; jamais exportée */
+    const moveHandle = (cx, cy) =>
+      ui && !o._sub && span > 0
+        ? [
+            s(
+              'g',
+              { 'data-hit': 'move:0', style: { cursor: 'ew-resize' } },
+              s('circle', { cx, cy, r: 10, fill: '#FFFFFF', stroke: ORANGE, 'stroke-width': 1.5 }),
+              s('path', {
+                d: `M${cx - 6},${cy}h12M${cx - 3},${cy - 3}l-3,3l3,3M${cx + 3},${cy - 3}l3,3l-3,3`,
+                fill: 'none',
+                stroke: ORANGE,
+                'stroke-width': 1.5,
+                'stroke-linecap': 'round',
+                'stroke-linejoin': 'round',
+              }),
+            ),
+          ]
+        : [];
     const metaBase = { start, arcs: arcs.map((p) => ({ i: idxOf(p.g), a0: p.a0, a1: p.a1 })), Ro, Ri, W };
 
     /* ----- Mode légende (colonnes étroites) ----- */
     if (!around) {
-      const cx = W / 2,
-        cy = Ro + SW,
+      const cx = W / 2 + shift * span,
+        cy = Dfull / 2,
         svg = s('svg', { width: W, height: 10, style: { display: 'block', overflow: 'visible' } });
-      svg.append(...ringNodes(cx, cy), centerNode(cx, cy), ...linkNodes(cx, cy));
-      let y = cy + Ro + env.rc.gap.subsectionTitle * 2;
+      svg.append(...ringNodes(cx, cy), centerNode(cx, cy), ...linkNodes(cx, cy), ...moveHandle(cx, cy));
+      let y = cy + Dfull / 2 - SW + env.rc.gap.subsectionTitle * 2;
       const sw = VIZ.legendSwatch,
         tx = sw + VIZ.iconGap;
       for (const p of bare ? [] : arcs.filter((q) => hasLabel(q.g))) {
-        const lines = textLines(p.g.title, p.g.text, BODY, W - tx);
+        const lines = labelLines(p.g, W - tx);
         svg.append(
           s('rect', {
             x: SW / 2,
-            y: y + (LH - sw) / 2 + SW / 2,
+            y: y + ((lines.length ? lines[0].lh : LH) - sw) / 2 + SW / 2,
             width: sw - SW,
             height: sw - SW,
             rx: VIZ.barRadius,
@@ -499,40 +730,61 @@ export default {
             'stroke-width': SW,
           }),
         );
-        svg.append(drawLines(lines, tx, y, LH, BODY));
-        y += lines.length * LH + VIZ.blockGap;
+        svg.append(drawRich(lines, tx, y));
+        y += hOf(lines) + VIZ.blockGap;
       }
-      const H = bare || !arcs.some((q) => hasLabel(q.g)) ? Math.ceil(cy + Ro + SW) : Math.ceil(y - VIZ.blockGap);
+      const H = bare || !arcs.some((q) => hasLabel(q.g)) ? Math.ceil(Dfull) : Math.ceil(y - VIZ.blockGap);
       svg.setAttribute('height', H);
       svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-      return { node: svg, meta: { ...metaBase, cx, cy, H, around: false, items: [] } };
+      return { node: svg, meta: { ...metaBase, cx, cy, H, span, around: false, items: [] } };
     }
 
     /* ----- Mode « autour de l'anneau » ----- */
-    const room = (W - D) / 2,
-      labelW = Math.max(60, Math.min(room - VIZ.leaderRoom, 264));
-    const cx = W / 2;
+    const cx = W / 2 + shift * span;
+    /* largeur des libellés de chaque côté : centré = place symétrique, 264 px au plus (aspect d'origine) ; déplacé = toute la place libérée */
+    const sideW = (room) => (shift ? Math.max(0, room - VIZ.leaderRoom) : Math.max(60, Math.min(room - VIZ.leaderRoom, 264)));
+    const wL = sideW(cx - D / 2),
+      wR = sideW(W - cx - D / 2),
+      labelW = wR,
+      widthOf = (side) => (side > 0 ? wR : wL);
+    const tooNarrow = (side) => widthOf(side) < 48; // côté sans place : les libellés automatiques passent de l'autre côté
     const items = arcs
       .filter((p) => hasLabel(p.g))
       .map((p) => {
         const mid = norm((p.a0 + p.a1) / 2);
-        const autoSide = mid < 180 ? 1 : -1;
+        let autoSide = mid < 180 ? 1 : -1;
+        if (tooNarrow(autoSide) && !tooNarrow(-autoSide)) autoSide = -autoSide;
         const side = p.g.side === 'left' ? -1 : p.g.side === 'right' ? 1 : autoSide;
-        const th = p.g.anchorT != null ? p.a0 + (p.a1 - p.a0) * p.g.anchorT : mid;
-        const lines = textLines(p.g.title, p.g.text, BODY, labelW);
-        return { p, mid, th, autoSide, side, lines, h: lines.length * LH, first: 0 };
+        /* libellé passé du côté opposé (anneau déplacé) : ancré sur le point du segment le plus tourné vers lui, le trait ne traverse pas l'anneau */
+        const facing = () => {
+          let best = mid;
+          for (let q = 0; q <= 24; q++) {
+            const a = p.a0 + ((p.a1 - p.a0) * q) / 24;
+            if (side * Math.sin(rad(a)) > side * Math.sin(rad(best)) + 1e-9) best = a;
+          }
+          return best;
+        };
+        const natural = (mid < 180 ? 1 : -1) === side;
+        const th = p.g.anchorT != null ? p.a0 + (p.a1 - p.a0) * p.g.anchorT : natural ? mid : facing();
+        const lines = labelLines(p.g, Math.max(24, widthOf(side)));
+        return {
+          p,
+          mid,
+          th,
+          autoSide,
+          side,
+          lines,
+          h: hOf(lines),
+          lh0: lines.length ? lines[0].lh : LH,
+          first: lines.length ? lines[0].w : 0,
+        };
       });
-    items.forEach((it) => {
-      // largeur réelle de la 1re ligne (le trait de gauche s'arrête dessus)
-      const r0 = it.lines[0];
-      it.first = r0 ? r0.runs.reduce((q, r) => q + mw(r.t, r.b ? 700 : 400, '"Source Sans 3", sans-serif', BODY), 0) : 0;
-    });
     const place = (cy) => {
       for (const it of items) {
         const th = it.th,
           P = { x: cx + Ro * Math.sin(rad(th)), y: cy - Ro * Math.cos(rad(th)) };
         it.P = P;
-        it.want = it.p.g.pin != null ? cy + it.p.g.pin : P.y - LH / 2;
+        it.want = it.p.g.pin != null ? cy + it.p.g.pin : P.y - it.lh0 / 2;
       }
       for (const side of [1, -1])
         resolveColumn(
@@ -540,9 +792,9 @@ export default {
           0,
           VIZ.blockGap,
         );
-      return Math.max(2 * Ro + 2 * SW, ...items.map((i) => i.top + i.h));
+      return Math.max(Dfull, ...items.map((i) => i.top + i.h));
     };
-    let cy = Ro + SW;
+    let cy = Dfull / 2;
     let H = place(cy);
     /* position verticale de l'anneau par rapport au contenu le plus haut (souvent les textes) : en haut, centré ou en bas ; seuls les traits de repère suivent l'anneau */
     const cy0 = cy,
@@ -556,9 +808,9 @@ export default {
       for (const sd of [-1, 1])
         svg.append(
           s('rect', {
-            x: sd > 0 ? W - labelW : 0,
+            x: sd > 0 ? W - wR : 0,
             y: 0,
-            width: labelW,
+            width: widthOf(sd),
             height: H,
             fill: ORANGE,
             'fill-opacity': 0.08,
@@ -568,11 +820,11 @@ export default {
             'pointer-events': 'none',
           }),
         );
-    svg.append(...ringNodes(cx, cy), centerNode(cx, cy), ...linkNodes(cx, cy));
+    svg.append(...ringNodes(cx, cy), centerNode(cx, cy), ...linkNodes(cx, cy), ...moveHandle(cx, cy));
     for (const it of items) {
       const right = it.side > 0,
-        x = right ? W - labelW : 0,
-        ly = it.top + LH / 2;
+        x = right ? W - wR : 0,
+        ly = it.top + it.lh0 / 2;
       const E = { x: right ? x - VIZ.leaderGap : x + it.first + VIZ.leaderGap, y: ly };
       const dy = ly - it.P.y;
       let dx = Math.abs(dy);
@@ -588,7 +840,7 @@ export default {
           'stroke-linejoin': 'round',
         }),
       );
-      svg.append(drawLines(it.lines, x, it.top, LH, BODY));
+      svg.append(drawRich(it.lines, x, it.top));
       it.x = x;
     }
     if (ui) {
@@ -599,7 +851,7 @@ export default {
           s('rect', {
             x: it.x - 3,
             y: it.top - 2,
-            width: labelW + 6,
+            width: widthOf(it.side) + 6,
             height: it.h + 4,
             rx: 3,
             fill: 'transparent',
@@ -635,8 +887,10 @@ export default {
         H,
         around: true,
         labelW,
+        span,
         items: items.map((it) => ({ i: idxOf(it.p.g), top: it.top, h: it.h, x: it.x, P: it.P, autoSide: it.autoSide })),
       },
     };
   },
 };
+export default DONUT;

@@ -306,7 +306,8 @@ export function richEditor(value, onChange, opts = {}) {
   const ed = h('div', { class: 're', contentEditable: 'true', spellcheck: 'true', innerHTML: mkToHtml(value, opts.typo) });
   /* niveaux de mise en forme : 'full' (styles de paragraphe, listes, tout le balisage en ligne), 'inline' (tout le balisage en ligne, sans paragraphes : le dessin passe par inlineMk), 'basic' (gras, italique, souligné : ce que savent rendre les textes dessinés dans un graphique) */
   const level = opts.level || (opts.bullets === false ? 'inline' : 'full');
-  const full = level === 'full';
+  const full = level === 'full',
+    chart = level === 'chart'; // textes dessinés dans un graphique (libellés de l'anneau) : gras, italique, souligné, couleur, capitales
   const cmd = (c) => () => {
     ed.focus();
     document.execCommand(c);
@@ -372,8 +373,8 @@ export function richEditor(value, onChange, opts = {}) {
     mk('B', 'Gras', 'bold', { fontWeight: 800 }),
     mk('I', 'Italique', 'italic', { fontStyle: 'italic' }),
     mk('U', 'Souligné', 'underline', { textDecoration: 'underline' }),
-    level === 'basic' ? null : mk('x²', 'Exposant', 'superscript'),
-    level === 'basic' ? null : mk('x₂', 'Indice', 'subscript'),
+    level === 'basic' || level === 'chart' ? null : mk('x²', 'Exposant', 'superscript'),
+    level === 'basic' || level === 'chart' ? null : mk('x₂', 'Indice', 'subscript'),
     full
       ? (() => {
           const b = mk('', 'Liste à puces', 'insertUnorderedList');
@@ -623,26 +624,30 @@ export function richEditor(value, onChange, opts = {}) {
       'div',
       { class: 'row fmt re-more', hidden: !moreOpen },
       ib('ti-palette', 'Couleur du texte', () => showPal('c')),
-      ib('ti-highlight', 'Surlignage', () => showPal('h')),
-      ib('ti-strikethrough', 'Barré', cmd('strikeThrough'), 'strikeThrough'),
-      ib(h('span', { class: 're-sc', textContent: 'Aᴀ' }), 'Petites capitales', () => wrapSel('sc', '', true)),
+      chart ? null : ib('ti-highlight', 'Surlignage', () => showPal('h')),
+      chart ? null : ib('ti-strikethrough', 'Barré', cmd('strikeThrough'), 'strikeThrough'),
+      chart ? null : ib(h('span', { class: 're-sc', textContent: 'Aᴀ' }), 'Petites capitales', () => wrapSel('sc', '', true)),
       ib(h('span', { textContent: 'AA' }), 'Capitales', () => wrapSel('up', '', true)),
-      ib('ti-link', 'Lien', async () => {
-        restore();
-        const cur = (window.getSelection().anchorNode || {}).parentElement;
-        const have = cur && cur.closest && cur.closest('span[data-f^="a:"]');
-        const url = await promptBox(t('Adresse du lien (https://…) — vide pour retirer'), have ? have.dataset.f.slice(2) : 'https://');
-        if (url === null) return;
-        restore(); // la modale a pris le focus : on retrouve la sélection du texte
-        wrapSel('a', /^(https?:\/\/|mailto:)\S+/i.test(url.trim()) && url.trim() !== 'https://' ? url.trim() : null);
-      }),
-      ib('ti-asterisk', 'Appel de note (le texte de la note suit entre accolades)', () => {
-        restore();
-        document.execCommand('insertText', false, '{n|}');
-        const sl = window.getSelection();
-        if (sl.modify) sl.modify('move', 'backward', 'character');
-        onChange(htmlToMk(ed));
-      }),
+      chart
+        ? null
+        : ib('ti-link', 'Lien', async () => {
+            restore();
+            const cur = (window.getSelection().anchorNode || {}).parentElement;
+            const have = cur && cur.closest && cur.closest('span[data-f^="a:"]');
+            const url = await promptBox(t('Adresse du lien (https://…) — vide pour retirer'), have ? have.dataset.f.slice(2) : 'https://');
+            if (url === null) return;
+            restore(); // la modale a pris le focus : on retrouve la sélection du texte
+            wrapSel('a', /^(https?:\/\/|mailto:)\S+/i.test(url.trim()) && url.trim() !== 'https://' ? url.trim() : null);
+          }),
+      chart
+        ? null
+        : ib('ti-asterisk', 'Appel de note (le texte de la note suit entre accolades)', () => {
+            restore();
+            document.execCommand('insertText', false, '{n|}');
+            const sl = window.getSelection();
+            if (sl.modify) sl.modify('move', 'backward', 'character');
+            onChange(htmlToMk(ed));
+          }),
     );
     moreBtn = h(
       'button',
@@ -738,7 +743,7 @@ const labelled = (h2, label, control) => {
   );
 };
 /** nombres gardés en champ numérique (petits entiers qu'on compte) ; les autres champs bornés deviennent un curseur */
-/** niveau de mise en forme d'un champ de texte : `fmt` explicite ('full' | 'inline' | 'basic' | 'plain'), sinon `rich` = inline, `area` = full ; null = champ simple */
+/** niveau de mise en forme d'un champ de texte : `fmt` explicite ('full' | 'inline' | 'chart' | 'basic' | 'plain'), sinon `rich` = inline, `area` = full ; null = champ simple */
 const fmtOf = (f) => (f.fmt === 'plain' ? null : f.fmt || (f.rich ? 'inline' : f.t === 'area' ? 'full' : null));
 const STEPPER_FIELDS = new Set(['cols', 'gridRows']);
 const AUTO_FIELDS = new Set(['perDot', 'perRow', 'total', 'scaleMax']);
@@ -815,7 +820,11 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
               setP(obj, f.k, v);
               ctx.changed();
             },
-            { level: fmtOf(f), typo: ctxTypo(ctx) },
+            {
+              level: fmtOf(f),
+              typo: ctxTypo(ctx),
+              ...(fmtOf(f) === 'chart' && palOpts ? { palette: Object.keys(palOpts).filter((k) => !k.startsWith('tint-')) } : {}),
+            },
           ),
         ),
       );
@@ -1111,7 +1120,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
     } else if (f.t === 'table') out.push(tableField(f, obj, ctx, palOpts, h2));
     if (f.when) {
       const nodes = out.slice(start).filter((n) => n && n.nodeType === 1);
-      if (nodes.length) deps.push(dependent(f, nodes, obj, h2, out));
+      if (nodes.length) deps.push(dependent(f, nodes, obj, h2, out, root));
     }
   }
   if (deps.length) {
@@ -1141,7 +1150,7 @@ let whySeq = 0;
 const BLOCKED = ['click', 'mousedown', 'keydown', 'keyup', 'beforeinput', 'input', 'change', 'paste', 'cut', 'drop'];
 /** Applique `when` à un champ : sans `why` il est masqué (n'a de sens que pour un autre mode), avec `why` il est grisé et la phrase s'affiche dessous.
     Grisé = `aria-disabled` (jamais `disabled`) : le champ reste focalisable et lisible au lecteur d'écran, mais n'est plus modifiable. */
-function dependent(f, nodes, obj, h2, out) {
+function dependent(f, nodes, obj, h2, out, root = obj) {
   const why = f.why ? h2('div', { class: 'dep-why', id: 'dw' + ++whySeq, hidden: true, textContent: t(f.why) }) : null;
   if (why) out.splice(out.indexOf(nodes[nodes.length - 1]) + 1, 0, why);
   nodes.forEach((n) => n.classList.add('f-dep'));
@@ -1154,7 +1163,7 @@ function dependent(f, nodes, obj, h2, out) {
   if (why && first) first.setAttribute('aria-describedby', why.id);
   const off = new WeakMap();
   return () => {
-    const on = !!f.when(obj);
+    const on = !!f.when(obj, root); // champ d'un élément de liste : `root` = les réglages de la dataviz
     nodes.forEach((n) => {
       n.hidden = !on && !why;
       n.classList.toggle('dep-off', !on && !!why);

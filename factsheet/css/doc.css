@@ -154,6 +154,11 @@ s{text-decoration:line-through;text-decoration-thickness:var(--stroke)}
 .rich .p-label,.viz-title .p-label{font-family:var(--t-label-family);font-size:var(--t-label-size);line-height:var(--t-label-lh);font-weight:var(--t-label-weight);text-transform:uppercase;letter-spacing:.08em}
 .rich .p-source,.viz-title .p-source{font-family:var(--t-source-family);font-size:var(--t-source-size);line-height:var(--t-source-lh);font-weight:var(--t-source-weight);font-style:italic}
 .rich .p-note,.viz-title .p-note{font-family:var(--t-note-family);font-size:var(--t-note-size);line-height:var(--t-note-lh);font-weight:var(--t-note-weight)}
+.viz-title .p-h1{font-family:var(--t-section-family);font-size:var(--t-section-size);line-height:var(--t-section-lh);font-weight:var(--t-section-weight)}
+.viz-title .p-h2{font-family:var(--t-subsection-family);font-size:var(--t-subsection-size);line-height:var(--t-subsection-lh);font-weight:var(--t-subsection-weight)}
+.viz-title .p-body{font-family:var(--t-body-family);font-size:var(--t-body-size);line-height:var(--t-body-lh);font-weight:var(--t-body-weight)}
+.viz-title .p-fig{font-family:var(--t-figure-family);font-size:var(--t-figure-size);line-height:var(--t-figure-lh);font-weight:var(--t-figure-weight)}
+.viz-title .p-figsm{font-family:var(--t-figureSm-family);font-size:var(--t-figureSm-size);line-height:var(--t-figureSm-lh);font-weight:var(--t-figureSm-weight)}
 
 .rich .p-h1{font-size:var(--t-section-size);line-height:var(--t-section-lh);font-weight:var(--t-section-weight)}
 .rich .p-h2{font-size:var(--t-subsection-size);line-height:var(--t-subsection-lh);font-weight:var(--t-subsection-weight)}

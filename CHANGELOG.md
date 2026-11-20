@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.128.0 — 2026-11-20
+- Camemberts : comparaison de deux camemberts côte à côte, anneau sans texte au centre, anneau déplaçable horizontalement
+- Libellés des camemberts : styles du document, couleur, capitales et retours à la ligne
+- Dataviz : choix du style du titre (sous-section, titre de section, texte…)
+
 ## 1.127.0 — 2026-11-20
 - Barres et barres horizontales : les libellés longs passent à la ligne au même corps, jamais coupés ; Maj + Entrée force un retour à la ligne
 - Barres horizontales : largeur des libellés réglable, en tirant le trait entre libellés et barres dans l'éditeur

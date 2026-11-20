@@ -140,9 +140,11 @@ function paragraphs(text) {
   let b = false,
     i = false,
     u = false;
+  const stack = []; // accolades ouvertes ({c:clé|…} couleur, {up|…} capitales ; les autres gardent seulement leur texte)
   String(text || '')
-    .replace(/\r\n?/g, '\n')
-    .split(/(\*\*|__|~~)/)
+    .replace(/\r\n?|\u2028/g, '\n') // Maj + Entrée dans un champ mis en forme = retour à la ligne
+    .replace(/\{n\|[^{}]*\}/g, '') // appel de note : absent d'un texte dessiné
+    .split(/(\*\*|__|~~|\^\^|,,|\{[a-z]+(?::[^|{}]*)?\||\})/)
     .forEach((seg) => {
       if (seg === '**') {
         b = !b;
@@ -156,12 +158,24 @@ function paragraphs(text) {
         i = !i;
         return;
       }
+      if (seg === '^^' || seg === ',,') return; // exposant, indice : texte simple
+      const m = seg.match(/^\{([a-z]+)(?::([^|{}]*))?\|$/);
+      if (m) {
+        stack.push({ k: m[1], v: m[2] });
+        return;
+      }
+      if (seg === '}' && stack.length) {
+        stack.pop();
+        return;
+      }
+      const col = [...stack].reverse().find((f) => f.k === 'c'),
+        up = stack.some((f) => f.k === 'up');
       for (const part of seg.match(/\n|[^\S\n]+|\S+/g) || []) {
         if (part === '\n') {
           flush();
           paras.push([]);
         } else if (/^\s+$/.test(part)) flush();
-        else cur.push({ t: part, b, i, u });
+        else cur.push({ t: up ? part.toUpperCase() : part, b, i, u, ...(col ? { c: col.v } : {}) });
       }
     });
   flush();
@@ -231,12 +245,102 @@ export function drawLines(lines, x, y0, lh, size, align = 'start') {
       t.append(
         s(
           'tspan',
-          { 'font-weight': r.b ? 700 : 400, 'font-style': r.i ? 'italic' : null, 'text-decoration': r.u ? 'underline' : null },
+          {
+            'font-weight': r.b ? 700 : 400,
+            'font-style': r.i ? 'italic' : null,
+            'text-decoration': r.u ? 'underline' : null,
+            fill: r.c ? colorRef(r.c) : null,
+          },
           r.t,
         ),
       );
     g.append(t);
   });
+  return g;
+}
+
+/* ---------- Texte riche dans un style du document (libellés de l'anneau) ---------- */
+/** Lignes d'un texte riche (**gras**, ~~italique~~, __souligné__, {c:clé|couleur}, {up|capitales}, retours à la ligne) dans un style :
+    spec = { size (px), lh (px), family (mesure), fam (CSS du dessin, null = hérité), weight, bold (tout en gras) }.
+    Passage à la ligne sur maxW, mot trop long coupé ; chaque ligne garde son style et sa largeur `w`. */
+export function richLines(text, spec, maxW) {
+  const family = spec.family || SANS,
+    wt = (r) => (r.b || spec.bold ? Math.max(700, spec.weight || 400) : spec.weight || 400),
+    rw = (r) => mw(r.t, wt(r), family, spec.size),
+    W = (runs) => runs.reduce((a, r) => a + rw(r), 0),
+    sp = mw(' ', spec.weight || 400, family, spec.size);
+  const split = (runs) => {
+    const out = [];
+    let cur = [],
+      cw = 0;
+    for (const r of runs)
+      for (const ch of r.t) {
+        const c = mw(ch, wt(r), family, spec.size);
+        if (cur.length && cw + c > maxW) {
+          out.push(cur);
+          cur = [];
+          cw = 0;
+        }
+        const l = cur[cur.length - 1];
+        if (l && l.b === r.b && l.i === r.i && l.u === r.u && l.c === r.c) l.t += ch;
+        else cur.push({ ...r, t: ch });
+        cw += c;
+      }
+    if (cur.length) out.push(cur);
+    return out;
+  };
+  const lines = [],
+    line = (runs, w) => lines.push({ runs, w, size: spec.size, lh: spec.lh, fam: spec.fam || null, wt });
+  for (const words of paragraphs(text)) {
+    if (!words.length) continue;
+    let cur = [],
+      cw = 0;
+    for (const w of words.flatMap((x) => (maxW > 0 && W(x) > maxW ? split(x) : [x]))) {
+      const w1 = W(w);
+      if (!cur.length) {
+        cur = [...w];
+        cw = w1;
+      } else if (cw + sp + w1 <= maxW) {
+        cur.push({ t: ' ', b: false }, ...w);
+        cw += sp + w1;
+      } else {
+        line(cur, cw);
+        cur = [...w];
+        cw = w1;
+      }
+    }
+    line(cur, cw);
+  }
+  return lines;
+}
+/** <g> des lignes de richLines, empilées depuis y0 (chaque ligne a son corps et son interligne) ; align : start | middle | end */
+export function drawRich(lines, x, y0, align = 'start') {
+  const g = s('g');
+  let y = y0;
+  for (const l of lines) {
+    const t = s('text', {
+      x,
+      y: y + l.lh / 2 + 0.33 * l.size,
+      'font-size': l.size,
+      'text-anchor': align === 'start' ? null : align,
+      style: { whiteSpace: 'pre', ...(l.fam ? { fontFamily: l.fam } : {}) },
+    });
+    for (const r of l.runs)
+      t.append(
+        s(
+          'tspan',
+          {
+            'font-weight': l.wt(r),
+            'font-style': r.i ? 'italic' : null,
+            'text-decoration': r.u ? 'underline' : null,
+            fill: r.c ? colorRef(r.c) : null,
+          },
+          r.t,
+        ),
+      );
+    g.append(t);
+    y += l.lh;
+  }
   return g;
 }
 
