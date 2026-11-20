@@ -6,7 +6,7 @@
      v: 1,
      cols:  [{ id, w, fill, num }],         w = poids relatif (fr) ; fill = fond de la colonne (clé de couleur) ; num = colonne numérique (chiffres tabulaires, à droite)
      rows:  [{ id, h, kind, fill }],        h = hauteur mini en px (0 = selon le contenu) ; kind : 'head' | 'body' | 'foot' (pied, en bas) ; fill = fond de la ligne
-     cells: [{ id, r, c, rs, cs, text, st, ind, ah, av, pad, fill, fg }],   st = style de paragraphe (CELL_STYLES) ; ind = retrait (1 à IND_MAX crans, niveau 4 de LEVELS) ; pad = marges intérieures (clé de PADS), adv = réglages avancés du texte (f, s, b, it, lh, ls, kern, indent, before, after : voir cleanAdv)
+     cells: [{ id, r, c, rs, cs, text, st, ind, ah, av, pad, fill, fg }],   st = style de paragraphe (CELL_STYLES) ; ind = retrait (1 à IND_MAX crans, niveau 4 de LEVELS) ; pad = marges intérieures (clé de PADS), padSides = marges choisies côté par côté ({ t, r, b, l } px, priment sur pad), adv = réglages avancés du texte (f, s, b, it, lh, ls, kern, indent, before, after : voir cleanAdv)
      edges: { 'h:i:j': trait, 'v:i:j': trait },   surcharges d'arêtes (creuses) ; un trait de largeur 0 = aucun trait
      look:  { preset, top, bottom, sides, innerH, innerV, head, foot, headFill, headFg, footFill, stripe },
    }
@@ -477,6 +477,22 @@ export function cleanAdv(adv) {
   return Object.keys(out).length ? out : null;
 }
 export const padOf = (cl) => PADS[cl.pad] || PADS.normal;
+/** Marges intérieures choisies côté par côté (`padSides` : { t, r, b, l } en px, 0 à PAD_MAX) ; un côté absent garde le préréglage `pad` */
+export const PAD_SIDES = ['t', 'r', 'b', 'l'];
+export const PAD_MAX = 60;
+export function cleanPadSides(ps) {
+  if (!ps || typeof ps !== 'object') return null;
+  const out = {};
+  for (const k of PAD_SIDES)
+    if (ps[k] !== '' && ps[k] != null && Number.isFinite(+ps[k])) out[k] = Math.max(0, Math.min(PAD_MAX, Math.round(+ps[k])));
+  return Object.keys(out).length ? out : null;
+}
+/** Marge effective d'un côté (px) : choisie, sinon celle du préréglage */
+export const padSide = (cl, k) => {
+  const ps = cl.padSides || {},
+    [py, px] = padOf(cl);
+  return ps[k] != null ? ps[k] : k === 't' || k === 'b' ? py : px;
+};
 /** Colonne numérique ? (la cellule fusionnée suit sa colonne d'ancre) */
 export const isNumCol = (tb, c) => !!(tb.cols[c] && tb.cols[c].num);
 /** Alignement horizontal effectif : celui de la cellule, sinon à droite dans une colonne numérique */
@@ -717,6 +733,11 @@ export function repairTable(src) {
     for (const k of ['fill', 'fg']) if (cl[k] != null && !isKey(cl[k])) delete cl[k];
     if (cl.st != null && !CELL_STYLES.includes(cl.st)) delete cl.st;
     if (cl.pad != null && !PADS[cl.pad]) delete cl.pad;
+    if (cl.padSides != null) {
+      const ps = cleanPadSides(cl.padSides);
+      if (ps) cl.padSides = ps;
+      else delete cl.padSides;
+    }
     if (cl.ind != null && !(Number.isInteger(cl.ind) && cl.ind >= 1 && cl.ind <= IND_MAX)) delete cl.ind;
     if (cl.adv != null) {
       const a = cleanAdv(cl.adv);

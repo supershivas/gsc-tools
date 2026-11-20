@@ -20,6 +20,21 @@ function styled(text, st) {
     .join('\n');
 }
 
+/** Marge d'un côté en CSS : choisie (`padSides`), sinon celle du préréglage, sinon la marge normale du document (variables d'espacement) */
+const sideCss = (cl, k, pre, cssDef) => {
+  const ps = cl.padSides || {};
+  return ps[k] != null ? ps[k] + 'px' : cl.pad && cl.pad !== 'normal' ? pre + 'px' : cssDef;
+};
+/** Rembourrage de la cellule : rien (CSS par défaut) sauf préréglage ou marges choisies ; hauteur minimale = une ligne + marges haut et bas */
+function padStyle(cl, py, px) {
+  if (!(cl.pad && cl.pad !== 'normal') && !cl.padSides) return {};
+  const T = sideCss(cl, 't', py, 'var(--s1)'),
+    R = sideCss(cl, 'r', px, 'var(--s2)'),
+    B = sideCss(cl, 'b', py, 'var(--s1)'),
+    L = sideCss(cl, 'l', px, 'var(--s2)');
+  return { padding: `${T} ${R} ${B} ${L}`, minHeight: `calc(var(--t-small-lh) + ${T} + ${B})` };
+}
+
 /** Nœud du tableau, à la largeur de sa colonne */
 export function renderTable(tb, env) {
   const grid = h('div', {
@@ -42,13 +57,13 @@ export function renderTable(tb, env) {
           gridRow: `${cl.r + 1} / span ${cl.rs}`,
           gridColumn: `${cl.c + 1} / span ${cl.cs}`,
           justifyContent: AV[cl.av] || AV.top,
-          ...(cl.pad && cl.pad !== 'normal' ? { padding: `${py}px ${px}px`, minHeight: `calc(var(--t-small-lh) + ${2 * py}px)` } : {}),
+          ...padStyle(cl, py, px),
         },
         dataset: { cell: cl.id },
       },
       richText(styled(cl.text, cl.st), ahOf(tb, cl), cl.adv || null, env),
     );
-    if (cl.ind > 0) el.style.paddingLeft = `calc(${cl.pad && cl.pad !== 'normal' ? px + 'px' : 'var(--s2)'} + ${cl.ind} * var(--s3))`; // retrait (niveau 4)
+    if (cl.ind > 0) el.style.paddingLeft = `calc(${sideCss(cl, 'l', px, 'var(--s2)')} + ${cl.ind} * var(--s3))`; // retrait (niveau 4)
     if (fill !== 'none') el.style.background = `var(--c-${fill})`;
     if (fg !== 'none') {
       el.style.color = `var(--c-${fg})`;
