@@ -758,3 +758,11 @@ dialog.tsd::backdrop{background:transparent}
 .tsd-resetall{display:inline-flex;align-items:center;gap:6px}
 /* éditeur de tableau : barre de mise en forme au-dessus de la cellule en saisie */
 .te-fmt{position:fixed;z-index:30;display:flex;gap:2px;padding:3px;border:1px solid var(--ui-line);border-radius:var(--radius-md);background:var(--ui-panel);box-shadow:var(--shadow-bar)}
+/* tableau de données : cellule de texte mis en forme (`rich`) et sa barre, posée au-dessus de la cellule qui a le focus */
+.dg-rich{min-width:120px;min-height:31px;padding:7px 8px;font-size:var(--fs-md);line-height:1.35;outline:none;white-space:pre-wrap;overflow-wrap:anywhere}
+.dg-rich:focus{outline:2px solid var(--ui-blue);outline-offset:-2px;background:var(--panel)}
+.dg-rich:empty::before{content:attr(data-ph);color:var(--ui-mute)}
+.dg-rich div{min-height:1em}
+.dg-rbar{position:fixed;z-index:30;display:flex;flex-wrap:wrap;gap:2px;max-width:340px;padding:3px;border:1px solid var(--ui-line);border-radius:var(--radius-md);background:var(--ui-panel);box-shadow:var(--shadow-bar)}
+.dg-rbar[hidden]{display:none}
+.dg-rsw{display:inline-block;width:14px;height:14px;border-radius:var(--radius-xs);border:1px solid var(--ui-line)}

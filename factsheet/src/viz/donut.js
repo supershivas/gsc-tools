@@ -502,8 +502,8 @@ const DONUT = {
       ];
       if (!(o && o.compare))
         return [
-          { k: 'title', t: 'text', label: 'Titre', ml: true },
-          { k: 'text', t: 'text', label: 'Texte', ml: true },
+          { k: 'title', t: 'text', label: 'Titre', ml: true, rich: 'chart' },
+          { k: 'text', t: 'text', label: 'Texte', ml: true, rich: 'chart' },
           { k: 'value', t: 'number', label: 'Valeur' },
           ...common,
         ];
@@ -512,17 +512,17 @@ const DONUT = {
       const b1 = name(o.cmpTitle1, 1),
         b2 = name(o.cmpTitle2, 2);
       return [
-        { k: 'text', t: 'text', label: 'Texte', ml: true },
-        { k: 'title', t: 'text', label: 'Titre', ml: true, band: b1 },
+        { k: 'text', t: 'text', label: 'Texte', ml: true, rich: 'chart' },
+        { k: 'title', t: 'text', label: 'Titre', ml: true, rich: 'chart', band: b1 },
         { k: 'value', t: 'number', label: 'Valeur', band: b1 },
-        { k: 'title2', t: 'text', label: 'Titre', ml: true, band: b2, placeholder: 'Comme le 1er' },
+        { k: 'title2', t: 'text', label: 'Titre', ml: true, rich: 'chart', band: b2, placeholder: 'Comme le 1er' },
         { k: 'value2', t: 'number', label: 'Valeur', band: b2, blank: true, placeholder: 'Comme la 1re' },
         ...common,
       ];
     },
   },
   dataHint:
-    'Maj + Entrée ou Entrée dans un titre ou un texte : retour à la ligne. Mise en forme : **gras**, ~~italique~~, __souligné__, {c:yellow|couleur}, {up|capitales}.',
+    'Titre et texte : sélectionnez des mots, puis la barre au-dessus de la cellule (gras, italique, souligné, capitales, couleur). Entrée : retour à la ligne.',
   actions: [
     {
       label: '↺ Positions auto',

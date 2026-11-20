@@ -1,7 +1,10 @@
 # Changelog
 
-## 1.135.0 — 2026-11-20
+## 1.136.0 — 2026-11-20
 - Camemberts : tous passent à des libellés de 10 pt et un total de 18 pt, fiche par défaut et fiches existantes comprises
+
+## 1.135.0 — 2026-11-20
+- Camemberts : titres et textes mis en forme directement dans le tableau de données (gras, italique, souligné, capitales, couleur)
 
 ## 1.134.0 — 2026-11-20
 - Header : le texte se déplace verticalement dans son cadre (curseur de −40 à +40 px)

@@ -302,6 +302,46 @@ const fmtStyle = (f) => {
 };
 let galleryOpen = false,
   moreOpen = false; // la galerie de styles reste ouverte d'un éditeur à l'autre (le temps de la session)
+/** Entoure le texte sélectionné dans `ed` d'une mise en forme en accolade (`type` : c, h, s, up, sc, a ; `val` : clé de couleur, adresse…) :
+    spans `data-f` relus par htmlToMk. `toggle` : retire la mise en forme si elle y est déjà ; `val === null` : la retire. Rend vrai si la sélection a été reposée. */
+export function wrapInline(ed, type, val, toggle) {
+  const sl = window.getSelection();
+  if (!sl.rangeCount || sl.isCollapsed || !ed.contains(sl.anchorNode)) return false;
+  const r = sl.getRangeAt(0),
+    is = (e) => e.dataset.f === type || e.dataset.f.startsWith(type + ':');
+  const had = [...ed.querySelectorAll('span[data-f]')].some((e) => is(e) && r.intersectsNode(e));
+  const nodes = [],
+    w = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = w.nextNode()))
+    if (r.intersectsNode(n) && n.nodeValue)
+      nodes.push({ n, a: n === r.startContainer ? r.startOffset : 0, b: n === r.endContainer ? r.endOffset : n.nodeValue.length });
+  [...ed.querySelectorAll('span[data-f]')].filter((e) => is(e) && r.intersectsNode(e)).forEach((e) => e.replaceWith(...e.childNodes));
+  let first = null,
+    last = null;
+  if (!(toggle && had) && val !== null) {
+    const f = val ? `${type}:${val}` : type;
+    for (const { n, a, b } of nodes) {
+      if (!n.parentNode || a >= b) continue;
+      const mid = n.splitText(a);
+      mid.splitText(b - a);
+      const sp = h('span', { dataset: { f }, class: type === 'a' ? 'lnk' : '', style: fmtStyle(f) });
+      mid.replaceWith(sp);
+      sp.append(mid);
+      first ||= sp;
+      last = sp;
+    }
+    if (first) {
+      const nr = document.createRange();
+      nr.setStartBefore(first);
+      nr.setEndAfter(last);
+      sl.removeAllRanges();
+      sl.addRange(nr);
+    }
+  }
+  ed.normalize();
+  return !!first;
+}
 export function richEditor(value, onChange, opts = {}) {
   const ed = h('div', { class: 're', contentEditable: 'true', spellcheck: 'true', innerHTML: mkToHtml(value, opts.typo) });
   /* niveaux de mise en forme : 'full' (styles de paragraphe, listes, tout le balisage en ligne), 'inline' (tout le balisage en ligne, sans paragraphes : le dessin passe par inlineMk), 'basic' (gras, italique, souligné : ce que savent rendre les textes dessinés dans un graphique) */
@@ -512,56 +552,10 @@ export function richEditor(value, onChange, opts = {}) {
     moreBtn = null,
     palMode = '',
     count = null;
-  const textNodes = (r) => {
-    const out = [],
-      w = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT);
-    let n;
-    while ((n = w.nextNode())) if (r.intersectsNode(n) && n.nodeValue) out.push(n);
-    return out;
-  };
-  const unwrap = (type, r) => {
-    [...ed.querySelectorAll('span[data-f]')]
-      .filter((e) => (e.dataset.f === type || e.dataset.f.startsWith(type + ':')) && r.intersectsNode(e))
-      .forEach((e) => e.replaceWith(...e.childNodes));
-  };
+  /* entoure la sélection d'une accolade (couleur, capitales…) : voir wrapInline */
   const wrapSel = (type, val, toggle) => {
     restore();
-    const sl = window.getSelection();
-    if (!sl.rangeCount || sl.isCollapsed) return;
-    const r = sl.getRangeAt(0),
-      had = [...ed.querySelectorAll('span[data-f]')].some(
-        (e) => (e.dataset.f === type || e.dataset.f.startsWith(type + ':')) && r.intersectsNode(e),
-      );
-    const nodes = textNodes(r).map((n) => ({
-      n,
-      a: n === r.startContainer ? r.startOffset : 0,
-      b: n === r.endContainer ? r.endOffset : n.nodeValue.length,
-    }));
-    unwrap(type, r);
-    if (!(toggle && had) && val !== null) {
-      const f = val ? `${type}:${val}` : type;
-      let first = null,
-        last = null;
-      for (const { n, a, b } of nodes) {
-        if (!n.parentNode || a >= b) continue;
-        const mid = n.splitText(a);
-        mid.splitText(b - a);
-        const sp = h('span', { dataset: { f }, class: type === 'a' ? 'lnk' : '', style: fmtStyle(f) });
-        mid.replaceWith(sp);
-        sp.append(mid);
-        first ||= sp;
-        last = sp;
-      }
-      if (first) {
-        const nr = document.createRange();
-        nr.setStartBefore(first);
-        nr.setEndAfter(last);
-        sl.removeAllRanges();
-        sl.addRange(nr);
-        keep();
-      }
-    }
-    ed.normalize();
+    if (wrapInline(ed, type, val, toggle)) keep();
     onChange(htmlToMk(ed));
     sync();
   };

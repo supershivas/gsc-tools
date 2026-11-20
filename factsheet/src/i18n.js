@@ -770,6 +770,9 @@ const EN = {
   'Position verticale du texte': 'Vertical position of the text',
   'En pixels : négatif = vers le haut, positif = vers le bas. L’image et le logo ne bougent pas.':
     'In pixels: negative = up, positive = down. The image and logo do not move.',
+  'Couleur par défaut': 'Default colour',
+  'Titre et texte : sélectionnez des mots, puis la barre au-dessus de la cellule (gras, italique, souligné, capitales, couleur). Entrée : retour à la ligne.':
+    'Title and text: select words, then use the bar above the cell (bold, italic, underline, capitals, colour). Enter: line break.',
   'Niveau 1': 'Level 1',
   'Niveau 2': 'Level 2',
   'Niveau 3': 'Level 3',

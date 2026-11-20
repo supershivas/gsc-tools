@@ -11,6 +11,7 @@ import { alertBox, confirmBox } from './dialogs.js';
 import { num, parseMatrix, fileToMatrix, padMatrix, headerRows, autoRoles, readImport, decimalOf } from './dataparse.js';
 import { numberFormat } from './numfmt.js';
 import { switchControl } from './controls.js';
+import { mkToHtml, htmlToMk, wrapInline } from './editor.js';
 
 export { parseMatrix, fileToMatrix, num };
 export const toCSV = (m) =>
@@ -303,7 +304,8 @@ export function recordsAdapter(spec, obj, palOpts, icons) {
       isColor: c.t === 'color',
       isIcon: !!c.icons,
       isBool: c.t === 'bool', // réglage d'affichage de la ligne : interrupteur en fin de ligne
-      band: c.band || null, // en-tête commun au-dessus de colonnes voisines (ex. « 2024 » sur Titre et Valeur du 1er camembert)
+      band: c.band || null,
+      rich: c.rich || null, // texte mis en forme dans la cellule (barre gras, italique, souligné, couleur, capitales) // en-tête commun au-dessus de colonnes voisines (ex. « 2024 » sur Titre et Valeur du 1er camembert)
       placeholder: c.placeholder ? t(c.placeholder) : null,
     })),
     rows: () => rows.length,
@@ -343,6 +345,7 @@ export function recordsAdapter(spec, obj, palOpts, icons) {
         }),
       );
     },
+    palette: Object.keys(palOpts || {}).filter((k) => !k.startsWith('tint-')), // couleurs offertes au texte des cellules mises en forme
     numericCols: cols.map((c, j) => (c.t === 'number' ? j : -1)).filter((j) => j >= 0),
     toMatrix: () => [cols.map((c) => c.label), ...rows.map((r) => cols.map((c) => r[c.k] ?? ''))],
   };
@@ -636,7 +639,47 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
   );
 
   /* tableau */
-  const table = h('table', { class: 'dg' + (ad.cols.some((c) => c.ml) ? ' dg-top' : '') }); // cellules sur plusieurs lignes : tout aligné en haut
+  const table = h('table', { class: 'dg' + (ad.cols.some((c) => c.ml || c.rich) ? ' dg-top' : '') }); // cellules sur plusieurs lignes : tout aligné en haut
+  /* barre de mise en forme des cellules `rich` : une seule, posée au-dessus de la cellule qui a le focus */
+  let richFor = null; // { ed, save }
+  const richBar = h('div', { class: 'dg-rbar', role: 'toolbar', 'aria-label': t('Mise en forme'), hidden: true });
+  const rb = (label, title, fn, style) =>
+    h(
+      'button',
+      {
+        type: 'button',
+        class: 'mini',
+        title: t(title),
+        'aria-label': t(title),
+        style,
+        onmousedown: (e) => e.preventDefault(), // la sélection reste dans la cellule
+        onclick: () => {
+          if (!richFor) return;
+          richFor.ed.focus();
+          fn(richFor.ed);
+          richFor.save();
+        },
+      },
+      label,
+    );
+  richBar.append(
+    rb('B', 'Gras', () => document.execCommand('bold'), { fontWeight: 800 }),
+    rb('I', 'Italique', () => document.execCommand('italic'), { fontStyle: 'italic' }),
+    rb('U', 'Souligné', () => document.execCommand('underline'), { textDecoration: 'underline' }),
+    rb(h('span', { textContent: 'AA' }), 'Capitales', (ed) => wrapInline(ed, 'up', '', true)),
+    ...(ad.palette || []).map((k) =>
+      rb(h('span', { class: 'dg-rsw', style: { background: `var(--c-${k})` } }), `${t('Couleur du texte')} : ${k}`, (ed) =>
+        wrapInline(ed, 'c', k),
+      ),
+    ),
+    rb(ico('x'), 'Couleur par défaut', (ed) => wrapInline(ed, 'c', null)),
+  );
+  const placeRich = () => {
+    if (!richFor || !richFor.ed.isConnected) return;
+    const r = richFor.ed.getBoundingClientRect();
+    richBar.style.left = Math.max(8, r.left) + 'px';
+    richBar.style.top = Math.max(8, r.top - (richBar.offsetHeight || 32) - 4) + 'px';
+  };
   const head = h(
     'tr',
     {},
@@ -803,6 +846,46 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
       );
       s.value = v;
       return h('td', {}, s);
+    }
+    /* colonne `rich` : texte mis en forme, saisi dans la cellule (Entrée = retour à la ligne), stocké en balisage léger (htmlToMk) */
+    if (c.rich) {
+      const ed = h('div', {
+        ...common,
+        class: 'dg-rich',
+        contentEditable: 'true',
+        spellcheck: 'true',
+        role: 'textbox',
+        'aria-multiline': 'true',
+        'aria-label': c.name,
+        innerHTML: v ? mkToHtml(v) : '',
+      });
+      if (c.placeholder) ed.dataset.ph = c.placeholder;
+      const save = () => {
+        ad.set(i, j, htmlToMk(ed));
+        ctx.changed();
+        placeRich();
+      };
+      ed.addEventListener('input', save);
+      ed.addEventListener('focus', () => {
+        richFor = { ed, save };
+        richBar.hidden = false;
+        placeRich();
+        document.addEventListener('scroll', placeRich, true); // la barre suit la cellule quand le panneau défile
+      });
+      ed.addEventListener('blur', () => {
+        if (richFor && richFor.ed === ed) richFor = null;
+        richBar.hidden = true;
+        document.removeEventListener('scroll', placeRich, true);
+      });
+      /* collage : un tableau entier passe par l'import, sinon du texte brut (jamais le HTML du presse-papiers) */
+      ed.addEventListener('paste', (e) => {
+        const txt = (e.clipboardData || window.clipboardData).getData('text/plain');
+        e.preventDefault();
+        const m = /\t/.test(txt) ? parseMatrix(txt) : null;
+        if (m && i === 0 && j === 0) return apply(m);
+        document.execCommand('insertText', false, txt);
+      });
+      return h('td', {}, ed);
     }
     /* colonne `ml` : texte sur plusieurs lignes (Entrée = retour à la ligne), la cellule grandit avec son contenu */
     const mk = c.ml
@@ -1062,6 +1145,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
     drop,
     h('details', {}, h('summary', { textContent: t('Coller un tableau') }), h('div', { class: 'body' }, ta, pasteBtn)),
     h('div', { class: 'dg-scroll' }, table),
+    richBar,
     adds,
     tools,
   );
