@@ -787,6 +787,9 @@ const EN = {
   'La taille s’applique au texte courant et aux listes ; les styles de paragraphe (titres, source…) gardent leur corps. Interlignage en Auto : celui du style (130 % de la taille choisie, grille de 3 px). Interlignage et interlettrage s’appliquent à tout le bloc.':
     'The size applies to body text and lists; paragraph styles (headings, source…) keep their size. Line spacing on Auto: the style’s (130 % of the chosen size, 3 px grid). Line and letter spacing apply to the whole block.',
   réglé: 'set',
+  'Marge entre l’anneau et les libellés de gauche (px ; se règle aussi en tirant le trait orange dans l’aperçu)':
+    'Gap between the ring and the left labels (px; also set by dragging the orange line in the preview)',
+  'Marge entre l’anneau et les libellés de droite (px)': 'Gap between the ring and the right labels (px)',
   'Niveau 1': 'Level 1',
   'Niveau 2': 'Level 2',
   'Niveau 3': 'Level 3',
