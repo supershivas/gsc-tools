@@ -3,11 +3,47 @@ import { exportCard } from './export-card.js';
 import { h, ico, headerImage } from '../render.js';
 import { t } from '../i18n.js';
 import { toneKeys } from '../tokens.js';
-import { LOGO_VARIANTS, DEFAULT_LOGOS, DEFAULT_IMAGE_ID, newHeaderImage, useLogoFamily, useHeaderImage } from '../state.js';
+import { LOGO_VARIANTS, DEFAULT_LOGOS, DEFAULT_IMAGE_ID, newHeaderImage, useLogoFamily, useHeaderImage, HEADER_TEXT_Y } from '../state.js';
 import { withAssets, logoFamilies } from '../assetlib.js';
 import { assetBrowser } from './assetgrid.js';
 import { readImage } from '../editor.js';
 import { alertBox, confirmBox, promptBox } from '../dialogs.js';
+import { rangeControl, resetButton } from '../controls.js';
+
+/** Position verticale du texte dans le header : curseur de −40 à +40 px (0 = position d'origine), retour à 0 */
+function textOffset(ctx, H) {
+  const now = () => +H.textY || 0;
+  const set = (v) => {
+    if (!Number.isFinite(v) || v < -HEADER_TEXT_Y || v > HEADER_TEXT_Y) return; // saisie en cours (« - » avant « -12 ») : rien
+    if (Math.round(v)) H.textY = Math.round(v);
+    else delete H.textY;
+    reset.refresh(now() === 0);
+    ctx.changed();
+  };
+  const rg = rangeControl(
+    h,
+    'hdTextY',
+    'Position verticale du texte',
+    { min: -HEADER_TEXT_Y, max: HEADER_TEXT_Y, step: 1, unit: 'px' },
+    now(),
+    set,
+  );
+  const reset = resetButton(h, 'Position verticale du texte', () => {
+    rg.set(0);
+    set(0);
+  });
+  reset.refresh(now() === 0);
+  return h(
+    'div',
+    { class: 'f' },
+    h('div', { class: 'hint' }, h('label', { for: 'hdTextY', textContent: t('Position verticale du texte') }), reset),
+    rg.node,
+    h('p', {
+      class: 'hint',
+      textContent: t('En pixels : négatif = vers le haut, positif = vers le bas. L’image et le logo ne bougent pas.'),
+    }),
+  );
+}
 
 /* Logo : une famille (dossier de assets/logos/) et 4 versions de même taille ; une rangée de vignettes choisit celle qui s'affiche.
    Les logos d'origine (publiés dans le dépôt) ne se retirent pas : on peut charger une autre image à leur place, puis rétablir l'original. */
@@ -212,6 +248,7 @@ export function headerPanel(k) {
       text(H, 'overline', 'Surtitre'),
       text(H, 'title', 'Titre du header'),
       text(H, 'subtitle', 'Sous-titre du header'),
+      textOffset(k.ctx, H),
     ]),
     card(
       'hd-colors',
