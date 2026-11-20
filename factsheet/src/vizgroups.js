@@ -27,7 +27,7 @@ export const FIELD_ORDER = [
   'grid', 'gridStyle', 'gridTone', 'segments', 'axisValues', 'baseline', 'baseWidth', 'xTitle', 'yTitle', 'showRowNames', 'showColNames', 'zero', 'zeroX', 'zeroY', 'scaleMax', 'gridCount',
   'refLine', 'refValue', 'refAvg', 'refLineX', 'refX', 'refAvgX', 'refTextX', 'refLineY', 'refY', 'refAvgY', 'refTextY',
   // Étiquettes
-  'legend', 'legendPos', 'legendNote', 'legendNoteText', 'showPercent', 'showValues', 'showPct', 'showDelta', 'valuesIn', 'labelIn', 'showLabels', 'groupLabels', 'showDates', 'showTotal',
+  'legend', 'legendPos', 'legendNote', 'legendNoteText', 'showPercent', 'segValues', 'segDecimals', 'segPrefix', 'segSuffix', 'showValues', 'showPct', 'showDelta', 'valuesIn', 'labelIn', 'showLabels', 'groupLabels', 'showDates', 'showTotal',
   'cmpLegend', 'cmpTitle1', 'cmpTitle2', 'layout', 'leading', 'totalTpl', 'refText', 'pendingText', 'decimals', 'suffix',
   // Textes (mise en forme des noms et en-têtes)
   'labelTitle', 'labelText', 'cmpTitleStyle', 'nameWidth', 'nameWrap', 'nameSize', 'nameBold', 'nameAlign', 'headWrap', 'headSize', 'headBold',
@@ -73,7 +73,7 @@ export const SUBS = {
 };
 const SUB_OF = {
   legend: 'legend', legendPos: 'legend', legendNote: 'legend', legendNoteText: 'legend', showPercent: 'legend',
-  showValues: 'values', valuesIn: 'values', showTotal: 'values', showPct: 'values', showDelta: 'values',
+  showValues: 'values', valuesIn: 'values', segValues: 'values', segDecimals: 'values', segPrefix: 'values', segSuffix: 'values', showTotal: 'values', showPct: 'values', showDelta: 'values',
   showLabels: 'names', groupLabels: 'names', showDates: 'names', layout: 'names', leading: 'names', totalTpl: 'names', cmpLegend: 'legend', cmpTitle1: 'names', cmpTitle2: 'names', refText: 'names', pendingText: 'names',
   labelIn: 'inbars', decimals: 'numbers', suffix: 'numbers',
   style: 'shape', orient: 'orient', largestAngle: 'orient', startAngle: 'orient', ringAlign: 'position', ringX: 'position', compare: 'shape', cmpScale: 'shape',

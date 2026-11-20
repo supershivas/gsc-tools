@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.130.0 — 2026-11-20
+- Camemberts et anneaux : valeur ou pourcentage écrit dans chaque segment, quand il y tient
+
 ## 1.129.0 — 2026-11-20
 - Comparaison de camemberts : légende commune en bas, en haut, à gauche ou à droite, à la place des libellés de chaque camembert
 

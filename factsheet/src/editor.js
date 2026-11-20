@@ -868,7 +868,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
           h2('textarea', { value: getP(obj, f.k) ?? '', style: { minHeight: '64px' }, oninput: live((t) => setP(obj, f.k, t.value)) }),
         ),
       );
-    else if (f.t === 'number' && f.k === 'decimals')
+    else if (f.t === 'number' && (f.k === 'decimals' || f.k === 'segDecimals'))
       out.push(
         withReset(f, false, (id, commit) =>
           segControl(h2, f.label, orderedOptions({ 0: '0', 1: '1', 2: '2', 3: '3', 4: '4' }), shown(f, obj, 0), (v) => commit(+v)),

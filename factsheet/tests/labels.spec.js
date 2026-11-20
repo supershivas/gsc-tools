@@ -169,8 +169,8 @@ test('comparaison : deux camemberts, titres, 2e valeurs, même départ ; PDF lis
   await page.goto('/factsheet/index.html');
   await page.waitForSelector('#stage .page');
   await page.evaluate(() => document.fonts.ready);
-  const fs2 = await page.locator('#stage .page:not(.ovf-clone) .viz-title .p-h2').evaluate((n) => getComputedStyle(n).fontSize);
-  expect(fs2).toBe('18.6667px'); // titre de la dataviz au style Sous-section (14 pt)
+  const h2 = page.locator('#stage .page:not(.ovf-clone) .viz-title .p-h2');
+  await expect.poll(() => h2.evaluate((n) => getComputedStyle(n).fontSize)).toBe('18.6667px'); // titre de la dataviz au style Sous-section (14 pt), une fois les styles chargés
   await addBundle(page, 'pdfexport.js');
   const b64 = await page.evaluate(async (key) => {
     const { bytes } = await window.FSPDF.build(JSON.parse(localStorage.getItem(key)), 'net', { profile: 'none' });
@@ -226,4 +226,33 @@ test('comparaison, légende commune : une seule légende placée au choix, sans 
   expect(top.pieY).toBeGreaterThan(top.leg.y);
   expect(right.leg.x).toBeGreaterThan(300);
   expect(left.pieX).toBeGreaterThan(left.leg.x);
+});
+
+test('valeur dans les segments : valeur avec unité ou pourcentage, blanche sur fond sombre, jamais hors du segment', async ({ page }) => {
+  const out = await page.evaluate(
+    ([segs, rc]) => {
+      const t = window.FSTEST.VIZ_TYPES.donut,
+        env = { rc, pal: { blue: '#003399', yellow: '#FFCC00', grey: '#DCDFE5' } };
+      const run = (o) => {
+        const svg = t.render({ ...t.defaults(), segments: segs, layout: 'none', ...o }, 400, env).node;
+        document.body.append(svg);
+        const vals = [...svg.querySelectorAll('text[text-anchor=middle][fill]')].map((n) => {
+          const b = n.getBBox();
+          return { t: n.textContent, fill: n.getAttribute('fill'), cx: b.x + b.width / 2, cy: b.y + b.height / 2, w: b.width };
+        });
+        svg.remove();
+        return vals;
+      };
+      return {
+        val: run({ style: 'pie', segValues: 'value', segPrefix: '€', segSuffix: ' bn' }),
+        pct: run({ style: 'pie', segValues: 'pct' }),
+        none: run({ style: 'pie' }),
+      };
+    },
+    [pieSegs(), RC],
+  );
+  expect(out.none).toEqual([]);
+  expect(out.val.map((v) => v.t)).toContain('€62 bn');
+  expect(out.val.find((v) => v.t === '€62 bn').fill).toBe('#FFFFFF'); // sur le bleu
+  expect(out.pct.map((v) => v.t)).toContain('72%'); // 62 / 86,4
 });

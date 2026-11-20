@@ -1,8 +1,8 @@
 /* Anneau : segments proportionnels, total au centre (Source Serif 4),
    libellés autour de l'anneau avec traits de repère (colonnes larges)
    ou en légende sous l'anneau (colonnes étroites). Logique reprise de donut-export. */
-import { VIZ, TYPE } from '../tokens.js';
-import { s, SW, lineAttrs, LINE_FIELD, colorRef, pxOf, fmt, mw, SERIF, SANS, round3, richLines, drawRich, typeIn } from './util.js';
+import { VIZ, TYPE, TINT } from '../tokens.js';
+import { s, SW, lineAttrs, LINE_FIELD, colorRef, pxOf, fmt, mw, SERIF, SANS, round3, richLines, drawRich, typeIn, inkOn } from './util.js';
 import { t } from '../i18n.js';
 
 const LEAD = { tight: 15, normal: 18, loose: 21 }; // interlignage des textes (px) : « normal » = 18, un peu plus serré que le corps de texte (21)
@@ -269,6 +269,45 @@ const DONUT = {
       t: 'text',
       fmt: 'chart',
       label: 'Titre du 2e camembert (ex. 2025)',
+    },
+    {
+      k: 'segValues',
+      g: 'labels',
+      t: 'select',
+      label: 'Valeur dans chaque segment (seulement si elle tient : un anneau épais en accueille plus)',
+      options: { none: 'Aucune', value: 'Valeur', pct: 'Pourcentage du total' },
+      def: 'none',
+    },
+    {
+      k: 'segDecimals',
+      g: 'labels',
+      when: (o) => o.segValues === 'value' || o.segValues === 'pct',
+      why: 'Choisissez une valeur dans les segments pour régler ses décimales.',
+      t: 'number',
+      label: 'Décimales des valeurs des segments',
+      min: 0,
+      max: 4,
+      def: 0,
+    },
+    {
+      k: 'segPrefix',
+      g: 'labels',
+      when: (o) => o.segValues === 'value',
+      why: 'Choisissez « Valeur » pour écrire une unité.',
+      t: 'text',
+      fmt: 'plain',
+      single: true,
+      label: 'Avant la valeur du segment (€…)',
+    },
+    {
+      k: 'segSuffix',
+      g: 'labels',
+      when: (o) => o.segValues === 'value',
+      why: 'Choisissez « Valeur » pour écrire une unité.',
+      t: 'text',
+      fmt: 'plain',
+      single: true,
+      label: 'Après la valeur du segment ( bn, %…)',
     },
     {
       k: 'cmpLegend',
@@ -767,6 +806,76 @@ const DONUT = {
             'stroke-linecap': 'round',
           });
         });
+    /* valeur de chaque segment écrite dans le segment (`segValues` : value | pct), en chiffres du document (style des valeurs des graphiques, ×1,5),
+       blanche sur un fond sombre ; seulement si elle tient dans le segment (sinon rien : jamais de texte qui déborde) */
+    const valueNodes = (cx, cy) => {
+      const mode = o.segValues;
+      if (mode !== 'value' && mode !== 'pct') return [];
+      const r = (Ro + Ri) / 2,
+        dec = Math.max(0, Math.min(4, +o.segDecimals || 0));
+      const textOf = (p) => {
+        const v = +p.g.value || 0;
+        return mode === 'pct'
+          ? fmt(total ? (v / total) * 100 : 0, env.locale, dec) + '%'
+          : (o.segPrefix || '') + fmt(v, env.locale, dec) + (o.segSuffix || '');
+      };
+      /* position d'un texte dans son segment, ou null : le cadre du texte (coins et milieux des bords) doit tenir entre les rayons et les angles du segment */
+      const placeIn = (p, txt, size) => {
+        const w = mw(txt, 700, SERIF, size) + 4,
+          h = size * 0.8 + 2; // hauteur des chiffres (sans jambage) et une petite marge
+        const inside = (px, py) => {
+          const d = Math.hypot(px - cx, py - cy);
+          if (d > Ro - 1.5 || d < (pie ? 0 : Ri + 1.5)) return false;
+          if (p.a1 - p.a0 >= 359.99) return true;
+          const ang = norm((Math.atan2(px - cx, -(py - cy)) * 180) / Math.PI);
+          return norm(ang - p.a0) <= p.a1 - p.a0 - 1;
+        };
+        const fits = (rr, th) => {
+          const x = cx + rr * Math.sin(rad(th)),
+            y = cy - rr * Math.cos(rad(th));
+          for (const dx of [-1, 0, 1])
+            for (const dy of [-1, 0, 1]) if ((dx || dy) && !inside(x + (dx * w) / 2, y + (dy * h) / 2)) return null;
+          return { x, y };
+        };
+        /* au milieu du segment d'abord, puis de plus en plus loin vers ses bords ; anneau : au milieu de l'épaisseur,
+           camembert : le rayon le plus proche de 62 % où le texte tient */
+        for (const f of [0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8])
+          for (const rr of pie ? [0.62, 0.56, 0.68, 0.5, 0.74, 0.44, 0.8].map((k) => Ro * k) : [r]) {
+            const at = fits(rr, p.a0 + (p.a1 - p.a0) * f);
+            if (at) return at;
+          }
+        return null;
+      };
+      /* une seule taille pour tout le graphique : la plus grande des trois (×1,5, ×1,25, ×1 le style des chiffres des graphiques) qui place le plus de valeurs */
+      const base = pxOf(T.captionNum.size);
+      let best = null;
+      for (const k of [1.5, 1.25, 1]) {
+        const size = base * k,
+          placed = arcs.map((p) => {
+            const txt = textOf(p),
+              at = placeIn(p, txt, size);
+            return at ? { p, txt, ...at } : null;
+          });
+        const n = placed.filter(Boolean).length;
+        if (!best || n > best.n) best = { n, size, placed };
+      }
+      return best.placed.filter(Boolean).map((q) =>
+        s(
+          'text',
+          {
+            x: q.x,
+            y: q.y + 0.33 * best.size,
+            'text-anchor': 'middle',
+            'font-size': best.size,
+            'font-weight': 700,
+            fill: inkOn(env, q.p.g.color, String(q.p.g.color || '').startsWith('tint-') ? TINT : 1),
+            'pointer-events': 'none',
+            style: { fontFamily: 'var(--t-captionNum-family)' },
+          },
+          q.txt,
+        ),
+      );
+    };
     /* éditeur : poignée au centre de l'anneau, à tirer horizontalement (`ringX`) ; jamais exportée */
     const moveHandle = (cx, cy) =>
       ui && !o._sub && span > 0
@@ -793,7 +902,7 @@ const DONUT = {
       const cx = W / 2 + shift * span,
         cy = Dfull / 2,
         svg = s('svg', { width: W, height: 10, style: { display: 'block', overflow: 'visible' } });
-      svg.append(...ringNodes(cx, cy), centerNode(cx, cy), ...linkNodes(cx, cy), ...moveHandle(cx, cy));
+      svg.append(...ringNodes(cx, cy), ...valueNodes(cx, cy), centerNode(cx, cy), ...linkNodes(cx, cy), ...moveHandle(cx, cy));
       let y = cy + Dfull / 2 - SW + env.rc.gap.subsectionTitle * 2;
       const sw = VIZ.legendSwatch,
         tx = sw + VIZ.iconGap;
@@ -901,7 +1010,7 @@ const DONUT = {
             'pointer-events': 'none',
           }),
         );
-    svg.append(...ringNodes(cx, cy), centerNode(cx, cy), ...linkNodes(cx, cy), ...moveHandle(cx, cy));
+    svg.append(...ringNodes(cx, cy), ...valueNodes(cx, cy), centerNode(cx, cy), ...linkNodes(cx, cy), ...moveHandle(cx, cy));
     for (const it of items) {
       const right = it.side > 0,
         x = right ? W - wR : 0,
