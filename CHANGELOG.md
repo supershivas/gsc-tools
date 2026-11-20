@@ -1,7 +1,10 @@
 # Changelog
 
-## 1.138.0 — 2026-11-20
+## 1.139.0 — 2026-11-20
 - Camemberts : tous passent à des libellés de 10 pt et un total de 18 pt, fiche par défaut et fiches existantes comprises
+
+## 1.138.0 — 2026-11-20
+- Camemberts : un libellé tiré vers le haut peut monter au-dessus de l'anneau, dans l'espace du titre
 
 ## 1.137.0 — 2026-11-20
 - Blocs de texte : interlignage et interlettrage réglables dans la carte « Police et taille »

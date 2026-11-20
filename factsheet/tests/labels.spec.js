@@ -387,3 +387,24 @@ test('anneau : taille (pt) et graisse choisies pour le titre et le texte des lib
   expect(out.def.title.weight).toBe('700');
   expect(out.scaled.title.size).toBeCloseTo(14.4, 1); // 9 pt × 1,2
 });
+
+test('anneau : un libellé tiré vers le haut monte au-dessus de l’anneau (espace du titre), 150 px au plus ; les autres restent dessous', async ({
+  page,
+}) => {
+  const out = await page.evaluate(
+    ([segs, rc]) => {
+      const t = window.FSTEST.VIZ_TYPES.donut,
+        run = (pin) => {
+          const s2 = segs.map((g) => ({ ...g }));
+          if (pin != null) s2[1].pin = pin;
+          const r = t.render({ ...t.defaults(), segments: s2, layout: 'around' }, 600, { rc });
+          return r.meta.items.map((i) => Math.round(i.top));
+        };
+      return { none: run(null), up: run(-260), far: run(-900) };
+    },
+    [pieSegs(), RC],
+  );
+  expect(Math.min(...out.none)).toBeGreaterThanOrEqual(0);
+  expect(Math.min(...out.up)).toBeLessThan(0);
+  expect(Math.min(...out.far)).toBe(-150);
+});
