@@ -35,6 +35,9 @@ import {
   setFootRows,
   CELL_STYLES,
   PADS,
+  PAD_SIDES,
+  PAD_MAX,
+  padSide,
   LEVELS,
   levelOf,
   setLevel,
@@ -523,12 +526,14 @@ export function createStylePanel({ getTable, getSel, getDoc, commit }) {
         st = common(group, (cl) => cl.st || 'body'),
         fg = common(group, (cl) => cl.fg || 'none'),
         av = common(group, (cl) => cl.av || 'top'),
-        pad = common(group, (cl) => cl.pad || 'normal');
+        pad = common(group, (cl) => cl.pad || 'normal'),
+        sides = Object.fromEntries(PAD_SIDES.map((k) => [k, common(group, (cl) => padSide(cl, k))])),
+        custom = group.some((cl) => cl.padSides);
       const cols = R ? T.cols.slice(R.c0, R.c1 + 1) : [],
         numeric = cols.length > 0 && cols.every((c) => c.num);
       const put = (k, v, def) => change(() => group.forEach((cl) => (v === def ? delete cl[k] : (cl[k] = v))));
       return {
-        sig: [R, st, lv, fg, av, pad, numeric, getDoc().colors, group.length],
+        sig: [R, st, lv, fg, av, pad, JSON.stringify(sides), custom, numeric, getDoc().colors, group.length],
         draw: () =>
           !R
             ? [h('p', { class: 'hint', textContent: t('Sélectionnez des cellules pour régler leur texte.') })]
@@ -586,10 +591,64 @@ export function createStylePanel({ getTable, getSel, getDoc, commit }) {
                       t({ none: 'Aucune', tight: 'Serrées', normal: 'Normales', roomy: 'Aérées', wide: 'Larges' }[k]),
                     ]),
                     pad,
-                    (v) => put('pad', v, 'normal'),
+                    (v) =>
+                      change(() =>
+                        group.forEach((cl) => {
+                          if (v === 'normal') delete cl.pad;
+                          else cl.pad = v;
+                          delete cl.padSides; // un préréglage remplace les marges choisies côté par côté
+                        }),
+                      ),
                     'Marges intérieures',
                     { seg: 'pad' },
                   ),
+                  /* côté par côté (px) : vide = préréglage ; valeur différente selon les cellules = champ vide avec « — » */
+                  h(
+                    'div',
+                    { class: 'te-pads' },
+                    PAD_SIDES.map((k) => {
+                      const name = { t: 'Haut', r: 'Droite', b: 'Bas', l: 'Gauche' }[k];
+                      return h(
+                        'label',
+                        { class: 'te-pad' },
+                        h('span', { textContent: t(name) }),
+                        h('input', {
+                          type: 'number',
+                          min: 0,
+                          max: PAD_MAX,
+                          step: 1,
+                          value: sides[k] == null ? '' : sides[k],
+                          placeholder: sides[k] == null ? '—' : '',
+                          'aria-label': `${t('Marge intérieure')} · ${t(name)} (px)`,
+                          dataset: { k: 'pad-' + k },
+                          onchange: (e) => {
+                            const v = e.target.value.trim();
+                            if (v === '' || !Number.isFinite(+v)) return;
+                            const n = Math.max(0, Math.min(PAD_MAX, Math.round(+v)));
+                            change(() => group.forEach((cl) => (cl.padSides = { ...(cl.padSides || {}), [k]: n })));
+                          },
+                        }),
+                      );
+                    }),
+                    custom
+                      ? h(
+                          'button',
+                          {
+                            type: 'button',
+                            class: 'mini',
+                            title: t('Revenir au préréglage'),
+                            'aria-label': t('Revenir au préréglage'),
+                            dataset: { k: 'pad-reset' },
+                            onclick: () => change(() => group.forEach((cl) => delete cl.padSides)),
+                          },
+                          ico('rotate-2'),
+                        )
+                      : null,
+                  ),
+                  h('p', {
+                    class: 'hint',
+                    textContent: t('En pixels, côté par côté (ex. 10 à droite) ; un préréglage remet les quatre côtés.'),
+                  }),
                 ),
                 block(
                   t('Colonnes numériques'),

@@ -763,6 +763,10 @@ const EN = {
   'Style du total au centre': 'Style of the total in the centre',
   'Affichez le texte au centre de l’anneau pour régler sa taille.': 'Show the text in the centre of the ring to set its size.',
   'Texte petit (gras)': 'Small text (bold)',
+  'Marge intérieure': 'Cell padding',
+  'Revenir au préréglage': 'Back to the preset',
+  'En pixels, côté par côté (ex. 10 à droite) ; un préréglage remet les quatre côtés.':
+    'In pixels, side by side (e.g. 10 on the right); a preset resets all four sides.',
   'Niveau 1': 'Level 1',
   'Niveau 2': 'Level 2',
   'Niveau 3': 'Level 3',

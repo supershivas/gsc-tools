@@ -214,6 +214,7 @@ body.ve-open{overflow:hidden}
 .te-act{display:flex;align-items:center;gap:8px;min-height:36px;width:100%;justify-content:flex-start}
 .te-act:disabled,.te-al:disabled{opacity:.4;cursor:default}
 .te-seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.te-pads{display:flex;align-items:flex-end;gap:4px;margin-top:6px}.te-pad{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;font-size:var(--fs-sm);color:var(--ui-mute)}.te-pad input{width:100%;min-width:0;padding:4px 6px}
 .te-al{min-height:36px;display:inline-flex;align-items:center;justify-content:center}
 .te-al.on{background:var(--ui-ink);color:var(--ui-panel)}
 .te-msg:empty{display:none}

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.133.0 — 2026-11-20
+- Tableau : marges intérieures réglables côté par côté dans les cellules (ex. 10 px à droite)
+
 ## 1.132.0 — 2026-11-20
 - Camemberts : nouveaux libellés à 10 pt et total à 18 pt, plus proches des autres graphiques ; titres possibles en Légende ou Texte petit
 - Tableau : barre de mise en forme dans la cellule (gras, italique, souligné, exposant, appel de note)
