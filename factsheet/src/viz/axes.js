@@ -152,9 +152,10 @@ export const NEW_AXES_KEYS = [
   'refY',
 ];
 
-/** Aspect d'origine des clés de la carte d'un type (champs `g: 'axes'` qui ont un `def`) */
+/** Aspect d'origine des clés de la carte d'un type (champs `g: 'axes'` qui ont un `def`) et de `ty.origin` */
 export function axesOrigin(ty) {
   const out = {};
   for (const f of (ty && ty.fields) || []) if (f.g === 'axes' && f.def !== undefined && NEW_AXES_KEYS.includes(f.k)) out[f.k] = f.def;
-  return out;
+  /* autres réglages dont les nouvelles dataviz ont un aspect différent de l'ancien (ex. anneau : libellés à 10 pt), déclarés par `origin` du type */
+  return { ...out, ...((ty && ty.origin) || {}) };
 }

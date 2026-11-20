@@ -53,12 +53,15 @@ export function richText(text, align, adv, env) {
   let ul = null,
     ol = null,
     num = 0;
-  const notes = [];
+  /* appel de note : exposant ; dans un document (`env.notes`), numérotation sur tout le document et notes réunies au bas du verso
+     (renderDocument) ; hors document (éditeurs, Labo), la note suit le bloc */
+  const notes = env && Array.isArray(env.notes) ? env.notes : [],
+    own = !(env && Array.isArray(env.notes));
   const note = (t) =>
     String(t).replace(/\{n\|([^{}]*)\}/g, (m, body) => {
       notes.push(body);
       return `^^${notes.length}^^`;
-    }); // appel de note : exposant, la note suit le bloc
+    });
   for (const raw of String(text || '')
     .replace(/\r\n?/g, '\n')
     .split('\n')) {
@@ -102,7 +105,7 @@ export function richText(text, align, adv, env) {
       root.append(applyAdv(h('p', { innerHTML: inline(note(line), env) }), adv, true));
     }
   }
-  notes.forEach((body, i) => root.append(h('p', { class: 'p-note rich-note', innerHTML: inline(`^^${i + 1}^^ ${body}`, env) })));
+  if (own) notes.forEach((body, i) => root.append(h('p', { class: 'p-note rich-note', innerHTML: inline(`^^${i + 1}^^ ${body}`, env) })));
   return root;
 }
 
@@ -490,7 +493,7 @@ function renderSection(sec, si, env, pos) {
 /** → { pages: [{el, key, content, top, max, used, overflow}], warnings: [] } */
 export function renderDocument(doc) {
   const vars = cssVars(doc.theme, doc.colors, doc.density, doc.textSet);
-  const env = { locale: doc.locale || 'en-GB', pal: paletteOf(doc.theme, doc.colors), fills: [], page: '', rc: renderCtx(doc) };
+  const env = { locale: doc.locale || 'en-GB', pal: paletteOf(doc.theme, doc.colors), fills: [], page: '', rc: renderCtx(doc), notes: [] };
   const pages = [];
   for (const key of ['recto', 'verso']) {
     env.page = key;
@@ -520,6 +523,20 @@ export function renderDocument(doc) {
     }
     const lastBand = list.length && isBand(list[list.length - 1].s);
     pages.push({ el: page, key, content, top, lastBand, max: PAGE.h - top - (lastBand ? 0 : PAGE.marginBottom) });
+  }
+  /* notes de bas de page de tout le document (appels {n|…} des textes et des tableaux, numérotés dans l'ordre de lecture) :
+     à la fin de la dernière section du verso, poussées juste au-dessus du pied de page par measure() */
+  if (env.notes.length) {
+    const vp = pages.find((p) => p.key === 'verso'),
+      host = (vp && vp.content.querySelector(':scope > .sec-last')) || (vp && vp.content);
+    if (host)
+      host.append(
+        h(
+          'div',
+          { class: 'rich doc-notes' },
+          env.notes.map((body, i) => h('p', { class: 'p-note rich-note', innerHTML: inline(`^^${i + 1}^^ ${body}`, env) })),
+        ),
+      );
   }
   return { pages, warnings: [], fills: env.fills };
 }
@@ -634,6 +651,16 @@ export function measure(result) {
         last.style.marginTop = (parseFloat(last.style.marginTop) || 0) + Math.max(0, bottom - (last.offsetTop + last.offsetHeight)) + 'px';
       else last.style.minHeight = Math.max(0, bottom - last.offsetTop) + 'px';
     } else if (lastIsBand) last.style.minHeight = Math.max(0, PAGE.h - p.top - last.offsetTop) + 'px';
+    /* notes de bas de page (verso) : descendues au bas de la dernière section, juste au-dessus de la marge basse et du pied de page */
+    const notesEl = p.content.querySelector('.doc-notes');
+    if (notesEl && last && !p.overflow) {
+      if (!last.style.minHeight) last.style.minHeight = Math.max(0, p.max - last.offsetTop) + 'px';
+      const k = p.el.getBoundingClientRect().height / (p.el.offsetHeight || 1) || 1, // zoom de l'aperçu
+        cs = getComputedStyle(last),
+        inner = last.getBoundingClientRect().bottom / k - (parseFloat(cs.paddingBottom) || 0), // bande : son rembourrage bas = la marge basse
+        free = inner - notesEl.getBoundingClientRect().bottom / k;
+      if (free > 0.5) notesEl.style.marginTop = (parseFloat(getComputedStyle(notesEl).marginTop) || 0) + free + 'px';
+    }
     if (p.overflow) {
       /* sections qui sortent de la limite : 'out' = entièrement au-delà, 'cut' = coupée par la limite */
       const secs = [];

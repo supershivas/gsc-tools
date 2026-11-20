@@ -205,8 +205,14 @@ const DONUT = {
   family: 'part',
   boxed: true,
   heights: ['auto', 'fixed', 'fill'],
+  /* aspect d'avant les libellés à 10 pt (fiches existantes, fiche par défaut, documents de test : `withAxesOrigin`) ; les nouveaux anneaux
+     ont des libellés en Texte petit (10 pt, comme un bloc de texte un peu plus présent que les axes des graphiques) et un total en Chiffre clé petit */
+  origin: { labelTitle: 'bold', labelText: 'body', totalStyle: 'figure' },
   defaults: () => ({
     style: 'donut',
+    labelTitle: 'small',
+    labelText: 'small',
+    totalStyle: 'figureSm',
     linkExtra: 24,
     linkColor: 'blue',
     totalTpl: '€{total}\nbillion',
@@ -358,7 +364,14 @@ const DONUT = {
       when: (o) => o.layout !== 'none',
       t: 'select',
       label: 'Style des titres des libellés',
-      options: { bold: 'Texte gras', body: 'Texte', subsection: 'Sous-section', figureSm: 'Chiffre clé (petit)' },
+      options: {
+        caption: 'Légende (gras)',
+        small: 'Texte petit (gras)',
+        bold: 'Texte gras',
+        body: 'Texte',
+        subsection: 'Sous-section',
+        figureSm: 'Chiffre clé (petit)',
+      },
       def: 'bold',
     },
     {
@@ -387,6 +400,16 @@ const DONUT = {
       label: 'Séparation des segments',
       options: { none: 'Aucune', thin: 'Fine', wide: 'Large' },
       def: 'none',
+    },
+    {
+      k: 'totalStyle',
+      g: 'texts',
+      when: (o) => o.style !== 'pie' && o.showTotal !== false,
+      why: 'Affichez le texte au centre de l’anneau pour régler sa taille.',
+      t: 'select',
+      label: 'Style du total au centre',
+      options: { figureSm: 'Chiffre clé (petit)', figure: 'Chiffre clé' },
+      def: 'figure',
     },
     { k: 'totalTpl', g: 'labels', when: (o) => o.style !== 'pie' && o.showTotal !== false, t: 'ctext', label: 'Texte du centre' },
     {
@@ -673,10 +696,11 @@ const DONUT = {
     const centerNode = (cx, cy) => {
       if (pie || o.showTotal === false) return s('g');
       const n = fmt(total, env.locale, o.decimals),
-        BASE = pxOf(T.figure.size);
+        fk = o.totalStyle === 'figureSm' ? 'figureSm' : 'figure', // total : Chiffre clé (origine) ou Chiffre clé petit (nouveaux anneaux)
+        BASE = pxOf(T[fk].size);
       const LV = {
-        1: { k: 1, w: 700, f: SERIF, fam: 'var(--t-figure-family)' },
-        2: { k: 0.62, w: 700, f: SERIF, fam: 'var(--t-figure-family)' },
+        1: { k: 1, w: 700, f: SERIF, fam: `var(--t-${fk}-family)` },
+        2: { k: 0.62, w: 700, f: SERIF, fam: `var(--t-${fk}-family)` },
         3: { k: 0, w: 400, f: SANS, fam: 'inherit' },
       };
       const paras = String(o.totalTpl || '')

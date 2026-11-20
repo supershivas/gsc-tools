@@ -137,6 +137,8 @@ sup,sub{font-size:.7em;line-height:0}
 .rich ol .lt{min-width:0}
 .rich p + ol,.rich ol + p,.rich ul + ol,.rich ol + ul{margin-top:var(--gap-paragraph)}
 .rich .rich-note{margin-top:var(--gap-paragraph)}
+/* notes de bas de page du document, réunies au bas du verso (renderDocument, measure) */
+.doc-notes{margin-top:calc(var(--gap-paragraph) * 2)}.doc-notes .rich-note{margin-top:0}
 .lnk{color:var(--c-blue);text-decoration:underline;text-decoration-thickness:var(--stroke);text-underline-offset:2px}
 s{text-decoration:line-through;text-decoration-thickness:var(--stroke)}
 .page.wrapfix .rich p,.page.wrapfix .rich .lt,.page.wrapfix .rich li{text-wrap:pretty}

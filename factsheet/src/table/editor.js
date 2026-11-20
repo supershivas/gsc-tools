@@ -142,6 +142,56 @@ export function openTableEditor({ col, bg, width, ctx, fileStem = (x) => 'tablea
     redoBtn.disabled = hist.i >= hist.s.length - 1;
   }
 
+  /* ----- barre de mise en forme de la cellule en saisie : gras, italique, souligné, exposant, appel de note ----- */
+  let fmtBar = null,
+    barCell = null;
+  const fmtBtn = (label, title, fn, style) =>
+    h(
+      'button',
+      {
+        type: 'button',
+        class: 'mini',
+        title: t(title),
+        'aria-label': t(title),
+        style,
+        onmousedown: (e) => e.preventDefault(), // la sélection du texte reste dans la cellule
+        onclick: () => {
+          if (!editing) return;
+          editing.ed.focus();
+          fn();
+          grid.refresh();
+          placeBar();
+        },
+      },
+      label,
+    );
+  function showBar(cellEl) {
+    barCell = cellEl;
+    const exec = (c) => () => document.execCommand(c);
+    fmtBar = h(
+      'div',
+      { class: 'te-fmt', role: 'toolbar', 'aria-label': t('Mise en forme') },
+      fmtBtn('B', 'Gras', exec('bold'), { fontWeight: 800 }),
+      fmtBtn('I', 'Italique', exec('italic'), { fontStyle: 'italic' }),
+      fmtBtn('U', 'Souligné', exec('underline'), { textDecoration: 'underline' }),
+      fmtBtn('x²', 'Exposant', exec('superscript')),
+      fmtBtn(ico('asterisk'), 'Appel de note (le texte de la note suit entre accolades ; les notes vont au bas du verso)', () => {
+        document.execCommand('insertText', false, '{n|}');
+        const sl = window.getSelection();
+        if (sl.modify) sl.modify('move', 'backward', 'character');
+      }),
+    );
+    root.append(fmtBar);
+    placeBar();
+  }
+  function placeBar() {
+    if (!fmtBar || !barCell || !barCell.isConnected) return;
+    const r = barCell.getBoundingClientRect(),
+      bh = fmtBar.offsetHeight || 36;
+    fmtBar.style.left = Math.max(8, r.left) + 'px';
+    fmtBar.style.top = (r.top - bh - 6 > 8 ? r.top - bh - 6 : r.bottom + 6) + 'px';
+  }
+
   /* ----- saisie dans la cellule ----- */
   function startEdit(keep) {
     if (!sel) return;
@@ -157,9 +207,13 @@ export function openTableEditor({ col, bg, width, ctx, fileStem = (x) => 'tablea
       innerHTML: keep ? mkToHtml(cl.text, typoOf(doc)) : '<div><br></div>',
       style: { textAlign: ahOf(tb(), cl) },
     });
-    ed.addEventListener('input', () => grid.refresh());
+    ed.addEventListener('input', () => {
+      grid.refresh();
+      placeBar();
+    });
     el.replaceChildren(ed);
     editing = { id: cl.id, ed };
+    showBar(el);
     ed.focus();
     const r = document.createRange();
     r.selectNodeContents(ed);
@@ -173,6 +227,8 @@ export function openTableEditor({ col, bg, width, ctx, fileStem = (x) => 'tablea
     if (!editing) return;
     const { id, ed } = editing;
     editing = null;
+    if (fmtBar) fmtBar.remove();
+    fmtBar = null;
     const cl = tb().cells.find((x) => x.id === id);
     if (save && cl) {
       const v = htmlToMk(ed);

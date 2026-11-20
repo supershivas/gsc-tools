@@ -755,3 +755,5 @@ dialog.tsd::backdrop{background:transparent}
 .tsd-foot{display:flex;align-items:center;gap:8px;padding:12px var(--modal-padding);border-top:1px solid var(--ui-line)}
 .tsd-gap{flex:1}
 .tsd-resetall{display:inline-flex;align-items:center;gap:6px}
+/* éditeur de tableau : barre de mise en forme au-dessus de la cellule en saisie */
+.te-fmt{position:fixed;z-index:30;display:flex;gap:2px;padding:3px;border:1px solid var(--ui-line);border-radius:var(--radius-md);background:var(--ui-panel);box-shadow:var(--shadow-bar)}

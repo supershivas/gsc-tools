@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.132.0 — 2026-11-20
+- Camemberts : nouveaux libellés à 10 pt et total à 18 pt, plus proches des autres graphiques ; titres possibles en Légende ou Texte petit
+- Tableau : barre de mise en forme dans la cellule (gras, italique, souligné, exposant, appel de note)
+- Notes de bas de page numérotées sur tout le document, réunies en bas du verso au-dessus du pied de page
+
 ## 1.131.0 — 2026-11-20
 - Camemberts : les données se saisissent dans un tableau comme les autres dataviz, avec les réglages de chaque ligne en fin de ligne
 - Comparaison : tableau en deux groupes de colonnes (camembert 1 et 2) sur les mêmes lignes ; le 2e camembert apparaît dès l'activation
