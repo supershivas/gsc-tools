@@ -1,9 +1,7 @@
 {
-  "version": "1.132.0",
+  "version": "1.133.0",
   "date": "2026-11-20",
   "changes": [
-    "Camemberts : nouveaux libellés à 10 pt et total à 18 pt, plus proches des autres graphiques ; titres possibles en Légende ou Texte petit",
-    "Tableau : barre de mise en forme dans la cellule (gras, italique, souligné, exposant, appel de note)",
-    "Notes de bas de page numérotées sur tout le document, réunies en bas du verso au-dessus du pied de page"
+    "Camemberts : tous passent à des libellés de 10 pt et un total de 18 pt, fiche par défaut et fiches existantes comprises"
   ]
 }

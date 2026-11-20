@@ -287,6 +287,15 @@ export function migrate(j) {
           else if (!k.viz.opts) k.viz = newViz(k.viz.kind);
           /* clés de « Axes et grille » absentes (fichier d'avant la carte) : écrites avec l'aspect d'alors, le panneau montre ce qui est dessiné */
           withAxesOrigin(k.viz, true);
+          /* anneau d'avant les libellés à 10 pt (`labelV` absent) : passé une fois aux tailles actuelles, sur demande du propriétaire ;
+             les styles restés à leur ancienne valeur par défaut deviennent Texte petit et Chiffre clé petit, un autre choix est gardé */
+          for (const o of [k.viz.kind === 'donut' && k.viz.opts, k.viz.stash && k.viz.stash.donut])
+            if (o && typeof o === 'object' && !o.labelV) {
+              if (!o.labelTitle || o.labelTitle === 'bold') o.labelTitle = 'small';
+              if (!o.labelText || o.labelText === 'body') o.labelText = 'small';
+              if (!o.totalStyle || o.totalStyle === 'figure') o.totalStyle = 'figureSm';
+              o.labelV = 2;
+            }
           /* réglages des types quittés (`switchKind`) : on ne garde que les types connus, avec des réglages en objet */
           if (k.viz.stash) {
             const st = {};

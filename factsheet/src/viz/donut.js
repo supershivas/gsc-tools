@@ -108,8 +108,8 @@ function renderCompare(o, W, env) {
   const pos = ['top', 'bottom', 'left', 'right'].includes(o.cmpLegend) ? o.cmpLegend : null;
   const BODY = pxOf(T.body.size),
     LH = Math.round(((LEAD[o.leading] || LEAD.normal) * (T.body.size / TYPE.body.size)) / 1.5) * 1.5;
-  const textSpec = labelSpec(T, o.labelText || 'body', LH, false),
-    titleSpec = labelSpec(T, o.labelTitle || 'bold', LH, true);
+  const textSpec = labelSpec(T, o.labelText || 'small', LH, false),
+    titleSpec = labelSpec(T, o.labelTitle || 'small', LH, true);
   const legItems = pos
     ? segs
         .filter((g) => (+g.value > 0 || +g.value2 > 0) && hasLabel(g))
@@ -205,14 +205,12 @@ const DONUT = {
   family: 'part',
   boxed: true,
   heights: ['auto', 'fixed', 'fill'],
-  /* aspect d'avant les libellés à 10 pt (fiches existantes, fiche par défaut, documents de test : `withAxesOrigin`) ; les nouveaux anneaux
-     ont des libellés en Texte petit (10 pt, comme un bloc de texte un peu plus présent que les axes des graphiques) et un total en Chiffre clé petit */
-  origin: { labelTitle: 'bold', labelText: 'body', totalStyle: 'figure' },
   defaults: () => ({
     style: 'donut',
     labelTitle: 'small',
     labelText: 'small',
     totalStyle: 'figureSm',
+    labelV: 2, // libellés à 10 pt : les anneaux d'avant sont passés à ces tailles une fois par `migrate` (state.js)
     linkExtra: 24,
     linkColor: 'blue',
     totalTpl: '€{total}\nbillion',
@@ -372,7 +370,7 @@ const DONUT = {
         subsection: 'Sous-section',
         figureSm: 'Chiffre clé (petit)',
       },
-      def: 'bold',
+      def: 'small',
     },
     {
       k: 'labelText',
@@ -381,7 +379,7 @@ const DONUT = {
       t: 'select',
       label: 'Style des textes des libellés',
       options: { body: 'Texte', small: 'Texte petit', caption: 'Légende' },
-      def: 'body',
+      def: 'small',
     },
     { ...LINE_FIELD, label: 'Contour des segments' },
     {
@@ -409,7 +407,7 @@ const DONUT = {
       t: 'select',
       label: 'Style du total au centre',
       options: { figureSm: 'Chiffre clé (petit)', figure: 'Chiffre clé' },
-      def: 'figure',
+      def: 'figureSm',
     },
     { k: 'totalTpl', g: 'labels', when: (o) => o.style !== 'pie' && o.showTotal !== false, t: 'ctext', label: 'Texte du centre' },
     {
@@ -632,8 +630,8 @@ const DONUT = {
       kBody = T.body.size / TYPE.body.size;
     const LH = Math.round(((LEAD[o.leading] || LEAD.normal) * kBody) / 1.5) * 1.5;
     /* libellés : titre puis texte, chacun dans un style du document (`labelTitle`, `labelText`) ; défaut = texte gras puis texte, interlignage `leading` */
-    const titleSpec = labelSpec(T, o.labelTitle || 'bold', LH, true),
-      textSpec = labelSpec(T, o.labelText || 'body', LH, false);
+    const titleSpec = labelSpec(T, o.labelTitle || 'small', LH, true),
+      textSpec = labelSpec(T, o.labelText || 'small', LH, false);
     const labelLines = (g, maxW) => [
       ...(String(g.title || '').trim() ? richLines(g.title, titleSpec, maxW) : []),
       ...(String(g.text || '').trim() ? richLines(g.text, textSpec, maxW) : []),
@@ -696,7 +694,7 @@ const DONUT = {
     const centerNode = (cx, cy) => {
       if (pie || o.showTotal === false) return s('g');
       const n = fmt(total, env.locale, o.decimals),
-        fk = o.totalStyle === 'figureSm' ? 'figureSm' : 'figure', // total : Chiffre clé (origine) ou Chiffre clé petit (nouveaux anneaux)
+        fk = o.totalStyle === 'figure' ? 'figure' : 'figureSm', // total : Chiffre clé petit (défaut) ou Chiffre clé
         BASE = pxOf(T[fk].size);
       const LV = {
         1: { k: 1, w: 700, f: SERIF, fam: `var(--t-${fk}-family)` },
