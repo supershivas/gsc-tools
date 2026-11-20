@@ -18,13 +18,12 @@ test('bloc de texte : interlignage (pt) et interlettrage (‰) depuis la carte P
   const lhIn = page.locator('#colTextLh');
   await lhIn.fill('18');
   await page.locator('#colTextLs').fill('50');
-  const st = await page.evaluate(() => {
-    const p = [...document.querySelectorAll('#stage .page:not(.ovf-clone) .rich p')].find((n) => n.style.lineHeight);
-    return p ? { lh: getComputedStyle(p).lineHeight, ls: p.style.letterSpacing } : null;
-  });
-  expect(st).not.toBeNull();
-  expect(st.lh).toBe('24px'); // 18 pt
-  expect(st.ls).toBe('0.05em');
+  const st = () =>
+    page.evaluate(() => {
+      const p = [...document.querySelectorAll('#stage .page:not(.ovf-clone) .rich p')].find((n) => n.style.lineHeight);
+      return p ? `${getComputedStyle(p).lineHeight} ${p.style.letterSpacing}` : '';
+    });
+  await expect.poll(st).toBe('24px 0.05em'); // 18 pt, 50 ‰ (aperçu redessiné après la saisie)
   await expect(card).toHaveCount(1);
   expect(errors).toEqual([]);
 });

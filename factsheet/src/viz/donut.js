@@ -45,6 +45,7 @@ function clearManual(o) {
 const norm = (a) => ((a % 360) + 360) % 360;
 const hasLabel = (g) => !!(String(g.title || '').trim() || String(g.text || '').trim()); // un segment sans titre ni texte n'a ni libellé ni trait de repère
 const ORANGE = '#F28C28';
+const UP_MAX = 150; // px qu'un libellé tiré vers le haut peut monter au-dessus de l'anneau (espace du titre de la dataviz)
 /* Réglages d'apparence (audit des options, lot 5a) : la valeur d'origine est le `def` de chaque champ, aucune clé n'est écrite dans `defaults()` ni `migrate`. */
 const RING_PCT = { thin: 0.1, normal: VIZ.ringPct, thick: 0.24 }; // épaisseur de l'anneau / rayon extérieur
 const SEG_GAP = { none: 0, thin: 2, wide: 5 }; // largeur (px) du liseré de la couleur du fond entre les segments
@@ -1084,12 +1085,12 @@ const DONUT = {
         it.P = P;
         it.want = it.p.g.pin != null ? cy + it.p.g.pin : P.y - it.lh0 / 2;
       }
-      for (const side of [1, -1])
-        resolveColumn(
-          items.filter((i) => i.side === side),
-          0,
-          VIZ.blockGap,
-        );
+      /* un libellé tiré vers le haut (`pin`) peut monter au-dessus de l'anneau, dans l'espace du titre (UP_MAX au plus) ; les autres restent sous le haut */
+      for (const side of [1, -1]) {
+        const col = items.filter((i) => i.side === side),
+          lim = Math.max(-UP_MAX, Math.min(0, ...col.filter((i) => i.p.g.pin != null).map((i) => i.want)));
+        resolveColumn(col, lim, VIZ.blockGap);
+      }
       return Math.max(Dfull, ...items.map((i) => i.top + i.h));
     };
     let cy = Dfull / 2;
@@ -1107,9 +1108,9 @@ const DONUT = {
         svg.append(
           s('rect', {
             x: sd > 0 ? W - wR : 0,
-            y: 0,
+            y: -UP_MAX,
             width: widthOf(sd),
-            height: H,
+            height: H + UP_MAX,
             fill: ORANGE,
             'fill-opacity': 0.08,
             stroke: ORANGE,
