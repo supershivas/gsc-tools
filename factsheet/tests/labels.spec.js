@@ -80,7 +80,7 @@ test('tableau : niveaux 1 à 4 (style et retrait), aller-retour par repairTable'
 
 /* ---------- Anneau / camembert : libellés riches, styles, sans total, déplacement, comparaison ---------- */
 const { addBundle, stubExternal, DOC_KEY } = require('./helpers');
-const { execFileSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -182,7 +182,48 @@ test('comparaison : deux camemberts, titres, 2e valeurs, même départ ; PDF lis
   }, DOC_KEY);
   const file = path.join(os.tmpdir(), `pie-${Date.now()}.pdf`);
   fs.writeFileSync(file, Buffer.from(b64, 'base64'));
-  const txt = execFileSync('pdftotext', [file, '-']).toString();
+  expect(fs.statSync(file).size).toBeGreaterThan(1000);
+  /* textes du PDF : seulement si pdftotext est installé (absent de la CI, comme pdftoppm dans pdf.spec.js) */
+  if (spawnSync('pdftotext', ['-v']).error === undefined) {
+    const txt = execFileSync('pdftotext', [file, '-']).toString();
+    for (const x of ['2024', '2025', '€70 billion', 'agriculture', 'Europe', 'Budget']) expect(txt).toContain(x);
+  }
   fs.unlinkSync(file);
-  for (const x of ['2024', '2025', '€70 billion', 'agriculture', 'Europe', 'Budget']) expect(txt).toContain(x);
+});
+
+test('comparaison, légende commune : une seule légende placée au choix, sans traits de repère', async ({ page }) => {
+  const out = await page.evaluate(
+    ([segs, rc]) => {
+      const t = window.FSTEST.VIZ_TYPES.donut;
+      return ['bottom', 'right', 'top', 'left'].map((pos) => {
+        const svg = t.render({ ...t.defaults(), style: 'pie', segments: segs, compare: true, cmpLegend: pos }, 600, { rc }).node;
+        const lg = svg.querySelector('.cmp-legend'),
+          box = (n) => {
+            const r = [...n.querySelectorAll('rect')].map((x) => [+x.getAttribute('x'), +x.getAttribute('y')]);
+            return { x: Math.min(...r.map((p) => p[0])), y: Math.min(...r.map((p) => p[1])) };
+          };
+        const pies = [...svg.querySelectorAll(':scope > g[transform]')].map((g) => g.getAttribute('transform'));
+        return {
+          pos,
+          items: lg ? lg.querySelectorAll('rect').length : 0,
+          leaders: svg.querySelectorAll('path[fill=none]').length,
+          leg: lg ? box(lg) : null,
+          pieY: +pies[0].match(/ ([\d.]+)\)/)[1],
+          pieX: +pies[0].match(/\(([\d.]+)/)[1],
+          texts: [...lg.querySelectorAll('text')].map((n) => n.textContent),
+        };
+      });
+    },
+    [pieSegs(), RC],
+  );
+  for (const r of out) {
+    expect(r.items).toBe(3);
+    expect(r.leaders).toBe(0);
+    expect(r.texts).toContain('Competitiveness');
+  }
+  const [bottom, right, top, left] = out;
+  expect(bottom.leg.y).toBeGreaterThan(bottom.pieY);
+  expect(top.pieY).toBeGreaterThan(top.leg.y);
+  expect(right.leg.x).toBeGreaterThan(300);
+  expect(left.pieX).toBeGreaterThan(left.leg.x);
 });

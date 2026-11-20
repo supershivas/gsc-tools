@@ -1,9 +1,7 @@
 {
-  "version": "1.128.0",
+  "version": "1.129.0",
   "date": "2026-11-20",
   "changes": [
-    "Camemberts : comparaison de deux camemberts côte à côte, anneau sans texte au centre, anneau déplaçable horizontalement",
-    "Libellés des camemberts : styles du document, couleur, capitales et retours à la ligne",
-    "Dataviz : choix du style du titre (sous-section, titre de section, texte…)"
+    "Comparaison de camemberts : légende commune en bas, en haut, à gauche ou à droite, à la place des libellés de chaque camembert"
   ]
 }

@@ -28,7 +28,7 @@ export const FIELD_ORDER = [
   'refLine', 'refValue', 'refAvg', 'refLineX', 'refX', 'refAvgX', 'refTextX', 'refLineY', 'refY', 'refAvgY', 'refTextY',
   // Étiquettes
   'legend', 'legendPos', 'legendNote', 'legendNoteText', 'showPercent', 'showValues', 'showPct', 'showDelta', 'valuesIn', 'labelIn', 'showLabels', 'groupLabels', 'showDates', 'showTotal',
-  'cmpTitle1', 'cmpTitle2', 'layout', 'leading', 'totalTpl', 'refText', 'pendingText', 'decimals', 'suffix',
+  'cmpLegend', 'cmpTitle1', 'cmpTitle2', 'layout', 'leading', 'totalTpl', 'refText', 'pendingText', 'decimals', 'suffix',
   // Textes (mise en forme des noms et en-têtes)
   'labelTitle', 'labelText', 'cmpTitleStyle', 'nameWidth', 'nameWrap', 'nameSize', 'nameBold', 'nameAlign', 'headWrap', 'headSize', 'headBold',
   // Couleurs
@@ -74,7 +74,7 @@ export const SUBS = {
 const SUB_OF = {
   legend: 'legend', legendPos: 'legend', legendNote: 'legend', legendNoteText: 'legend', showPercent: 'legend',
   showValues: 'values', valuesIn: 'values', showTotal: 'values', showPct: 'values', showDelta: 'values',
-  showLabels: 'names', groupLabels: 'names', showDates: 'names', layout: 'names', leading: 'names', totalTpl: 'names', cmpTitle1: 'names', cmpTitle2: 'names', refText: 'names', pendingText: 'names',
+  showLabels: 'names', groupLabels: 'names', showDates: 'names', layout: 'names', leading: 'names', totalTpl: 'names', cmpLegend: 'legend', cmpTitle1: 'names', cmpTitle2: 'names', refText: 'names', pendingText: 'names',
   labelIn: 'inbars', decimals: 'numbers', suffix: 'numbers',
   style: 'shape', orient: 'orient', largestAngle: 'orient', startAngle: 'orient', ringAlign: 'position', ringX: 'position', compare: 'shape', cmpScale: 'shape',
   grid: 'grid', gridStyle: 'grid', gridTone: 'grid', segments: 'grid',

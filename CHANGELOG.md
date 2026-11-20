@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.129.0 — 2026-11-20
+- Comparaison de camemberts : légende commune en bas, en haut, à gauche ou à droite, à la place des libellés de chaque camembert
+
 ## 1.128.0 — 2026-11-20
 - Camemberts : comparaison de deux camemberts côte à côte, anneau sans texte au centre, anneau déplaçable horizontalement
 - Libellés des camemberts : styles du document, couleur, capitales et retours à la ligne

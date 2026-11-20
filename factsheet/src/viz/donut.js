@@ -86,34 +86,99 @@ function renderCompare(o, W, env) {
     if (tA > tB) B._k = Math.sqrt(tB / tA);
     else A._k = Math.sqrt(tA / tB);
   }
-  const rA = DONUT.render(A, hw, env);
+  /* légende commune (`cmpLegend` : top | bottom | left | right) : camemberts sans libellés ni traits, une seule légende classique
+     (pastille + texte de chaque segment, son titre s'il n'a pas de texte) ; `each` (défaut) = libellés de chaque camembert */
+  const pos = ['top', 'bottom', 'left', 'right'].includes(o.cmpLegend) ? o.cmpLegend : null;
+  const BODY = pxOf(T.body.size),
+    LH = Math.round(((LEAD[o.leading] || LEAD.normal) * (T.body.size / TYPE.body.size)) / 1.5) * 1.5;
+  const textSpec = labelSpec(T, o.labelText || 'body', LH, false),
+    titleSpec = labelSpec(T, o.labelTitle || 'bold', LH, true);
+  const legItems = pos
+    ? segs
+        .filter((g) => (+g.value > 0 || +g.value2 > 0) && hasLabel(g))
+        .map((g) => (String(g.text || '').trim() ? { g, text: g.text, spec: textSpec } : { g, text: g.title, spec: titleSpec }))
+    : [];
+  const sw = VIZ.legendSwatch,
+    tx = sw + VIZ.iconGap;
+  const side = pos === 'left' || pos === 'right';
+  const natW = Math.max(0, ...legItems.map((it) => Math.max(0, ...richLines(it.text, it.spec, 1e6).map((l) => l.w)))) + tx;
+  const legW = side ? Math.max(120, Math.min(W * 0.4, natW)) : W;
+  /* légende : colonnes (en haut ou en bas, autant que la largeur en permet) ou une seule colonne (à gauche ou à droite) */
+  const cols = side ? 1 : Math.max(1, Math.min(legItems.length, Math.floor((W + gapX) / (Math.min(natW, 260) + gapX)))),
+    colW = (legW - (cols - 1) * gapX) / cols;
+  const placed = legItems.map((it) => {
+    const lines = richLines(it.text, it.spec, Math.max(24, colW - tx));
+    return { ...it, lines, h: lines.reduce((a, l) => a + l.lh, 0) };
+  });
+  const rowsH = [];
+  placed.forEach((it, n) => {
+    const r = Math.floor(n / cols);
+    rowsH[r] = Math.max(rowsH[r] || 0, it.h);
+  });
+  const legH = rowsH.reduce((a, h) => a + h, 0) + Math.max(0, rowsH.length - 1) * VIZ.blockGap;
+  /* zone des camemberts */
+  const areaW = side && placed.length ? Math.max(120, W - legW - gapX * 2) : W,
+    areaX = pos === 'left' && placed.length ? legW + gapX * 2 : 0,
+    pw = Math.max(60, (areaW - gapX) / 2);
+  if (pos) A.layout = B.layout = 'none';
+  const rA = DONUT.render(A, pw, env);
   B.orient = 'manual';
   B.startAngle = rA.meta ? rA.meta.start : 0;
-  const rB = DONUT.render(B, hw, env);
+  const rB = DONUT.render(B, pw, env);
   /* titres des deux camemberts (ex. 2024 / 2025), au-dessus, dans le style choisi */
-  const BODY = pxOf(T.body.size),
-    st = o.cmpTitleStyle || 'caption',
+  const st = o.cmpTitleStyle || 'caption',
     spec =
       st === 'caption'
         ? { size: pxOf(T.caption.size), lh: T.caption.lh, family: SANS, weight: 400, bold: true }
         : st === 'bold'
           ? { size: BODY, lh: T.bodyBold.lh, family: SANS, weight: 400, bold: true }
           : labelSpec(T, 'subsection', T.body.lh, true);
-  const tl = [o.cmpTitle1, o.cmpTitle2].map((x) => (String(x || '').trim() ? richLines(x, spec, hw) : []));
+  const tl = [o.cmpTitle1, o.cmpTitle2].map((x) => (String(x || '').trim() ? richLines(x, spec, pw) : []));
   const th = Math.max(...tl.map((l) => l.reduce((a, x) => a + x.lh, 0)));
   const titleH = th ? th + VIZ.blockGap : 0;
   const hOf = (r) => (r && r.node ? +r.node.getAttribute('height') || 0 : 0);
-  const H = Math.ceil(titleH + Math.max(hOf(rA), hOf(rB)));
+  const pieH = titleH + Math.max(hOf(rA), hOf(rB));
+  const legGap = placed.length && !side ? env.rc.gap.subsectionTitle * 2 : 0,
+    pieY = pos === 'top' && placed.length ? legH + legGap : 0,
+    legY = !placed.length ? 0 : pos === 'top' ? 0 : pos === 'bottom' ? pieH + legGap : Math.max(0, (pieH - legH) / 2 + titleH / 2),
+    legX = pos === 'right' ? W - legW : 0;
+  const H = Math.ceil(side ? Math.max(pieH, legY + legH) : pieH + (placed.length ? legH + legGap : 0));
   const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });
   [rA, rB].forEach((r, k) => {
-    const x = k ? W - hw : 0;
-    if (tl[k].length) svg.append(drawRich(tl[k], x, 0));
+    const x = areaX + (k ? areaW - pw : 0);
+    if (tl[k].length) svg.append(drawRich(tl[k], x, pieY));
     if (!r || !r.node) return;
-    const g = s('g', { transform: `translate(${x} ${titleH})` });
+    const g = s('g', { transform: `translate(${x} ${pieY + titleH})` });
     g.append(...r.node.childNodes);
     g.querySelectorAll('[data-hit]').forEach((n) => n.removeAttribute('data-hit')); // pas de glisser dans la comparaison : réglages par les champs
     svg.append(g);
   });
+  if (placed.length) {
+    const lg = s('g', { class: 'cmp-legend' });
+    let y = legY;
+    placed.forEach((it, n) => {
+      const c = n % cols,
+        r = Math.floor(n / cols),
+        x = legX + c * (colW + gapX);
+      if (c === 0 && r > 0) y += rowsH[r - 1] + VIZ.blockGap;
+      const lh0 = it.lines.length ? it.lines[0].lh : LH;
+      lg.append(
+        s('rect', {
+          'data-color': env.ui ? `segments.${segs.indexOf(it.g)}.color` : null,
+          x: x + SW / 2,
+          y: y + (lh0 - sw) / 2 + SW / 2,
+          width: sw - SW,
+          height: sw - SW,
+          rx: VIZ.barRadius,
+          fill: colorRef(it.g.color),
+          stroke: 'currentColor',
+          'stroke-width': SW,
+        }),
+        drawRich(it.lines, x + tx, y),
+      );
+    });
+    svg.append(lg);
+  }
   return { node: svg };
 }
 
@@ -204,6 +269,22 @@ const DONUT = {
       t: 'text',
       fmt: 'chart',
       label: 'Titre du 2e camembert (ex. 2025)',
+    },
+    {
+      k: 'cmpLegend',
+      g: 'labels',
+      when: (o) => !!o.compare,
+      why: 'Activez la comparaison pour choisir une légende commune.',
+      t: 'select',
+      label: 'Libellés des deux camemberts',
+      options: {
+        each: 'Libellés de chaque camembert',
+        bottom: 'Légende commune en bas',
+        top: 'Légende commune en haut',
+        right: 'Légende commune à droite',
+        left: 'Légende commune à gauche',
+      },
+      def: 'each',
     },
     {
       k: 'cmpTitleStyle',
