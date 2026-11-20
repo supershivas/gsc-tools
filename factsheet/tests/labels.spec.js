@@ -297,3 +297,64 @@ test('anneau, données : tableau comme les autres dataviz ; en comparaison, colo
   expect(out.link).toBe(true);
   expect(out.v2).toContain('15'); // segment sans 2e valeur : la 1re dans le 2e camembert
 });
+
+test('anneau, données : titre mis en forme dans la cellule (gras, couleur) par la barre', async ({ page }) => {
+  const { stubExternal, watchErrors, DOC_KEY } = require('./helpers');
+  const errors = watchErrors(page);
+  await stubExternal(page);
+  await page.evaluate(
+    (key) =>
+      new Promise((res) => {
+        const r = indexedDB.deleteDatabase('factsheet-creator');
+        r.onsuccess =
+          r.onerror =
+          r.onblocked =
+            () => {
+              const F = window.FSTEST,
+                d = F.defaultDoc(),
+                sec = F.newSection('recto'),
+                sub = F.newSub('1');
+              sub.cols = [{ ...F.newCol('viz'), viz: F.newViz('donut') }];
+              sec.subs = [sub];
+              d.sections = [sec];
+              localStorage.clear();
+              localStorage.setItem(key, JSON.stringify(d));
+              res();
+            };
+      }),
+    DOC_KEY,
+  );
+  await page.goto('/factsheet/index.html');
+  await page.waitForSelector('#stage .page');
+  await page
+    .locator('#tree .col-row', { hasText: /Dataviz/ })
+    .first()
+    .click();
+  const open = page.locator('#props button.primary').first();
+  if (!(await open.count())) {
+    const chev = page.locator('#props .pp-chev').first();
+    if ((await chev.getAttribute('aria-expanded')) === 'false') await chev.click();
+  }
+  await open.click();
+  await page.locator('.ve-tab[data-tab=data]').click();
+  const cell = page.locator('.dg-rich').first();
+  await cell.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('Big share');
+  await page.keyboard.press('Home');
+  for (let k = 0; k < 3; k++) await page.keyboard.press('Shift+ArrowRight');
+  const bar = page.locator('.dg-rbar');
+  await expect(bar).toBeVisible();
+  await bar.getByRole('button', { name: 'Bold' }).click();
+  await bar.getByRole('button', { name: /^Text colour : yellow/ }).click();
+  const title = await page.evaluate(
+    (key) => JSON.parse(localStorage.getItem(key)).sections[0].subs[0].cols[0].viz.opts.segments[0].title,
+    DOC_KEY,
+  );
+  expect(title).toMatch(/\{c:yellow\|\*\*Big\*\*\}|\*\*\{c:yellow\|Big\}\*\*/);
+  expect(title).toContain(' share');
+  /* l'aperçu dessine « Big » en gras et en jaune */
+  const tsp = page.locator('#ve-stage svg tspan', { hasText: 'Big' }).first();
+  await expect(tsp).toHaveAttribute('fill', 'var(--c-yellow)');
+  expect(errors).toEqual([]);
+});
