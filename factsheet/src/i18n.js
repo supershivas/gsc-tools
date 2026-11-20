@@ -781,6 +781,12 @@ const EN = {
   Medium: 'Medium',
   'Demi-gras': 'Semibold',
   'Extra-gras': 'Extra bold',
+  Interlettrage: 'Letter spacing',
+  'En millièmes de la taille du texte (1000 ‰ = 1 em) ; négatif = lettres plus serrées.':
+    'In thousandths of the text size (1000 ‰ = 1 em); negative = tighter letters.',
+  'La taille s’applique au texte courant et aux listes ; les styles de paragraphe (titres, source…) gardent leur corps. Interlignage en Auto : celui du style (130 % de la taille choisie, grille de 3 px). Interlignage et interlettrage s’appliquent à tout le bloc.':
+    'The size applies to body text and lists; paragraph styles (headings, source…) keep their size. Line spacing on Auto: the style’s (130 % of the chosen size, 3 px grid). Line and letter spacing apply to the whole block.',
+  réglé: 'set',
   'Niveau 1': 'Level 1',
   'Niveau 2': 'Level 2',
   'Niveau 3': 'Level 3',

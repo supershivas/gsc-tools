@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.137.0 — 2026-11-20
+- Blocs de texte : interlignage et interlettrage réglables dans la carte « Police et taille »
+
 ## 1.136.0 — 2026-11-20
 - Camemberts : taille (en pt) et graisse réglables pour le titre et le texte des libellés
 

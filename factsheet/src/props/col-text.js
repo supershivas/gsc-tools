@@ -4,6 +4,9 @@ import { h } from '../render.js';
 import { t } from '../i18n.js';
 import { toneKeys } from '../tokens.js';
 import { richEditor } from '../editor.js';
+import { autoControl, rangeControl, resetButton } from '../controls.js';
+
+const PT = 96 / 72; // pt → px (l'interlignage est stocké en px, comme dans le burger)
 
 export function textEditor(k, col) {
   const { doc, ctx } = k;
@@ -60,6 +63,34 @@ export function fontCard(k, col) {
       h('option', { value: v, textContent: l, selected: String(a.s || '') === v }),
     ),
   );
+  /* interlignage (pt, Auto = celui du style) et interlettrage (‰ d'em) : mêmes réglages que le burger de la barre de texte (`adv.lh`, `adv.ls`) */
+  const lh = autoControl(
+    h,
+    'colTextLh',
+    'Interlignage (pt)',
+    { min: 6, max: 40, step: 0.25 },
+    a.lh ? Math.round((a.lh / PT) * 100) / 100 : 0,
+    (v) => {
+      if (+v > 0) a.lh = Math.round(v * PT * 100) / 100;
+      else delete a.lh;
+      ctx.changed();
+    },
+  );
+  const lsNow = () => a.ls || 0;
+  const ls = rangeControl(h, 'colTextLs', 'Interlettrage', { min: -50, max: 300, step: 5, unit: '‰' }, lsNow(), (v) => {
+    if (!Number.isFinite(v) || v < -50 || v > 300) return;
+    if (v) a.ls = v;
+    else delete a.ls;
+    lsReset.refresh(lsNow() === 0);
+    ctx.changed();
+  });
+  const lsReset = resetButton(h, 'Interlettrage', () => {
+    ls.set(0);
+    delete a.ls;
+    lsReset.refresh(true);
+    ctx.changed();
+  });
+  lsReset.refresh(lsNow() === 0);
   return card(
     'col-font',
     'letter-case',
@@ -67,15 +98,23 @@ export function fontCard(k, col) {
     [
       field('Police', fam),
       field('Taille du texte courant', sz),
+      h('div', { class: 'f' }, h('div', { class: 'hint' }, h('label', { for: 'colTextLh', textContent: t('Interlignage (pt)') })), lh.node),
+      h(
+        'div',
+        { class: 'f' },
+        h('div', { class: 'hint' }, h('label', { for: 'colTextLs', textContent: t('Interlettrage') }), lsReset),
+        ls.node,
+        h('p', { class: 'hint', textContent: t('En millièmes de la taille du texte (1000 ‰ = 1 em) ; négatif = lettres plus serrées.') }),
+      ),
       h('p', {
         class: 'hint',
         textContent: t(
-          'La taille s’applique au texte courant et aux listes ; les styles de paragraphe (titres, source…) gardent leur corps. L’interlignage suit (130 %, grille de 3 px) sauf réglage dans l’icône burger.',
+          'La taille s’applique au texte courant et aux listes ; les styles de paragraphe (titres, source…) gardent leur corps. Interlignage en Auto : celui du style (130 % de la taille choisie, grille de 3 px). Interlignage et interlettrage s’appliquent à tout le bloc.',
         ),
       }),
     ],
     null,
-    `${a.f === 'serif' ? 'Serif' : 'Sans'} · ${a.s ? a.s + ' pt' : t('Style')}`,
+    `${a.f === 'serif' ? 'Serif' : 'Sans'} · ${a.s ? a.s + ' pt' : t('Style')}${a.lh || a.ls ? ' · ' + t('réglé') : ''}`,
   );
 }
 
