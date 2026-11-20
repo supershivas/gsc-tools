@@ -131,6 +131,9 @@ dialog.vexp::backdrop{background:#0006}
 table.dg{border-collapse:collapse;width:100%;font-size:var(--fs-md)}
 .dg th,.dg td{border-bottom:1px solid var(--ui-line);padding:0;text-align:left;font-weight:400}
 .dg th{position:sticky;top:0;background:var(--ui-bg);z-index:1;padding:4px;font-size:var(--fs-sm);color:var(--ui-mute);font-weight:600}
+.dg tr.dg-band th{position:static;text-align:center;color:var(--ui-ink);border-bottom:0;padding-bottom:0}.dg tr.dg-band th.dg-band-on{border-bottom:2px solid var(--ui-line)}
+.dg td.dg-sw{text-align:center;padding:0 6px}
+.dg.dg-top td{vertical-align:top}.dg.dg-top td.dg-sw,.dg.dg-top td .pp-switch{margin-top:4px}
 .dg td input,.dg td select{width:100%;min-width:60px;border:0;border-radius:0;padding:7px 8px;font-size:var(--fs-md);background:transparent}
 .dg td input:focus,.dg td select:focus{outline:2px solid var(--ui-blue);outline-offset:-2px;background:#fff}
 .dg .dg-n{width:28px;text-align:center;color:var(--ui-mute);font-size:var(--fs-xs);padding:0 2px}

@@ -10,6 +10,7 @@ import { ctxIcons } from './viz/icons.js';
 import { alertBox, confirmBox } from './dialogs.js';
 import { num, parseMatrix, fileToMatrix, padMatrix, headerRows, autoRoles, readImport, decimalOf } from './dataparse.js';
 import { numberFormat } from './numfmt.js';
+import { switchControl } from './controls.js';
 
 export { parseMatrix, fileToMatrix, num };
 export const toCSV = (m) =>
@@ -268,9 +269,22 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
 /* ---------- Adaptateur « enregistrements » : lignes = objets, colonnes décrites par le type de dataviz ---------- */
 export function recordsAdapter(spec, obj, palOpts, icons) {
   const rows = obj[spec.k] || (obj[spec.k] = []),
-    cols = spec.cols;
+    cols = typeof spec.cols === 'function' ? spec.cols(obj) : spec.cols; // colonnes selon les réglages (ex. anneau : 2e valeur en comparaison)
+  const truthy = (v) => v === true || /^(1|true|oui|yes|vrai|x)$/i.test(String(v ?? '').trim());
   const conv = (c, v) =>
-    c.t === 'number' ? (num(v, self.dec) ?? 0) : c.t === 'color' ? (palOpts[v] ? v : c.auto ? '' : c.def || 'blue') : String(v ?? '');
+    c.t === 'number'
+      ? c.blank && String(v ?? '').trim() === ''
+        ? null
+        : (num(v, self.dec) ?? 0)
+      : c.t === 'color'
+        ? palOpts[v]
+          ? v
+          : c.auto
+            ? ''
+            : c.def || 'blue'
+        : c.t === 'bool'
+          ? truthy(v)
+          : String(v ?? '');
   const blank = () => Object.fromEntries(cols.map((c) => [c.k, c.def ?? (c.t === 'number' ? 0 : '')]));
   const self = {
     dec: '.',
@@ -288,11 +302,16 @@ export function recordsAdapter(spec, obj, palOpts, icons) {
           : (typeof c.options === 'function' ? c.options(obj, icons) : c.options) || null,
       isColor: c.t === 'color',
       isIcon: !!c.icons,
+      isBool: c.t === 'bool', // réglage d'affichage de la ligne : interrupteur en fin de ligne
+      band: c.band || null, // en-tête commun au-dessus de colonnes voisines (ex. « 2024 » sur Titre et Valeur du 1er camembert)
+      placeholder: c.placeholder ? t(c.placeholder) : null,
     })),
     rows: () => rows.length,
-    get: (i, j) => String(rows[i][cols[j].k] ?? ''),
+    get: (i, j) => (cols[j].t === 'bool' ? (rows[i][cols[j].k] ? '1' : '') : String(rows[i][cols[j].k] ?? cols[j].def ?? '')),
     set: (i, j, v) => {
-      rows[i][cols[j].k] = conv(cols[j], v);
+      const x = conv(cols[j], v);
+      if (x === null || (cols[j].t === 'bool' && !x)) delete rows[i][cols[j].k];
+      else rows[i][cols[j].k] = x;
     },
     addRow: () => rows.push(spec.item ? spec.item(rows.length) : blank()),
     delRow: (i) => {
@@ -304,10 +323,13 @@ export function recordsAdapter(spec, obj, palOpts, icons) {
       const body = head ? m.slice(1) : m;
       /* une ligne de même premier champ garde son niveau */
       const keep = new Map(rows.filter((r) => r.level).map((r) => [String(r[cols[0].k] ?? ''), r.level]));
+      /* colonnes retrouvées par leur nom (clé, libellé, libellé traduit) ; deux colonnes de même libellé (comparaison) prennent chacune la sienne */
+      const used = new Set();
       const idx = cols.map((c, j) => {
         if (!head) return j;
         const keys = [c.label, t(c.label), c.k].map((x) => x.toLowerCase());
-        const n = m[0].findIndex((x) => keys.includes(String(x).toLowerCase()));
+        const n = m[0].findIndex((x, q) => !used.has(q) && keys.includes(String(x).toLowerCase()));
+        if (n >= 0) used.add(n);
         return n < 0 ? j : n;
       });
       rows.splice(
@@ -614,7 +636,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
   );
 
   /* tableau */
-  const table = h('table', { class: 'dg' });
+  const table = h('table', { class: 'dg' + (ad.cols.some((c) => c.ml) ? ' dg-top' : '') }); // cellules sur plusieurs lignes : tout aligné en haut
   const head = h(
     'tr',
     {},
@@ -709,12 +731,25 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
     }),
     h('th', { class: 'dg-n' }),
   );
-  table.append(h('thead', {}, head));
+  /* bandeau d'en-têtes communs (`band`) : une cellule par suite de colonnes voisines de même bandeau */
+  let band = null;
+  if (ad.cols.some((c) => c.band)) {
+    band = h('tr', { class: 'dg-band' }, h('th', { class: 'dg-n' }));
+    for (let j = 0; j < ad.cols.length;) {
+      const b = ad.cols[j].band || '';
+      let k = j;
+      while (k + 1 < ad.cols.length && (ad.cols[k + 1].band || '') === b) k++;
+      band.append(h('th', { colSpan: k - j + 1, class: b ? 'dg-band-on' : '', textContent: b }));
+      j = k + 1;
+    }
+    band.append(h('th', { class: 'dg-n' }));
+  }
+  table.append(h('thead', {}, band, head));
   const body = h('tbody');
   const rawCell = (i, j) => {
     const c = ad.cols[j],
       v = ad.get(i, j);
-    const common = { 'data-r': i, 'data-c': j };
+    const common = { 'data-r': i, 'data-c': j, ...(c.placeholder ? { placeholder: c.placeholder } : {}) };
     if (c.isIcon)
       return h(
         'td',
@@ -732,6 +767,14 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
           },
         }),
       );
+    if (c.isBool) {
+      const sw = switchControl(h, `dg-${i}-${j}-${Math.random().toString(36).slice(2, 6)}`, c.name, v === '1', (on) => {
+        ad.set(i, j, on ? '1' : '');
+        ctx.changed();
+      });
+      sw.node.title = t(c.name);
+      return h('td', { class: 'dg-sw' }, sw.node);
+    }
     if (c.isColor)
       return h(
         'td',

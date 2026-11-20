@@ -752,6 +752,12 @@ const EN = {
   'Choisissez « Valeur » pour écrire une unité.': 'Choose “Value” to write a unit.',
   'Avant la valeur du segment (€…)': 'Before the segment value (€…)',
   'Après la valeur du segment ( bn, %…)': 'After the segment value ( bn, %…)',
+  'Trait de liaison': 'Link line',
+  'Comme la 1re': 'Same as the 1st',
+  'Comme le 1er': 'Same as the 1st',
+  'Titre dans le 2e camembert': 'Title in the 2nd pie',
+  'Maj + Entrée ou Entrée dans un titre ou un texte : retour à la ligne. Mise en forme : **gras**, ~~italique~~, __souligné__, {c:yellow|couleur}, {up|capitales}.':
+    'Shift + Enter or Enter in a title or text: line break. Formatting: **bold**, ~~italic~~, __underline__, {c:yellow|colour}, {up|capitals}.',
   'Niveau 1': 'Level 1',
   'Niveau 2': 'Level 2',
   'Niveau 3': 'Level 3',

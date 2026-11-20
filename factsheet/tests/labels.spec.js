@@ -256,3 +256,44 @@ test('valeur dans les segments : valeur avec unité ou pourcentage, blanche sur 
   expect(out.val.find((v) => v.t === '€62 bn').fill).toBe('#FFFFFF'); // sur le bleu
   expect(out.pct.map((v) => v.t)).toContain('72%'); // 62 / 86,4
 });
+
+test('anneau, données : tableau comme les autres dataviz ; en comparaison, colonnes par camembert sous un bandeau ; 2e valeur vide = la 1re', async ({
+  page,
+}) => {
+  const out = await page.evaluate(
+    ([segs, rc]) => {
+      const F = window.FSTEST,
+        t = F.VIZ_TYPES.donut,
+        pal = { blue: 'Blue', yellow: 'Yellow', grey: 'Grey' };
+      const o = { ...t.defaults(), segments: segs.map((g) => ({ ...g })) };
+      const one = F.recordsAdapter(t.data, o, pal, []);
+      o.compare = true;
+      o.cmpTitle1 = '2024';
+      delete o.segments[1].value2;
+      const two = F.recordsAdapter(t.data, o, pal, []);
+      const link = two.cols.findIndex((c) => c.isBool);
+      two.set(0, link, '1');
+      const svg = t.render({ ...o, style: 'pie', cmpLegend: 'bottom', segValues: 'value' }, 600, { rc }).node;
+      return {
+        one: one.cols.map((c) => c.name),
+        two: two.cols.map((c) => [c.name, c.band]),
+        link: o.segments[0].link,
+        v2: [...svg.querySelectorAll(':scope > g[transform]')][1].textContent,
+      };
+    },
+    [pieSegs(), RC],
+  );
+  expect(out.one).toEqual(['Titre', 'Texte', 'Valeur', 'Couleur', 'Côté du libellé', 'Trait de liaison']);
+  expect(out.two).toEqual([
+    ['Texte', null],
+    ['Titre', '2024'],
+    ['Valeur', '2024'],
+    ['Titre', 'Pie 2'], // titre absent : « Camembert 2 », traduit (interface en anglais par défaut)
+    ['Valeur', 'Pie 2'],
+    ['Couleur', null],
+    ['Côté du libellé', null],
+    ['Trait de liaison', null],
+  ]);
+  expect(out.link).toBe(true);
+  expect(out.v2).toContain('15'); // segment sans 2e valeur : la 1re dans le 2e camembert
+});

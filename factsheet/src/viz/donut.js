@@ -2,7 +2,24 @@
    libellés autour de l'anneau avec traits de repère (colonnes larges)
    ou en légende sous l'anneau (colonnes étroites). Logique reprise de donut-export. */
 import { VIZ, TYPE, TINT } from '../tokens.js';
-import { s, SW, lineAttrs, LINE_FIELD, colorRef, pxOf, fmt, mw, SERIF, SANS, round3, richLines, drawRich, typeIn, inkOn } from './util.js';
+import {
+  s,
+  SW,
+  lineAttrs,
+  LINE_FIELD,
+  colorRef,
+  pxOf,
+  fmt,
+  mw,
+  SERIF,
+  SANS,
+  round3,
+  richLines,
+  drawRich,
+  typeIn,
+  inkOn,
+  stripMk,
+} from './util.js';
 import { t } from '../i18n.js';
 
 const LEAD = { tight: 15, normal: 18, loose: 21 }; // interlignage des textes (px) : « normal » = 18, un peu plus serré que le corps de texte (21)
@@ -73,7 +90,7 @@ function renderCompare(o, W, env) {
     ringX: 0,
     segments: segs.map((g) => ({
       ...g,
-      value: k ? (g.value2 ?? 0) : g.value,
+      value: k ? (g.value2 ?? g.value) : g.value, // 2e valeur vide = celle du 1er camembert (le 2e apparaît tout de suite)
       title: k && String(g.title2 || '').trim() ? g.title2 : g.title,
     })),
   });
@@ -448,38 +465,43 @@ const DONUT = {
       max: 359,
       step: 'any',
     },
-    {
-      k: 'segments',
-      t: 'list',
-      label: 'Segments (sens horaire)',
-      min: 1,
-      max: 10,
-      item: () => ({ color: 'sky', value: 10, title: t('Titre'), text: t('Texte') }),
-      fields: [
-        { k: 'color', t: 'color', label: 'Couleur' },
-        { k: 'value', t: 'number', label: 'Valeur', min: 0, step: 'any' },
-        { k: 'title', t: 'text', fmt: 'chart', label: 'Titre (gras)' },
-        { k: 'text', t: 'area', fmt: 'chart', label: 'Texte' },
-        {
-          k: 'value2',
-          t: 'number',
-          label: 'Valeur du 2e camembert',
-          min: 0,
-          step: 'any',
-          when: (g, o) => !!(o && o.compare),
-        },
-        {
-          k: 'title2',
-          t: 'text',
-          fmt: 'chart',
-          label: 'Titre dans le 2e camembert (vide = le même)',
-          when: (g, o) => !!(o && o.compare),
-        },
-        { k: 'side', t: 'select', label: 'Côté du libellé', options: { auto: 'Auto', left: 'Gauche', right: 'Droite' } },
-        { k: 'link', t: 'bool', label: 'Trait de liaison vers l’extérieur (jusqu’au bord de la colonne et au-delà)' },
-      ],
-    },
   ],
+  /* Données : un tableau comme les autres dataviz (une ligne = un segment, sens horaire) ; réglages d'affichage de la ligne en fin de ligne.
+     En comparaison, la 2e valeur et le 2e titre s'ajoutent après la valeur (vides = ceux du 1er camembert). */
+  data: {
+    k: 'segments',
+    min: 1,
+    max: 10,
+    item: () => ({ color: 'sky', value: 10, title: t('Titre'), text: t('Texte') }),
+    cols: (o) => {
+      const common = [
+        { k: 'color', t: 'color', label: 'Couleur' },
+        { k: 'side', t: 'select', label: 'Côté du libellé', def: 'auto', options: { auto: 'Auto', left: 'Gauche', right: 'Droite' } },
+        { k: 'link', t: 'bool', label: 'Trait de liaison' },
+      ];
+      if (!(o && o.compare))
+        return [
+          { k: 'title', t: 'text', label: 'Titre', ml: true },
+          { k: 'text', t: 'text', label: 'Texte', ml: true },
+          { k: 'value', t: 'number', label: 'Valeur' },
+          ...common,
+        ];
+      /* comparaison : le texte (la catégorie) est commun ; titre et valeur par camembert, sous un bandeau à leur nom */
+      const name = (x, n) => stripMk(String(x || '').replace(/\n|\u2028/g, ' ')).trim() || `${t('Camembert')} ${n}`;
+      const b1 = name(o.cmpTitle1, 1),
+        b2 = name(o.cmpTitle2, 2);
+      return [
+        { k: 'text', t: 'text', label: 'Texte', ml: true },
+        { k: 'title', t: 'text', label: 'Titre', ml: true, band: b1 },
+        { k: 'value', t: 'number', label: 'Valeur', band: b1 },
+        { k: 'title2', t: 'text', label: 'Titre', ml: true, band: b2, placeholder: 'Comme le 1er' },
+        { k: 'value2', t: 'number', label: 'Valeur', band: b2, blank: true, placeholder: 'Comme la 1re' },
+        ...common,
+      ];
+    },
+  },
+  dataHint:
+    'Maj + Entrée ou Entrée dans un titre ou un texte : retour à la ligne. Mise en forme : **gras**, ~~italique~~, __souligné__, {c:yellow|couleur}, {up|capitales}.',
   actions: [
     {
       label: '↺ Positions auto',

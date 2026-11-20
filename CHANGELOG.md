@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.131.0 — 2026-11-20
+- Camemberts : les données se saisissent dans un tableau comme les autres dataviz, avec les réglages de chaque ligne en fin de ligne
+- Comparaison : tableau en deux groupes de colonnes (camembert 1 et 2) sur les mêmes lignes ; le 2e camembert apparaît dès l'activation
+
 ## 1.130.0 — 2026-11-20
 - Camemberts et anneaux : valeur ou pourcentage écrit dans chaque segment, quand il y tient
 
