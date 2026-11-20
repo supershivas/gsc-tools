@@ -1,7 +1,10 @@
 # Changelog
 
-## 1.139.0 — 2026-11-20
+## 1.140.0 — 2026-11-20
 - Camemberts : tous passent à des libellés de 10 pt et un total de 18 pt, fiche par défaut et fiches existantes comprises
+
+## 1.139.0 — 2026-11-20
+- Camemberts : marge réglable entre l'anneau et les libellés, à gauche et à droite séparément, en tirant un trait dans l'aperçu (12 px au moins)
 
 ## 1.138.0 — 2026-11-20
 - Camemberts : un libellé tiré vers le haut peut monter au-dessus de l'anneau, dans l'espace du titre

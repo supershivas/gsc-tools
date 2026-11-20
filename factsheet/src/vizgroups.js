@@ -22,7 +22,7 @@ export const FIELD_ORDER = [
   'style', 'compare', 'cmpScale', 'orient', 'largestAngle', 'startAngle', 'ringAlign', 'ringX', 'orientation', 'alternate', 'tail', 'align', 'shape',
   'cols', 'gridRows', 'total', 'perIcon', 'perDot', 'perRow', 'circle', 'parents', 'curve', 'points', 'area', 'refCol', 'compareTo', 'colorBy', 'hiddenInfo',
   // Dimensions
-  'barSize', 'groupSpace', 'rowSpace', 'serSpace', 'rowGap', 'scale', 'pad', 'gap', 'corners', 'nodeW', 'nodePad', 'maxR', 'ringWidth', 'segGap', 'hole', 'lineWidth', 'cellLine', 'pendingStyle', 'nodeLine', 'circleWidth', 'iconStroke', 'ringGap', 'markSize', 'dotSize', 'iconGap', 'pointSize',
+  'barSize', 'groupSpace', 'rowSpace', 'serSpace', 'rowGap', 'scale', 'pad', 'gap', 'corners', 'nodeW', 'nodePad', 'maxR', 'ringWidth', 'segGap', 'gapL', 'gapR', 'hole', 'lineWidth', 'cellLine', 'pendingStyle', 'nodeLine', 'circleWidth', 'iconStroke', 'ringGap', 'markSize', 'dotSize', 'iconGap', 'pointSize',
   // Axes et grille
   'grid', 'gridStyle', 'gridTone', 'segments', 'axisValues', 'baseline', 'baseWidth', 'xTitle', 'yTitle', 'showRowNames', 'showColNames', 'zero', 'zeroX', 'zeroY', 'scaleMax', 'gridCount',
   'refLine', 'refValue', 'refAvg', 'refLineX', 'refX', 'refAvgX', 'refTextX', 'refLineY', 'refY', 'refAvgY', 'refTextY',

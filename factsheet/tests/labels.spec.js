@@ -408,3 +408,73 @@ test('anneau : un libellé tiré vers le haut monte au-dessus de l’anneau (esp
   expect(Math.min(...out.up)).toBeLessThan(0);
   expect(Math.min(...out.far)).toBe(-150);
 });
+
+test('anneau : marge réglable entre l’anneau et chaque colonne de libellés (12 px au moins), poignée dans l’éditeur', async ({ page }) => {
+  const out = await page.evaluate(
+    ([segs, rc]) => {
+      const t = window.FSTEST.VIZ_TYPES.donut,
+        run = (o) => {
+          const r = t.render({ ...t.defaults(), segments: segs, layout: 'around', ...o }, 600, { rc });
+          return r.meta.gaps;
+        };
+      return { auto: run({}), set: run({ gapR: 60, gapL: 30 }), min: run({ gapR: 4 }) };
+    },
+    [pieSegs(), RC],
+  );
+  expect(Math.round(out.set[1])).toBe(60);
+  expect(Math.round(out.set['-1'])).toBe(30);
+  expect(Math.round(out.min[1])).toBe(12);
+  expect(out.auto[1]).toBeGreaterThanOrEqual(12);
+});
+
+test('anneau : glisser le trait orange de droite dans l’aperçu règle la marge de droite', async ({ page }) => {
+  const { stubExternal, watchErrors, DOC_KEY } = require('./helpers');
+  const errors = watchErrors(page);
+  await stubExternal(page);
+  await page.evaluate(
+    (key) =>
+      new Promise((res) => {
+        const r = indexedDB.deleteDatabase('factsheet-creator');
+        r.onsuccess =
+          r.onerror =
+          r.onblocked =
+            () => {
+              const F = window.FSTEST,
+                d = F.defaultDoc(),
+                sec = F.newSection('recto'),
+                sub = F.newSub('1'),
+                v = F.newViz('donut');
+              v.opts.layout = 'around';
+              sub.cols = [{ ...F.newCol('viz'), viz: v }];
+              sec.subs = [sub];
+              d.sections = [sec];
+              localStorage.clear();
+              localStorage.setItem(key, JSON.stringify(d));
+              res();
+            };
+      }),
+    DOC_KEY,
+  );
+  await page.goto('/factsheet/index.html');
+  await page.waitForSelector('#stage .page');
+  await page
+    .locator('#tree .col-row', { hasText: /Dataviz/ })
+    .first()
+    .click();
+  const open = page.locator('#props button.primary').first();
+  if (!(await open.count())) {
+    const chev = page.locator('#props .pp-chev').first();
+    if ((await chev.getAttribute('aria-expanded')) === 'false') await chev.click();
+  }
+  await open.click();
+  await page.locator('.ve-tab[data-tab=viz]').click();
+  const hit = page.locator('#ve-stage [data-hit="gap:1"] rect');
+  const bb = await hit.boundingBox();
+  await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(bb.x + bb.width / 2 + 30, bb.y + bb.height / 2, { steps: 5 });
+  await page.mouse.up();
+  const g = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).sections[0].subs[0].cols[0].viz.opts.gapR, DOC_KEY);
+  expect(g).toBeGreaterThan(12);
+  expect(errors).toEqual([]);
+});

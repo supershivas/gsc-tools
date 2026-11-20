@@ -45,6 +45,7 @@ function clearManual(o) {
 const norm = (a) => ((a % 360) + 360) % 360;
 const hasLabel = (g) => !!(String(g.title || '').trim() || String(g.text || '').trim()); // un segment sans titre ni texte n'a ni libellé ni trait de repère
 const ORANGE = '#F28C28';
+const GAP_MIN = 12; // longueur minimale du trait de repère entre l'anneau et sa colonne de libellés (px)
 const UP_MAX = 150; // px qu'un libellé tiré vers le haut peut monter au-dessus de l'anneau (espace du titre de la dataviz)
 /* Réglages d'apparence (audit des options, lot 5a) : la valeur d'origine est le `def` de chaque champ, aucune clé n'est écrite dans `defaults()` ni `migrate`. */
 const RING_PCT = { thin: 0.1, normal: VIZ.ringPct, thick: 0.24 }; // épaisseur de l'anneau / rayon extérieur
@@ -284,6 +285,24 @@ const DONUT = {
       min: -100,
       max: 100,
       def: 0,
+    },
+    {
+      k: 'gapL',
+      g: 'dims',
+      when: (o) => o.layout !== 'none' && o.layout !== 'legend' && !o.compare,
+      t: 'number',
+      label: 'Marge entre l’anneau et les libellés de gauche (px ; se règle aussi en tirant le trait orange dans l’aperçu)',
+      min: 12,
+      max: 300,
+    },
+    {
+      k: 'gapR',
+      g: 'dims',
+      when: (o) => o.layout !== 'none' && o.layout !== 'legend' && !o.compare,
+      t: 'number',
+      label: 'Marge entre l’anneau et les libellés de droite (px)',
+      min: 12,
+      max: 300,
     },
     {
       k: 'compare',
@@ -612,6 +631,19 @@ const DONUT = {
   /* Interactions de l'éditeur : retourne un gestionnaire de glissement { move(pt), end() } (pt en px du SVG) */
   edit: {
     start(hit, o, meta, api, pt0) {
+      if (hit.kind === 'gap') {
+        if (!meta || !meta.gaps) return null;
+        const sd = hit.i,
+          g0 = meta.gaps[sd],
+          room = sd > 0 ? meta.W - meta.cx - (meta.Ro + SW) : meta.cx - (meta.Ro + SW);
+        return {
+          move(pt) {
+            const g = Math.round(g0 + (pt.x - pt0.x) * sd);
+            o[sd > 0 ? 'gapR' : 'gapL'] = Math.max(GAP_MIN, Math.min(Math.max(GAP_MIN, room - 40), g)); // 40 px de libellés au moins
+            api.redraw();
+          },
+        };
+      }
       if (hit.kind === 'move') {
         if (!meta || !(meta.span > 0)) return null;
         const x0 = meta.cx;
@@ -1039,9 +1071,18 @@ const DONUT = {
     /* ----- Mode « autour de l'anneau » ----- */
     const cx = W / 2 + shift * span;
     /* largeur des libellés de chaque côté : centré = place symétrique, 264 px au plus (aspect d'origine) ; déplacé = toute la place libérée */
-    const sideW = (room) => (shift ? Math.max(0, room - VIZ.leaderRoom) : Math.max(60, Math.min(room - VIZ.leaderRoom, 264)));
-    const wL = sideW(cx - D / 2),
-      wR = sideW(W - cx - D / 2),
+    /* marge choisie entre l'anneau et la colonne (`gapL`, `gapR`, px ; 0 ou absent = automatique) : GAP_MIN au moins, le reste aux libellés */
+    const gapOf = (side) => {
+      const g = +(side > 0 ? o.gapR : o.gapL);
+      return g > 0 ? Math.max(GAP_MIN, g) : null;
+    };
+    const sideW = (room, side) => {
+      const g = gapOf(side);
+      if (g != null) return Math.max(0, room - g);
+      return shift ? Math.max(0, room - VIZ.leaderRoom) : Math.max(60, Math.min(room - VIZ.leaderRoom, 264));
+    };
+    const wL = sideW(cx - D / 2, -1),
+      wR = sideW(W - cx - D / 2, 1),
       labelW = wR,
       widthOf = (side) => (side > 0 ? wR : wL);
     const tooNarrow = (side) => widthOf(side) < 48; // côté sans place : les libellés automatiques passent de l'autre côté
@@ -1174,6 +1215,20 @@ const DONUT = {
             style: { cursor: 'grab' },
           }),
         );
+      /* poignées de marge : trait au bord intérieur de chaque colonne de libellés, à tirer horizontalement (jamais exportées) */
+      if (!o._sub)
+        for (const sd of [-1, 1])
+          if (items.some((it) => it.side === sd)) {
+            const ex = sd > 0 ? W - wR - 5 : wL + 5; // juste côté anneau du bord de la colonne : le trait ne passe pas sur le texte
+            svg.append(
+              s(
+                'g',
+                { class: 'viz-split', 'data-hit': `gap:${sd}`, style: { cursor: 'col-resize' } },
+                s('rect', { x: ex - 5, y: -3, width: 10, height: H + 6, fill: 'rgba(0,0,0,0)' }),
+                s('line', { x1: ex, y1: 0, x2: ex, y2: H, stroke: ORANGE, 'stroke-width': 1.5, 'stroke-dasharray': '3 2' }),
+              ),
+            );
+          }
     }
     return {
       node: svg,
@@ -1185,6 +1240,7 @@ const DONUT = {
         around: true,
         labelW,
         span,
+        gaps: { '-1': cx - D / 2 - wL, 1: W - wR - (cx + D / 2) }, // marges effectives (px), point de départ du glisser
         items: items.map((it) => ({ i: idxOf(it.p.g), top: it.top, h: it.h, x: it.x, P: it.P, autoSide: it.autoSide })),
       },
     };
