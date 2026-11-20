@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.134.0 — 2026-11-20
+- Header : le texte se déplace verticalement dans son cadre (curseur de −40 à +40 px)
+
 ## 1.133.0 — 2026-11-20
 - Tableau : marges intérieures réglables côté par côté dans les cellules (ex. 10 px à droite)
 

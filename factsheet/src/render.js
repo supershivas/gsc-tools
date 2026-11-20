@@ -135,7 +135,8 @@ function renderHeader(doc, env) {
     h('div', { class: 'hd-title', innerHTML: inline(H.title, env) }),
     H.subtitle && H.subtitle.trim() ? h('div', { class: 'hd-sub', innerHTML: inline(H.subtitle, env) }) : null,
   );
-  inner.append(h('div', { class: 'hd-text' }, top, bottom));
+  /* décalage vertical réglé dans les propriétés du header (`textY`, px) : position relative, l'image et le logo ne bougent pas */
+  inner.append(h('div', { class: 'hd-text', style: +H.textY ? { position: 'relative', top: +H.textY + 'px' } : {} }, top, bottom));
   if (H.showLogo)
     inner.append(logo ? h('img', { class: 'hd-logo', src: logo, alt: '' }) : h('div', { class: 'hd-logo ph', textContent: 'logo' }));
   el.append(inner);

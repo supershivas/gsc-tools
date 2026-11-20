@@ -1,7 +1,7 @@
 {
-  "version": "1.133.0",
+  "version": "1.134.0",
   "date": "2026-11-20",
   "changes": [
-    "Tableau : marges intérieures réglables côté par côté dans les cellules (ex. 10 px à droite)"
+    "Header : le texte se déplace verticalement dans son cadre (curseur de −40 à +40 px)"
   ]
 }

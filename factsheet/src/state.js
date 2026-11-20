@@ -96,6 +96,9 @@ export function blankDoc() {
 }
 
 /** Factsheet d'exemple : recto et verso remplis, texte et dataviz en alternance, tous les gabarits de colonnes et la plupart des types de dataviz */
+/** Décalage vertical maximal du texte du header (px, vers le haut ou le bas) : un ajustement fin, le bloc reste dans le header */
+export const HEADER_TEXT_Y = 40;
+
 export function defaultDoc() {
   const lorem =
     'Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam.';
@@ -395,6 +398,12 @@ function migrateHeader(H, src) {
   if (cur.mono === def.default) cur.mono = def.mono;
   H.logos = Object.assign({}, def, Object.fromEntries(Object.entries(cur).filter(([, v]) => v && safeImgSrc(v))));
   if (!LOGO_VARIANTS[H.logoVariant]) H.logoVariant = 'default';
+  /* décalage vertical du texte dans le header (px, `HEADER_TEXT_Y`) : nombre borné, absent = 0 */
+  if (H.textY != null) {
+    const y = Math.round(+H.textY);
+    if (Number.isFinite(y) && y) H.textY = Math.max(-HEADER_TEXT_Y, Math.min(HEADER_TEXT_Y, y));
+    else delete H.textY;
+  }
   H.images = (H.images || [])
     .filter((i) => i && typeof i === 'object' && i.src && safeImgSrc(i.src) && i.id !== DEFAULT_IMAGE_ID)
     .map((i, k) => ({ id: i.id || uid('img'), name: i.name || `${t('Image')} ${k + 1}`, src: upgradeAsset(i.src) }));

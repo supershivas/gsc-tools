@@ -767,6 +767,9 @@ const EN = {
   'Revenir au préréglage': 'Back to the preset',
   'En pixels, côté par côté (ex. 10 à droite) ; un préréglage remet les quatre côtés.':
     'In pixels, side by side (e.g. 10 on the right); a preset resets all four sides.',
+  'Position verticale du texte': 'Vertical position of the text',
+  'En pixels : négatif = vers le haut, positif = vers le bas. L’image et le logo ne bougent pas.':
+    'In pixels: negative = up, positive = down. The image and logo do not move.',
   'Niveau 1': 'Level 1',
   'Niveau 2': 'Level 2',
   'Niveau 3': 'Level 3',
