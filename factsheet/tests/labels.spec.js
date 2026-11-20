@@ -358,3 +358,32 @@ test('anneau, données : titre mis en forme dans la cellule (gras, couleur) par 
   await expect(tsp).toHaveAttribute('fill', 'var(--c-yellow)');
   expect(errors).toEqual([]);
 });
+
+test('anneau : taille (pt) et graisse choisies pour le titre et le texte des libellés, à l’échelle du menu Texte', async ({ page }) => {
+  const out = await page.evaluate(
+    ([segs, rc]) => {
+      const t = window.FSTEST.VIZ_TYPES.donut,
+        run = (o, scale = 1) => {
+          const svg = t.render({ ...t.defaults(), segments: segs, layout: 'legend', ...o }, 400, {
+            rc: { ...rc, textSet: { scale } },
+          }).node;
+          const line = (txt) => {
+            const n = [...svg.querySelectorAll('text')].find((x) => x.textContent === txt);
+            return { size: +(+n.getAttribute('font-size')).toFixed(2), weight: n.querySelector('tspan').getAttribute('font-weight') };
+          };
+          return { title: line('€62 billion'), text: line('Competitiveness') };
+        };
+      return {
+        def: run({}),
+        set: run({ labelTitleSize: 9, labelTitleWeight: '600', labelTextSize: 8, labelTextWeight: '300' }),
+        scaled: run({ labelTitleSize: 9 }, 1.2),
+      };
+    },
+    [pieSegs(), RC],
+  );
+  expect(out.set.title).toEqual({ size: 12, weight: '600' }); // 9 pt = 12 px
+  expect(out.set.text.size).toBeCloseTo(10.67, 1); // 8 pt
+  expect(out.set.text.weight).toBe('300');
+  expect(out.def.title.weight).toBe('700');
+  expect(out.scaled.title.size).toBeCloseTo(14.4, 1); // 9 pt × 1,2
+});

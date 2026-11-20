@@ -77,6 +77,32 @@ function labelSpec(T, key, LH, title) {
   };
 }
 
+/** Réglages fins d'une partie des libellés (titre ou texte) : taille en pt (`…Size`, 0 = celle du style) à l'échelle du menu Texte,
+    graisse (`…Weight`, auto = celle du style) ; l'interlignage suit la taille avec le même rapport que le texte courant (`leading`). */
+const WEIGHTS = { 300: 'Léger', 400: 'Normal', 500: 'Medium', 600: 'Demi-gras', 700: 'Gras', 800: 'Extra-gras' };
+function tuneSpec(spec, size, weight, T, LH, scale) {
+  const out = { ...spec };
+  if (+size > 0) {
+    const px = pxOf(+size * scale),
+      ratio = LH / pxOf(T.body.size);
+    out.size = px;
+    out.lh = Math.max(Math.ceil((px * 1.05) / 1.5) * 1.5, Math.round((px * ratio) / 1.5) * 1.5);
+  }
+  if (WEIGHTS[weight]) {
+    out.weight = +weight;
+    out.bold = false; // la graisse choisie remplace le gras du style ; un mot en **gras** reste au moins gras
+  }
+  return out;
+}
+/** Styles du titre et du texte des libellés d'un anneau (style du document, puis taille et graisse choisies) */
+function labelSpecs(o, T, LH, env) {
+  const scale = (env && env.rc && env.rc.textSet && env.rc.textSet.scale) || 1;
+  return {
+    titleSpec: tuneSpec(labelSpec(T, o.labelTitle || 'bold', LH, true), o.labelTitleSize, o.labelTitleWeight, T, LH, scale),
+    textSpec: tuneSpec(labelSpec(T, o.labelText || 'body', LH, false), o.labelTextSize, o.labelTextWeight, T, LH, scale),
+  };
+}
+
 /** Comparaison : deux anneaux côte à côte (valeurs `value` puis `value2` de chaque segment), chacun avec son titre et ses libellés.
     Le 2e part du même angle que le 1er (mêmes catégories au même endroit) ; « surface proportionnelle » rétrécit celui du plus petit total. */
 function renderCompare(o, W, env) {
@@ -108,8 +134,7 @@ function renderCompare(o, W, env) {
   const pos = ['top', 'bottom', 'left', 'right'].includes(o.cmpLegend) ? o.cmpLegend : null;
   const BODY = pxOf(T.body.size),
     LH = Math.round(((LEAD[o.leading] || LEAD.normal) * (T.body.size / TYPE.body.size)) / 1.5) * 1.5;
-  const textSpec = labelSpec(T, o.labelText || 'body', LH, false),
-    titleSpec = labelSpec(T, o.labelTitle || 'bold', LH, true);
+  const { titleSpec, textSpec } = labelSpecs(o, T, LH, env);
   const legItems = pos
     ? segs
         .filter((g) => (+g.value > 0 || +g.value2 > 0) && hasLabel(g))
@@ -375,6 +400,25 @@ const DONUT = {
       def: 'bold',
     },
     {
+      k: 'labelTitleSize',
+      g: 'texts',
+      when: (o) => o.layout !== 'none',
+      t: 'number',
+      label: 'Taille des titres des libellés (pt)',
+      min: 6,
+      max: 28,
+      step: 0.5,
+    },
+    {
+      k: 'labelTitleWeight',
+      g: 'texts',
+      when: (o) => o.layout !== 'none',
+      t: 'select',
+      label: 'Graisse des titres des libellés',
+      options: { auto: 'Selon le style', ...WEIGHTS },
+      def: 'auto',
+    },
+    {
       k: 'labelText',
       g: 'texts',
       when: (o) => o.layout !== 'none',
@@ -382,6 +426,25 @@ const DONUT = {
       label: 'Style des textes des libellés',
       options: { body: 'Texte', small: 'Texte petit', caption: 'Légende' },
       def: 'body',
+    },
+    {
+      k: 'labelTextSize',
+      g: 'texts',
+      when: (o) => o.layout !== 'none',
+      t: 'number',
+      label: 'Taille des textes des libellés (pt)',
+      min: 6,
+      max: 28,
+      step: 0.5,
+    },
+    {
+      k: 'labelTextWeight',
+      g: 'texts',
+      when: (o) => o.layout !== 'none',
+      t: 'select',
+      label: 'Graisse des textes des libellés',
+      options: { auto: 'Selon le style', ...WEIGHTS },
+      def: 'auto',
     },
     { ...LINE_FIELD, label: 'Contour des segments' },
     {
@@ -632,8 +695,7 @@ const DONUT = {
       kBody = T.body.size / TYPE.body.size;
     const LH = Math.round(((LEAD[o.leading] || LEAD.normal) * kBody) / 1.5) * 1.5;
     /* libellés : titre puis texte, chacun dans un style du document (`labelTitle`, `labelText`) ; défaut = texte gras puis texte, interlignage `leading` */
-    const titleSpec = labelSpec(T, o.labelTitle || 'bold', LH, true),
-      textSpec = labelSpec(T, o.labelText || 'body', LH, false);
+    const { titleSpec, textSpec } = labelSpecs(o, T, LH, env);
     const labelLines = (g, maxW) => [
       ...(String(g.title || '').trim() ? richLines(g.title, titleSpec, maxW) : []),
       ...(String(g.text || '').trim() ? richLines(g.text, textSpec, maxW) : []),

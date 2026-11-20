@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.136.0 — 2026-11-20
+- Camemberts : taille (en pt) et graisse réglables pour le titre et le texte des libellés
+
 ## 1.135.0 — 2026-11-20
 - Camemberts : titres et textes mis en forme directement dans le tableau de données (gras, italique, souligné, capitales, couleur)
 
