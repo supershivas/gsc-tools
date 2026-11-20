@@ -14,6 +14,8 @@ import {
   mw,
   SANS,
   drawLegend,
+  layoutLegend,
+  drawLegendWrap,
   numVal,
   fitText,
   elColor,
@@ -27,6 +29,10 @@ import {
   refTxt,
   refV,
   typeIn,
+  wrapLabel,
+  labelW,
+  labelLh,
+  drawLabel,
 } from './util.js';
 import { iconNode, iconImportPanel } from './picto.js';
 import { axesFields, refFields } from './axes.js';
@@ -34,6 +40,10 @@ import { t } from '../i18n.js';
 
 /** Aspect d'origine de la carte « Axes et grille » (barres horizontales d'avant la carte : ligne de base à gauche, sans grille) */
 const ORIGIN = { grid: false, gridStyle: 'solid', gridTone: 'light', axisValues: false, baseline: true };
+
+/** Largeur des libellés (`nameWidth`) : `auto` = largeur du plus long, 40 % au plus ; sinon part de la largeur, icône comprise */
+const NAME_W = [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70];
+const NAME_W_OPTIONS = { auto: 'Auto', ...Object.fromEntries(NAME_W.map((p) => [p, p + ' %'])) };
 
 const hPath = (x, y, w, h, r) => {
   r = Math.max(0, Math.min(r, h / 2, w));
@@ -116,6 +126,16 @@ export default {
     },
     { k: 'labelIn', g: 'labels', t: 'bool', label: 'Libellés dans les barres' },
     {
+      k: 'nameWidth',
+      g: 'texts',
+      t: 'select',
+      label: 'Largeur des libellés (se règle aussi en tirant le trait entre libellés et barres)',
+      options: NAME_W_OPTIONS,
+      def: 'auto',
+      when: (o) => !o.labelIn,
+      why: 'Désactivez « Libellés dans les barres » pour régler leur largeur.',
+    },
+    {
       k: 'valuesIn',
       g: 'labels',
       when: (o) => !!o.showValues,
@@ -160,7 +180,7 @@ export default {
       t: 'text',
       label: 'Unité après la valeur (%, M€…)',
     },
-    { t: 'table', k: 'rows', series: 'series', maxSeries: 4, label: 'Données', icons: true },
+    { t: 'table', k: 'rows', series: 'series', maxSeries: 4, label: 'Données', icons: true, softBreak: true },
     {
       t: 'node',
       g: 'data',
@@ -172,6 +192,20 @@ export default {
       },
     },
   ],
+  /* Interactions de l'éditeur : tirer le trait entre libellés et barres règle `nameWidth` (pas de 5 %) */
+  edit: {
+    start(hit, o, meta, api, pt0) {
+      if (hit.kind !== 'split' || !meta) return null;
+      const w0 = meta.labW;
+      return {
+        move(pt) {
+          const p = Math.round(((w0 + pt.x - pt0.x) / meta.W) * 20) * 5;
+          o.nameWidth = String(Math.max(NAME_W[0], Math.min(NAME_W[NAME_W.length - 1], p)));
+          api.redraw();
+        },
+      };
+    },
+  },
   render(o, W, env) {
     const T = typeIn(env); // styles du document (menu Texte)
     const legIn = o.legendPos === 'inside' || o.legendIn; // noms des séries écrits dans les barres (legendIn : ancien réglage)
@@ -183,9 +217,16 @@ export default {
       numPx = pxOf(T.captionNum.size),
       suffix = o.suffix || '';
     const icW = rows.some((r) => r.icon && r.icon !== 'none') ? 24 + VIZ.iconGap : 0; // icône ou image (drapeau…) à gauche du libellé
-    const labW =
-      (o.labelIn ? 0 : Math.min(W * 0.4, Math.max(0, ...rows.map((r) => mw(r.label || '', T.caption.weight, SANS, capPx))) + VIZ.iconGap)) +
-      icW;
+    const share = NAME_W.includes(+o.nameWidth) ? +o.nameWidth / 100 : 0;
+    const labW = o.labelIn
+      ? icW
+      : share
+        ? Math.max(icW + VIZ.iconGap + 20, W * share)
+        : Math.min(W * 0.4, Math.max(0, ...rows.map((r) => labelW(r.label, T.caption.weight, capPx))) + VIZ.iconGap) + icW;
+    /* libellés à gauche : sur plusieurs lignes s'il le faut (retours saisis, puis largeur), jamais coupés ni réduits */
+    const labLh = labelLh(capPx),
+      labLines = rows.map((r) => (o.labelIn ? [] : wrapLabel(r.label, T.caption.weight, capPx, Math.max(10, labW - icW - VIZ.iconGap)))),
+      labH = labLines.map((l) => (l.length > 1 ? l.length * labLh : 0));
     const total = (r) => series.reduce((a, _, j) => a + numVal(r, j), 0);
     const valW =
       o.showValues && !o.valuesIn
@@ -215,19 +256,27 @@ export default {
     const GF = { none: 0, tight: 0.5, normal: 1, loose: 2 },
       rGap = VIZ.hRowGap * (GF[o.rowSpace] ?? 1),
       sGap = VIZ.barGap * (GF[o.serSpace] ?? 1);
-    const legBlock = o.legend && !legIn ? VIZ.legendGap + VIZ.legendH : 0,
+    const LG = o.legend && !legIn ? layoutLegend(series, W, T) : null,
+      legBlock = LG ? VIZ.legendGap + LG.h : 0,
       gaps = Math.max(0, rows.length - 1) * rGap;
     const natBh = VIZ.hBar * ({ thin: 0.6, thick: 1.5, xthick: 2 }[o.barSize] ?? 1),
       natBody = rows.length * (stacked ? natBh : k * natBh + (k - 1) * sGap) + gaps;
     /* hauteur fixe ou « remplir » : les barres s'épaississent (ou s'amincissent) pour occuper la hauteur demandée ; automatique = hauteur naturelle */
+    const rowH = (b) => (stacked ? b : k * b + (k - 1) * sGap),
+      extraOf = (b) => labH.reduce((a, h) => a + Math.max(0, h - rowH(b)), 0); // lignes plus hautes que leurs barres (libellé sur plusieurs lignes)
     let bh = natBh;
     if (o.hmode === 'fixed' || o.hmode === 'fill' || o.hmode === 'match') {
-      const target = heightOf(o, W, env, natBody + axH + legBlock + refTop) - refTop,
-        f = Math.max(0.5, Math.min(4, (target - legBlock - axH - gaps) / Math.max(1, natBody - gaps)));
-      bh = Math.max(3, natBh * f);
+      const target = heightOf(o, W, env, natBody + extraOf(natBh) + axH + legBlock + refTop) - refTop;
+      for (let pass = 0; pass < 2; pass++) {
+        const f = Math.max(0.5, Math.min(4, (target - legBlock - axH - gaps - extraOf(bh)) / Math.max(1, natBody - gaps)));
+        bh = Math.max(3, natBh * f);
+      }
     }
-    const rh = stacked ? bh : k * bh + (k - 1) * sGap;
-    const bodyH = rows.length * rh + gaps;
+    const rh = rowH(bh),
+      slots = labH.map((h) => Math.max(rh, h)),
+      rowY = [];
+    slots.reduce((y, h, i) => ((rowY[i] = y), y + h + rGap), 0);
+    const bodyH = slots.reduce((a, h) => a + h, 0) + gaps;
     const H = bodyH + axH + legBlock;
     const root = s('svg', {
       width: W,
@@ -280,12 +329,9 @@ export default {
       return fitsVal;
     };
     rows.forEach((r, i) => {
-      const y = i * (rh + rGap);
+      const y = rowY[i] + (slots[i] - rh) / 2; // barres centrées sur la hauteur du libellé
       if (r.icon && r.icon !== 'none') svg.append(iconNode(o, r.icon, 0, y + rh / 2 - 12, 24, 24, 'blue', env.rc.icons));
-      if (!o.labelIn) {
-        const f = fitText(r.label || '', T.caption.weight, SANS, capPx, labW - icW - VIZ.iconGap, 0.7);
-        svg.append(s('text', { x: icW, y: y + rh / 2 + 0.33 * f.size, 'font-size': f.size, 'font-weight': T.caption.weight }, f.text));
-      }
+      if (!o.labelIn) drawLabel(svg, labLines[i], icW, y + rh / 2, labLh, capPx, T.caption.weight);
       let end = x0,
         inside = false;
       if (stacked) {
@@ -376,8 +422,30 @@ export default {
           ),
         );
     });
-    if (o.legend && !legIn) drawLegend(svg, series, H - VIZ.legendH, W, null, null, T);
-    rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'y', 0, i * (rh + rGap) - rGap / 2, W, rh + rGap)));
-    return { node: root };
+    if (LG) {
+      if (LG.lines.length > 1)
+        drawLegendWrap(svg, LG, H - LG.h); // noms trop longs pour une ligne : la légende passe à la ligne, au même corps
+      else drawLegend(svg, series, H - VIZ.legendH, W, null, null, T);
+    }
+    rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'y', 0, rowY[i] - rGap / 2, W, slots[i] + rGap)));
+    /* éditeur : trait à tirer entre libellés et barres (largeur des libellés), jamais exporté */
+    if (env.ui && !o.labelIn)
+      svg.append(
+        s(
+          'g',
+          { class: 'viz-split', 'data-hit': 'split:0', style: { cursor: 'col-resize' } },
+          s('rect', { x: x0 - 5, y: -3, width: 10, height: bodyH + 6, fill: 'rgba(0,0,0,0)' }),
+          s('line', {
+            x1: x0,
+            y1: -3,
+            x2: x0,
+            y2: bodyH + 3,
+            stroke: 'var(--handle, #F28C28)',
+            'stroke-width': 1.5,
+            'stroke-dasharray': '3 2',
+          }),
+        ),
+      );
+    return { node: root, meta: { W, labW } };
   },
 };

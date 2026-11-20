@@ -48,6 +48,7 @@ export function renderTable(tb, env) {
       },
       richText(styled(cl.text, cl.st), ahOf(tb, cl), cl.adv || null, env),
     );
+    if (cl.ind > 0) el.style.paddingLeft = `calc(${cl.pad && cl.pad !== 'normal' ? px + 'px' : 'var(--s2)'} + ${cl.ind} * var(--s3))`; // retrait (niveau 4)
     if (fill !== 'none') el.style.background = `var(--c-${fill})`;
     if (fg !== 'none') {
       el.style.color = `var(--c-${fg})`;

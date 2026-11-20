@@ -40,6 +40,10 @@
 .tbl-head,.tbl-foot{font-weight:700}
 .tbl-num{font-variant-numeric:tabular-nums}
 .tbl-lines{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
+/* styles de paragraphe dans un tableau, à l'échelle du texte du tableau (« Texte petit » du document) : « Texte gras » = texte du tableau en gras,
+   « Texte petit » = 85 % (8,5 pt pour 10 pt), interlignage 3 px plus serré, jamais sous le corps (grille de 1,5 px) ; suivent les réglages du menu Texte */
+.tbl .rich .p-bold{font-family:var(--t-small-family);font-size:var(--t-small-size);line-height:var(--t-small-lh);font-weight:var(--t-bodyBold-weight)}
+.tbl .rich .p-small{font-size:calc(var(--t-small-size) * .85);line-height:max(calc(var(--t-small-lh) - 3px),round(up,calc(var(--t-small-size) * .85 * 1.1),1.5px))}
 .rich p{margin:0}
 .rich p + p,.rich ul + p,.rich p + ul{margin-top:var(--gap-paragraph)}
 .rich ul{margin:0;padding-left:var(--s5)}

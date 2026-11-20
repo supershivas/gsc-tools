@@ -712,6 +712,12 @@ const EN = {
   Flux: 'Flows',
   Nom: 'Name',
   Cible: 'Target',
+  'Largeur des libellés (se règle aussi en tirant le trait entre libellés et barres)':
+    'Label width (also set by dragging the line between labels and bars)',
+  'Désactivez « Libellés dans les barres » pour régler leur largeur.': 'Turn off “Labels inside the bars” to set their width.',
+  'Maj + Entrée : retour à la ligne': 'Shift + Enter: line break',
+  '1 : texte gras, comme l’en-tête · 2 : texte · 3 : texte petit · 4 : texte petit en retrait.':
+    '1: bold text, like the header · 2: text · 3: small text · 4: indented small text.',
   'Niveau 1': 'Level 1',
   'Niveau 2': 'Level 2',
   'Niveau 3': 'Level 3',

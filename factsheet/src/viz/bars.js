@@ -18,6 +18,8 @@ import {
   textLines,
   drawLines,
   drawLegend,
+  layoutLegend,
+  drawLegendWrap,
   numVal,
   fitText,
   mw,
@@ -33,6 +35,9 @@ import {
   refRoom,
   refH,
   typeIn,
+  wrapLabel,
+  labelLh,
+  drawLabel,
 } from './util.js';
 import { axesFields, axisTitleFields, refFields } from './axes.js';
 
@@ -196,7 +201,7 @@ export default {
       fmt: 'basic',
       label: 'Texte de l’accolade',
     },
-    { t: 'table', k: 'rows', series: 'series', maxSeries: 4, label: 'Données', icons: true },
+    { t: 'table', k: 'rows', series: 'series', maxSeries: 4, label: 'Données', icons: true, softBreak: true },
     {
       t: 'node',
       g: 'data',
@@ -222,7 +227,7 @@ export default {
     const xc = W - (co ? VIZ.calloutW : 0); // début de la zone de l'accolade
     const hasIcons = rows.some((r) => r.icon && r.icon !== 'none'),
       iconSz = 33,
-      catH = (o.labelIn || !rows.some((r) => String(r.label || '').trim()) ? 6 : VIZ.catH) + (hasIcons ? iconSz + 6 : 0);
+      catH0 = (o.labelIn || !rows.some((r) => String(r.label || '').trim()) ? 6 : VIZ.catH) + (hasIcons ? iconSz + 6 : 0);
     const capPx = pxOf(T.caption.size),
       numPx = pxOf(T.captionNum.size);
     const ref = refVal(o),
@@ -232,9 +237,6 @@ export default {
     const x1 = xc - refW; // fin du graphique : le texte du repère est posé juste après
     const yT = o.yTitle ? capPx * 1.7 : 0, // titre de l'axe vertical, au-dessus du graphique
       xT = o.xTitle ? capPx * 1.5 : 0; // titre de l'axe horizontal, sous les catégories
-    const baseY = H - (o.legend && !legIn ? VIZ.legendGap + VIZ.legendH : 0) - catH - xT,
-      plotTop = VIZ.plotTop + yT,
-      plotH = baseY - plotTop;
     const total = (r) => series.reduce((a, _, j) => a + numVal(r, j), 0);
     const metric = (r) => (stacked ? total(r) : numVal(r, 0)); // valeur suivie par l'accolade
     let max = 0;
@@ -258,6 +260,15 @@ export default {
       tickTxt = (v) => tickFmt(v, tk, env.locale, o.decimals) + suffix;
     const px0 = axV ? Math.max(0, ...tk.out.map((v) => mw(tickTxt(v), 400, SANS, capPx))) + 8 : 0;
     const slot = (x1 - px0) / n;
+    /* noms des catégories : sur plusieurs lignes s'il le faut (retours saisis, puis largeur de la case), jamais coupés ni réduits */
+    const labLh = labelLh(capPx),
+      catLines = o.labelIn ? [] : rows.map((r) => wrapLabel(r.label, T.caption.weight, capPx, Math.max(10, slot - 3))),
+      catMore = Math.max(0, ...catLines.map((l) => l.length - 1)) * labLh,
+      catH = catH0 + catMore;
+    const LG = o.legend && !legIn ? layoutLegend(series, W, T) : null;
+    const baseY = H - (LG ? VIZ.legendGap + LG.h : 0) - catH - xT,
+      plotTop = VIZ.plotTop + yT,
+      plotH = baseY - plotTop;
     const sGap = VIZ.barGap * ({ none: 0, tight: 0.5, normal: 1, loose: 2 }[o.serSpace] ?? 1),
       wf = ({ thin: 0.7, thick: 1.3 }[o.barSize] ?? 1) * ({ tight: 1.2, loose: 0.8 }[o.groupSpace] ?? 1),
       capW = VIZ.barMaxW * Math.max(1, wf);
@@ -470,28 +481,28 @@ export default {
           series.forEach((_, j) => (inValue.has(i + ':' + j) ? null : valText(barX[i][j] + bw / 2, yOf(numVal(r, j)) - 3, numVal(r, j))));
       });
     if (!o.labelIn)
-      rows.forEach((r, i) => {
-        const f = fitText(r.label || '', T.caption.weight, SANS, capPx, slot - 3, 0.6);
-        svg.append(
-          s(
-            'text',
-            {
-              x: px0 + slot * (i + 0.5),
-              y: baseY + (catH - VIZ.catH) + VIZ.catH / 2 + 0.33 * f.size + 1,
-              'text-anchor': 'middle',
-              'font-size': f.size,
-              'font-weight': T.caption.weight,
-            },
-            f.text,
-          ),
-        );
-      });
+      catLines.forEach((lines, i) =>
+        drawLabel(
+          svg,
+          lines,
+          px0 + slot * (i + 0.5),
+          baseY + (catH0 - VIZ.catH) + VIZ.catH / 2 + 1 + ((lines.length - 1) * labLh) / 2, // 1re ligne à sa place d'origine, les suivantes dessous
+          labLh,
+          capPx,
+          T.caption.weight,
+          'middle',
+        ),
+      );
     if (hasIcons)
       rows.forEach((r, i) => {
         if (r.icon && r.icon !== 'none')
           svg.append(iconNode(o, r.icon, px0 + slot * (i + 0.5) - iconSz / 2, baseY + 6, iconSz, iconSz, 'blue', env.rc.icons));
       });
-    if (o.legend && !legIn) drawLegend(svg, series, H - VIZ.legendH, W, null, null, T);
+    if (LG) {
+      if (LG.lines.length > 1)
+        drawLegendWrap(svg, LG, H - LG.h); // noms trop longs pour une ligne : la légende passe à la ligne, au même corps
+      else drawLegend(svg, series, H - VIZ.legendH, W, null, null, T);
+    }
     rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'x', px0 + slot * i, 0, slot, baseY + catH)));
     return { node: svg };
   },

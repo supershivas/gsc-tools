@@ -35,6 +35,9 @@ import {
   setFootRows,
   CELL_STYLES,
   PADS,
+  LEVELS,
+  levelOf,
+  setLevel,
   setNumCols,
 } from './model.js';
 import { selRect } from './grid-ui.js';
@@ -516,7 +519,8 @@ export function createStylePanel({ getTable, getSel, getDoc, commit }) {
       const T = tb(),
         R = selRect(T, getSel()),
         group = R ? cellsIn(R) : [];
-      const st = common(group, (cl) => cl.st || 'body'),
+      const lv = common(group, levelOf),
+        st = common(group, (cl) => cl.st || 'body'),
         fg = common(group, (cl) => cl.fg || 'none'),
         av = common(group, (cl) => cl.av || 'top'),
         pad = common(group, (cl) => cl.pad || 'normal');
@@ -524,11 +528,25 @@ export function createStylePanel({ getTable, getSel, getDoc, commit }) {
         numeric = cols.length > 0 && cols.every((c) => c.num);
       const put = (k, v, def) => change(() => group.forEach((cl) => (v === def ? delete cl[k] : (cl[k] = v))));
       return {
-        sig: [R, st, fg, av, pad, numeric, getDoc().colors, group.length],
+        sig: [R, st, lv, fg, av, pad, numeric, getDoc().colors, group.length],
         draw: () =>
           !R
             ? [h('p', { class: 'hint', textContent: t('Sélectionnez des cellules pour régler leur texte.') })]
             : [
+                block(
+                  t('Niveau'),
+                  segment(
+                    Object.keys(LEVELS).map((n) => [n, n]),
+                    lv,
+                    (n) => change(() => group.forEach((cl) => setLevel(cl, n))),
+                    'Niveau',
+                    { seg: 'level' },
+                  ),
+                  h('p', {
+                    class: 'hint',
+                    textContent: t('1 : texte gras, comme l’en-tête · 2 : texte · 3 : texte petit · 4 : texte petit en retrait.'),
+                  }),
+                ),
                 block(
                   t('Style de paragraphe'),
                   h(

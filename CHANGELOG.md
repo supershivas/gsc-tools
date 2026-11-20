@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.127.0 — 2026-11-20
+- Barres et barres horizontales : les libellés longs passent à la ligne au même corps, jamais coupés ; Maj + Entrée force un retour à la ligne
+- Barres horizontales : largeur des libellés réglable, en tirant le trait entre libellés et barres dans l'éditeur
+- Tableau : « Texte petit » plus petit que « Texte », et niveaux de hiérarchie 1 à 4 dans la carte Texte
+
 ## 1.126.0 — 2026-11-18
 - Carte Document : curseur « Taille du texte » de 80 à 120 % (100 % par défaut), avec retour à 100 %
 

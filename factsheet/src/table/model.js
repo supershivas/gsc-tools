@@ -6,7 +6,7 @@
      v: 1,
      cols:  [{ id, w, fill, num }],         w = poids relatif (fr) ; fill = fond de la colonne (clé de couleur) ; num = colonne numérique (chiffres tabulaires, à droite)
      rows:  [{ id, h, kind, fill }],        h = hauteur mini en px (0 = selon le contenu) ; kind : 'head' | 'body' | 'foot' (pied, en bas) ; fill = fond de la ligne
-     cells: [{ id, r, c, rs, cs, text, st, ah, av, pad, fill, fg }],   st = style de paragraphe (CELL_STYLES) ; pad = marges intérieures (clé de PADS), adv = réglages avancés du texte (f, s, b, it, lh, ls, kern, indent, before, after : voir cleanAdv)
+     cells: [{ id, r, c, rs, cs, text, st, ind, ah, av, pad, fill, fg }],   st = style de paragraphe (CELL_STYLES) ; ind = retrait (1 à IND_MAX crans, niveau 4 de LEVELS) ; pad = marges intérieures (clé de PADS), adv = réglages avancés du texte (f, s, b, it, lh, ls, kern, indent, before, after : voir cleanAdv)
      edges: { 'h:i:j': trait, 'v:i:j': trait },   surcharges d'arêtes (creuses) ; un trait de largeur 0 = aucun trait
      look:  { preset, top, bottom, sides, innerH, innerV, head, foot, headFill, headFg, footFill, stripe },
    }
@@ -442,6 +442,26 @@ export function fgOf(tb, cl) {
 /** Styles de paragraphe offerts à une cellule (sous-ensemble de PSTYLES : ni titres, ni chapeau, ni chiffre clé en grand) */
 export const CELL_STYLES = ['body', 'bold', 'small', 'quote', 'cap', 'label', 'source', 'note', 'figsm'];
 /** Marges intérieures [haut/bas, gauche/droite] en px, sur la grille de 3 px ; 'normal' = défaut (clé absente) */
+/** Niveaux de hiérarchie d'une cellule (carte Texte) : un style de paragraphe et un retrait (`ind`, en crans de --s3).
+    1 = texte gras (comme l'en-tête), 2 = texte, 3 = texte petit, 4 = texte petit en retrait. */
+export const LEVELS = { 1: { st: 'bold', ind: 0 }, 2: { st: 'body', ind: 0 }, 3: { st: 'small', ind: 0 }, 4: { st: 'small', ind: 1 } };
+export const IND_MAX = 3;
+/** Niveau d'une cellule (1 à 4) ou null si son style ne correspond à aucun */
+export function levelOf(cl) {
+  const st = cl.st || 'body',
+    ind = cl.ind || 0;
+  const k = Object.keys(LEVELS).find((n) => LEVELS[n].st === st && LEVELS[n].ind === ind);
+  return k ? +k : null;
+}
+/** Donne le niveau n à une cellule (style + retrait ; défauts retirés) */
+export function setLevel(cl, n) {
+  const L = LEVELS[n];
+  if (!L) return;
+  if (L.st === 'body') delete cl.st;
+  else cl.st = L.st;
+  if (L.ind) cl.ind = L.ind;
+  else delete cl.ind;
+}
 export const PADS = { none: [0, 0], tight: [3, 3], normal: [3, 6], roomy: [6, 9], wide: [9, 12] };
 /** Réglages de texte d'une cellule (`adv`, comme un bloc de texte + gras et italique) : clés connues, valeurs valides, sinon retirées ; null si rien ne reste */
 const ADV_NUM = { s: [1, 200], lh: [1, 300], ls: [-100, 1000] };
@@ -697,6 +717,7 @@ export function repairTable(src) {
     for (const k of ['fill', 'fg']) if (cl[k] != null && !isKey(cl[k])) delete cl[k];
     if (cl.st != null && !CELL_STYLES.includes(cl.st)) delete cl.st;
     if (cl.pad != null && !PADS[cl.pad]) delete cl.pad;
+    if (cl.ind != null && !(Number.isInteger(cl.ind) && cl.ind >= 1 && cl.ind <= IND_MAX)) delete cl.ind;
     if (cl.adv != null) {
       const a = cleanAdv(cl.adv);
       if (a) cl.adv = a;

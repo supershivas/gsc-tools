@@ -108,7 +108,7 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
     blank,
     root: obj,
     cols: [
-      { name: t('Libellé'), type: 'text' },
+      { name: t('Libellé'), type: 'text', ml: f.softBreak ? 'soft' : false }, // `soft` : Maj + Entrée = retour à la ligne dans le libellé
       ...series.map((sr, j) => ({
         name: sr.name || '',
         type: 'number',
@@ -764,7 +764,13 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
     /* colonne `ml` : texte sur plusieurs lignes (Entrée = retour à la ligne), la cellule grandit avec son contenu */
     const mk = c.ml
       ? (p) => {
-          const ta = h('textarea', { ...p, class: 'dg-ml', rows: 1, value: v });
+          const ta = h('textarea', {
+            ...p,
+            class: 'dg-ml',
+            rows: 1,
+            value: v,
+            title: c.ml === 'soft' ? t('Maj + Entrée : retour à la ligne') : null,
+          });
           const fit = () => {
             ta.style.height = 'auto';
             ta.style.height = ta.scrollHeight + 'px';
@@ -789,7 +795,16 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
             n.select && n.select();
           }
         };
-        if (c.ml) return; // cellule multiligne : Entrée et flèches restent dans le texte
+        if (c.ml === 'soft') {
+          /* libellé : Maj + Entrée = retour à la ligne ; Entrée descend comme dans une cellule simple ; flèches dans le texte s'il a plusieurs lignes */
+          if (e.key === 'Enter' && e.shiftKey) return;
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            go(1, 0);
+            return;
+          }
+          if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && e.target.value.includes('\n')) return;
+        } else if (c.ml) return; // cellule multiligne : Entrée et flèches restent dans le texte
         if (j === 0 && ad.levels && e.key === 'Tab' && !e.altKey && !e.ctrlKey && !e.metaKey) {
           /* nom d'une ligne : Tab descend d'un niveau, Maj+Tab remonte (aux bornes 1 et 4, le focus avance) */
           const l = ad.levels.get(i) + (e.shiftKey ? -1 : 1);
@@ -856,7 +871,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
       if (field) {
         field.style.paddingLeft = 8 + l * 14 + 'px';
         field.dataset.level = l;
-        field.title = `${t('Niveau')} ${l + 1}`;
+        field.title = `${t('Niveau')} ${l + 1}` + (ad.cols[0].ml === 'soft' ? ' · ' + t('Maj + Entrée : retour à la ligne') : '');
       } else {
         body.style.paddingLeft = l * 14 + 'px';
         body.title = `${t('Niveau')} ${l + 1}`;

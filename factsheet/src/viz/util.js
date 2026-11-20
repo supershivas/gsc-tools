@@ -60,6 +60,73 @@ export function fitText(text, weight, family, size, maxW, minK = 0.6) {
   return { size: sz, text: ellipsize(text, weight, family, sz, maxW) };
 }
 
+/* ---------- Libellés sur plusieurs lignes (catégories des barres) : jamais coupés ni réduits ---------- */
+/** Lignes d'un libellé : retours à la ligne saisis (Maj + Entrée dans les données), puis passage à la ligne sur maxW ;
+    un mot plus large que maxW est coupé en morceaux. Le corps ne change jamais. */
+export function wrapLabel(text, weight, size, maxW) {
+  const out = [],
+    fits = (x) => mw(x, weight, SANS, size) <= maxW;
+  const pieces = (w) => {
+    if (fits(w)) return [w];
+    const res = [];
+    let cur = '';
+    for (const ch of w) {
+      if (cur && !fits(cur + ch)) {
+        res.push(cur);
+        cur = ch;
+      } else cur += ch;
+    }
+    if (cur) res.push(cur);
+    return res;
+  };
+  for (const para of String(text || '')
+    .replace(/\r\n?/g, '\n')
+    .split('\n')) {
+    let cur = '';
+    for (const w of para.split(/\s+/).filter(Boolean).flatMap(pieces)) {
+      const next = cur ? cur + ' ' + w : w;
+      if (cur && !fits(next)) {
+        out.push(cur);
+        cur = w;
+      } else cur = next;
+    }
+    out.push(cur);
+  }
+  while (out.length > 1 && !out[out.length - 1]) out.pop();
+  while (out.length > 1 && !out[0]) out.shift();
+  return out;
+}
+/** Largeur naturelle d'un libellé : sa plus longue ligne saisie */
+export const labelW = (text, weight, size) =>
+  Math.max(
+    0,
+    ...String(text || '')
+      .split(/\r?\n/)
+      .map((l) => mw(l.trim(), weight, SANS, size)),
+  );
+/** Interligne des libellés de graphique (grille de 1,5 px) */
+export const labelLh = (size) => Math.round((size * 1.2) / 1.5) * 1.5;
+/** Pose les lignes d'un libellé, centrées verticalement sur yMid ; anchor : start | middle | end */
+export function drawLabel(svg, lines, x, yMid, lh, size, weight, anchor = 'start') {
+  const top = yMid - (lines.length * lh) / 2;
+  lines.forEach((l, i) => {
+    if (l)
+      svg.append(
+        s(
+          'text',
+          {
+            x,
+            y: top + i * lh + lh / 2 + 0.33 * size,
+            'text-anchor': anchor === 'start' ? null : anchor,
+            'font-size': size,
+            'font-weight': weight,
+          },
+          l,
+        ),
+      );
+  });
+}
+
 /* ---------- Texte riche (**gras**) ---------- */
 function paragraphs(text) {
   const paras = [[]];
