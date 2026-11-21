@@ -41,6 +41,7 @@ import {
   setStrokingRgbColor,
   drawObject,
   setGraphicsState,
+  setCharacterSpacing,
 } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { PAGE, STROKE } from '../tokens.js';
@@ -758,8 +759,20 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
             emitPath(rectPath(j.clip.x, j.clip.y, j.clip.w, j.clip.h), [1, 0, 0, 1, 0, 0]);
             push(clip(), endPath());
           }
+          /* largeur du mot calée sur l'écran : les polices du PDF n'ont pas de crénage (« To », « Va »…), un mot plus large que sa place
+             mordait sur l'espace suivante ; l'écart est réparti entre les lettres (approche), jamais au-delà de 15 % */
+          const n = [...t].length;
+          let tc = 0;
+          if (n > 1 && t === j.text && j.w > 0) {
+            const natural = f.embedded.widthOfTextAtSize(t, j.size * KY),
+              target = toPt(j.x + j.w, baseline)[0] - x,
+              d = target - natural;
+            if (Math.abs(d) > 0.01 && Math.abs(d) < natural * 0.15) tc = d / (n - 1);
+          }
+          if (tc) push(pushGraphicsState(), setCharacterSpacing(tc));
           flush();
           page.drawText(t, { x, y, size: j.size * KY, font: f.embedded, color: ink.color(c), opacity: a < 0.999 ? a : undefined });
+          if (tc) push(popGraphicsState());
           const la = alphaOps(1, a);
           if (la && (j.strike || j.under)) push(pushGraphicsState(), la);
           if (j.strike) {
