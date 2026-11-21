@@ -43,7 +43,22 @@ export function h(tag, props = {}, ...kids) {
 
 const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 /** balisage en ligne → HTML, avec la typographie automatique du rendu (env.rc) */
-export const inline = (t, env) => inlineMk(t, false, env && env.rc.typo);
+/* espaces (dont insécables, souvent laissées par la saisie du navigateur) collées au bord du texte mais à l'intérieur d'un balisage
+   (« ~~\u00A0Mot~~ ») : retirées comme celles du bord, sinon la ligne commence décalée d'une espace (écran et PDF) */
+const OPEN_MK = String.raw`(?:\*\*|~~|__|\^\^|,,|\{(?:[cha]:[^|{}]*|s|up|sc)\|)`,
+  CLOSE_MK = String.raw`(?:\*\*|~~|__|\^\^|,,|\})`,
+  EDGE_L = new RegExp(`^(${OPEN_MK}*)[^\\S\u2028]+`),
+  EDGE_R = new RegExp(`[^\\S\u2028]+(${CLOSE_MK}*)$`);
+export const trimEdges = (t) => {
+  let x = String(t ?? '');
+  for (let i = 0; i < 5; i++) {
+    const y = x.replace(EDGE_L, '$1').replace(EDGE_R, '$1');
+    if (y === x) break;
+    x = y;
+  }
+  return x;
+};
+export const inline = (t, env) => inlineMk(trimEdges(t), false, env && env.rc.typo);
 
 /** Texte à balisage léger → éléments <p> / <ul> ; env : environnement de rendu (env.rc) */
 export function richText(text, align, adv, env) {

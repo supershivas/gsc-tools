@@ -206,8 +206,9 @@ export function htmlToMk(root) {
     return runs
       .filter((r) => r.t !== '')
       .map((r) => {
-        let t = r.t;
-        if (!t.trim()) return t;
+        if (!r.t.trim()) return r.t;
+        const [, lead, core, tail] = /^(\s*)([\s\S]*?)(\s*)$/.exec(r.t); // espaces du bord hors du balisage (« ~~ mot~~ » décalait la ligne)
+        let t = core;
         if (r.sub) t = `,,${t},,`;
         if (r.sup) t = `^^${t}^^`;
         if (r.i) t = `~~${t}~~`;
@@ -219,7 +220,7 @@ export function htmlToMk(root) {
         if (r.a) t = `{a:${r.a}|${t}}`;
         if (r.h) t = `{h:${r.h}|${t}}`;
         if (r.c) t = `{c:${r.c}|${t}}`;
-        return t;
+        return lead + t + tail;
       })
       .join('');
   };

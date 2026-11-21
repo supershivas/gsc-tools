@@ -421,3 +421,42 @@ test('éditeur : italique de cellule visible en saisie et retirable par I, en to
   expect(part.html).toMatch(/^12<i>/);
   expect(errors).toEqual([]);
 });
+
+test('rendu : une espace (même insécable) au bord d’un texte mis en forme ne décale pas la ligne', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'table-text');
+  const V = ['Minimum', '~~ Minimum~~', '{c:blue| Minimum}', '**~~  Minimum~~**'];
+  await page.evaluate(
+    ([key, V]) => {
+      const d = JSON.parse(localStorage.getItem(key));
+      for (const s of d.sections)
+        for (const b of s.subs)
+          for (const c of b.cols)
+            if (c.type === 'table') {
+              const cl = c.table.cells.find((x) => x.r === 1 && x.c === 0);
+              cl.text = V.join('\n');
+              cl.ah = 'left';
+              cl.id = 'edge';
+            }
+      localStorage.setItem(key, JSON.stringify(d));
+    },
+    [DOC_KEY, V],
+  );
+  await page.reload();
+  await page.waitForSelector('#stage .page');
+  await page.evaluate(() => document.fonts.ready);
+  const xs = await page.evaluate(() =>
+    [...document.querySelectorAll('#stage .page:not(.ovf-clone) [data-cell="edge"] p')].map((p) => {
+      const w = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+      let tn = w.nextNode();
+      while (tn && !/M/.test(tn.data)) tn = w.nextNode();
+      const r = document.createRange();
+      r.setStart(tn, tn.data.indexOf('M'));
+      r.setEnd(tn, tn.data.indexOf('M') + 1);
+      return Math.round((r.getBoundingClientRect().left - p.getBoundingClientRect().left) * 100) / 100;
+    }),
+  );
+  expect(xs).toHaveLength(4);
+  expect(new Set(xs).size).toBe(1);
+  expect(errors).toEqual([]);
+});

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.139.3 — 2026-11-21
+- Texte : une espace laissée au début ou à la fin d'un passage en italique, gras ou couleur ne décale plus la ligne (tableaux, blocs de texte, titres, PDF)
+
 ## 1.139.2 — 2026-11-21
 - Export PDF : les mots gardent leur largeur de l'aperçu, l'espace après « To… », « Va… » n'est plus rognée
 
