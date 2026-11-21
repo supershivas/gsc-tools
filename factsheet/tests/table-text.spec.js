@@ -370,3 +370,54 @@ test('format des nombres « EN — 1 227.5 » : milliers en espace insécable, p
   expect(r.en).toBe('1,227.5');
   expect(r.dec).toBe('.');
 });
+
+test('éditeur : italique de cellule visible en saisie et retirable par I, en tout ou en partie', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'table-text');
+  await open(page);
+  const cellEl = async (r, c) => page.locator(`.te [data-cell="${await cellOf(page, r, c)}"]`);
+  const raw = () => page.evaluate(() => document.querySelector('.te .te-edit').innerHTML);
+  const shown = (r, c) =>
+    page.evaluate(
+      ([r, c]) => {
+        const n = [...document.querySelectorAll('.te .tbl .tbl-cell')].find(
+          (n) => n.style.gridRow.startsWith(`${r + 1} `) && n.style.gridColumn.startsWith(`${c + 1} `),
+        );
+        const p = n.querySelector('p');
+        return { st: getComputedStyle(p).fontStyle, html: p.innerHTML };
+      },
+      [r, c],
+    );
+  const card = page.locator('.te [data-card="adv"]');
+  const pressed = () => card.locator('[data-k="adv-it"]').getAttribute('aria-pressed');
+  await click(page, 2, 2);
+  await card.locator('summary').click();
+  await card.locator('[data-k="adv-it"]').click();
+  /* saisie sans changement : l'italique est visible et reste un réglage de cellule */
+  await (await cellEl(2, 2)).dblclick();
+  expect(await raw()).toContain('<i>');
+  await click(page, 1, 1);
+  await click(page, 2, 2);
+  expect(await pressed()).toBe('true');
+  expect((await shown(2, 2)).html).not.toContain('<i>');
+  /* tout le texte : I retire l'italique, qui ne revient pas */
+  await (await cellEl(2, 2)).dblclick();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.locator('.te-fmt button').nth(1).click();
+  await click(page, 1, 1);
+  expect((await shown(2, 2)).st).toBe('normal');
+  await click(page, 2, 2);
+  expect(await pressed()).toBe('false');
+  /* une partie : le reste garde l'italique, en balisage */
+  await card.locator('[data-k="adv-it"]').click();
+  await (await cellEl(2, 2)).dblclick();
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Shift+ArrowRight');
+  await page.keyboard.press('Shift+ArrowRight');
+  await page.keyboard.press('ControlOrMeta+i');
+  await page.keyboard.press('Enter');
+  const part = await shown(2, 2);
+  expect(part.st).toBe('normal');
+  expect(part.html).toMatch(/^12<i>/);
+  expect(errors).toEqual([]);
+});

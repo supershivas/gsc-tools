@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.139.1 — 2026-11-21
+- Tableaux : l'italique ou le gras posé sur une cellule s'affiche pendant la saisie et se retire avec I ou B, en tout ou en partie (il revenait en quittant la cellule)
+
 ## 1.139.0 — 2026-11-20
 - Camemberts : marge réglable entre l'anneau et les libellés, à gauche et à droite séparément, en tirant un trait dans l'aperçu (12 px au moins)
 

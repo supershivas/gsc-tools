@@ -193,6 +193,44 @@ export function openTableEditor({ col, bg, width, ctx, fileStem = (x) => 'tablea
   }
 
   /* ----- saisie dans la cellule ----- */
+  /* Gras et italique posés sur la cellule (carte « Texte avancé », `adv.b` / `adv.it`) : pendant la saisie, ils deviennent un balisage
+     sur tout le texte, pour être visibles et retirables (en tout ou en partie) par B / I ; à la sortie, un texte resté entièrement
+     marqué redonne le réglage de cellule, sinon le balisage reste et le réglage est retiré. */
+  const CELL_MARKS = [
+    { k: 'it', tag: 'I', mk: '~~', on: (n) => /^(I|EM)$/.test(n.tagName) || n.style.fontStyle === 'italic' },
+    {
+      k: 'b',
+      tag: 'B',
+      mk: '**',
+      on: (n) => /^(B|STRONG)$/.test(n.tagName) || n.style.fontWeight === 'bold' || +n.style.fontWeight >= 600,
+    },
+  ];
+  const BLOCK = /^(DIV|P|LI|UL|OL|H[1-6])$/;
+  function wrapInline(parent, tag) {
+    let run = null;
+    for (const n of [...parent.childNodes]) {
+      if (n.nodeType === 1 && BLOCK.test(n.tagName)) {
+        run = null;
+        wrapInline(n, tag);
+        continue;
+      }
+      if (!run) {
+        run = document.createElement(tag);
+        parent.insertBefore(run, n);
+      }
+      run.append(n);
+    }
+  }
+  function allMarked(ed, on) {
+    const w = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) {
+      if (!n.nodeValue.trim()) continue;
+      let p = n.parentElement;
+      while (p && p !== ed && !on(p)) p = p.parentElement;
+      if (!p || p === ed) return false;
+    }
+    return true;
+  }
   function startEdit(keep) {
     if (!sel) return;
     const cl = cellAt(tb(), sel.a.r, sel.a.c),
@@ -211,8 +249,10 @@ export function openTableEditor({ col, bg, width, ctx, fileStem = (x) => 'tablea
       grid.refresh();
       placeBar();
     });
+    const marks = keep ? CELL_MARKS.filter((m) => cl.adv && cl.adv[m.k]) : [];
+    marks.forEach((m) => wrapInline(ed, m.tag));
     el.replaceChildren(ed);
-    editing = { id: cl.id, ed };
+    editing = { id: cl.id, ed, marks };
     showBar(el);
     ed.focus();
     const r = document.createRange();
@@ -225,13 +265,18 @@ export function openTableEditor({ col, bg, width, ctx, fileStem = (x) => 'tablea
   }
   function endEdit(save) {
     if (!editing) return;
-    const { id, ed } = editing;
+    const { id, ed, marks } = editing;
     editing = null;
     if (fmtBar) fmtBar.remove();
     fmtBar = null;
     const cl = tb().cells.find((x) => x.id === id);
     if (save && cl) {
-      const v = htmlToMk(ed);
+      let v = htmlToMk(ed);
+      for (const m of marks) {
+        if (allMarked(ed, m.on)) v = v.split(m.mk).join('');
+        else if (cl.adv) delete cl.adv[m.k];
+      }
+      if (cl.adv && !Object.keys(cl.adv).length) delete cl.adv;
       if (v !== (cl.text || '')) cl.text = v;
     }
     commit();
