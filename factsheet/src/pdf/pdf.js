@@ -47,6 +47,7 @@ import fontkit from '@pdf-lib/fontkit';
 import { PAGE, STROKE } from '../tokens.js';
 import { renderDocument, measure } from '../render.js';
 import { loadFonts } from '../viz/util.js';
+import { cleanSvgTree } from '../viz/picto.js';
 import { makeCmykResolver } from '../cmyk.js';
 import { bleedSides } from '../bleed.js';
 import { EXPORT_MODES, PDF_PROFILES, A4, BLEED_MM, sheetSize } from '../export.js';
@@ -346,7 +347,19 @@ function makeInk(doc, rgb) {
 }
 
 /* ---------- images ---------- */
-const SCALE = 300 / 96;
+const SCALE = 300 / 96,
+  SVG_SCALE = 1200 / 96; // SVG non vectorisable : rastérisé plus fin (une image vectorielle n'a pas de résolution « native »)
+const SVG_VEC_TAGS = new Set(
+  'svg g a path rect circle ellipse line polyline polygon use symbol defs style title desc metadata switch'.split(' '),
+);
+/** SVG que le parcours vectoriel sait écrire fidèlement : formes simples, sans dégradé, motif, masque, filtre, rognage, texte ni image */
+export function svgVector(svg) {
+  for (const n of [svg, ...svg.querySelectorAll('*')]) {
+    if (!SVG_VEC_TAGS.has(n.localName)) return false;
+    for (const a of n.attributes) if (/url\(/i.test(a.value) && a.name !== 'xmlns') return false;
+  }
+  return ![...svg.querySelectorAll('style')].some((st) => /url\(|@import|@font-face/i.test(st.textContent));
+}
 /** pixels RVBA du canvas → composantes de l'espace du PDF (n par pixel) + canal alpha */
 function rgbaToInkImage(data, w, h, ink) {
   const { n, resolve } = ink,
@@ -399,6 +412,24 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
     measure(result);
     const imgs = [...stage.querySelectorAll('img')];
     await Promise.all(imgs.map((i) => (i.decode ? i.decode().catch(() => {}) : null)));
+    /* <img> en SVG (logos, images du header) : relu pour être écrit en vectoriel (sinon rastérisé, flou à l'agrandissement).
+       Seulement un SVG fait de formes simples (tracés, symboles, styles par classe) ; dégradé, masque, filtre, texte… → image haute définition. */
+    const svgVec = new Map();
+    await Promise.all(
+      imgs.map(async (im) => {
+        const src = im.currentSrc || im.src || '';
+        if (!/^data:image\/svg\+xml|\.svg(\?|#|$)/i.test(src)) return;
+        try {
+          const text = await (await fetch(src)).text();
+          const sv = new DOMParser().parseFromString(text, 'image/svg+xml').documentElement;
+          if (!sv || sv.localName !== 'svg' || sv.querySelector('parsererror')) return;
+          cleanSvgTree(sv);
+          if (svgVector(sv)) svgVec.set(im, sv);
+        } catch (e) {
+          /* illisible : image */
+        }
+      }),
+    );
     const svgImg = new Map(); // <image> d'un SVG (drapeaux, images importées) : chargées avant le parcours
     await Promise.all(
       [...stage.querySelectorAll('svg image')].map(async (n) => {
@@ -799,9 +830,9 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
       };
 
       /* ----- SVG ----- */
-      const urlRef = (v) => {
+      const urlRef = (v, root = stage) => {
         const mm = /url\(["']?#([^"')]+)["']?\)/.exec(v || '');
-        return mm ? stage.querySelector('#' + CSS.escape(mm[1])) : null;
+        return mm ? root.querySelector('#' + CSS.escape(mm[1])) : null;
       };
       const shapePath = (el) => {
         const g = (n) => parseFloat(el.getAttribute(n)) || 0,
@@ -839,7 +870,7 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
           alpha = parentAlpha * (isNaN(op) ? 1 : op);
         if (alpha <= 0) return;
         let pushed = 0;
-        const cp = urlRef(el.getAttribute('clip-path') || cs.clipPath);
+        const cp = urlRef(el.getAttribute('clip-path') || cs.clipPath, el.getRootNode());
         if (cp) {
           const path = [];
           for (const c of cp.children) {
@@ -868,8 +899,33 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
             pushed++;
           }
           for (const c of el.children) svgNode(c, Q, alpha);
-        } else if (tag === 'g' || tag === 'a') {
+        } else if (tag === 'g' || tag === 'a' || tag === 'switch') {
           for (const c of el.children) svgNode(c, N, alpha);
+        } else if (tag === 'use') {
+          // <use> : l'élément référencé à (x, y) ; un <symbol> avec viewBox se cale dans (width, height) comme un svg imbriqué
+          const id = (el.getAttribute('href') || el.getAttribute('xlink:href') || '').replace(/^#/, ''),
+            root = el.getRootNode(),
+            ref = id && root.getElementById ? root.getElementById(id) : null,
+            depth = (el.__useDepth || 0) + 1;
+          if (ref && depth < 8 && !ref.contains(el)) {
+            const at = (k) => parseFloat(el.getAttribute(k)) || 0;
+            let Q = mul(N, [1, 0, 0, 1, at('x'), at('y')]);
+            const kids = ref.localName === 'symbol' ? [...ref.children] : [ref];
+            if (ref.localName === 'symbol') {
+              const vb = (ref.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number),
+                w = at('width'),
+                h = at('height');
+              if (vb.length === 4 && vb[2] > 0 && vb[3] > 0 && w > 0 && h > 0) {
+                const k = Math.min(w / vb[2], h / vb[3]);
+                Q = mul(Q, [k, 0, 0, k, (w - vb[2] * k) / 2 - vb[0] * k, (h - vb[3] * k) / 2 - vb[1] * k]);
+              }
+            }
+            kids.forEach((c) => {
+              c.__useDepth = depth;
+              svgNode(c, Q, alpha);
+              delete c.__useDepth;
+            });
+          }
         } else if (tag === 'image') {
           const im = svgImg.get(el);
           if (im && im.naturalWidth)
@@ -926,14 +982,57 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
         if (clipIt) unclip();
       };
 
+      /* ----- SVG d'une <img>, en vectoriel : posé dans une racine fantôme (ses styles par classe ne débordent pas) à la place de l'image,
+         calé comme le navigateur l'affiche (viewBox centrée, proportions gardées) ----- */
+      const drawSvgImg = (img, src, A) => {
+        const r = img.getBoundingClientRect(),
+          S = stage.getBoundingClientRect(),
+          host = document.createElement('div'),
+          sv = src.cloneNode(true);
+        Object.assign(host.style, {
+          position: 'absolute',
+          left: r.left - S.left + 'px',
+          top: r.top - S.top + 'px',
+          width: r.width + 'px',
+          height: r.height + 'px',
+        });
+        sv.setAttribute('width', '100%');
+        sv.setAttribute('height', '100%');
+        host.attachShadow({ mode: 'open' }).append(sv);
+        stage.append(host);
+        try {
+          const b = sv.getBoundingClientRect(),
+            vbv = (sv.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number),
+            vb = vbv.length === 4 && vbv[2] > 0 && vbv[3] > 0 ? vbv : [0, 0, b.width, b.height],
+            fill = /^\s*none/.test(sv.getAttribute('preserveAspectRatio') || ''),
+            kx = b.width / vb[2],
+            ky = b.height / vb[3],
+            k = Math.min(kx, ky),
+            M = fill
+              ? [kx, 0, 0, ky, b.left - P.left - vb[0] * kx, b.top - P.top - vb[1] * ky]
+              : [
+                  k,
+                  0,
+                  0,
+                  k,
+                  b.left - P.left + (b.width - vb[2] * k) / 2 - vb[0] * k,
+                  b.top - P.top + (b.height - vb[3] * k) / 2 - vb[1] * k,
+                ];
+          for (const c of sv.children) svgNode(c, M, A);
+        } finally {
+          host.remove();
+        }
+      };
+
       /* ----- images ----- */
       const drawImg = (el0, cs, ov, alpha = 1) => {
         const el = ov ? ov.img : el0,
           r = ov ? ov.rect : el0.getBoundingClientRect();
         if (r.width < 0.5 || r.height < 0.5 || !el.naturalWidth) return;
         const fit = cs.objectFit || 'fill',
-          cw = Math.max(1, Math.min(4000, Math.round(r.width * SCALE))),
-          ch = Math.max(1, Math.min(4000, Math.round(r.height * SCALE)));
+          sc = /^data:image\/svg\+xml|\.svg(\?|#|$)/i.test(el.currentSrc || el.src || '') ? SVG_SCALE : SCALE,
+          cw = Math.max(1, Math.min(4000, Math.round(r.width * sc))),
+          ch = Math.max(1, Math.min(4000, Math.round(r.height * sc)));
         const x0 = r.left - P.left,
           y0 = r.top - P.top,
           B = flat ? backdrop(x0 + r.width / 2, y0 + r.height / 2) : null; // X-1a : image posée à plat sur son fond
@@ -953,10 +1052,11 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
             dw = iw * k;
             dh = ih * k;
           } else if (fit === 'none') {
-            dw = iw * SCALE;
-            dh = ih * SCALE;
+            dw = iw * sc;
+            dh = ih * sc;
           }
           const pos = (cs.objectPosition || '50% 50%').split(' ').map((v) => (v.endsWith('%') ? parseFloat(v) / 100 : 0.5));
+          g.imageSmoothingQuality = 'high'; // image réduite : rééchantillonnage soigné (crénelage des logos en PNG)
           g.drawImage(el, (cw - dw) * pos[0], (ch - dh) * (pos[1] ?? 0.5), dw, dh);
           const { cm, al, hasAlpha } = rgbaToInkImage(g.getImageData(0, 0, cw, ch).data, cw, ch, ink),
             n = ink.n;
@@ -1093,7 +1193,11 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
             h: Math.max(0, Math.min(c0.y + c0.h, y + r.height) - y1),
           };
         }
-        if (el.localName === 'img') drawImg(el, cs, null, A2);
+        if (el.localName === 'img') {
+          const vec = svgVec.get(el);
+          if (vec && (cs.objectFit || 'fill') !== 'cover') drawSvgImg(el, vec, A2);
+          else drawImg(el, cs, null, A2);
+        }
         if (cs.display === 'list-item' && cs.listStyleType !== 'none') {
           // puce : disque devant la première ligne
           const rg = document.createRange();

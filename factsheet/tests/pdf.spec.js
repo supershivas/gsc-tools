@@ -272,3 +272,38 @@ test('icône SVG importée : aucun code exécuté', async ({ page }) => {
   expect(await page.evaluate(() => window.__pwn), 'code exécuté à l’export PDF').toBeUndefined();
   expect(errors.filter((e) => !/Failed to load resource/.test(e))).toEqual([]);
 });
+
+test('logo SVG : écrit en vectoriel (aucune image à sa place), symboles <use> compris', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await addBundle(page, 'pdfexport.js');
+  const sizes = async (logo) => {
+    if (logo)
+      await page.evaluate(
+        ([key, logo]) => {
+          const d = JSON.parse(localStorage.getItem(key));
+          d.header.logos[d.header.logoVariant] = logo;
+          localStorage.setItem(key, JSON.stringify(d));
+        },
+        [DOC_KEY, logo],
+      );
+    const { bytes } = await buildPdf(page, 'net', 'none');
+    const pdf = await PDFDocument.load(bytes);
+    const xo = pdf.getPages()[0].node.Resources().lookup(PDFName.of('XObject'), PDFDict),
+      out = [];
+    if (xo)
+      for (const [name] of xo.entries()) {
+        const o = xo.lookup(name);
+        if (o && o.dict && String(o.dict.lookup(PDFName.of('Subtype'))) === '/Image')
+          out.push(+o.dict.lookup(PDFName.of('Width')).toString());
+      }
+    return { out, bytes };
+  };
+  for (const logo of [null, 'assets/logos/pec/pec_default_h_rgb_en.svg']) {
+    const { out } = await sizes(logo);
+    /* seule l'image du header reste (un SVG à dégradés : rastérisé finement, plus de 1000 px de large) */
+    expect(out.length, String(logo)).toBe(1);
+    expect(out[0]).toBeGreaterThan(1000);
+  }
+  expect(errors).toEqual([]);
+});

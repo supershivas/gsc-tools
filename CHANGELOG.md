@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.139.4 — 2026-11-21
+- Export PDF : les logos SVG restent vectoriels (nets à tout agrandissement) ; une image SVG complexe est rendue en très haute définition
+
 ## 1.139.3 — 2026-11-21
 - Texte : une espace laissée au début ou à la fin d'un passage en italique, gras ou couleur ne décale plus la ligne (tableaux, blocs de texte, titres, PDF)
 
