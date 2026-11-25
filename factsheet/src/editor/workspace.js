@@ -1,4 +1,4 @@
-import { migrate, blankDoc, defaultDoc, storage, uid } from '../state.js';
+import { migrate, blankDoc, newDefaultDoc, storage, uid } from '../state.js';
 import { t } from '../i18n.js';
 import { confirmBox, alertBox } from '../dialogs.js';
 import * as store from '../wsstore.js';
@@ -54,7 +54,7 @@ export async function loadWorkspace() {
     const id = uid('t');
     return {
       persistent: true,
-      records: [{ id, doc: parseDoc(mirrorText) || defaultDoc(), dirty: false }],
+      records: [{ id, doc: parseDoc(mirrorText) || newDefaultDoc(), dirty: false }],
       active: id,
       views: {},
       write: [id],
@@ -64,7 +64,7 @@ export async function loadWorkspace() {
     const id = uid('t');
     return {
       persistent: false,
-      records: [{ id, doc: parseDoc(mirrorText) || defaultDoc(), dirty: false }],
+      records: [{ id, doc: parseDoc(mirrorText) || newDefaultDoc(), dirty: false }],
       active: id,
       views: {},
       write: [],
@@ -106,7 +106,7 @@ export function createWorkspace(ctx, init, { onSwitch, onStatus }) {
     const v = init.views[r.id] || {};
     tabs.push(makeTab(r.id, doc, { dirty: !!r.dirty, view: v, sel: v.sel || null, collapsed: v.collapsed || [] }));
   }
-  if (!tabs.length) tabs.push(makeTab(uid('t'), defaultDoc()));
+  if (!tabs.length) tabs.push(makeTab(uid('t'), newDefaultDoc()));
   activeId = (tabs.find((x) => x.id === init.active) || tabs[0]).id;
 
   const get = (id) => tabs.find((x) => x.id === id) || null;

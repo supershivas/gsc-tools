@@ -69,7 +69,7 @@ function textItems(ctx) {
 
 /* Fichier / Édition / Affichage : menus de l'en-tête (rendus par js/shell.js, lus dans `window.FS_UI` par factsheet/index.html) ;
    la langue est dans les réglages. Chaque entrée appelle les modules de l'éditeur reçus en paramètres. */
-export function declareMenus({ ctx, history, historyUi, preview, spacing, hand, project, exporter, langSel, ws }) {
+export function declareMenus({ ctx, history, historyUi, preview, spacing, hand, project, exporter, langSel, ws, home }) {
   /* Fichiers récents : copies locales (IndexedDB) des 10 derniers fichiers ouverts ou enregistrés, propres à ce navigateur */
   const when = (at) =>
     new Date(at).toLocaleString(getLang() === 'fr' ? 'fr-FR' : 'en-GB', {
@@ -106,6 +106,8 @@ export function declareMenus({ ctx, history, historyUi, preview, spacing, hand, 
         label: 'Fichier',
         /* liste recalculée à chaque ouverture du menu (fichiers récents) */
         items: () => [
+          { label: 'Accueil : tous les projets', icon: 'layout-grid', run: () => home && home.show() },
+          '-',
           { label: 'Nouvelle factsheet vierge', icon: 'file-plus', hint: TAB_KEYS.add, run: project.newBlank },
           /* dataviz seule (src/vizsolo.js) : l'éditeur de dataviz et son export, sans factsheet à remplir */
           { label: 'Nouvelle dataviz…', icon: 'chart-bar', run: () => !ws.busy() && openSoloViz(ctx, { fresh: true }) },

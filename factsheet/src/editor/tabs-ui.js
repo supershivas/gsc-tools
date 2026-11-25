@@ -5,7 +5,7 @@ import { TAB_KEYS } from './keys.js';
 /* Barre d'onglets sous l'en-tête (hauteur fixe, `#fsTabs` dans index.html) : un onglet par document ouvert (nom, point
    « modifié depuis le dernier export », fermer), « + » pour une factsheet vierge, et l'état du brouillon à droite.
    Clic du milieu sur un onglet : le fermer. Masquée à l'impression (css/app.css). */
-export function createTabsUi(ws, host) {
+export function createTabsUi(ws, host, { onHome } = {}) {
   const strip = h('div', { class: 'fs-tabs', role: 'tablist', 'aria-label': t('Documents ouverts') });
   const add = h(
     'button',
@@ -21,7 +21,18 @@ export function createTabsUi(ws, host) {
   const statusIco = h('i', { class: 'ti' }),
     statusTxt = h('span'),
     status = h('div', { class: 'fs-ws-status', role: 'status' }, statusIco, statusTxt);
-  host.replaceChildren(strip, add, status);
+  const homeBtn = h(
+    'button',
+    {
+      type: 'button',
+      class: 'fs-tab-home',
+      title: t('Accueil : tous les projets'),
+      'aria-label': t('Accueil : tous les projets'),
+      onclick: () => onHome && onHome(),
+    },
+    ico('layout-grid'),
+  );
+  host.replaceChildren(homeBtn, strip, add, status);
 
   function render() {
     const act = ws.active();

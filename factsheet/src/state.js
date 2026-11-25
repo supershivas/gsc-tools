@@ -89,8 +89,17 @@ export const newSection = (page = 'recto') => ({
 });
 
 /** Factsheet vierge : header et logos d'origine, une seule section vide au recto */
+/** Nom d'un nouveau projet : AAMMJJ_factsheet (date du jour, heure locale) */
+export function newDocName(d = new Date()) {
+  const p = (n) => String(n).padStart(2, '0');
+  return String(d.getFullYear()).slice(2) + p(d.getMonth() + 1) + p(d.getDate()) + '_factsheet';
+}
+/** Factsheet d'exemple d'un nouveau projet (premier lancement) : nommée à la date du jour */
+export const newDefaultDoc = () => ({ ...defaultDoc(), name: newDocName() });
+
 export function blankDoc() {
   const d = defaultDoc();
+  d.name = newDocName();
   d.sections = [newSection('recto')];
   return d;
 }

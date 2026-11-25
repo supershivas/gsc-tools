@@ -24,6 +24,7 @@ import { initLang, declareMenus } from './editor/menus.js';
 import { loadWorkspace, createWorkspace } from './editor/workspace.js';
 import { createTabsUi } from './editor/tabs-ui.js';
 import { createClip } from './editor/clip.js';
+import { createHome, homeAtLaunch } from './editor/home.js';
 
 /* Éditeur du Factsheet creator : `ctx` (ce que les panneaux et les modules d'`editor/` se partagent) et assemblage.
    Chaque module d'`editor/` reçoit `ctx` ; ceux qui y ajoutent des méthodes le disent en tête de fichier
@@ -241,15 +242,18 @@ window.FS_READY = (async () => {
     historyUi.syncCenter();
     ws.historyChanged();
   };
-  tabsUi = createTabsUi(ws, document.getElementById('fsTabs'));
+  const home = createHome({ ctx, ws, project });
+  ctx.home = home;
+  tabsUi = createTabsUi(ws, document.getElementById('fsTabs'), { onHome: home.show });
   ws.loadRecents();
   ctx.clip = createClip(ctx, ws); // copier-coller de structure (sections, sous-sections, colonnes) entre onglets
   initShortcuts(ctx, history, exporter, ws, spacing);
   const langSel = initLang(ctx);
-  declareMenus({ ctx, history, historyUi, preview, spacing, hand, project, exporter, langSel, ws });
+  declareMenus({ ctx, history, historyUi, preview, spacing, hand, project, exporter, langSel, ws, home });
 
   /* Changement d'onglet : tout ce qui montre le document est redessiné d'après l'onglet actif */
   function showTab() {
+    home.close(); // un autre onglet (nouveau, ouvert, récent) : l'accueil laisse place à l'éditeur
     ctx.hover.hide();
     document.querySelectorAll('.fs-toast').forEach((n) => n.remove());
     fixSelection();
@@ -279,4 +283,5 @@ window.FS_READY = (async () => {
   history.record(false);
   historyUi.syncCenter(); // état de départ de l'historique
   tabsUi.render();
+  if (homeAtLaunch()) home.show(); // écran d'accueil : on choisit le projet à ouvrir
 })();

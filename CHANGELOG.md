@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.141.0 — 2026-11-25
+- Factsheet creator : écran d'accueil au lancement, avec les projets gardés dans le navigateur en grille (aperçu, nom) ; un clic pour ouvrir
+- Tout nouveau projet est nommé AAMMJJ_factsheet (date du jour)
+
 ## 1.140.0 — 2026-11-25
 - Factsheet creator : « Nouvelle dataviz » dans le menu Fichier, pour créer et exporter une dataviz seule, avec tous les types et réglages
 - Export des dataviz à la largeur exacte voulue (px, pt, mm ou cm, au millième) et à la résolution de son choix

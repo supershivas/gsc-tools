@@ -72,7 +72,7 @@ dialog#exportDlg::backdrop{background:#0006}
 #exportDlg .row{justify-content:flex-end}
 @media print{
   html,body{height:auto;background:#fff}
-  body>.app,body>dialog,body>header,body>.fs-tabs-bar,body>.desktop-banner,body>.toast,body>.v3d{display:none!important}
+  body>.app,body>dialog,body>header,body>.fs-tabs-bar,body>.desktop-banner,body>.toast,body>.v3d,body>.fs-home{display:none!important}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 
@@ -717,8 +717,8 @@ textarea.dg-ml{display:block;width:100%;min-width:90px;border:0;border-radius:0;
 .fs-tab-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fs-tab.on .fs-tab-name{font-weight:600}
 .fs-tab-dot{flex:none;width:8px;height:8px;border-radius:var(--radius-pill);background:currentColor}
-.fs-tab-x,.fs-tab-add{display:grid;place-items:center;flex:none;width:var(--tabs-h);height:var(--tabs-h);border:0;background:none;color:var(--ui-mute);font-size:var(--fs-lg);cursor:pointer}
-@media (hover:hover){.fs-tab-btn:hover,.fs-tab-x:hover,.fs-tab-add:hover{color:var(--ui-ink)}.fs-tab-x:hover,.fs-tab-add:hover{background:var(--sel-faint)}}
+.fs-tab-x,.fs-tab-add,.fs-tab-home{display:grid;place-items:center;flex:none;width:var(--tabs-h);height:var(--tabs-h);border:0;background:none;color:var(--ui-mute);font-size:var(--fs-lg);cursor:pointer}
+@media (hover:hover){.fs-tab-btn:hover,.fs-tab-x:hover,.fs-tab-add:hover,.fs-tab-home:hover{color:var(--ui-ink)}.fs-tab-x:hover,.fs-tab-add:hover,.fs-tab-home:hover{background:var(--sel-faint)}}
 .fs-tab-btn:focus-visible,.fs-tab-x:focus-visible,.fs-tab-add:focus-visible{outline:2px solid var(--ui-ink);outline-offset:-2px}
 .fs-ws-status{display:flex;align-items:center;gap:6px;margin-left:auto;padding:0 16px;min-width:0;color:var(--ui-mute);font-size:var(--fs-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fs-ws-status .ti{font-size:var(--fs-lg)}
@@ -772,3 +772,26 @@ dialog.tsd::backdrop{background:transparent}
 .dg-rbar{position:fixed;z-index:30;display:flex;flex-wrap:wrap;gap:2px;max-width:340px;padding:3px;border:1px solid var(--ui-line);border-radius:var(--radius-md);background:var(--ui-panel);box-shadow:var(--shadow-bar)}
 .dg-rbar[hidden]{display:none}
 .dg-rsw{display:inline-block;width:14px;height:14px;border-radius:var(--radius-xs);border:1px solid var(--ui-line)}
+
+/* Écran d'accueil (src/editor/home.js) : projets de ce navigateur en grille, sous l'en-tête */
+.fs-home{position:fixed;top:var(--header-h);left:0;right:0;bottom:0;z-index:40;overflow:auto;background:var(--ui-bg);color:var(--ui-ink);font:var(--fs-md)/1.4 "Source Sans 3",system-ui,sans-serif}
+.fs-home:focus{outline:0}
+.fh-in{max-width:1180px;margin:0 auto;padding:28px 32px 40px}
+.fh-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.fh-head h1{margin:0;font-size:var(--fs-xl);font-weight:600}
+.fh-acts{display:flex;align-items:center;gap:8px}.fh-acts button{display:inline-flex;align-items:center;gap:6px}
+.fh-close{min-width:44px;justify-content:center}
+.fs-home h2{margin:28px 0 12px;font-size:var(--fs-sm);font-weight:600;color:var(--ui-mute);text-transform:uppercase;letter-spacing:.04em}
+.fh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(222px,1fr));gap:16px}
+.fh-card{display:flex;flex-direction:column;align-items:stretch;gap:0;padding:10px;border:1px solid var(--ui-line);border-radius:var(--radius-lg);background:var(--ui-panel);color:inherit;font:inherit;text-align:left;cursor:pointer;min-height:0;height:auto}
+@media (hover:hover){.fh-card:hover{border-color:var(--ui-ink)}}
+.fh-card:focus-visible{outline:2px solid var(--ui-ink);outline-offset:2px}
+.fh-thumb{position:relative;width:200px;max-width:100%;margin:0 auto;overflow:hidden;background:var(--ui-bg);border:1px solid var(--ui-line);border-radius:var(--radius-xs);pointer-events:none}
+.fh-thumb.fh-icon{display:grid;place-items:center;height:283px;font-size:var(--fs-xl);color:var(--ui-mute)}
+.fh-scale{transform-origin:0 0;width:max-content}
+.fh-meta{display:flex;flex-direction:column;gap:2px;padding:10px 2px 2px;min-width:0}
+.fh-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fh-sub{font-size:var(--fs-sm);color:var(--ui-mute)}
+.fh-badge{align-self:flex-start;margin-top:4px;font-size:var(--fs-xs);color:var(--ui-mute);border:1px solid var(--ui-line);border-radius:var(--radius-pill);padding:1px 8px}
+.fh-note{margin:28px 0 8px;font-size:var(--fs-sm);color:var(--ui-mute)}
+.fh-pref{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-sm);min-height:44px;cursor:pointer}

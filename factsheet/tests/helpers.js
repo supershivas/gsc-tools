@@ -46,6 +46,7 @@ async function seed(page, build, { lang = 'en' } = {}) {
       localStorage.clear();
       if (doc) localStorage.setItem(key, JSON.stringify(doc));
       localStorage.setItem(langKey, lang);
+      localStorage.setItem('factsheet-creator-home', '0'); // pas d'écran d'accueil : les tests partent de l'éditeur (tests/home.spec.js le rouvre)
     },
     [DOC_KEY, LANG_KEY, build, lang],
   );

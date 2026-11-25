@@ -255,6 +255,7 @@ test('icône SVG importée : aucun code exécuté', async ({ page }) => {
   await page.evaluate(
     ([key, langKey]) => {
       localStorage.clear();
+      localStorage.setItem('factsheet-creator-home', '0');
       localStorage.setItem(key, JSON.stringify(window.FSTEST.evilIcon()));
       localStorage.setItem(langKey, 'en');
     },

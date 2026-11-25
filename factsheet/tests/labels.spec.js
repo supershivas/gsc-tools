@@ -162,6 +162,7 @@ test('comparaison : deux camemberts, titres, 2e valeurs, même départ ; PDF lis
       sec.subs = [sub];
       d.sections = [sec];
       localStorage.clear();
+      localStorage.setItem('factsheet-creator-home', '0');
       localStorage.setItem(key, JSON.stringify(d));
     },
     [DOC_KEY, pieSegs()],
@@ -318,6 +319,7 @@ test('anneau, données : titre mis en forme dans la cellule (gras, couleur) par 
               sec.subs = [sub];
               d.sections = [sec];
               localStorage.clear();
+              localStorage.setItem('factsheet-creator-home', '0');
               localStorage.setItem(key, JSON.stringify(d));
               res();
             };
@@ -449,6 +451,7 @@ test('anneau : glisser le trait orange de droite dans l’aperçu règle la marg
               sec.subs = [sub];
               d.sections = [sec];
               localStorage.clear();
+              localStorage.setItem('factsheet-creator-home', '0');
               localStorage.setItem(key, JSON.stringify(d));
               res();
             };
