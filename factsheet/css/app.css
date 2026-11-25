@@ -111,6 +111,12 @@ dialog.vexp::backdrop{background:#0006}
 .vexp label.opt small{display:block;color:var(--ui-mute);margin-left:22px}
 .vexp .tip{font-size:var(--fs-sm);color:var(--ui-mute);margin:10px 0 14px}
 .vexp .row{display:flex;justify-content:flex-end;gap:8px}
+.vexp-size{display:flex;gap:8px;align-items:center}.vexp-size input{flex:1;min-width:0;font-variant-numeric:tabular-nums}.vexp-size select{width:auto}
+.vexp-presets{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+.vexp-chip{font-size:var(--fs-sm);padding:4px 10px;border-radius:var(--radius-pill);min-height:0}
+.vexp-dpis{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}.vexp-dpis label.opt{display:flex;align-items:center;gap:4px}
+.vexp-dpi{width:72px}
+.ve-wnum{width:92px;margin-left:6px;font-variant-numeric:tabular-nums}
 .vexp .row button{display:inline-flex;align-items:center;gap:6px}
 .ve-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px}
 .ve-form{border-left:1px solid var(--ui-line);background:var(--ui-bg);padding:16px 14px 40px;overflow:auto}

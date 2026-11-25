@@ -22,6 +22,9 @@ import { t } from './i18n.js';
 import { openVizExport } from './vizexport.js';
 import { CARDS, groupOf, fieldsOf, subsections, SUBS } from './vizgroups.js';
 
+const W_MIN = 40,
+  W_MAX = 4000; // largeur libre de l'aperçu, en px CSS
+const fmtPx = (v) => String(Math.round(v * 1000) / 1000);
 const tr = t; // `t` est masqué par des variables locales (type de dataviz) dans `draw`
 
 let current = null;
@@ -123,12 +126,16 @@ const delPath = (o, p) => {
   if (q) delete q[p[p.length - 1]];
 };
 
-export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) {
+/** `solo` : dataviz seule, hors de toute colonne (src/vizsolo.js) — `{ save(viz, width) }` est appelé à chaque modification ;
+    pas d'« Annuler » (tout est gardé), largeur libre, l'export devient le bouton principal. */
+export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, solo }) {
   if (current) return;
   const doc = ctx.getDoc();
   const snapshot = JSON.stringify(col.viz);
   const gutter = densityGaps(doc.density).columns;
   const baseW = colW || subColWidth(sub, ci, gutter);
+  /* une modification de la dataviz : historique du document (colonne) ou enregistrement de la dataviz seule */
+  const touch = () => (solo ? solo.save(col.viz, width) : ctx.changed());
   const ui = { sel: -1, drag: null };
   let width = baseW,
     zoom = 'fit',
@@ -302,14 +309,14 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     ui.sel = -1;
     buildForm();
     draw();
-    ctx.changed();
+    touch();
     syncHist();
   };
   const changed = () => {
     resetUps.forEach((f) => f());
     draw();
     rec(true);
-    ctx.changed();
+    touch();
     syncHist();
   };
 
@@ -321,7 +328,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
       buildForm();
       draw();
       rec(false);
-      ctx.changed();
+      touch();
       syncHist();
     },
   };
@@ -740,8 +747,8 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
       doc,
       width,
       bgCss: bg && bg !== 'none' ? `var(--c-${bg})` : '#fff',
-      render: (v) =>
-        renderVizFull(v, width, {
+      render: (v, w = width) =>
+        renderVizFull(v, w, {
           locale: doc.locale || 'en-GB',
           pal: paletteOf(doc.theme, doc.colors),
           fillH: availH,
@@ -925,25 +932,46 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
   stage.addEventListener('pointercancel', up);
 
   /* ----- barre ----- */
+  /* Largeur de l'aperçu (et, par défaut, de l'export) : gabarits du document ou largeur libre au millième de px */
   const wOpts = [
-    [baseW, `Colonne actuelle (${Math.round(baseW)} px)`],
+    ...(solo ? [] : [[baseW, `${tr('Colonne actuelle')} (${fmtPx(baseW)} px)`]]),
     ...[
       ['1-1-1', '1/3'],
       ['1-1', '1/2'],
       ['2-1', '2/3'],
       ['1', 'Pleine largeur'],
-    ].map(([k, l]) => [colWidth(k, 0, gutter), `${l} (${Math.round(colWidth(k, 0, gutter))} px)`]),
+    ].map(([k, l]) => [colWidth(k, 0, gutter), `${tr(l)} (${fmtPx(colWidth(k, 0, gutter))} px)`]),
   ];
+  const setWidth = (w) => {
+    width = Math.min(W_MAX, Math.max(W_MIN, Math.round(w * 1000) / 1000));
+    syncWidth();
+    draw();
+    if (solo) solo.save(col.viz, width);
+  };
   const wSel = h(
     'select',
-    {
-      onchange: (e) => {
-        width = parseFloat(e.target.value);
-        draw();
-      },
-    },
-    wOpts.map(([v, l]) => h('option', { value: v, textContent: l })),
+    { 'aria-label': tr('Gabarit de largeur'), onchange: (e) => e.target.value && setWidth(parseFloat(e.target.value)) },
+    [...wOpts.map(([v, l]) => h('option', { value: v, textContent: l })), h('option', { value: '', textContent: tr('Personnalisé') })],
   );
+  const wNum = h('input', {
+    type: 'number',
+    class: 've-wnum',
+    min: W_MIN,
+    max: W_MAX,
+    step: 'any',
+    'aria-label': tr('Largeur en px'),
+    onchange: (e) => {
+      const v = parseFloat(String(e.target.value).replace(',', '.'));
+      if (v > 0) setWidth(v);
+      else syncWidth();
+    },
+  });
+  function syncWidth() {
+    const hit = wOpts.find(([v]) => Math.abs(v - width) < 0.0005);
+    wSel.value = hit ? String(hit[0]) : '';
+    wNum.value = String(width);
+  }
+  syncWidth();
   const zSel = h(
     'select',
     {
@@ -966,6 +994,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     if (!keep) {
       col.viz = JSON.parse(snapshot);
     }
+    if (solo) solo.save(col.viz, width);
     window.removeEventListener('keydown', onKey, true);
     muted.forEach((n) => {
       n.inert = false;
@@ -1015,6 +1044,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
       leaving = true;
       try {
         if (
+          solo || // dataviz seule : tout est déjà enregistré
           JSON.stringify(col.viz) === snapshot ||
           (await confirmBox(t('Abandonner les modifications de la dataviz ?'), { ok: t('Abandonner'), danger: true }))
         )
@@ -1065,19 +1095,28 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     h(
       'div',
       { class: 've-bar' },
-      h('div', { class: 've-bl' }, h('strong', { textContent: 'Éditeur de dataviz' }), undoBtn, redoBtn),
+      h('div', { class: 've-bl' }, h('strong', { textContent: solo ? 'Dataviz' : 'Éditeur de dataviz' }), undoBtn, redoBtn),
       tabs,
       h(
         'div',
         { class: 've-br' },
         h(
           'button',
-          { type: 'button', class: 've-exp', title: t('Exporter la dataviz (PNG, JPG, SVG)'), onclick: exportViz },
+          {
+            type: 'button',
+            class: 've-exp' + (solo ? ' primary' : ''),
+            title: t('Exporter la dataviz (PNG, JPG, SVG)'),
+            onclick: exportViz,
+          },
           ico('download'),
           h('span', { textContent: t('Exporter') }),
         ),
-        h('button', { type: 'button', textContent: 'Annuler', onclick: () => close(false) }),
-        h('button', { type: 'button', class: 'primary', textContent: 'Terminer', onclick: () => close(true) }),
+        ...(solo
+          ? [h('button', { type: 'button', class: 've-close', textContent: 'Fermer', onclick: () => close(true) })]
+          : [
+              h('button', { type: 'button', textContent: 'Annuler', onclick: () => close(false) }),
+              h('button', { type: 'button', class: 'primary', textContent: 'Terminer', onclick: () => close(true) }),
+            ]),
       ),
     ),
     body,
@@ -1086,7 +1125,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem }) 
     h(
       'div',
       { class: 've-viewbar' },
-      h('label', { class: 'zoom' }, 'Aperçu à la largeur ', wSel),
+      h('label', { class: 'zoom' }, solo ? 'Largeur ' : 'Aperçu à la largeur ', wSel, wNum, h('span', { textContent: 'px' })),
       h('label', { class: 'zoom' }, 'Zoom ', zSel),
       hint,
     ),

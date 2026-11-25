@@ -7,6 +7,7 @@ import { initI18n, getLang, LANGS } from '../i18n.js';
 import { openTextStyles } from './textstyles-ui.js';
 import { fitText, pctLabel } from './fit.js';
 import { MAC, MOD, TAB_KEYS } from './keys.js';
+import { openSoloViz, readSolo } from '../vizsolo.js';
 
 /* Langue de l'interface (anglais par défaut) : sélecteur des réglages, renvoyé pour `declareMenus` */
 export function initLang(ctx) {
@@ -106,6 +107,14 @@ export function declareMenus({ ctx, history, historyUi, preview, spacing, hand, 
         /* liste recalculée à chaque ouverture du menu (fichiers récents) */
         items: () => [
           { label: 'Nouvelle factsheet vierge', icon: 'file-plus', hint: TAB_KEYS.add, run: project.newBlank },
+          /* dataviz seule (src/vizsolo.js) : l'éditeur de dataviz et son export, sans factsheet à remplir */
+          { label: 'Nouvelle dataviz…', icon: 'chart-bar', run: () => !ws.busy() && openSoloViz(ctx, { fresh: true }) },
+          {
+            label: 'Reprendre la dernière dataviz',
+            icon: 'chart-arrows',
+            run: () => !ws.busy() && openSoloViz(ctx),
+            disabled: () => !readSolo(),
+          },
           { label: 'Ouvrir…', icon: 'folder-open', run: project.open },
           { heading: 'Ouvrir récent (copie locale)' },
           ...recentItems(),

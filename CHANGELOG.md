@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.140.0 — 2026-11-25
+- Factsheet creator : « Nouvelle dataviz » dans le menu Fichier, pour créer et exporter une dataviz seule, avec tous les types et réglages
+- Export des dataviz à la largeur exacte voulue (px, pt, mm ou cm, au millième) et à la résolution de son choix
+
 ## 1.139.4 — 2026-11-21
 - Export PDF : les logos SVG restent vectoriels (nets à tout agrandissement) ; une image SVG complexe est rendue en très haute définition
 

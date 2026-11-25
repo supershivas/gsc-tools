@@ -211,6 +211,25 @@ const EN = {
   'Afficher le titre': 'Show title',
   'affichage du titre': 'title visibility',
   'Nouvelle factsheet vierge': 'New blank factsheet',
+  à: 'at',
+  pixels: 'pixels',
+  'Évite de rogner les traits de bord. Décochée : l’image a exactement la largeur choisie.':
+    'Keeps edge strokes from being clipped. Unchecked: the image has exactly the chosen width.',
+  'Marge de 4 px autour du dessin': '4 px margin around the drawing',
+  Autre: 'Other',
+  'Bureautique · 150 dpi': 'Office · 150 dpi',
+  'Écran · 96 dpi (1 px = 1 pixel)': 'Screen · 96 dpi (1 px = 1 pixel)',
+  'Résolution en dpi': 'Resolution in dpi',
+  Unité: 'Unit',
+  'Largeur de la dataviz': 'Dataviz width',
+  Largeur: 'Width',
+  'Largeur en px': 'Width in px',
+  'Gabarit de largeur': 'Width preset',
+  'Colonne actuelle': 'Current column',
+  'Nouvelle dataviz': 'New dataviz',
+  'Remplacer la dernière dataviz seule par une nouvelle ?': 'Replace the last standalone dataviz with a new one?',
+  'Reprendre la dernière dataviz': 'Reopen the last dataviz',
+  'Nouvelle dataviz…': 'New dataviz…',
   /* espace de travail : onglets, brouillons, fichiers récents (editor/workspace.js, editor/tabs-ui.js) */
   'Sans titre': 'Untitled',
   'Documents ouverts': 'Open documents',
@@ -1387,7 +1406,6 @@ const EN = {
   'SVG vectoriel': 'Vector SVG',
   'Graphique modifiable dans Illustrator ou Figma, titre et source en texte. Le chiffre à côté n’est pas inclus.':
     'Chart editable in Illustrator or Figma, with title and source as text. The side figure is not included.',
-  'Écran / bureautique · 150 dpi': 'Screen / office · 150 dpi',
   'Impression · 300 dpi': 'Print · 300 dpi',
   'Inclure le titre et la source': 'Include the title and source',
   'Dessin vectoriel : sans perte à toutes les tailles. Les polices ne sont pas incorporées (Source Sans 3 et Source Serif 4 doivent être installées).':

@@ -230,6 +230,24 @@ function dropCardBullets(card) {
   delete card.bullets;
   if (c) delete c.bullets;
 }
+/** Dataviz lue dans un fichier (colonne ou dataviz seule) : absente ou sans réglages → dataviz neuve ; clés anciennes complétées */
+export function migrateViz(v) {
+  if (!v || typeof v !== 'object') return newViz('bars');
+  if (!v.opts) return newViz(v.kind);
+  /* clés de « Axes et grille » absentes (fichier d'avant la carte) : écrites avec l'aspect d'alors, le panneau montre ce qui est dessiné */
+  withAxesOrigin(v, true);
+  /* réglages des types quittés (`switchKind`) : on ne garde que les types connus, avec des réglages en objet */
+  if (v.stash) {
+    const st = {};
+    if (typeof v.stash === 'object' && !Array.isArray(v.stash))
+      for (const [kind, op] of Object.entries(v.stash))
+        if (kind !== v.kind && VIZ_TYPES[kind] && op && typeof op === 'object' && !Array.isArray(op)) st[kind] = op;
+    if (Object.keys(st).length) v.stash = st;
+    else delete v.stash;
+  }
+  return v;
+}
+
 export function migrate(j) {
   const d = Object.assign(defaultDoc(), j);
   /* icônes importées : anciennes icônes propres à une dataviz → bibliothèque du document */
@@ -285,21 +303,7 @@ export function migrate(j) {
         if (k.card && k.card.src && !safeImgSrc(k.card.src)) k.card.src = null;
         if (k.src) k.src = upgradeAsset(k.src);
         if (k.card && k.card.src) k.card.src = upgradeAsset(k.card.src);
-        if (k.type === 'viz') {
-          if (!k.viz) k.viz = newViz('bars');
-          else if (!k.viz.opts) k.viz = newViz(k.viz.kind);
-          /* clés de « Axes et grille » absentes (fichier d'avant la carte) : écrites avec l'aspect d'alors, le panneau montre ce qui est dessiné */
-          withAxesOrigin(k.viz, true);
-          /* réglages des types quittés (`switchKind`) : on ne garde que les types connus, avec des réglages en objet */
-          if (k.viz.stash) {
-            const st = {};
-            if (typeof k.viz.stash === 'object' && !Array.isArray(k.viz.stash))
-              for (const [kind, op] of Object.entries(k.viz.stash))
-                if (kind !== k.viz.kind && VIZ_TYPES[kind] && op && typeof op === 'object' && !Array.isArray(op)) st[kind] = op;
-            if (Object.keys(st).length) k.viz.stash = st;
-            else delete k.viz.stash;
-          }
-        }
+        if (k.type === 'viz') k.viz = migrateViz(k.viz);
         return k;
       });
     });

@@ -3,7 +3,7 @@
    (1 px CSS = 1/96 pouce, donc 300 dpi = ×3,125) ; la densité est écrite dans le fichier (pHYs / JFIF) pour que l'image se place à la bonne taille.
    Le SVG est vectoriel : graphique, titre et source en vrais textes, styles résolus (couleurs, polices) ; sans le chiffre à côté (du HTML). */
 import { h, ico } from './render.js';
-import { cssVars, textSetFor } from './tokens.js';
+import { cssVars, textSetFor, colWidth, densityGaps } from './tokens.js';
 import { rasterizeNode, XML_BAD } from './raster.js';
 import { alertBox } from './dialogs.js';
 import { t } from './i18n.js';
@@ -24,7 +24,15 @@ const FORMATS = {
     ext: 'svg',
   },
 };
-const DPIS = { 150: 'Écran / bureautique · 150 dpi', 300: 'Impression · 300 dpi' };
+const DPIS = { 96: 'Écran · 96 dpi (1 px = 1 pixel)', 150: 'Bureautique · 150 dpi', 300: 'Impression · 300 dpi' };
+const DPI_MIN = 36,
+  DPI_MAX = 1200;
+/* Largeur du dessin : unités proposées, en px CSS (1 px = 1/96 pouce, l'unité des largeurs de l'app) */
+export const UNITS = { px: 1, pt: 96 / 72, mm: 96 / 25.4, cm: 96 / 2.54 };
+const W_MIN = 40,
+  W_MAX = 4000; // px CSS
+const round = (v, n = 3) => Math.round(v * 10 ** n) / 10 ** n;
+const fmt = (v, n = 3) => String(round(v, n)).replace('.', ',');
 const pref = () => {
   let p = {};
   try {
@@ -32,7 +40,14 @@ const pref = () => {
   } catch (e) {
     /* préférences non lues */
   }
-  return { format: FORMATS[p.format] ? p.format : 'png-t', dpi: DPIS[p.dpi] ? +p.dpi : 300, head: p.head !== false };
+  const dpi = Math.round(+p.dpi);
+  return {
+    format: FORMATS[p.format] ? p.format : 'png-t',
+    dpi: dpi >= DPI_MIN && dpi <= DPI_MAX ? dpi : 300,
+    head: p.head !== false,
+    unit: UNITS[p.unit] ? p.unit : 'px',
+    margin: p.margin !== false,
+  };
 };
 const savePref = (p) => {
   try {
@@ -209,7 +224,7 @@ function htmlTextToSvg(root, origin) {
   return out;
 }
 /** SVG autonome d'une dataviz rendue : le graphique seul, ou — quand le rendu a un titre ou une source (`.viz-wrap`) — le tout dans un seul SVG (graphique imbriqué + textes). Le nœud doit être dans le document (styles calculés). */
-function vizToSvg(node) {
+function vizToSvg(node, unit = 'px') {
   let body;
   if (node.localName === 'svg') body = svgClone(node);
   else {
@@ -227,57 +242,210 @@ function vizToSvg(node) {
       if (el) body.append(...htmlTextToSvg(el, o));
     }
   }
+  /* taille du fichier dans l'unité choisie (Illustrator, Figma, InDesign la lisent) ; le dessin reste en px dans le viewBox */
+  const W = parseFloat(body.getAttribute('width')) || node.getBoundingClientRect().width,
+    H = parseFloat(body.getAttribute('height')) || node.getBoundingClientRect().height;
+  if (!body.getAttribute('viewBox')) body.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  body.setAttribute('width', unit === 'px' ? round(W) : round(W / UNITS[unit], 4) + unit);
+  body.setAttribute('height', unit === 'px' ? round(H) : round(H / UNITS[unit], 4) + unit);
   return '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(body).replace(XML_BAD, ' ');
 }
 
-/** Ouvre la boîte d'export. `render(viz)` → { node } : rendu de l'éditeur (sans `ui`) à la largeur choisie ; `bg` : fond de la colonne (`var(--c-…)` ou blanc). */
+/** Ouvre la boîte d'export. `render(viz, w)` → { node } : rendu de l'éditeur (sans `ui`) à la largeur `w` (px CSS, défaut : celle de l'aperçu) ;
+    `bgCss` : fond de la colonne (`var(--c-…)` ou blanc). La largeur se choisit au millième, en px, pt, mm ou cm : la dataviz est
+    recomposée à cette largeur (les textes gardent leur corps), le SVG porte cette taille exacte. */
 export function openVizExport({ root, viz, doc, width, bgCss, render, fileStem }) {
   const p = pref(),
     hasHead = !!((viz.head && viz.head.title) || (viz.head && viz.head.source)),
     vars = cssVars(doc.theme, doc.colors, doc.density, textSetFor(doc.textSet, 'viz'));
+  let W = round(width); // largeur du dessin, px CSS
+  let H = null; // hauteur mesurée à cette largeur
   const dlg = h('dialog', { class: 'vexp', 'aria-label': t('Exporter la dataviz') });
   const go = h('button', { type: 'button', class: 'primary' });
   const info = h('p', { class: 'tip', role: 'status' });
-  const sizeNote = () => {
-    const f = FORMATS[p.format];
-    if (f.ext === 'svg')
-      return t(
-        'Dessin vectoriel : sans perte à toutes les tailles. Les polices ne sont pas incorporées (Source Sans 3 et Source Serif 4 doivent être installées).',
-      );
-    const full = width + 2 * MARGIN,
-      w = Math.round((full * p.dpi) / 96);
-    return `${w} px de large · ${((full / 96) * 2.54).toFixed(1).replace('.', ',')} cm à ${p.dpi} dpi`;
+  const vOf = (o = p) => {
+    const v = { ...viz };
+    if (!o.head) v.head = { ...(viz.head || {}), title: '', source: '' };
+    if (FORMATS[o.format].ext === 'svg' && viz.side) v.side = { ...viz.side, pos: 'none' };
+    return v;
   };
+  /** rendu hors écran à la largeur W, dans une feuille aux variables du document ; `fn(node)` est appelé tant qu'il est en place */
+  const offstage = (v, fn) => {
+    const r = render(v, W);
+    if (!r || !r.node) throw new Error('rendu impossible');
+    const stage = h(
+      'div',
+      { class: 'page', style: { position: 'absolute', left: '-20000px', top: '0', width: W + 'px', height: 'auto' } },
+      h('div', { class: 'col col-viz', style: { width: W + 'px' } }, r.node),
+    );
+    Object.entries(vars).forEach(([k, x]) => stage.style.setProperty(k, x));
+    document.body.append(stage);
+    try {
+      return fn(r.node);
+    } finally {
+      stage.remove();
+    }
+  };
+  const measure = () => {
+    try {
+      H = offstage(vOf(), (n) => n.getBoundingClientRect().height);
+    } catch (e) {
+      H = null;
+    }
+  };
+  const sizeNote = () => {
+    const f = FORMATS[p.format],
+      k = UNITS[p.unit],
+      dims = (a, b, u, n) => (b ? `${fmt(a, n)} × ${fmt(b, n)} ${u}` : `${fmt(a, n)} ${u}`);
+    if (f.ext === 'svg')
+      return (
+        dims(W / k, H && H / k, p.unit) +
+        ' · ' +
+        t(
+          'Dessin vectoriel : sans perte à toutes les tailles. Les polices ne sont pas incorporées (Source Sans 3 et Source Serif 4 doivent être installées).',
+        )
+      );
+    const m = p.margin ? 2 * MARGIN : 0,
+      s = p.dpi / 96;
+    return `${dims(Math.round((W + m) * s), H && Math.round((H + m) * s), t('pixels'), 0)} · ${dims(((W + m) / 96) * 2.54, H && ((H + m) / 96) * 2.54, 'cm', 2)} ${t('à')} ${p.dpi} dpi`;
+  };
+  const showInfo = () => (info.textContent = sizeNote());
+  /* largeur : champ au millième + unité ; changer d'unité convertit la valeur (même largeur réelle) */
+  const wIn = h('input', {
+    type: 'number',
+    class: 'vexp-w',
+    step: 'any',
+    min: 0,
+    'aria-label': t('Largeur de la dataviz'),
+    oninput: (e) => {
+      const v = parseFloat(String(e.target.value).replace(',', '.'));
+      if (!(v > 0)) return;
+      const px = v * UNITS[p.unit];
+      if (px < W_MIN || px > W_MAX) return;
+      W = round(px, 4);
+      measure();
+      showInfo();
+    },
+    onchange: () => syncW(),
+  });
+  const syncW = () => (wIn.value = String(round(W / UNITS[p.unit], p.unit === 'px' ? 3 : 4)));
+  const uSel = h(
+    'select',
+    {
+      'aria-label': t('Unité'),
+      onchange: (e) => {
+        p.unit = e.target.value;
+        savePref(p);
+        syncW();
+        showInfo();
+      },
+    },
+    Object.keys(UNITS).map((u) => h('option', { value: u, textContent: u })),
+  );
+  const presets = [
+    [round(width), t('Aperçu')],
+    ...[
+      ['1-1-1', '1/3'],
+      ['1-1', '1/2'],
+      ['2-1', '2/3'],
+      ['1', 'Pleine largeur'],
+    ].map(([k, l]) => [round(colWidth(k, 0, densityGaps(doc.density).columns)), t(l)]),
+  ];
+  const dpiIn = h('input', {
+    type: 'number',
+    class: 'vexp-dpi',
+    min: DPI_MIN,
+    max: DPI_MAX,
+    step: 1,
+    value: p.dpi,
+    'aria-label': t('Résolution en dpi'),
+    oninput: (e) => {
+      const v = Math.round(+e.target.value);
+      if (v < DPI_MIN || v > DPI_MAX) return;
+      p.dpi = v;
+      savePref(p);
+      dlg.querySelectorAll('input[name=vexp-d]').forEach((r) => (r.checked = r.value === 'other'));
+      showInfo();
+    },
+  });
+  const opt = (name, checked, onchange, label, note) =>
+    h(
+      'label',
+      { class: 'opt' },
+      h('input', { type: 'radio', name, checked, onchange }),
+      ' ' + t(label),
+      note ? h('small', { textContent: t(note) }) : null,
+    );
   function build() {
     const f = FORMATS[p.format];
+    uSel.value = p.unit;
+    syncW();
     dlg.replaceChildren(
       ...[
         h('h3', { textContent: t('Exporter la dataviz') }),
         h('h4', { textContent: t('Format du fichier') }),
         ...Object.entries(FORMATS).map(([k, o]) =>
-          h(
-            'label',
-            { class: 'opt' },
-            h('input', { type: 'radio', name: 'vexp-f', checked: k === p.format, onchange: () => ((p.format = k), savePref(p), build()) }),
-            ' ' + t(o.label),
-            h('small', { textContent: t(o.note) }),
+          opt('vexp-f', k === p.format, () => ((p.format = k), savePref(p), measure(), build()), o.label, o.note),
+        ),
+        h('h4', { textContent: t('Largeur de la dataviz') }),
+        h('div', { class: 'vexp-size' }, wIn, uSel),
+        h(
+          'div',
+          { class: 'vexp-presets' },
+          ...presets.map(([v, l]) =>
+            h('button', {
+              type: 'button',
+              class: 'vexp-chip',
+              textContent: `${l} · ${fmt(v)} px`,
+              onclick: () => {
+                W = v;
+                syncW();
+                measure();
+                showInfo();
+              },
+            }),
           ),
         ),
         ...(f.ext !== 'svg'
           ? [
               h('h4', { textContent: t('Résolution') }),
-              ...Object.entries(DPIS).map(([k, l]) =>
-                h(
-                  'label',
-                  { class: 'opt' },
-                  h('input', {
-                    type: 'radio',
-                    name: 'vexp-d',
-                    checked: +k === p.dpi,
-                    onchange: () => ((p.dpi = +k), savePref(p), build()),
-                  }),
-                  ' ' + t(l),
-                ),
+              h(
+                'div',
+                { class: 'vexp-dpis' },
+                ...Object.entries(DPIS).map(([k, l]) => {
+                  const lab = opt('vexp-d', +k === p.dpi, () => ((p.dpi = +k), (dpiIn.value = k), savePref(p), showInfo()), l);
+                  lab.querySelector('input').value = k;
+                  return lab;
+                }),
+                (() => {
+                  const lab = h(
+                    'label',
+                    { class: 'opt' },
+                    h('input', {
+                      type: 'radio',
+                      name: 'vexp-d',
+                      value: 'other',
+                      checked: !DPIS[p.dpi],
+                      onchange: () => dpiIn.focus(),
+                    }),
+                    ' ' + t('Autre'),
+                    ' ',
+                    dpiIn,
+                    ' dpi',
+                  );
+                  return lab;
+                })(),
+              ),
+              h(
+                'label',
+                { class: 'opt' },
+                h('input', {
+                  type: 'checkbox',
+                  checked: p.margin,
+                  onchange: (e) => ((p.margin = e.target.checked), savePref(p), showInfo()),
+                }),
+                ' ' + t('Marge de 4 px autour du dessin'),
+                h('small', { textContent: t('Évite de rogner les traits de bord. Décochée : l’image a exactement la largeur choisie.') }),
               ),
             ]
           : []),
@@ -285,11 +453,15 @@ export function openVizExport({ root, viz, doc, width, bgCss, render, fileStem }
           ? h(
               'label',
               { class: 'opt' },
-              h('input', { type: 'checkbox', checked: p.head, onchange: (e) => ((p.head = e.target.checked), savePref(p)) }),
+              h('input', {
+                type: 'checkbox',
+                checked: p.head,
+                onchange: (e) => ((p.head = e.target.checked), savePref(p), measure(), showInfo()),
+              }),
               ' ' + t('Inclure le titre et la source'),
             )
           : null,
-        ((info.textContent = sizeNote()), info),
+        (showInfo(), info),
         h('div', { class: 'row' }, h('button', { type: 'button', textContent: t('Annuler'), onclick: () => dlg.close() }), go),
       ].filter(Boolean), // replaceChildren écrirait « null » pour une valeur vide
     );
@@ -301,11 +473,7 @@ export function openVizExport({ root, viz, doc, width, bgCss, render, fileStem }
     go.disabled = true;
     go.textContent = t('Génération…');
     try {
-      const v = { ...viz };
-      if (!p.head) v.head = { ...(viz.head || {}), title: '', source: '' };
-      if (f.ext === 'svg' && viz.side) v.side = { ...viz.side, pos: 'none' };
-      const r = render(v);
-      if (!r || !r.node) throw new Error('rendu impossible');
+      const v = vOf();
       const name = fileStem('_dataviz-' + viz.kind) + '.' + f.ext;
       // couleur réelle du fond de la colonne (la variable CSS n'existe pas hors de l'app)
       const probe = h('div', { style: { background: bgCss, display: 'none' } });
@@ -316,22 +484,12 @@ export function openVizExport({ root, viz, doc, width, bgCss, render, fileStem }
       probe.remove();
       const solid = p.format !== 'png-t' ? bg : null;
       if (f.ext === 'svg') {
-        const stage = h(
-          'div',
-          { class: 'page', style: { position: 'absolute', left: '-20000px', top: '0', width: width + 'px', height: 'auto' } },
-          r.node,
-        );
-        Object.entries(vars).forEach(([k, x]) => stage.style.setProperty(k, x));
-        document.body.append(stage);
-        let text;
-        try {
-          text = vizToSvg(r.node);
-        } finally {
-          stage.remove();
-        }
+        const text = offstage(v, (n) => vizToSvg(n, p.unit));
         download(new Blob([text], { type: 'image/svg+xml' }), name);
       } else {
-        const { canvas } = await rasterizeNode(r.node, { width, vars, scale: p.dpi / 96, fill: solid, margin: MARGIN });
+        const r = render(v, W);
+        if (!r || !r.node) throw new Error('rendu impossible');
+        const { canvas } = await rasterizeNode(r.node, { width: W, vars, scale: p.dpi / 96, fill: solid, margin: p.margin ? MARGIN : 0 });
         const jpg = f.ext === 'jpg';
         const blob = await toBlob(canvas, jpg ? 'image/jpeg' : 'image/png', 0.95);
         const bytes = new Uint8Array(await blob.arrayBuffer());
@@ -348,6 +506,7 @@ export function openVizExport({ root, viz, doc, width, bgCss, render, fileStem }
   };
   dlg.addEventListener('close', () => dlg.remove());
   root.append(dlg);
+  measure();
   build();
   dlg.showModal();
 }
