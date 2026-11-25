@@ -4,7 +4,7 @@
    - couleurs CMJN : valeurs exactes de la palette (cmyk.js), conversion simple pour le reste ; noir et gris = noir seul
    - couleurs RVB : celles de l'écran, sans conversion ni profil
    - texte : polices incorporées (fonts/pdf/*.ttf, instances statiques de Source Sans 3 / Source Serif 4), positions relevées dans le navigateur
-   - images : rastérisées à 300 ppi puis converties en CMJN ou gardées en RVB (le canal alpha devient un masque)
+   - images : rastérisées à 300 ppi (ou `opts.dpi` : 72 pour l'écran) puis converties en CMJN ou gardées en RVB (le canal alpha devient un masque)
    - fond perdu et traits de coupe : modes de export.js, avec TrimBox et BleedBox ; le débord des fonds est décidé par bleedFor
    - profil (PDF_PROFILES, export.js) : PDF/X-4 (transparences conservées) ou PDF/X-1a (transparences aplaties sur le fond situé
      sous l'élément), avec profil de sortie FOGRA39 incorporé (icc/ISOcoated_v2_300_eci.icc, ECI), métadonnées XMP et identifiant ;
@@ -347,8 +347,6 @@ function makeInk(doc, rgb) {
 }
 
 /* ---------- images ---------- */
-const SCALE = 300 / 96,
-  SVG_SCALE = 1200 / 96; // SVG non vectorisable : rastérisé plus fin (une image vectorielle n'a pas de résolution « native »)
 const SVG_VEC_TAGS = new Set(
   'svg g a path rect circle ellipse line polyline polygon use symbol defs style title desc metadata switch'.split(' '),
 );
@@ -394,6 +392,10 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
     flat = profile === 'x1a',
     pdfx = !!PDF_PROFILES[profile].icc,
     onProgress = opts.onProgress || (() => {});
+  /* résolution des images (opts.dpi, 300 par défaut ; 72 pour l'écran) ; une image SVG non vectorisable est rastérisée 4 fois plus fin */
+  const dpi = Math.min(600, Math.max(36, +opts.dpi || 300)),
+    SCALE = dpi / 96,
+    svgScale = SCALE * 4; // SVG non vectorisable : rastérisé plus fin (une image vectorielle n'a pas de résolution « native »)
   const missing = new Set();
   const m = EXPORT_MODES[mode] || EXPORT_MODES.net,
     size = sheetSize(mode),
@@ -1030,7 +1032,7 @@ export async function buildPdf(doc, mode = 'net', opts = {}) {
           r = ov ? ov.rect : el0.getBoundingClientRect();
         if (r.width < 0.5 || r.height < 0.5 || !el.naturalWidth) return;
         const fit = cs.objectFit || 'fill',
-          sc = /^data:image\/svg\+xml|\.svg(\?|#|$)/i.test(el.currentSrc || el.src || '') ? SVG_SCALE : SCALE,
+          sc = /^data:image\/svg\+xml|\.svg(\?|#|$)/i.test(el.currentSrc || el.src || '') ? svgScale : SCALE,
           cw = Math.max(1, Math.min(4000, Math.round(r.width * sc))),
           ch = Math.max(1, Math.min(4000, Math.round(r.height * sc)));
         const x0 = r.left - P.left,

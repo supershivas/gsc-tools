@@ -795,3 +795,11 @@ dialog.tsd::backdrop{background:transparent}
 .fh-badge{align-self:flex-start;margin-top:4px;font-size:var(--fs-xs);color:var(--ui-mute);border:1px solid var(--ui-line);border-radius:var(--radius-pill);padding:1px 8px}
 .fh-note{margin:28px 0 8px;font-size:var(--fs-sm);color:var(--ui-mute)}
 .fh-pref{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-sm);min-height:44px;cursor:pointer}
+.fh-cell{position:relative;display:flex}.fh-cell>.fh-card{flex:1}
+.fh-del{position:absolute;top:6px;right:6px;display:grid;place-items:center;width:44px;height:44px;min-height:0;padding:0;border:1px solid var(--ui-line);border-radius:var(--radius-md);background:var(--ui-panel);color:var(--ui-mute);opacity:0}
+.fh-cell:focus-within .fh-del,.fh-del:focus-visible{opacity:1}
+@media (hover:hover){.fh-cell:hover .fh-del{opacity:1}.fh-del:hover{color:var(--ui-ink)}}
+@media (hover:none){.fh-del{opacity:1}}
+#exportDlg{max-height:calc(100vh - 32px);overflow:auto}
+#exportDpi{display:grid;grid-template-columns:repeat(3,1fr);gap:0 8px}
+.fh-viz .fh-scale{height:auto;min-height:0}

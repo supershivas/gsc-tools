@@ -98,16 +98,27 @@ export async function readRecents() {
   const all = await req(db.transaction('recents').objectStore('recents').getAll());
   return all.sort((a, b) => b.at - a.at);
 }
-/** Ajoute ou met à jour un fichier récent ; garde les `MAX_RECENTS` plus récents. Renvoie la liste à jour (sans les documents) */
+/** Ajoute ou met à jour un fichier récent ; garde les `MAX_RECENTS` plus récents, plus tous ceux « enregistrés dans le navigateur »
+    (`saved: true`, jamais évincés ; le drapeau est gardé quand le même fichier repasse sans lui). Renvoie la liste à jour (avec les documents). */
 export async function pushRecent(entry) {
   const db = await openDb();
   const tx = db.transaction('recents', 'readwrite'),
     st = tx.objectStore('recents');
+  const prev = await req(st.get(entry.fileId));
+  if (prev && prev.saved && entry.saved == null) entry.saved = true;
   st.put(entry);
   const all = (await req(st.getAll())).sort((a, b) => b.at - a.at);
-  all.slice(MAX_RECENTS).forEach((r) => st.delete(r.fileId));
+  const kept = all.filter((r) => r.saved || all.filter((x) => !x.saved).indexOf(r) < MAX_RECENTS);
+  all.filter((r) => !kept.includes(r)).forEach((r) => st.delete(r.fileId));
   await done(tx);
-  return all.slice(0, MAX_RECENTS);
+  return kept;
+}
+/** Supprime une copie locale (fichier récent ou enregistré dans le navigateur) */
+export async function deleteRecent(fileId) {
+  const db = await openDb();
+  const tx = db.transaction('recents', 'readwrite');
+  tx.objectStore('recents').delete(fileId);
+  await done(tx);
 }
 export async function readRecent(fileId) {
   const db = await openDb();

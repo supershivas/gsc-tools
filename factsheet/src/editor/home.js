@@ -1,10 +1,12 @@
 import { h, ico, renderDocument, measure } from '../render.js';
-import { PAGE } from '../tokens.js';
+import { PAGE, cssVars, applyVars, paletteOf, textSetFor } from '../tokens.js';
+import { renderCtx } from '../renderctx.js';
 import { migrate } from '../state.js';
 import { readRecent } from '../wsstore.js';
 import { openSoloViz, readSolo } from '../vizsolo.js';
-import { VIZ_TYPES } from '../viz/index.js';
+import { VIZ_TYPES, renderVizFull } from '../viz/index.js';
 import { t, getLang } from '../i18n.js';
+import { confirmBox } from '../dialogs.js';
 
 /* ---------- Écran d'accueil : les projets gardés dans ce navigateur, en grille ----------
    Affiché au lancement (case « Afficher l'accueil au lancement », `localStorage` `factsheet-creator-home` = '0' pour ne plus
@@ -68,6 +70,34 @@ export function createHome({ ctx, ws, project }) {
     });
     return box;
   }
+  /* vignette de la dernière dataviz seule : rendue à sa largeur avec les couleurs du document actif, réduite à la carte */
+  function vizThumb(solo) {
+    const k = Math.min(1, THUMB_W / (solo.width + 24)),
+      box = h('div', { class: 'fh-thumb fh-viz', style: { height: '160px' } });
+    queue.push(async () => {
+      if (!box.isConnected) return;
+      try {
+        const doc = ctx.getDoc(),
+          r = renderVizFull(solo.viz, solo.width, {
+            locale: doc.locale || 'en-GB',
+            pal: paletteOf(doc.theme, doc.colors),
+            rc: renderCtx(doc).forType('viz'),
+          });
+        if (!r || !r.node) throw new Error('rendu impossible');
+        const sheet = h(
+          'div',
+          { class: 'page viz-sheet fh-scale', style: { width: solo.width + 24 + 'px', padding: '12px', transform: `scale(${k})` } },
+          h('div', { class: 'col col-viz', style: { width: solo.width + 'px' } }, r.node),
+        );
+        applyVars(sheet, cssVars(doc.theme, doc.colors, doc.density, textSetFor(doc.textSet, 'viz')));
+        box.append(sheet);
+        box.style.height = Math.ceil(sheet.offsetHeight * k) + 'px'; // le cadre suit la hauteur du graphique
+      } catch (e) {
+        box.classList.add('empty');
+      }
+    });
+    return box;
+  }
   function pump() {
     raf = 0;
     const job = queue.shift();
@@ -98,35 +128,67 @@ export function createHome({ ctx, ws, project }) {
   };
 
   function build() {
-    const act = ws.active();
+    const act = ws.active(),
+      savedIds = new Set((ws.recentsOk() ? ws.recents() : []).filter((r) => r.saved).map((r) => r.fileId));
     const open = ws.tabs.map((tab) =>
       card({
         name: ws.nameOf(tab),
         sub: tab === act ? t('Onglet actif') : t('Onglet ouvert'),
-        badge: ws.isDirty(tab) ? t('Modifié depuis le dernier export') : '',
+        badge: ws.isDirty(tab)
+          ? t('Modifié depuis le dernier export')
+          : savedIds.has(tab.doc.fileId)
+            ? t('Enregistré dans ce navigateur.').replace(/\.$/, '')
+            : '',
         thumbEl: thumb(() => tab.doc),
         onOpen: go(() => ws.activate(tab.id)),
       }),
     );
     const openIds = new Set(ws.tabs.map((x) => x.doc.fileId));
     const recents = (ws.recentsOk() ? ws.recents() : []).filter((r) => !openIds.has(r.fileId));
-    const rec = recents.map((r) =>
-      card({
-        name: r.name || t('Sans titre'),
-        sub: when(r.at),
-        thumbEl: thumb(async () => {
-          const x = await readRecent(r.fileId);
-          return x && x.doc ? migrate(x.doc) : null;
+    /* copie locale : carte + bouton de suppression (deux boutons voisins, jamais un bouton dans un bouton) */
+    const local = (r) =>
+      h(
+        'div',
+        { class: 'fh-cell' },
+        card({
+          name: r.name || t('Sans titre'),
+          sub: when(r.at),
+          thumbEl: thumb(async () => {
+            const x = await readRecent(r.fileId);
+            return x && x.doc ? migrate(x.doc) : null;
+          }),
+          onOpen: go(() => ws.openRecent(r.fileId)),
         }),
-        onOpen: go(() => ws.openRecent(r.fileId)),
-      }),
-    );
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'fh-del',
+            title: t('Supprimer cette copie locale'),
+            'aria-label': t('Supprimer cette copie locale'),
+            onclick: async () => {
+              if (
+                !(await confirmBox(t('Supprimer la copie locale « {} » ?').replace('{}', r.name || t('Sans titre')), {
+                  ok: t('Supprimer'),
+                  danger: true,
+                }))
+              )
+                return;
+              await ws.deleteRecent(r.fileId);
+              if (root) build();
+            },
+          },
+          ico('trash'),
+        ),
+      );
+    const saved = recents.filter((r) => r.saved).map(local);
+    const rec = recents.filter((r) => !r.saved).map(local);
     const solo = readSolo();
     const vizCard = solo
       ? card({
           name: t('Dernière dataviz'),
           sub: t((VIZ_TYPES[solo.viz.kind] && VIZ_TYPES[solo.viz.kind].label) || 'Dataviz'),
-          icon: 'chart-bar',
+          thumbEl: vizThumb(solo),
           onOpen: go(() => openSoloViz(ctx)),
         })
       : null;
@@ -170,6 +232,7 @@ export function createHome({ ctx, ws, project }) {
         ),
         h('h2', { textContent: t('Ouverts') }),
         h('div', { class: 'fh-grid' }, ...open),
+        saved.length ? [h('h2', { textContent: t('Enregistrés dans ce navigateur') }), h('div', { class: 'fh-grid' }, ...saved)] : null,
         rec.length || vizCard
           ? [h('h2', { textContent: t('Récents (copies locales)') }), h('div', { class: 'fh-grid' }, ...(vizCard ? [vizCard] : []), ...rec)]
           : null,

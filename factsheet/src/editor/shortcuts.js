@@ -39,6 +39,12 @@ export function initShortcuts(ctx, history, exporter, ws, spacing) {
     /* une fenêtre, l'éditeur de dataviz ou l'aperçu 3D est ouvert : on ne superpose pas l'export */
     if (!document.querySelector('dialog[open], .ve, .v3d, .ce')) exporter.openExport();
   });
+  /* Cmd/Ctrl + S : enregistrer dans le navigateur (jamais la page web du navigateur) */
+  window.addEventListener('keydown', (e) => {
+    if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey || letterOf(e) !== 's') return;
+    e.preventDefault();
+    if (!document.querySelector('dialog[open], .ve, .v3d, .ce, .fs-home')) ws.saveLocal();
+  });
   window.addEventListener('keydown', (e) => {
     if (e.key !== 'Delete' && e.key !== 'Backspace') return;
     const a = document.activeElement,

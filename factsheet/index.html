@@ -29,10 +29,14 @@
 </div>
 <dialog id="exportDlg">
   <h3>Exporter en PDF</h3>
-  <h4>Format de la feuille</h4>
-  <div id="exportOpts"></div>
-  <h4>Profil du PDF</h4>
+  <h4>Usage</h4>
+  <div id="exportPreset"></div>
+  <div id="exportFormat"><h4>Format de la feuille</h4>
+  <div id="exportOpts"></div></div>
+  <div id="exportCustom"><h4>Profil du PDF</h4>
   <div id="exportProfile"></div>
+  <h4>Résolution des images</h4>
+  <div id="exportDpi"></div></div>
   <p class="tip">Fichier vectoriel généré par l’app, polices incorporées, TrimBox et BleedBox renseignées. <b>CMJN</b> pour l’imprimeur : couleurs exactes de la palette, images importées converties par une conversion simple. <b>RVB</b> pour l’écran.</p>
   <div class="row"><button type="button" id="exportCancel">Annuler</button><button type="button" class="primary" id="exportGo">Télécharger le PDF</button></div>
 </dialog>

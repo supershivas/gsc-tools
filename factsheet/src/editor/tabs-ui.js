@@ -96,7 +96,9 @@ export function createTabsUi(ws, host, { onHome } = {}) {
     statusIco.className = 'ti ti-' + icon;
     status.classList.toggle('err', s.kind === 'error');
     statusTxt.textContent = s.dirty ? `${text} · ${t('Modifié depuis le dernier export')}` : text;
-    status.title = t('Les brouillons restent dans ce navigateur. Fichier › Enregistrer (.json) pour garder une copie.');
+    status.title = t(
+      'Les brouillons restent dans ce navigateur. Fichier › Enregistrer dans le navigateur, ou un fichier (.json) pour garder une copie ailleurs.',
+    );
   }
 
   return { render, renderStatus };

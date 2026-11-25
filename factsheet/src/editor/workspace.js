@@ -73,7 +73,7 @@ export async function loadWorkspace() {
 }
 
 /** `init` : résultat de `loadWorkspace`. `onSwitch()` redessine l'éditeur pour l'onglet actif ; `onStatus()` met à jour la barre d'onglets. */
-export function createWorkspace(ctx, init, { onSwitch, onStatus }) {
+export function createWorkspace(ctx, init, { onSwitch, onStatus, onEmpty }) {
   const tabs = [];
   let activeId = null,
     legacySig = null,
@@ -251,7 +251,8 @@ export function createWorkspace(ctx, init, { onSwitch, onStatus }) {
         return false;
       const i = tabs.indexOf(tab);
       if (i < 0) return false;
-      if (tabs.length === 1) {
+      const last = tabs.length === 1;
+      if (last) {
         const fresh = makeTab(uid('t'), blankDoc());
         tabs.push(fresh);
         pending.add(fresh.id);
@@ -265,6 +266,7 @@ export function createWorkspace(ctx, init, { onSwitch, onStatus }) {
       }
       await flush([id]);
       onStatus();
+      if (last && onEmpty) onEmpty(); // dernier onglet fermé : retour à l'accueil
       return true;
     },
     /** ouvre un document lu dans un fichier ou une copie locale ; un fichier déjà ouvert bascule sur son onglet */
@@ -299,19 +301,45 @@ export function createWorkspace(ctx, init, { onSwitch, onStatus }) {
     async loadRecents() {
       if (!init.persistent) return;
       try {
-        recents = (await store.readRecents()).map(({ fileId, name, at }) => ({ fileId, name, at }));
+        recents = (await store.readRecents()).map(({ fileId, name, at, saved }) => ({ fileId, name, at, saved: !!saved }));
       } catch (e) {
         recentsOk = false;
       }
     },
-    async remember(doc) {
-      if (!recentsOk) return;
+    /** copie locale du document (fichiers récents) ; `saved` : « Enregistrer dans le navigateur », jamais évincée de la liste */
+    async remember(doc, { saved } = {}) {
+      if (!recentsOk) return false;
       try {
-        const list = await store.pushRecent({ fileId: doc.fileId, name: String(doc.name || '').trim(), at: Date.now(), doc });
-        recents = list.map(({ fileId, name, at }) => ({ fileId, name, at }));
+        const entry = { fileId: doc.fileId, name: String(doc.name || '').trim(), at: Date.now(), doc: JSON.parse(JSON.stringify(doc)) };
+        if (saved) entry.saved = true;
+        const list = await store.pushRecent(entry);
+        recents = list.map(({ fileId, name, at, saved: s }) => ({ fileId, name, at, saved: !!s }));
+        return true;
       } catch (e) {
         /* stockage plein : la liste reste celle d'avant */
+        return false;
       }
+    },
+    /** « Enregistrer dans le navigateur » : copie gardée dans ce navigateur (sans fichier .json) ; l'indicateur « modifié » repart de zéro */
+    async saveLocal() {
+      const tab = active();
+      if (!recentsOk || !(await ws.remember(tab.doc, { saved: true }))) {
+        alertBox(t('Impossible d’enregistrer dans ce navigateur (stockage indisponible ou plein). Enregistrez un fichier (.json).'));
+        return false;
+      }
+      tab.cleanSnap = tab.hist.stack[tab.hist.i] ?? null;
+      tab.dirtyInit = false;
+      pending.add(tab.id);
+      flush();
+      onStatus();
+      ctx.note(t('Enregistré dans ce navigateur.'));
+      return true;
+    },
+    async deleteRecent(fileId) {
+      try {
+        await store.deleteRecent(fileId);
+        recents = recents.filter((r) => r.fileId !== fileId);
+      } catch (e) {}
     },
     async openRecent(fileId) {
       let r = null;

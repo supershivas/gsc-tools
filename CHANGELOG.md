@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.142.0 — 2026-11-25
+- Factsheet creator : « Enregistrer dans le navigateur » (Cmd/Ctrl + S) garde le projet sur l'accueil sans passer par un fichier .json
+- Export PDF : deux usages prêts, Impression (CMJN, 300 dpi, FOGRA39) et Écran (RVB, 72 dpi, fichier léger), ou personnalisé
+- Fermer le dernier onglet ramène à l'accueil, qui montre aussi l'aperçu de la dernière dataviz
+
 ## 1.141.0 — 2026-11-25
 - Factsheet creator : écran d'accueil au lancement, avec les projets gardés dans le navigateur en grille (aperçu, nom) ; un clic pour ouvrir
 - Tout nouveau projet est nommé AAMMJJ_factsheet (date du jour)

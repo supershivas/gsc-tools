@@ -97,7 +97,61 @@ export function createExport(ctx) {
       )
       .join('\n');
   };
-  function openExport() {
+  /* Usage : deux réglages tout prêts (impression : PDF/X-4 FOGRA39, images 300 dpi ; écran : RVB, A4 net, images 72 dpi)
+     ou « Personnalisé » (format, profil et résolution au choix). Préférence locale de ce navigateur. */
+  const PRESET_KEY = 'factsheet-creator-pdf-preset',
+    DPI_KEY = 'factsheet-creator-pdf-dpi';
+  const PRESETS = {
+    print: {
+      label: 'Impression — CMJN, 300 dpi, FOGRA39',
+      note: 'Pour l’imprimeur : PDF/X-4, profil ISO Coated v2 300 % incorporé, images à 300 dpi.',
+      profile: 'x4',
+      dpi: 300,
+    },
+    screen: {
+      label: 'Écran — RVB, 72 dpi',
+      note: 'Pour l’e-mail et la lecture à l’écran : couleurs de l’écran, A4 net, images à 72 dpi (fichier léger), liens cliquables.',
+      profile: 'rgb',
+      dpi: 72,
+      mode: 'net',
+    },
+    custom: { label: 'Personnalisé', note: 'Format de la feuille, profil du PDF et résolution des images au choix.' },
+  };
+  const DPIS = {
+    72: { label: '72 dpi', note: 'Écran.' },
+    150: { label: '150 dpi', note: 'Bureautique.' },
+    300: { label: '300 dpi', note: 'Impression.' },
+  };
+  const pref = (k, ok, dflt) => {
+    try {
+      const v = localStorage.getItem(k);
+      return ok(v) ? v : dflt;
+    } catch (e) {
+      return dflt;
+    }
+  };
+  const keep = (k, v) => {
+    try {
+      localStorage.setItem(k, v);
+    } catch (e) {
+      /* préférence non gardée */
+    }
+  };
+  let exportPreset = pref(PRESET_KEY, (v) => !!PRESETS[v], 'print'),
+    exportDpi = +pref(DPI_KEY, (v) => !!DPIS[v], '300');
+  /** réglages réellement exportés : ceux du préréglage, ou les choix « Personnalisé » */
+  const settings = () => {
+    const p = PRESETS[exportPreset];
+    return exportPreset === 'custom'
+      ? { mode: exportMode, profile: exportProfile, dpi: exportDpi }
+      : { mode: p.mode || exportMode, profile: p.profile, dpi: p.dpi };
+  };
+  /** ouvre la fenêtre d'export ; `preset` : 'print' | 'screen' | 'custom' (menu Fichier) */
+  function openExport(preset) {
+    if (PRESETS[preset]) {
+      exportPreset = preset;
+      keep(PRESET_KEY, preset);
+    }
     let warn = document.getElementById('exportWarn');
     if (!warn) {
       warn = h('p', { id: 'exportWarn', role: 'alert' });
@@ -113,17 +167,27 @@ export function createExport(ctx) {
         box.append(h('label', { class: 'opt' }, r, ' ' + t(o.label), h('small', { textContent: t(o.note) })));
       }
     };
+    const sync = () => {
+      document.getElementById('exportCustom').hidden = exportPreset !== 'custom';
+      document.getElementById('exportFormat').hidden = !!PRESETS[exportPreset].mode; // écran : toujours A4 net
+    };
+    radios('exportPreset', 'xpreset', PRESETS, exportPreset, (k) => {
+      exportPreset = k;
+      keep(PRESET_KEY, k);
+      sync();
+    });
     radios('exportOpts', 'xmode', EXPORT_MODES, exportMode, (k) => {
       exportMode = k;
     });
     radios('exportProfile', 'xprofile', PDF_PROFILES, exportProfile, (k) => {
       exportProfile = k;
-      try {
-        localStorage.setItem(PROFILE_KEY, k);
-      } catch (e) {
-        /* préférence non gardée */
-      }
+      keep(PROFILE_KEY, k);
     });
+    radios('exportDpi', 'xdpi', DPIS, String(exportDpi), (k) => {
+      exportDpi = +k;
+      keep(DPI_KEY, k);
+    });
+    sync();
     dlg.showModal();
   }
   document.getElementById('exportCancel').addEventListener('click', () => dlg.close());
@@ -137,7 +201,8 @@ export function createExport(ctx) {
       const ovf = overflowText();
       if (ovf && !(await confirmBox(ovf + '\n\n' + t('Exporter quand même ?'), { ok: t('Exporter') }))) return;
       if (!window.FSPDF) await loadBundle('pdfexport.js');
-      const { bytes, missing } = await window.FSPDF.build(ctx.getDoc(), exportMode, { profile: exportProfile });
+      const S = settings();
+      const { bytes, missing } = await window.FSPDF.build(ctx.getDoc(), S.mode, { profile: S.profile, dpi: S.dpi });
       /* caractères absents des polices (symboles rares, alphabets non latins hors grec et cyrillique) : ils ne seraient pas imprimés */
       if (
         missing.length &&
@@ -151,7 +216,8 @@ export function createExport(ctx) {
         ))
       )
         return;
-      const name = fileStem((exportMode === 'net' ? '' : '-' + exportMode) + PDF_PROFILES[exportProfile].suffix) + '.pdf';
+      const name =
+        fileStem((S.mode === 'net' ? '' : '-' + S.mode) + PDF_PROFILES[S.profile].suffix + (S.dpi === 300 ? '' : `-${S.dpi}dpi`)) + '.pdf';
       const a = h('a', { href: URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' })), download: name });
       document.body.append(a);
       a.click();

@@ -211,6 +211,33 @@ const EN = {
   'Afficher le titre': 'Show title',
   'affichage du titre': 'title visibility',
   'Nouvelle factsheet vierge': 'New blank factsheet',
+  'Supprimer la copie locale « {} » ?': 'Delete the local copy “{}”?',
+  'Supprimer cette copie locale': 'Delete this local copy',
+  'Enregistrés dans ce navigateur': 'Saved in this browser',
+  'Impression.': 'Print.',
+  'Bureautique.': 'Office.',
+  'Écran.': 'Screen.',
+  '300 dpi': '300 dpi',
+  '150 dpi': '150 dpi',
+  '72 dpi': '72 dpi',
+  'Format de la feuille, profil du PDF et résolution des images au choix.':
+    'Sheet format, PDF profile and image resolution of your choice.',
+  'Pour l’e-mail et la lecture à l’écran : couleurs de l’écran, A4 net, images à 72 dpi (fichier léger), liens cliquables.':
+    'For e-mail and on-screen reading: screen colours, A4 trimmed, images at 72 dpi (light file), clickable links.',
+  'Écran — RVB, 72 dpi': 'Screen — RGB, 72 dpi',
+  'Pour l’imprimeur : PDF/X-4, profil ISO Coated v2 300 % incorporé, images à 300 dpi.':
+    'For the printer: PDF/X-4, ISO Coated v2 300% profile embedded, images at 300 dpi.',
+  'Impression — CMJN, 300 dpi, FOGRA39': 'Print — CMYK, 300 dpi, FOGRA39',
+  'Résolution des images': 'Image resolution',
+  Usage: 'Use',
+  'Enregistré dans ce navigateur.': 'Saved in this browser.',
+  'Impossible d’enregistrer dans ce navigateur (stockage indisponible ou plein). Enregistrez un fichier (.json).':
+    'Cannot save in this browser (storage unavailable or full). Save a file (.json).',
+  'Exporter PDF personnalisé…': 'Export custom PDF…',
+  'Exporter PDF pour l’écran…': 'Export PDF for screen…',
+  'Exporter PDF pour l’impression…': 'Export PDF for print…',
+  'Enregistrer un fichier (.json)': 'Save a file (.json)',
+  'Enregistrer dans le navigateur': 'Save in the browser',
   Accueil: 'Home',
   'Afficher l’accueil au lancement': 'Show home at launch',
   'Ces projets sont gardés dans ce navigateur seulement. Enregistrez un fichier (.json) pour le garder ailleurs.':
@@ -252,8 +279,8 @@ const EN = {
   'Brouillon enregistré': 'Draft saved',
   'Brouillon non enregistré : stockage du navigateur plein': 'Draft not saved: browser storage full',
   'Brouillon du document actif seulement (IndexedDB indisponible)': 'Draft of the active document only (IndexedDB unavailable)',
-  'Les brouillons restent dans ce navigateur. Fichier › Enregistrer (.json) pour garder une copie.':
-    'Drafts stay in this browser. File › Save (.json) to keep a copy.',
+  'Les brouillons restent dans ce navigateur. Fichier › Enregistrer dans le navigateur, ou un fichier (.json) pour garder une copie ailleurs.':
+    'Drafts stay in this browser. File › Save in the browser, or save a file (.json) to keep a copy elsewhere.',
   'Ce document a été modifié depuis le dernier export (.json). Fermer l’onglet quand même ? Son brouillon sera supprimé.':
     'This document has been modified since the last export (.json). Close the tab anyway? Its draft will be deleted.',
   'Ce fichier est déjà ouvert : son onglet est affiché.': 'This file is already open: showing its tab.',

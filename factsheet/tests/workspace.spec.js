@@ -149,7 +149,7 @@ test('enregistrer (.json) : indicateur remis à zéro, fichier récent, réouver
   await rename(page, 'Rapport');
   await expect(tabs(page).first().locator('.fs-tab-dot')).toHaveCount(1);
   await page.locator('.menu-btn', { hasText: 'File' }).click();
-  const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('.menu-item', { hasText: 'Save (.json)' }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('.menu-item', { hasText: 'Save a file (.json)' }).click()]);
   expect(dl.suggestedFilename()).toMatch(/^Rapport_\d{6}_\d{4}\.json$/);
   const saved = await (await dl.createReadStream()).toArray();
   await expect(tabs(page).first().locator('.fs-tab-dot')).toHaveCount(0);

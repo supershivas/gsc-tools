@@ -236,6 +236,7 @@ window.FS_READY = (async () => {
   ws = createWorkspace(ctx, init, {
     onSwitch: showTab,
     onStatus: () => tabsUi && tabsUi.render(),
+    onEmpty: () => home.show(),
   });
   ctx.workspace = ws;
   history.onChange = () => {
