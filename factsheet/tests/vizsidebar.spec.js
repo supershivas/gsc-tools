@@ -147,7 +147,7 @@ test.describe('squelette de cartes', () => {
     const names = () => page.$$eval('.ve-form .pp-card-h b', (n) => n.map((x) => x.textContent));
     expect(await names()).toEqual([
       'Type · Bars (overlapping, grouped, stacked)',
-      'Title and source',
+      'Texts',
       'Structure',
       'Dimensions',
       'Axes and grid',

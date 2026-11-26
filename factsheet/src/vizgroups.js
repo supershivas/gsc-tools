@@ -30,7 +30,7 @@ export const FIELD_ORDER = [
   'legend', 'legendPos', 'legendNote', 'legendNoteText', 'showPercent', 'segValues', 'segDecimals', 'segPrefix', 'segSuffix', 'showValues', 'showPct', 'showDelta', 'valuesIn', 'labelIn', 'showLabels', 'groupLabels', 'showDates', 'showTotal',
   'cmpLegend', 'cmpTitle1', 'cmpTitle2', 'layout', 'leading', 'totalTpl', 'refText', 'pendingText', 'decimals', 'suffix',
   // Textes (mise en forme des noms et en-têtes)
-  'labelTitle', 'labelTitleSize', 'labelTitleWeight', 'labelText', 'labelTextSize', 'labelTextWeight', 'cmpTitleStyle', 'nameWidth', 'nameWrap', 'nameSize', 'nameBold', 'nameAlign', 'headWrap', 'headSize', 'headBold',
+  'labelTitle', 'labelTitleSize', 'labelTitleWeight', 'labelText', 'labelTextSize', 'labelTextWeight', 'cmpTitleStyle', 'nameWidth', 'names.size', 'names.bold', 'names.italic', 'names.color', 'nameWrap', 'nameSize', 'nameBold', 'nameAlign', 'headWrap', 'headSize', 'headBold',
   // Couleurs
   'color', 'color2', 'classes', 'emptyStyle', 'fillTone', 'linkOpacity', 'pointOpacity',
   // Accolade et liaison

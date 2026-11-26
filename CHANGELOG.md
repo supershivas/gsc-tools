@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.143.0 — 2026-11-26
+- Dataviz : une seule carte « Textes » réunit le titre, la source et les libellés, chacun en champ simple ou en texte riche
+- Barres horizontales : taille, gras, italique et couleur des libellés
+- Le trait pointillé orange (largeur des libellés) n'apparaît plus qu'au survol
+
 ## 1.142.0 — 2026-11-25
 - Factsheet creator : « Enregistrer dans le navigateur » (Cmd/Ctrl + S) garde le projet sur l'accueil sans passer par un fichier .json
 - Export PDF : deux usages prêts, Impression (CMJN, 300 dpi, FOGRA39) et Écran (RVB, 72 dpi, fichier léger), ou personnalisé

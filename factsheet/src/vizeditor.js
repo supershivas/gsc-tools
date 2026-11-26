@@ -603,7 +603,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
     } else {
       /* squelette fixe : une carte sans contenu est masquée, jamais déplacée (docs/architecture.md) */
       const has = { 'dv-struct': F('struct').length > 0 || !!ty.actions };
-      for (const c of CARDS) if (c.g !== 'struct') has[c.id] = c.g === 'colors' || F(c.g).length > 0;
+      for (const c of CARDS) if (c.g !== 'struct' && c.g !== 'texts') has[c.id] = c.g === 'colors' || F(c.g).length > 0; // Textes : fusionnée avec le titre et la source (dv-head)
       const ids = ['dv-head', ty.panel && 'dv-picto', ...CARDS.map((c) => c.id).filter((id) => has[id]), 'dv-side', 'dv-debug'].filter(
         Boolean,
       );
@@ -657,6 +657,32 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
         });
         return boxes;
       };
+      /* carte Textes : tout le texte de la dataviz (titre, source, libellés du type) puis la mise en forme propre au type (`g: 'texts'`) */
+      const sub = (name, nodes) => {
+        const id = 'dvs' + ++subSeq;
+        return h(
+          'div',
+          { class: 'pp-subgroup', role: 'group', 'aria-labelledby': id },
+          h('div', { class: 'pp-sub', id, textContent: t(name) }),
+          ...nodes,
+        );
+      };
+      const items = ty.textItems ? ty.textItems(col.viz.opts) : [];
+      const textNodes = [
+        sub('Titre et source', [
+          softField(head, 'title', 'Titre de la dataviz', {}),
+          ...buildFields([HEAD_STYLE_FIELD], head, fctx, {}, h),
+          softField(head, 'source', 'Source de la dataviz', { bullets: false }),
+        ]),
+      ];
+      {
+        const labs = items.map((it) => softField(it.obj, it.k, it.label, { bullets: false })),
+          fmtNodes = F('texts').length ? cardNodes('texts').filter(Boolean) : [];
+        // réglages en sous-sections (cartes denses) : gardent leurs titres ; sinon rangés avec les libellés
+        if (fmtNodes.some((n) => n.classList.contains('pp-subgroup')))
+          textNodes.push(labs.length ? sub('Libellés', labs) : null, ...fmtNodes);
+        else if (labs.length || fmtNodes.length) textNodes.push(sub('Libellés', [...labs, ...fmtNodes]));
+      }
       form.append(
         searchBox(search, refreshForm),
         typeCard(),
@@ -664,13 +690,10 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
           card(
             'dv-head',
             'typography',
-            t('Titre et source'),
-            [
-              softField(head, 'title', 'Titre de la dataviz', {}),
-              ...buildFields([HEAD_STYLE_FIELD], head, fctx, {}, h),
-              softField(head, 'source', 'Source de la dataviz', { bullets: false }),
-            ],
+            t('Textes'),
+            textNodes,
             headSummary(head),
+            F('texts').length ? resetCard(t('Textes'), F('texts'), col.viz.opts, dflt) : null,
           ),
           ty.panel ? card('dv-picto', 'mood-smile', t(ty.panelTitle || 'Pictogramme'), ty.panel(col.viz.opts, fctx)) : null,
           ...CARDS.map((c) =>

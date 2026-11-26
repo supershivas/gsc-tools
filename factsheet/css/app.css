@@ -803,3 +803,6 @@ dialog.tsd::backdrop{background:transparent}
 #exportDlg{max-height:calc(100vh - 32px);overflow:auto}
 #exportDpi{display:grid;grid-template-columns:repeat(3,1fr);gap:0 8px}
 .fh-viz .fh-scale{height:auto;min-height:0}
+/* poignée de largeur des libellés (éditeur de dataviz) : invisible tant que le pointeur ne la survole pas */
+.viz-split-line{opacity:0;transition:opacity .15s}
+@media (hover:hover){.viz-split:hover .viz-split-line{opacity:1}}

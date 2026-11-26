@@ -741,7 +741,7 @@ const labelled = (h2, label, control) => {
 /** niveau de mise en forme d'un champ de texte : `fmt` explicite ('full' | 'inline' | 'chart' | 'basic' | 'plain'), sinon `rich` = inline, `area` = full ; null = champ simple */
 const fmtOf = (f) => (f.fmt === 'plain' ? null : f.fmt || (f.rich ? 'inline' : f.t === 'area' ? 'full' : null));
 const STEPPER_FIELDS = new Set(['cols', 'gridRows']);
-const AUTO_FIELDS = new Set(['perDot', 'perRow', 'total', 'scaleMax', 'labelTitleSize', 'labelTextSize', 'gapL', 'gapR']); // 0 = Auto
+const AUTO_FIELDS = new Set(['perDot', 'perRow', 'total', 'scaleMax', 'labelTitleSize', 'labelTextSize', 'names.size', 'gapL', 'gapR']); // 0 = Auto
 const NUMBER_FIELDS = new Set([...STEPPER_FIELDS, ...AUTO_FIELDS]);
 const unitOf = (label) => (/\bpx\b/.test(label) ? 'px' : label.includes('°') ? '°' : label.includes('%') ? '%' : '');
 /** choix de nature visuelle : liste déroulante riche, une icône par valeur */
@@ -977,7 +977,7 @@ export function buildFields(spec, obj, ctx, palOpts, h2, root = obj) {
           h2('div', { class: 'hint' }, f.label, helpBtn(f.label)),
           colorSelect({
             value: shown(f, obj, 'blue'),
-            options: palOpts,
+            options: f.autoLabel ? { '': t(f.autoLabel), ...palOpts } : palOpts, // '' = couleur automatique (ex. celle du texte de la colonne)
             text: true,
             onChange: (v) => {
               setP(obj, f.k, v);
