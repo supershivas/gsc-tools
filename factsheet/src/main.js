@@ -284,5 +284,5 @@ window.FS_READY = (async () => {
   history.record(false);
   historyUi.syncCenter(); // état de départ de l'historique
   tabsUi.render();
-  if (homeAtLaunch()) home.show(); // écran d'accueil : on choisit le projet à ouvrir
+  if (homeAtLaunch() || ws.empty()) home.show(); // écran d'accueil : on choisit le projet à ouvrir (toujours si aucun document n'est ouvert)
 })();

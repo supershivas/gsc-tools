@@ -4,6 +4,7 @@ import { s, el, SW, pxOf, inlineMk, typeIn } from './util.js';
 import { ICONS, ICON_OPTIONS, customChoices } from './icons.js';
 import { iconNode, iconImportPanel } from './picto.js';
 import { t } from '../i18n.js';
+import { itemTexts } from './labelstyle.js';
 
 /** traits en multiples de 0,5 pt ; « Fin » = l'aspect d'avant */
 const STROKE_K = { thin: 1, medium: 2, thick: 3 };
@@ -22,6 +23,7 @@ export default {
       { icon: 'pencil', text: t('Troisième élément de liste') },
     ],
   }),
+  textItems: itemTexts('items', 'text', 'Texte'),
   fields: [
     { k: 'circle', g: 'struct', t: 'bool', label: 'Cercle autour de l’icône' },
     {

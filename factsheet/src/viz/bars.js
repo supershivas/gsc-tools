@@ -39,7 +39,9 @@ import {
   labelLh,
   drawLabel,
 } from './util.js';
+import { styleOf, needsRich, styledLines, drawStyled, tagText, LABEL_FIELDS } from './labelstyle.js';
 import { axesFields, axisTitleFields, refFields } from './axes.js';
+import { t } from '../i18n.js';
 
 /** Aspect d'origine de la carte « Axes et grille » (barres d'avant la carte : ni grille, ni valeurs d'axe, ni ligne de base) */
 const ORIGIN = { grid: false, gridStyle: 'solid', gridTone: 'light', axisValues: false, baseline: false };
@@ -84,6 +86,8 @@ export default {
     refText: '',
   }),
   heights: ['ratio', 'fixed', 'fill'],
+  /** textes saisis montrés dans la carte Textes (noms des catégories) */
+  textItems: (o) => (o.rows || []).map((r, i) => ({ obj: r, k: 'label', label: `${t('Libellé')} ${i + 1}` })),
   fields: [
     {
       k: 'style',
@@ -164,6 +168,7 @@ export default {
       label: 'Valeurs dans les barres (si elles rentrent)',
     },
     { k: 'labelIn', g: 'labels', t: 'bool', label: 'Libellés dans les barres (au pied de la barre)' },
+    ...LABEL_FIELDS({ when: (o) => !o.labelIn, why: 'Désactivez « Libellés dans les barres » pour mettre en forme les libellés.' }),
     {
       k: 'decimals',
       g: 'labels',
@@ -261,9 +266,19 @@ export default {
     const px0 = axV ? Math.max(0, ...tk.out.map((v) => mw(tickTxt(v), 400, SANS, capPx))) + 8 : 0;
     const slot = (x1 - px0) / n;
     /* noms des catégories : sur plusieurs lignes s'il le faut (retours saisis, puis largeur de la case), jamais coupés ni réduits */
+    /* style des libellés : tous (carte Textes) puis chacun (`rows[i].st`) ; un libellé stylé passe par le texte riche */
     const labLh = labelLh(capPx),
-      catLines = o.labelIn ? [] : rows.map((r) => wrapLabel(r.label, T.caption.weight, capPx, Math.max(10, slot - 3))),
-      catMore = Math.max(0, ...catLines.map((l) => l.length - 1)) * labLh,
+      stOf = rows.map((r) => styleOf(o, r)),
+      richOf = (i) => needsRich(rows[i].label, stOf[i]),
+      catLines = o.labelIn
+        ? []
+        : rows.map((r, i) =>
+            richOf(i)
+              ? styledLines(r.label, stOf[i], capPx, T.caption.weight, Math.max(10, slot - 3))
+              : wrapLabel(r.label, T.caption.weight, capPx, Math.max(10, slot - 3)),
+          ),
+      linesH = (l, i) => (richOf(i) ? l.reduce((a, x) => a + x.lh, 0) : l.length * labLh),
+      catMore = Math.max(0, ...catLines.map((l, i) => linesH(l, i) - labLh)),
       catH = catH0 + catMore;
     const LG = o.legend && !legIn ? layoutLegend(series, W, T) : null;
     const baseY = H - (LG ? VIZ.legendGap + LG.h : 0) - catH - xT,
@@ -481,18 +496,17 @@ export default {
           series.forEach((_, j) => (inValue.has(i + ':' + j) ? null : valText(barX[i][j] + bw / 2, yOf(numVal(r, j)) - 3, numVal(r, j))));
       });
     if (!o.labelIn)
-      catLines.forEach((lines, i) =>
-        drawLabel(
-          svg,
-          lines,
-          px0 + slot * (i + 0.5),
-          baseY + (catH0 - VIZ.catH) + VIZ.catH / 2 + 1 + ((lines.length - 1) * labLh) / 2, // 1re ligne à sa place d'origine, les suivantes dessous
-          labLh,
-          capPx,
-          T.caption.weight,
-          'middle',
-        ),
-      );
+      catLines.forEach((lines, i) => {
+        const x = px0 + slot * (i + 0.5),
+          top = baseY + (catH0 - VIZ.catH) + VIZ.catH / 2 + 1 - labLh / 2; // 1re ligne à sa place d'origine, les suivantes dessous
+        if (richOf(i)) {
+          svg.append(tagText(drawStyled(lines, x, top + linesH(lines, i) / 2, 'middle'), env, `rows.${i}`));
+          return;
+        }
+        const g = s('g');
+        drawLabel(g, lines, x, top + (lines.length * labLh) / 2, labLh, capPx, T.caption.weight, 'middle');
+        svg.append(tagText(g, env, `rows.${i}`));
+      });
     if (hasIcons)
       rows.forEach((r, i) => {
         if (r.icon && r.icon !== 'none')

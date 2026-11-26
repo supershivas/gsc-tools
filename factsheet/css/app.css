@@ -806,3 +806,16 @@ dialog.tsd::backdrop{background:transparent}
 /* poignée de largeur des libellés (éditeur de dataviz) : invisible tant que le pointeur ne la survole pas */
 .viz-split-line{opacity:0;transition:opacity .15s}
 @media (hover:hover){.viz-split:hover .viz-split-line{opacity:1}}
+/* barre de mise en forme d'un libellé de dataviz (clic sur le libellé dans l'aperçu) et cadre autour du libellé choisi */
+.vt-bar{position:fixed;z-index:80;display:flex;align-items:center;gap:2px;padding:4px;background:var(--ui-panel);border:1px solid var(--ui-line);border-radius:var(--radius-md);box-shadow:0 8px 24px var(--shade)}
+.vt-b{min-width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:var(--radius-sm);background:none;color:inherit;cursor:pointer;padding:0 6px;font-size:var(--fs-md)}
+.vt-b.on{background:var(--sel-soft);color:var(--ui-blue)}
+.vt-b[aria-disabled="true"]{opacity:.4;cursor:default}
+.vt-b .cs-dot{width:18px;height:18px}
+.vt-size{width:56px;height:32px;text-align:center;font:inherit;font-size:var(--fs-sm)}
+.vt-sep{width:1px;height:20px;background:var(--ui-line);margin:0 4px}
+.vt-ring{position:fixed;z-index:79;pointer-events:none;border:1.5px dashed var(--handle);border-radius:var(--radius-xs)}
+@media (hover:hover){.vt-b:hover{background:var(--ui-bg)}}
+.vt-bar[hidden],.vt-ring[hidden]{display:none}
+/* aucun document ouvert (tous les onglets fermés) : ni nom de fichier, ni historique, ni menus du document dans l'en-tête */
+body.fs-empty .app-header > :not(.app-left):not(.app-right),body.fs-empty .app-menus{visibility:hidden}

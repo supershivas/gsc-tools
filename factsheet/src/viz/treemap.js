@@ -5,6 +5,7 @@ import { VIZ } from '../tokens.js';
 import { s, SW, colorRef, pxOf, fmt, mw, SANS, drawLegend, fitText, heightOf, inkOn, round3 } from './util.js';
 import { HIER_DATA, hierRows, buildHier, topOf, depthAlpha, lineAttrs, toneAlpha, LINE_FIELD, TONE_FIELD } from './hier.js';
 import { t } from '../i18n.js';
+import { allLabels, LABEL_FIELDS } from './labelstyle.js';
 
 export default {
   label: 'Treemap',
@@ -23,6 +24,7 @@ export default {
   }),
   heights: ['ratio', 'fixed', 'fill'],
   fields: [
+    ...LABEL_FIELDS(),
     {
       k: 'ratio',
       t: 'select',
@@ -71,6 +73,7 @@ export default {
     const T = typeIn(env); // styles du document (menu Texte)
     const { root, tops } = buildHier(o.rows),
       capPx = pxOf(T.caption.size),
+      LS = allLabels(o, capPx, 400), // style de tous les libellés (carte Textes)
       numPx = pxOf(T.captionNum.size),
       LG = o.legend
         ? layoutLegend(
@@ -118,11 +121,13 @@ export default {
       );
       const ink = inkOn(env, key, a);
       if (!leaf && n.depth === 1 && o.groupLabels) {
-        const f = fitText(n.data.name, 700, SANS, capPx, w - 8, 0.7);
-        labels.append(s('text', { x: n.x0 + 5, y: n.y0 + head / 2 + 0.33 * f.size, 'font-size': f.size, 'font-weight': 700 }, f.text));
+        const f = fitText(n.data.name, 700, SANS, LS.px, w - 8, 0.7);
+        labels.append(
+          s('text', { x: n.x0 + 5, y: n.y0 + head / 2 + 0.33 * f.size, 'font-size': f.size, 'font-weight': 700, ...LS.attrs }, f.text),
+        );
       } else if (leaf && o.showLabels && w > 28 && h > capPx * 1.3) {
-        const f = fitText(n.data.name, 400, SANS, capPx, w - 8, 0.6);
-        labels.append(s('text', { x: n.x0 + 4, y: n.y0 + 3 + 0.9 * f.size, 'font-size': f.size, fill: ink }, f.text));
+        const f = fitText(n.data.name, LS.weight, SANS, LS.px, w - 8, 0.6);
+        labels.append(s('text', { x: n.x0 + 4, y: n.y0 + 3 + 0.9 * f.size, 'font-size': f.size, fill: ink, ...LS.attrs }, f.text));
         if (o.showValues && h > capPx * 2.7)
           labels.append(
             s(

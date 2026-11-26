@@ -64,7 +64,9 @@ test('dernier onglet fermé : retour à l’accueil', async ({ page }) => {
   await openApp(page, 'default');
   await page.locator('.fs-tab-x').click();
   await expect(page.locator('.fs-home')).toBeVisible();
-  await expect(page.locator('.fs-home .fh-grid').first().locator('.fh-card')).toHaveCount(1); // une factsheet vierge remplace l'onglet fermé
+  await expect(page.locator('.fs-tab')).toHaveCount(0); // tout est fermé : aucun onglet, l'accueil ne se referme pas
+  await expect(page.locator('.fs-home h2', { hasText: /^Open$/ })).toHaveCount(0);
+  await expect(page.locator('.fs-home .fh-close')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 

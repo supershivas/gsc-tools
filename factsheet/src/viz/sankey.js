@@ -3,6 +3,7 @@ import { sankey, sankeyJustify, sankeyLeft, sankeyRight, sankeyCenter } from 'd3
 import { VIZ } from '../tokens.js';
 import { s, SW, STROKE_K, strokeAttrs, colorRef, pxOf, fmt, mw, SANS, fitText, heightOf, autoColor, inkOn, typeIn } from './util.js';
 import { t } from '../i18n.js';
+import { allLabels, LABEL_FIELDS } from './labelstyle.js';
 
 const LINK_OPACITY = { light: 0.2, normal: 0.4, strong: 0.65 }; // opacité des flux (audit des options, lot 5a : `def` du champ, 0,4 d'origine)
 const ALIGN = { justify: sankeyJustify, left: sankeyLeft, right: sankeyRight, center: sankeyCenter };
@@ -32,6 +33,7 @@ export default {
   }),
   heights: ['ratio', 'fixed', 'fill'],
   fields: [
+    ...LABEL_FIELDS(),
     {
       k: 'ratio',
       t: 'select',
@@ -99,6 +101,7 @@ export default {
   render(o, W, env) {
     const T = typeIn(env); // styles du document (menu Texte)
     const capPx = pxOf(T.caption.size),
+      LS = allLabels(o, capPx, 400), // style de tous les libellés (carte Textes)
       numPx = pxOf(T.captionNum.size),
       suffix = o.suffix || '';
     const H = heightOf(o, W, env, null, '16:9');
@@ -138,7 +141,7 @@ export default {
     const wOf = (side) =>
       Math.min(
         W * 0.28,
-        Math.max(0, ...g.nodes.filter((n) => n.layer === side).map((n) => mw(lab(n.name, n.value), 400, SANS, capPx))) + 6,
+        Math.max(0, ...g.nodes.filter((n) => n.layer === side).map((n) => mw(lab(n.name, n.value), LS.weight, SANS, LS.px))) + 6,
       );
     const ml = wOf(0),
       mr = maxLayer ? wOf(maxLayer) : 0;
@@ -184,7 +187,7 @@ export default {
       );
       const left = n.layer === 0 && maxLayer > 0 ? true : n.layer === maxLayer ? false : n.x0 < W / 2 ? false : true;
       const avail = left ? n.x0 - 6 : n.layer === maxLayer ? W - n.x1 - 6 : Math.max(40, (W - n.x1) * 0.9);
-      const f = fitText(lab(n.name, n.value), 400, SANS, capPx, Math.max(30, avail), 0.7);
+      const f = fitText(lab(n.name, n.value), LS.weight, SANS, LS.px, Math.max(30, avail), 0.7);
       textG.append(
         s(
           'text',
@@ -193,6 +196,7 @@ export default {
             y: (n.y0 + n.y1) / 2 + 0.33 * f.size,
             'text-anchor': left ? 'end' : 'start',
             'font-size': f.size,
+            ...LS.attrs,
             style: { paintOrder: 'stroke', stroke: '#fff', strokeWidth: '3px', strokeLinejoin: 'round' },
           },
           f.text,

@@ -33,10 +33,9 @@ import {
   labelW,
   labelLh,
   drawLabel,
-  richLines,
-  drawRich,
   stripMk,
 } from './util.js';
+import { styleOf, needsRich, styledLines, styledW, drawStyled, tagText, LABEL_FIELDS } from './labelstyle.js';
 import { iconNode, iconImportPanel } from './picto.js';
 import { axesFields, refFields } from './axes.js';
 import { t } from '../i18n.js';
@@ -47,17 +46,6 @@ const ORIGIN = { grid: false, gridStyle: 'solid', gridTone: 'light', axisValues:
 /** Largeur des libellés (`nameWidth`) : `auto` = largeur du plus long, 40 % au plus ; sinon part de la largeur, icône comprise */
 const NAME_W = [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70];
 const NAME_W_OPTIONS = { auto: 'Auto', ...Object.fromEntries(NAME_W.map((p) => [p, p + ' %'])) };
-
-/** Libellé mis en forme : balisage (**gras**, ~~italique~~, {c:clé|…}…) ou style des libellés (`names` : taille, gras, italique, couleur) */
-const MK = /\*\*|__|~~|\^\^|,,|\{[a-z]+(?::[^|{}]*)?\|/;
-const namesOn = (n) => !!(n && (+n.size > 0 || n.bold || n.italic || n.color));
-/** texte du libellé avec le style des libellés posé autour (italique, couleur), pour richLines */
-const styledLabel = (text, n) => {
-  let x = String(text || '');
-  if (n && n.italic) x = '~~' + x + '~~';
-  if (n && n.color) x = `{c:${n.color}|${x}}`;
-  return x;
-};
 
 const hPath = (x, y, w, h, r) => {
   r = Math.max(0, Math.min(r, h / 2, w));
@@ -151,50 +139,7 @@ export default {
       when: (o) => !o.labelIn,
       why: 'Désactivez « Libellés dans les barres » pour régler leur largeur.',
     },
-    {
-      k: 'names.size',
-      g: 'texts',
-      s: 'rownames',
-      t: 'number',
-      label: 'Taille des libellés (pt)',
-      min: 5,
-      max: 28,
-      step: 0.5,
-      def: 0,
-      when: (o) => !o.labelIn,
-      why: 'Désactivez « Libellés dans les barres » pour mettre en forme les libellés.',
-    },
-    {
-      k: 'names.bold',
-      g: 'texts',
-      s: 'rownames',
-      t: 'bool',
-      label: 'Libellés en gras',
-      def: false,
-      when: (o) => !o.labelIn,
-      why: 'Désactivez « Libellés dans les barres » pour mettre en forme les libellés.',
-    },
-    {
-      k: 'names.italic',
-      g: 'texts',
-      s: 'rownames',
-      t: 'bool',
-      label: 'Libellés en italique',
-      def: false,
-      when: (o) => !o.labelIn,
-      why: 'Désactivez « Libellés dans les barres » pour mettre en forme les libellés.',
-    },
-    {
-      k: 'names.color',
-      g: 'texts',
-      s: 'rownames',
-      t: 'color',
-      autoLabel: 'Couleur du texte',
-      label: 'Couleur des libellés',
-      def: '',
-      when: (o) => !o.labelIn,
-      why: 'Désactivez « Libellés dans les barres » pour mettre en forme les libellés.',
-    },
+    ...LABEL_FIELDS({ when: (o) => !o.labelIn, why: 'Désactivez « Libellés dans les barres » pour mettre en forme les libellés.' }),
     {
       k: 'valuesIn',
       g: 'labels',
@@ -278,32 +223,30 @@ export default {
       suffix = o.suffix || '';
     const icW = rows.some((r) => r.icon && r.icon !== 'none') ? 24 + VIZ.iconGap : 0; // icône ou image (drapeau…) à gauche du libellé
     const share = NAME_W.includes(+o.nameWidth) ? +o.nameWidth / 100 : 0;
-    /* style des libellés (carte Textes) ; un libellé mis en forme ou stylé passe par le texte riche */
-    const nm = o.names || {},
-      styled = namesOn(nm),
-      labPx = +nm.size > 0 ? pxOf(+nm.size) : capPx,
-      labLh = labelLh(labPx),
-      richOf = (r) => styled || MK.test(r.label || ''),
-      spec = { size: labPx, lh: labLh, weight: T.caption.weight, bold: !!nm.bold },
-      natW = (r) =>
-        richOf(r)
-          ? Math.max(0, ...richLines(styledLabel(r.label, nm), spec, 1e6).map((l) => l.w))
-          : labelW(r.label, T.caption.weight, capPx);
+    /* style des libellés : tous (carte Textes, `names`) puis chacun (`rows[i].st`, barre au-dessus du libellé cliqué) ; stylé = texte riche */
+    const stOf = rows.map((r) => styleOf(o, r)),
+      richOf = (i) => needsRich(rows[i].label, stOf[i]),
+      natW = (r, i) => (richOf(i) ? styledW(r.label, stOf[i], capPx, T.caption.weight) : labelW(r.label, T.caption.weight, capPx));
     const labW = o.labelIn
       ? icW
       : share
         ? Math.max(icW + VIZ.iconGap + 20, W * share)
         : Math.min(W * 0.4, Math.max(0, ...rows.map(natW)) + VIZ.iconGap) + icW;
     /* libellés à gauche : sur plusieurs lignes s'il le faut (retours saisis, puis largeur), jamais coupés ni réduits */
-    const labMax = Math.max(10, labW - icW - VIZ.iconGap),
-      labLines = rows.map((r) =>
+    const labLh = labelLh(capPx),
+      labMax = Math.max(10, labW - icW - VIZ.iconGap),
+      labLines = rows.map((r, i) =>
         o.labelIn
           ? []
-          : richOf(r)
-            ? richLines(styledLabel(r.label, nm), spec, labMax)
+          : richOf(i)
+            ? styledLines(r.label, stOf[i], capPx, T.caption.weight, labMax)
             : wrapLabel(r.label, T.caption.weight, capPx, labMax),
       ),
-      labH = labLines.map((l, i) => (l.length > 1 || (richOf(rows[i]) && labPx !== capPx) ? l.length * labLh : 0));
+      /* hauteur d'un libellé plus haut qu'une ligne simple (plusieurs lignes, ou corps plus grand) ; 0 = celle des barres */
+      labH = labLines.map((l, i) => {
+        const hh = richOf(i) ? l.reduce((a, x) => a + x.lh, 0) : l.length * labLh;
+        return hh > labLh ? hh : 0;
+      });
     const total = (r) => series.reduce((a, _, j) => a + numVal(r, j), 0);
     const valW =
       o.showValues && !o.valuesIn
@@ -409,8 +352,12 @@ export default {
       const y = rowY[i] + (slots[i] - rh) / 2; // barres centrées sur la hauteur du libellé
       if (r.icon && r.icon !== 'none') svg.append(iconNode(o, r.icon, 0, y + rh / 2 - 12, 24, 24, 'blue', env.rc.icons));
       if (!o.labelIn) {
-        if (richOf(r)) svg.append(drawRich(labLines[i], icW, y + rh / 2 - (labLines[i].length * labLh) / 2));
-        else drawLabel(svg, labLines[i], icW, y + rh / 2, labLh, capPx, T.caption.weight);
+        if (richOf(i)) svg.append(tagText(drawStyled(labLines[i], icW, y + rh / 2), env, `rows.${i}`));
+        else {
+          const g = s('g');
+          drawLabel(g, labLines[i], icW, y + rh / 2, labLh, capPx, T.caption.weight);
+          svg.append(tagText(g, env, `rows.${i}`));
+        }
       }
       let end = x0,
         inside = false;

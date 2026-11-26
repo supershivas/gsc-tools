@@ -29,6 +29,7 @@ import {
 } from './util.js';
 import { axesFields, axisTitleFields, refFields } from './axes.js';
 import { t } from '../i18n.js';
+import { labelNode, LABEL_FIELDS, itemTexts } from './labelstyle.js';
 
 /** Valeurs d'origine des traits et des points (aspect d'avant les réglages : trait 0,5 pt, un point rond par valeur, segments droits) */
 const LOOK = { lineWidth: 'thin', points: 'all', pointSize: 'medium', curve: 'linear', area: false };
@@ -124,7 +125,9 @@ export default {
     ],
   }),
   heights: ['ratio', 'fixed', 'fill'],
+  textItems: itemTexts(),
   fields: [
+    ...LABEL_FIELDS(),
     {
       k: 'ratio',
       t: 'select',
@@ -338,9 +341,9 @@ export default {
       }),
     );
     rows.forEach((r, i) => {
-      const f = fitText(r.label || '', T.caption.weight, SANS, capPx, slot - 3, 0.6);
-      svg.append(
-        s(
+      const plain = () => {
+        const f = fitText(r.label || '', T.caption.weight, SANS, capPx, slot - 3, 0.6);
+        return s(
           'text',
           {
             x: xOf(i),
@@ -350,7 +353,23 @@ export default {
             'font-weight': T.caption.weight,
           },
           f.text,
-        ),
+        );
+      };
+      svg.append(
+        labelNode({
+          env,
+          o,
+          item: r,
+          path: `rows.${i}`,
+          text: r.label,
+          x: xOf(i),
+          yMid: baseY + VIZ.catH / 2 + 1,
+          maxW: slot - 3,
+          anchor: 'middle',
+          basePx: capPx,
+          weight: T.caption.weight,
+          plain,
+        }),
       );
     });
     if (atEnd) {

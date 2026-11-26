@@ -11,6 +11,8 @@ import { newHistState } from './history.js';
      et défilement de l'aperçu.
    - « Modifié depuis le dernier export (.json) » : l'instantané courant de l'historique diffère de `cleanSnap`, celui du dernier
      export ou de l'ouverture (annuler jusqu'à l'état exporté efface donc l'indicateur). `dirtyInit` : état relu au lancement.
+   Tous les onglets fermés : un onglet fantôme (`ghost`, document vierge) reste actif pour que `ctx.getDoc()` réponde toujours ;
+   il n'est ni affiché, ni enregistré, ni exporté, et l'accueil reste ouvert par-dessus (`ws.empty()`). Ouvrir ou créer un document le retire.
    Les modules de l'éditeur ne gardent aucune référence au document : ils lisent `ctx.getDoc()` / `ctx.tab()` à chaque appel.
    Brouillons : chaque modification écrit le document dans IndexedDB (src/wsstore.js, anti-rebond `SAVE_DELAY`) et le miroir
    `factsheet-creator-v1` (document actif). Sans IndexedDB : onglets en mémoire, seul le document actif est gardé (miroir). */
@@ -37,6 +39,9 @@ export async function loadWorkspace() {
   const mirrorText = store.readMirrorText();
   try {
     const { meta, tabs } = await store.readWorkspace();
+    /* tous les onglets fermés à la dernière session : aucun document ouvert, l'accueil s'affiche */
+    if (meta && !tabs.length && Array.isArray(meta.order) && !meta.order.length)
+      return { persistent: true, records: [], active: null, views: {}, write: [] };
     if (meta && tabs.length) {
       const active = tabs.find((x) => x.id === meta.active) || tabs[0];
       /* le miroir a changé hors de l'éditeur (Atelier, ancienne version de l'app, session sans IndexedDB) : l'onglet actif l'adopte */
@@ -96,6 +101,8 @@ export function createWorkspace(ctx, init, { onSwitch, onStatus, onEmpty }) {
       dirtyInit: dirty,
     };
   };
+  const makeGhost = () => Object.assign(makeTab(uid('t'), blankDoc()), { ghost: true });
+  const real = () => tabs.filter((x) => !x.ghost);
   for (const r of init.records) {
     let doc;
     try {
@@ -106,7 +113,7 @@ export function createWorkspace(ctx, init, { onSwitch, onStatus, onEmpty }) {
     const v = init.views[r.id] || {};
     tabs.push(makeTab(r.id, doc, { dirty: !!r.dirty, view: v, sel: v.sel || null, collapsed: v.collapsed || [] }));
   }
-  if (!tabs.length) tabs.push(makeTab(uid('t'), newDefaultDoc()));
+  if (!tabs.length) tabs.push(init.records.length ? makeTab(uid('t'), newDefaultDoc()) : makeGhost());
   activeId = (tabs.find((x) => x.id === init.active) || tabs[0]).id;
 
   const get = (id) => tabs.find((x) => x.id === id) || null;
@@ -124,11 +131,11 @@ export function createWorkspace(ctx, init, { onSwitch, onStatus, onEmpty }) {
   /* ----- enregistrement ----- */
   const metaRecord = () => ({
     schemaVersion: store.WS_SCHEMA,
-    order: tabs.map((x) => x.id),
-    active: activeId,
+    order: real().map((x) => x.id),
+    active: active() && active().ghost ? null : activeId,
     legacySig,
     views: Object.fromEntries(
-      tabs.map((x) => [x.id, { sel: x.sel, zoom: x.view.zoom, spacing: x.view.spacing, collapsed: [...x.collapsed] }]),
+      real().map((x) => [x.id, { sel: x.sel, zoom: x.view.zoom, spacing: x.view.spacing, collapsed: [...x.collapsed] }]),
     ),
   });
   const tabRecord = (tab) => ({
@@ -149,7 +156,10 @@ export function createWorkspace(ctx, init, { onSwitch, onStatus, onEmpty }) {
     clearTimeout(timer);
     timer = 0;
     if (!init.persistent) return;
-    const put = [...pending].map(get).filter(Boolean).map(tabRecord);
+    const put = [...pending]
+      .map(get)
+      .filter((x) => x && !x.ghost)
+      .map(tabRecord);
     pending.clear();
     try {
       await store.writeWorkspace({ put, remove: removed, meta: metaRecord() });
@@ -165,6 +175,7 @@ export function createWorkspace(ctx, init, { onSwitch, onStatus, onEmpty }) {
   };
   /* miroir du document actif : écrit tout de suite (comme avant les onglets) */
   function mirror() {
+    if (active().ghost) return; // aucun document ouvert : le miroir garde le dernier
     const m = store.writeMirror(active().doc);
     legacySig = m.sig;
     if (!init.persistent) setOk(m.ok);
@@ -189,7 +200,12 @@ export function createWorkspace(ctx, init, { onSwitch, onStatus, onEmpty }) {
 
   const ws = {
     persistent: init.persistent,
-    tabs,
+    /** onglets affichés (sans l'onglet fantôme) */
+    get tabs() {
+      return real();
+    },
+    /** aucun document ouvert (tous les onglets fermés) */
+    empty: () => !!active().ghost,
     get,
     active,
     nameOf,
@@ -230,17 +246,19 @@ export function createWorkspace(ctx, init, { onSwitch, onStatus, onEmpty }) {
     add(doc, { clean = true } = {}) {
       if (ws.busy()) return null;
       const tab = makeTab(uid('t'), doc, { dirty: !clean });
-      const i = tabs.indexOf(active());
+      const prev = active(),
+        i = tabs.indexOf(prev);
       tabs.splice(i + 1, 0, tab);
       pending.add(tab.id);
       switchTo(tab.id);
+      if (prev.ghost) tabs.splice(tabs.indexOf(prev), 1); // premier document après « tout fermé » : le fantôme disparaît
       return tab;
     },
     newBlank: () => ws.add(blankDoc()),
-    /** ferme un onglet (confirmation s'il est modifié depuis le dernier export) ; le dernier onglet fermé laisse place à une factsheet vierge */
+    /** ferme un onglet (confirmation s'il est modifié depuis le dernier export) ; le dernier onglet fermé laisse place à l'accueil (onglet fantôme) */
     async close(id = activeId) {
       const tab = get(id);
-      if (!tab || ws.busy()) return false;
+      if (!tab || tab.ghost || ws.busy()) return false;
       if (
         isDirty(tab) &&
         !(await confirmBox(
@@ -253,9 +271,7 @@ export function createWorkspace(ctx, init, { onSwitch, onStatus, onEmpty }) {
       if (i < 0) return false;
       const last = tabs.length === 1;
       if (last) {
-        const fresh = makeTab(uid('t'), blankDoc());
-        tabs.push(fresh);
-        pending.add(fresh.id);
+        tabs.push(makeGhost());
       }
       const wasActive = id === activeId;
       tabs.splice(i, 1);
@@ -370,7 +386,7 @@ export function createWorkspace(ctx, init, { onSwitch, onStatus, onEmpty }) {
       return {
         schemaVersion: store.WS_SCHEMA,
         active: activeId,
-        tabs: tabs.map((x) => ({ id: x.id, name: x.doc.name || '', dirty: isDirty(x), doc: x.doc })),
+        tabs: real().map((x) => ({ id: x.id, name: x.doc.name || '', dirty: isDirty(x), doc: x.doc })),
       };
     },
   };

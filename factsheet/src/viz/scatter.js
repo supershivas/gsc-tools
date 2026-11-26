@@ -26,6 +26,7 @@ import {
 } from './util.js';
 import { axesFields, axisTitleFields, refFieldsXY } from './axes.js';
 import { t } from '../i18n.js';
+import { labelNode, LABEL_FIELDS, itemTexts } from './labelstyle.js';
 
 /** Aspect d'origine de la carte « Axes et grille » (nuage d'avant la carte : lignes horizontales en pointillé, valeurs et axes affichés) */
 const ORIGIN = { grid: 'h', gridStyle: 'dotted', gridTone: 'normal', axisValues: true, baseline: true };
@@ -71,7 +72,9 @@ export default {
     ].map(([label, group, x, y, size]) => ({ label, group, x, y, size })),
   }),
   heights: ['ratio', 'fixed', 'fill'],
+  textItems: itemTexts('rows', 'label', 'Point'),
   fields: [
+    ...LABEL_FIELDS({ when: (o) => !!o.showLabels, why: 'Activez « Afficher le nom des points » pour les mettre en forme.' }),
     {
       k: 'ratio',
       t: 'select',
@@ -132,7 +135,7 @@ export default {
   render(o, W, env) {
     const T = typeIn(env); // styles du document (menu Texte)
     const pts = (o.rows || [])
-      .map((r) => ({ ...r, x: +r.x, y: +r.y, size: +r.size || 0, group: String(r.group || '').trim() }))
+      .map((r, i) => ({ ...r, ri: i, x: +r.x, y: +r.y, size: +r.size || 0, group: String(r.group || '').trim() }))
       .filter((r) => isFinite(r.x) && isFinite(r.y));
     const groups = [...new Set(pts.map((p) => p.group))],
       capPx = pxOf(T.caption.size),
@@ -254,21 +257,35 @@ export default {
             'stroke-width': SW,
           }),
         );
-        if (o.showLabels && p.label) {
-          const ft = fitText(p.label, 400, SANS, capPx, 90, 0.7);
+        if (o.showLabels && p.label)
           labs.append(
-            s(
-              'text',
-              {
-                x: cx + r + 3,
-                y: cy + 0.33 * ft.size,
-                'font-size': ft.size,
-                style: { paintOrder: 'stroke', stroke: '#fff', strokeWidth: '3px', strokeLinejoin: 'round' },
+            labelNode({
+              env,
+              o,
+              item: o.rows[p.ri],
+              path: `rows.${p.ri}`,
+              text: p.label,
+              x: cx + r + 3,
+              yMid: cy,
+              maxW: 90,
+              basePx: capPx,
+              weight: 400,
+              minK: 0.7,
+              plain: () => {
+                const ft = fitText(p.label, 400, SANS, capPx, 90, 0.7);
+                return s(
+                  'text',
+                  {
+                    x: cx + r + 3,
+                    y: cy + 0.33 * ft.size,
+                    'font-size': ft.size,
+                    style: { paintOrder: 'stroke', stroke: '#fff', strokeWidth: '3px', strokeLinejoin: 'round' },
+                  },
+                  ft.text,
+                );
               },
-              ft.text,
-            ),
+            }),
           );
-        }
       });
     svg.append(dots, labs);
     if (LG) drawLegendWrap(svg, LG, H - LG.h);

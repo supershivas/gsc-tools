@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.144.0 — 2026-11-26
+- Factsheet creator : on peut fermer tous les onglets, l'accueil reste alors affiché (aussi au prochain lancement)
+- Dataviz : clic sur un libellé dans l'aperçu = barre de mise en forme (gras, italique, souligné, taille, couleur) pour ce libellé seul
+- Style de tous les libellés dans la carte Textes, pour les barres, courbes, pictogrammes, nuages de points et graphiques hiérarchiques
+
 ## 1.143.0 — 2026-11-26
 - Dataviz : une seule carte « Textes » réunit le titre, la source et les libellés, chacun en champ simple ou en texte riche
 - Barres horizontales : taille, gras, italique et couleur des libellés

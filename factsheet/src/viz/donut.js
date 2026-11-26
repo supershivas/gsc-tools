@@ -21,6 +21,7 @@ import {
   stripMk,
 } from './util.js';
 import { t } from '../i18n.js';
+import { itemTexts } from './labelstyle.js';
 
 const LEAD = { tight: 15, normal: 18, loose: 21 }; // interlignage des textes (px) : « normal » = 18, un peu plus serré que le corps de texte (21)
 const rad = (d) => (d * Math.PI) / 180;
@@ -232,6 +233,10 @@ const DONUT = {
   family: 'part',
   boxed: true,
   heights: ['auto', 'fixed', 'fill'],
+  textItems: itemTexts('segments', [
+    ['title', 'Titre'],
+    ['text', 'Texte'],
+  ]),
   /* aspect d'avant les libellés à 10 pt (fiches existantes, fiche par défaut, documents de test : `withAxesOrigin`) ; les nouveaux anneaux
      ont des libellés en Texte petit (10 pt, comme un bloc de texte un peu plus présent que les axes des graphiques) et un total en Chiffre clé petit */
   origin: { labelTitle: 'bold', labelText: 'body', totalStyle: 'figure' },

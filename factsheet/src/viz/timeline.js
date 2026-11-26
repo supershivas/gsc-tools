@@ -3,6 +3,7 @@
 import { VIZ } from '../tokens.js';
 import { reorderHit, s, SW, colorRef, pxOf, fmt, mw, SANS, SERIF, textLines, drawLines, heightOf, typeIn } from './util.js';
 import { t } from '../i18n.js';
+import { itemTexts } from './labelstyle.js';
 
 /** Valeurs d'origine : trait 0,5 pt, repères de 5 px de rayon */
 const LOOK = { lineWidth: 'thin', markSize: 'medium' };
@@ -14,6 +15,10 @@ export default {
   icon: 'timeline',
   family: 'trend',
   heights: ['auto', 'fixed', 'fill'],
+  textItems: itemTexts('rows', [
+    ['title', 'Titre'],
+    ['text', 'Texte'],
+  ]),
   defaults: () => ({
     orientation: 'vertical',
     alternate: false,

@@ -126,6 +126,9 @@ export function createHome({ ctx, ws, project }) {
     close();
     fn();
   };
+  /* sans document ouvert (tous les onglets fermés), l'accueil ne se ferme pas à vide : « Ouvrir… » le garde ouvert tant qu'aucun
+     fichier n'est lu (le changement d'onglet le referme), et il revient après la dataviz seule (vizsolo.js) */
+  const keep = (fn) => () => (ws.empty() ? fn() : go(fn)());
 
   function build() {
     const act = ws.active(),
@@ -216,22 +219,25 @@ export function createHome({ ctx, ws, project }) {
               ico('chart-bar'),
               h('span', { textContent: t('Nouvelle dataviz') }),
             ),
-            h('button', { type: 'button', onclick: go(project.open) }, ico('folder-open'), h('span', { textContent: t('Ouvrir…') })),
-            h(
-              'button',
-              {
-                type: 'button',
-                class: 'fh-close',
-                title: t('Fermer l’accueil (Échap)'),
-                'aria-label': t('Fermer l’accueil'),
-                onclick: close,
-              },
-              ico('x'),
-            ),
+            h('button', { type: 'button', onclick: keep(project.open) }, ico('folder-open'), h('span', { textContent: t('Ouvrir…') })),
+            ws.empty()
+              ? null
+              : h(
+                  'button',
+                  {
+                    type: 'button',
+                    class: 'fh-close',
+                    title: t('Fermer l’accueil (Échap)'),
+                    'aria-label': t('Fermer l’accueil'),
+                    onclick: close,
+                  },
+                  ico('x'),
+                ),
           ),
         ),
-        h('h2', { textContent: t('Ouverts') }),
-        h('div', { class: 'fh-grid' }, ...open),
+        open.length
+          ? [h('h2', { textContent: t('Ouverts') }), h('div', { class: 'fh-grid' }, ...open)]
+          : h('p', { class: 'fh-note', textContent: t('Aucun document ouvert : créez ou ouvrez un projet.') }),
         saved.length ? [h('h2', { textContent: t('Enregistrés dans ce navigateur') }), h('div', { class: 'fh-grid' }, ...saved)] : null,
         rec.length || vizCard
           ? [h('h2', { textContent: t('Récents (copies locales)') }), h('div', { class: 'fh-grid' }, ...(vizCard ? [vizCard] : []), ...rec)]
@@ -246,7 +252,7 @@ export function createHome({ ctx, ws, project }) {
   }
 
   const onKey = (e) => {
-    if (e.key !== 'Escape' || !root || document.querySelector('dialog[open]')) return;
+    if (e.key !== 'Escape' || !root || document.querySelector('dialog[open]') || ws.empty()) return;
     e.preventDefault();
     e.stopPropagation();
     close();

@@ -136,10 +136,11 @@ test('fermer un onglet modifié demande confirmation ; un onglet non modifié se
   await page.keyboard.press('Alt+w');
   await expect(page.locator('dialog[open]')).toHaveCount(0);
   await expect(tabs(page)).toHaveCount(1);
-  // le dernier onglet fermé laisse une factsheet vierge
+  // le dernier onglet fermé : plus aucun onglet, l'accueil s'affiche, rien n'est enregistré pour le fantôme
   await page.keyboard.press('Alt+w');
-  await expect(tabs(page)).toHaveCount(1);
-  expect((await docOfActive(page)).sections.length).toBe(1);
+  await expect(tabs(page)).toHaveCount(0);
+  await expect(page.locator('.fs-home')).toBeVisible();
+  await drafted(page, (db) => db.tabs.length).toBe(0);
   expect(errors).toEqual([]);
 });
 

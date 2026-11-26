@@ -3,6 +3,7 @@
 import { VIZ } from '../tokens.js';
 import { s, colorRef, pxOf, fmt, SANS, layoutLegend, drawLegendWrap, fitText, autoColor, round3, typeIn } from './util.js';
 import { t } from '../i18n.js';
+import { allLabels, LABEL_FIELDS } from './labelstyle.js';
 
 const SQ3 = Math.sqrt(3);
 /** diamètre d'un point en part de la case du réseau hexagonal ; « Normaux » = 86 %, la taille d'avant */
@@ -48,6 +49,7 @@ export default {
     ].map(([group, answer, count]) => ({ group, answer, count, color: '' })),
   }),
   fields: [
+    ...LABEL_FIELDS({ when: (o) => !!o.groupLabels, why: 'Activez les noms des groupes pour les mettre en forme.' }),
     { k: 'perDot', g: 'struct', t: 'number', label: 'Répondants par point (0 = automatique)', min: 0, step: 'any' },
     { k: 'perRow', g: 'struct', t: 'number', label: 'Groupes par ligne (0 = automatique)', min: 0, max: 6 },
     {
@@ -111,7 +113,8 @@ export default {
         color: r.color || '',
       }))
       .filter((r) => r.answer && r.count > 0);
-    const capPx = pxOf(T.caption.size);
+    const capPx = pxOf(T.caption.size),
+      LS = allLabels(o, capPx, 700); // style de tous les libellés (noms des groupes, carte Textes)
     const mk = (H) => s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });
     if (!rows.length) {
       const v = mk(60);
@@ -137,7 +140,7 @@ export default {
       Rcell = cw / 2,
       d = Rcell * Math.sqrt((2 * Math.PI) / (SQ3 * nMax)) * 0.97,
       dotR = (d / 2) * (DOT_K[o.dotSize] ?? DOT_K.normal);
-    const nameH = o.groupLabels && groups.some(Boolean) ? Math.ceil(capPx * 1.5) + 6 : 0,
+    const nameH = o.groupLabels && groups.some(Boolean) ? Math.ceil(LS.px * 1.5) + 6 : 0,
       rowsN = Math.ceil(groups.length / per);
     const clusterR = Math.min(Rcell, d * Math.sqrt((nMax * SQ3) / (2 * Math.PI)) + d),
       rowH = nameH + clusterR * 2 + 6;
@@ -165,8 +168,8 @@ export default {
         svg.append(
           s(
             'text',
-            { x: cx, y: y0 + capPx, 'text-anchor': 'middle', 'font-size': capPx, 'font-weight': 700 },
-            fitText(g, 700, SANS, capPx, cw, 0.7).text,
+            { x: cx, y: y0 + LS.px, 'text-anchor': 'middle', 'font-size': LS.px, 'font-weight': 700, ...LS.attrs },
+            fitText(g, 700, SANS, LS.px, cw, 0.7).text,
           ),
         );
       const cy = y0 + nameH + clusterR,

@@ -5,6 +5,7 @@ import { s, SW, colorRef, layoutLegend, drawLegendWrap, typeIn } from './util.js
 import { ICONS, customChoices } from './icons.js';
 import { iconNode } from './picto.js';
 import { t } from '../i18n.js';
+import { itemTexts } from './labelstyle.js';
 
 const MARKS = {
   none: 'Aucun',
@@ -31,6 +32,7 @@ export default {
       { label: t('Autres logements'), value: 86, color: 'white', mark: 'none', markColor: 'yellow' },
     ],
   }),
+  textItems: itemTexts(),
   fields: [
     { k: 'cols', g: 'struct', t: 'number', label: 'Cases par ligne', min: 1, max: 40 },
     { k: 'gridRows', g: 'struct', t: 'number', label: 'Nombre de lignes', min: 1, max: 40 },

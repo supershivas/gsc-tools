@@ -5,6 +5,7 @@ import { reorderHit, s, el, SW, colorRef, pxOf, fmt, SANS, drawLegend, fitText, 
 import { ICONS, customList, customChoices, ctxIcons } from './icons.js';
 import { iconSelect } from '../iconselect.js';
 import { t } from '../i18n.js';
+import { labelNode, LABEL_FIELDS, itemTexts } from './labelstyle.js';
 import { alertBox } from '../dialogs.js';
 
 /* ---------- pictogrammes pleins ---------- */
@@ -286,7 +287,9 @@ function make(variant) {
       ].map(([label, value, color]) => ({ label, value, color })),
     }),
     heights: multi ? ['auto', 'fixed', 'fill'] : ['ratio', 'fixed', 'fill'],
+    textItems: itemTexts(),
     fields: [
+      ...LABEL_FIELDS(),
       {
         k: 'perIcon',
         g: 'struct',
@@ -365,10 +368,26 @@ function make(variant) {
         v.append(s('text', { x: 0, y: capPx, 'font-size': capPx }, t('Aucune donnée')));
         return { node: v };
       }
-      const label = (txt, x, y, maxW, anchor = 'start') => {
-        const f = fitText(txt, T.caption.weight, SANS, capPx, maxW, 0.7);
-        return s('text', { x, y: y + 0.33 * f.size, 'text-anchor': anchor, 'font-size': f.size }, f.text);
-      };
+      /* libellé de la ligne i : style de tous les libellés puis le sien (`rows[i].st`), cliquable dans l'éditeur */
+      const label = (i, x, y, maxW, anchor = 'start') =>
+        labelNode({
+          env,
+          o,
+          item: (o.rows || [])[i],
+          path: `rows.${i}`,
+          text: rows[i].label,
+          x,
+          yMid: y,
+          maxW,
+          anchor,
+          basePx: capPx,
+          weight: T.caption.weight,
+          minK: 0.7,
+          plain: () => {
+            const f = fitText(rows[i].label, T.caption.weight, SANS, capPx, maxW, 0.7);
+            return s('text', { x, y: y + 0.33 * f.size, 'text-anchor': anchor, 'font-size': f.size }, f.text);
+          },
+        });
 
       if (variant === 'rows') {
         const labW = Math.min(W * 0.35, Math.max(0, ...rows.map((r) => mw(r.label, T.caption.weight, SANS, capPx))) + VIZ.iconGap),
@@ -382,10 +401,10 @@ function make(variant) {
         const H = rows.reduce((a, r) => a + rowH(r), 0) + (rows.length - 1) * 9;
         const svg = mk(H);
         let y = 0;
-        for (const r of rows) {
+        for (const [ri, r] of rows.entries()) {
           const n = r.value / per,
             h = rowH(r);
-          svg.append(label(r.label, 0, y + sz / 2, labW - VIZ.iconGap));
+          svg.append(label(ri, 0, y + sz / 2, labW - VIZ.iconGap));
           for (let i = 0; i < Math.ceil(n); i++)
             svg.append(
               partial(
@@ -423,7 +442,7 @@ function make(variant) {
           for (let k = 0; k < Math.ceil(n); k++)
             svg.append(partial(o, o.icon, cx - sz / 2, base - (k + 1) * sz - k * G, sz, sz, r.color, Math.min(1, n - k), 'v', env));
           if (o.showValues) svg.append(valTxt(cx, base - Math.ceil(n) * (sz + G) + G - 3, r.value, 'middle'));
-          svg.append(label(r.label, cx, base + 6 + capPx * 0.6, cw - 4, 'middle'));
+          svg.append(label(i, cx, base + 6 + capPx * 0.6, cw - 4, 'middle'));
           svg.append(reorderHit(env, 'rows', i, 'x', cw * i, 0, cw, H));
         });
         return { node: svg };
@@ -441,7 +460,7 @@ function make(variant) {
             y = top + (box - sz) / 2 + 0;
           svg.append(partial(o, o.icon, cx - sz / 2, y, sz, sz, r.color, r.value / per, 'v', env));
           if (o.showValues) svg.append(valTxt(cx, numPx, r.value, 'middle'));
-          svg.append(label(r.label, cx, top + box + 6 + capPx * 0.6, cw - 4, 'middle'));
+          svg.append(label(i, cx, top + box + 6 + capPx * 0.6, cw - 4, 'middle'));
           svg.append(reorderHit(env, 'rows', i, 'x', cw * i, 0, cw, H));
         });
         return { node: svg };
@@ -455,7 +474,7 @@ function make(variant) {
         svg = mk(H);
       rows.forEach((r, i) => {
         const y = i * (rh + 9) + (rh - sz) / 2;
-        svg.append(label(r.label, 0, i * (rh + 9) + rh / 2, labW - VIZ.iconGap));
+        svg.append(label(i, 0, i * (rh + 9) + rh / 2, labW - VIZ.iconGap));
         svg.append(partial(o, o.icon, labW, y, sz, sz, r.color, r.value / per, 'h', env));
         if (o.showValues) svg.append(valTxt(labW + sz + 6, i * (rh + 9) + rh / 2 + 0.33 * numPx, r.value));
         svg.append(reorderHit(env, 'rows', i, 'y', 0, i * (rh + 9) - 4, W, rh + 8));

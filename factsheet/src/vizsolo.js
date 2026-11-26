@@ -66,6 +66,6 @@ export async function openSoloViz(ctx, { fresh = false } = {}) {
     width,
     ctx,
     fileStem: (x) => soloStem(col.viz)(x),
-    solo: { save: (viz, w) => writeSolo(viz, w) },
+    solo: { save: (viz, w) => writeSolo(viz, w), onClose: () => ctx.workspace && ctx.workspace.empty() && ctx.home && ctx.home.show() }, // aucun document ouvert : retour à l'accueil
   });
 }

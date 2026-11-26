@@ -8,6 +8,7 @@ import { HIER_DATA, hierRows, buildHier, topOf, depthAlpha, lineAttrs, toneAlpha
 /** séparation radiale des anneaux, en px (def : aucune) */
 const RING_GAP = { none: 0, thin: 2, wide: 5 };
 import { t } from '../i18n.js';
+import { allLabels, LABEL_FIELDS } from './labelstyle.js';
 
 const pt = (r, a) => [r * Math.sin(a), -r * Math.cos(a)];
 function arc(a0, a1, r0, r1) {
@@ -36,6 +37,7 @@ export default {
   }),
   heights: ['ratio', 'fixed', 'fill'],
   fields: [
+    ...LABEL_FIELDS(),
     { k: 'ratio', t: 'select', label: 'Format du graphique', options: { '1:1': '1:1 (carré)', '3:2': '3:2', '16:9': '16:9' } },
     LINE_FIELD,
     TONE_FIELD,
@@ -85,6 +87,7 @@ export default {
     const T = typeIn(env); // styles du document (menu Texte)
     const { root, tops } = buildHier(o.rows),
       capPx = pxOf(T.caption.size),
+      LS = allLabels(o, capPx, 400), // style de tous les libellés (carte Textes)
       LG = o.legend
         ? layoutLegend(
             buildHier(o.rows).tops.map((x) => ({ name: x.name, color: x.color })),
@@ -128,8 +131,8 @@ export default {
           arcLen = (n.x1 - n.x0) * rm,
           name = n.data.name;
         if (arcLen < 14 || ring < 14) continue;
-        const f = fitText(name, 400, SANS, capPx, Math.min(ring * 1.5, arcLen - 6), 0.62);
-        if (f.text !== name || mw(f.text, 400, SANS, f.size) > arcLen - 4) continue;
+        const f = fitText(name, LS.weight, SANS, LS.px, Math.min(ring * 1.5, arcLen - 6), 0.62);
+        if (f.text !== name || mw(f.text, LS.weight, SANS, f.size) > arcLen - 4) continue;
         const [x, y] = pt(rm, mid);
         labels.append(
           s(
@@ -140,6 +143,7 @@ export default {
               'text-anchor': 'middle',
               'font-size': f.size,
               fill: inkOn(env, key, a),
+              ...LS.attrs,
               style: { pointerEvents: 'none' },
             },
             f.text,

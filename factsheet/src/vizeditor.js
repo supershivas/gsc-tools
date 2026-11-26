@@ -21,6 +21,7 @@ import { gridEditor, tableAdapter, recordsAdapter } from './vizdata.js';
 import { t } from './i18n.js';
 import { openVizExport } from './vizexport.js';
 import { CARDS, groupOf, fieldsOf, subsections, SUBS } from './vizgroups.js';
+import { styleOf } from './viz/labelstyle.js';
 
 const W_MIN = 40,
   W_MAX = 4000; // largeur libre de l'aperçu, en px CSS
@@ -137,6 +138,8 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
   /* une modification de la dataviz : historique du document (colonne) ou enregistrement de la dataviz seule */
   const touch = () => (solo ? solo.save(col.viz, width) : ctx.changed());
   const ui = { sel: -1, drag: null };
+  const textBoxes = new Map(); // élément → son champ dans la carte Textes
+  let textSel = null; // libellé choisi dans l'aperçu (chemin `data-text`), barre de mise en forme ouverte
   let width = baseW,
     zoom = 'fit',
     meta = null,
@@ -230,6 +233,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
       svgW = width;
     }
     hiliteSel();
+    if (textSel) buildTbar(); // libellé choisi : sa barre suit le nouveau dessin
     if (miniHold.isConnected) drawMini();
     const t = VIZ_TYPES[col.viz.kind];
     const hintMsg =
@@ -668,6 +672,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
         );
       };
       const items = ty.textItems ? ty.textItems(col.viz.opts) : [];
+      textBoxes.clear();
       const textNodes = [
         sub('Titre et source', [
           softField(head, 'title', 'Titre de la dataviz', {}),
@@ -676,7 +681,11 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
         ]),
       ];
       {
-        const labs = items.map((it) => softField(it.obj, it.k, it.label, { bullets: false })),
+        const labs = items.map((it) => {
+            const box = softField(it.obj, it.k, it.label, { bullets: false });
+            if (!textBoxes.has(it.obj)) textBoxes.set(it.obj, box); // « Modifier le texte » de la barre du libellé
+            return box;
+          }),
           fmtNodes = F('texts').length ? cardNodes('texts').filter(Boolean) : [];
         // réglages en sous-sections (cartes denses) : gardent leurs titres ; sinon rangés avec les libellés
         if (fmtNodes.some((n) => n.classList.contains('pp-subgroup')))
@@ -885,13 +894,199 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
       },
     });
   };
+  /* ----- barre de mise en forme d'un libellé : clic sur un libellé de l'aperçu (`data-text` = chemin de l'élément) ----- 
+     Le style posé ici (`item.st`) ne vaut que pour ce libellé ; une clé égale au réglage de tous les libellés (carte Textes, `names`)
+     est retirée, pour que le libellé continue de suivre la carte. */
+  const tbar = h('div', { class: 'vt-bar', role: 'toolbar', 'aria-label': t('Mise en forme du libellé'), hidden: true }),
+    tring = h('div', { class: 'vt-ring', hidden: true });
+  root.append(tring, tbar);
+  const textNode = () => (textSel ? holder.querySelector(`[data-text="${textSel}"]`) : null);
+  const textItem = () => (textSel ? getPath(col.viz.opts, textSel.split('.')) : null);
+  const basePt = () => {
+    const ty = renderCtx(doc).forType('viz').type;
+    return +((ty && ty.caption && ty.caption.size) || 9);
+  };
+  function closeTbar() {
+    textSel = null;
+    tbar.hidden = true;
+    tring.hidden = true;
+    document.querySelectorAll('.cpop').forEach((n) => n.remove());
+  }
+  function setSt(k, v) {
+    const it = textItem();
+    if (!it) return;
+    const all = (col.viz.opts.names || {})[k],
+      st = it.st || {};
+    if ((v || undefined) === (all || undefined) || v === undefined) delete st[k];
+    else st[k] = v;
+    if (Object.keys(st).length) it.st = st;
+    else delete it.st;
+    fctx.changed();
+  }
+  function placeTbar() {
+    const n = textNode();
+    if (!n || tab !== 'viz') {
+      if (textSel && !n) closeTbar();
+      else {
+        tbar.hidden = true;
+        tring.hidden = true;
+      }
+      return;
+    }
+    const r = n.getBoundingClientRect(),
+      sr = stage.getBoundingClientRect();
+    Object.assign(tring.style, { left: r.left - 3 + 'px', top: r.top - 3 + 'px', width: r.width + 6 + 'px', height: r.height + 6 + 'px' });
+    tring.hidden = false;
+    tbar.hidden = false;
+    const b = tbar.getBoundingClientRect();
+    let top = r.top - b.height - 10;
+    if (top < sr.top + 4) top = r.bottom + 10; // pas de place au-dessus : en dessous
+    Object.assign(tbar.style, {
+      left: Math.max(sr.left + 4, Math.min(sr.right - b.width - 4, r.left + r.width / 2 - b.width / 2)) + 'px',
+      top: top + 'px',
+    });
+  }
+  function buildTbar() {
+    const it = textItem();
+    if (!it) return closeTbar();
+    const eff = styleOf(col.viz.opts, it),
+      own = it.st || {};
+    const tog = (k, icon, label) =>
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'vt-b' + (eff[k] ? ' on' : ''),
+          title: t(label),
+          'aria-label': t(label),
+          'aria-pressed': String(!!eff[k]),
+          onclick: () => setSt(k, !eff[k]),
+        },
+        ico(icon),
+      );
+    const cur = +eff.size || basePt();
+    const size = h('input', {
+      type: 'number',
+      class: 'vt-size',
+      min: 5,
+      max: 28,
+      step: 0.5,
+      value: eff.size ? String(eff.size) : '',
+      placeholder: String(basePt()),
+      title: t('Taille (pt)'),
+      'aria-label': t('Taille (pt)'),
+      onchange: (e) => {
+        const v = parseFloat(e.target.value);
+        setSt('size', isFinite(v) && v > 0 ? Math.max(5, Math.min(28, v)) : undefined);
+      },
+    });
+    const step = (d, icon, label) =>
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'vt-b',
+          title: t(label),
+          'aria-label': t(label),
+          onclick: () => setSt('size', Math.max(5, Math.min(28, Math.round((cur + d) * 2) / 2))),
+        },
+        ico(icon),
+      );
+    const colorBtn = h(
+      'button',
+      {
+        type: 'button',
+        class: 'vt-b vt-color',
+        title: t('Couleur du libellé'),
+        'aria-label': t('Couleur du libellé'),
+        onclick: (e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          openColorPop(root, r.left - 8, r.bottom - 4, eff.color || '', paletteOptions(doc), {
+            series: false,
+            onPick: (key) => setSt('color', key),
+          });
+        },
+      },
+      h('i', { class: 'cs-dot' + (eff.color ? '' : ' auto'), style: eff.color ? { background: `var(--c-${eff.color})` } : {} }),
+    );
+    const sep = () => h('span', { class: 'vt-sep', 'aria-hidden': 'true' });
+    tbar.replaceChildren(
+      tog('bold', 'bold', 'Gras'),
+      tog('italic', 'italic', 'Italique'),
+      tog('underline', 'underline', 'Souligné'),
+      sep(),
+      step(-0.5, 'minus', 'Réduire la taille'),
+      size,
+      step(0.5, 'plus', 'Agrandir la taille'),
+      sep(),
+      colorBtn,
+      sep(),
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'vt-b',
+          title: t('Modifier le texte'),
+          'aria-label': t('Modifier le texte'),
+          onclick: () => {
+            const acc = (accs[col.viz.kind] ||= { cur: null, first: null });
+            acc.cur = 'dv-head';
+            shut.delete('dv-head');
+            buildForm();
+            const box = textBoxes.get(it);
+            if (box) {
+              box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+              const f = box.querySelector('input, [contenteditable="true"], textarea');
+              if (f) f.focus();
+            }
+          },
+        },
+        ico('pencil'),
+      ),
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'vt-b',
+          title: t('Style de tous les libellés (carte Textes)'),
+          'aria-label': t('Style de tous les libellés (carte Textes)'),
+          'aria-disabled': String(!Object.keys(own).length),
+          onclick: () => {
+            if (!it.st) return;
+            delete it.st;
+            fctx.changed();
+          },
+        },
+        ico('rotate-2'),
+      ),
+      h('button', { type: 'button', class: 'vt-b', title: t('Fermer (Échap)'), 'aria-label': t('Fermer'), onclick: closeTbar }, ico('x')),
+    );
+    placeTbar();
+  }
+  /** clic dans l'aperçu : un libellé ouvre sa barre de mise en forme, sinon le choix de couleur de l'élément */
+  const pickAt = (ev) => {
+    const n = document.elementsFromPoint(ev.clientX, ev.clientY).find((x) => x.closest && x.closest('[data-text]'));
+    const tn = n && n.closest('[data-text]');
+    if (tn && holder.contains(tn)) {
+      if (selEls.size) {
+        selEls.clear();
+        draw();
+      }
+      textSel = tn.getAttribute('data-text');
+      buildTbar();
+      return;
+    }
+    if (textSel) closeTbar();
+    colorAt(ev);
+  };
   stage.addEventListener('click', (e) => {
     if (suppressClick) {
       suppressClick = false;
       return;
     }
-    colorAt(e);
+    pickAt(e);
   });
+  stage.addEventListener('scroll', () => textSel && placeTbar());
   stage.addEventListener('pointerdown', (e) => {
     suppressClick = false;
     dragMoved = false;
@@ -907,7 +1102,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
         redraw: draw,
         click: (ev) => {
           suppressClick = true;
-          colorAt(ev);
+          pickAt(ev);
         },
         done: (ch) => {
           if (ch) {
@@ -1027,6 +1222,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
     current = null;
     document.body.classList.remove('ve-open');
     ctx.restructure();
+    if (solo && solo.onClose) solo.onClose();
   };
   /* Échap ferme d'abord ce qui est ouvert (liste, fenêtre de couleurs, modale), puis vide la recherche ; il n'abandonne l'éditeur qu'à vide,
      avec confirmation s'il y a des modifications. Écouteur en phase de capture : on voit la fenêtre ouverte avant qu'elle ne se referme. */
@@ -1054,6 +1250,11 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
     }
     if (e.key === 'Escape') {
       if (leaving || document.querySelector('dialog[open], .cs-pop, .cpop, .pal2-wrap, .ce')) return;
+      if (textSel) {
+        e.preventDefault();
+        closeTbar();
+        return;
+      }
       const q = e.target.closest && e.target.closest('.pp-q');
       if (q) {
         e.preventDefault();

@@ -36,6 +36,7 @@ export function createTabsUi(ws, host, { onHome } = {}) {
 
   function render() {
     const act = ws.active();
+    document.body.classList.toggle('fs-empty', !!(ws.empty && ws.empty())); // aucun document ouvert : en-tête réduit (css/app.css)
     strip.replaceChildren(
       ...ws.tabs.map((tab) => {
         const on = tab === act,
