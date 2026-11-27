@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.146.0 — 2026-11-27
+- Barres horizontales : nouvelle structure « En panneaux » (une colonne par panneau, nom au-dessus, barres sur une piste grise, valeur dans la barre ou à côté)
+
 ## 1.145.0 — 2026-11-27
 - Dataviz : projets dataviz qui réunissent plusieurs dataviz nommées, enregistrés automatiquement dans le navigateur et listés sur l'accueil
 - Grille de données : sélectionner des lignes, des colonnes ou un bloc et les copier (Cmd/Ctrl + C), ou copier tout le tableau

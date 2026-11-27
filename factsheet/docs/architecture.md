@@ -213,3 +213,10 @@ La fenêtre d'export (`editor/export-ui.js`) commence par l'usage : **Impression
 - Sélection : numéro de ligne (lignes entières), poignée au-dessus d'un en-tête (colonnes entières, en-têtes copiés), Maj + clic entre deux cellules (bloc), Maj pour étendre, Cmd/Ctrl pour ajouter ; la case en haut à gauche sélectionne tout. Un clic simple dans une cellule retire la sélection.
 - Copie : Cmd/Ctrl + C (événement `copy` du tableau, sauf texte choisi dans un champ) ou « Copier la sélection (lignes × colonnes) » ; « Copier le tableau » copie tout. Texte tabulé, balisage retiré des textes riches.
 - La zone « Libellé » sur plusieurs lignes (`textarea.dg-ml`) n'hérite plus de la hauteur minimale des `textarea` (84 px).
+
+## Barres horizontales « En panneaux » (`viz/hbars.js`, `renderPanels`)
+
+- `style: 'panels'` : une colonne de données par panneau, côte à côte, son nom au-dessus ; libellés des lignes à gauche une seule fois (style des libellés, `data-text`, largeur `nameWidth`) ; chaque barre sur une piste pleine largeur du panneau.
+- Échelle commune : `scaleMax`, sinon 100 quand l'unité contient « % » et que rien ne dépasse 100, sinon la plus grande valeur.
+- Valeur dans la barre (encre `inkOn`, blanche sur couleur sombre) si elle rentre, sinon juste après la barre.
+- Réglages propres : `panelGap` (Dimensions), `trackBg` (Couleurs : fond de piste, `''` = aucun, par défaut `tint-grey`, `tint-blue` si la palette n'a plus de gris ; nom en `…Bg` pour le copier-coller), `panelRules` (Axes et grille : filets pointillés entre les lignes). Légende, graduations et ligne de référence ne s'y appliquent pas.

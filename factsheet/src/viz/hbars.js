@@ -1,4 +1,4 @@
-/* Barres horizontales : libellés à gauche, valeur au bout de la barre. Groupées ou empilées. */
+/* Barres horizontales : libellés à gauche, valeur au bout de la barre. Groupées, empilées, ou en panneaux (une colonne par panneau). */
 import { VIZ } from '../tokens.js';
 import {
   reorderHit,
@@ -34,6 +34,7 @@ import {
   labelLh,
   drawLabel,
   stripMk,
+  inkOn,
 } from './util.js';
 import { styleOf, needsRich, styledLines, styledW, drawStyled, tagText, LABEL_FIELDS } from './labelstyle.js';
 import { iconNode, iconImportPanel } from './picto.js';
@@ -84,7 +85,42 @@ export default {
   /** textes saisis montrés dans la carte Textes (champ simple ou texte riche), en plus du tableau de données */
   textItems: (o) => (o.rows || []).map((r, i) => ({ obj: r, k: 'label', label: `${t('Libellé')} ${i + 1}` })),
   fields: [
-    { k: 'style', g: 'struct', t: 'select', label: 'Plusieurs colonnes', options: { grouped: 'Côte à côte', stacked: 'Empilées' } },
+    {
+      k: 'style',
+      g: 'struct',
+      t: 'select',
+      label: 'Plusieurs colonnes',
+      options: { grouped: 'Côte à côte', stacked: 'Empilées', panels: 'En panneaux (une colonne par panneau)' },
+    },
+    {
+      k: 'panelGap',
+      g: 'dims',
+      t: 'select',
+      label: 'Espace entre les panneaux',
+      options: { tight: 'Réduit', normal: 'Normal', loose: 'Large' },
+      def: 'normal',
+      when: (o) => o.style === 'panels',
+      why: 'Choisissez « En panneaux » (Structure) pour régler cet espace.',
+    },
+    {
+      k: 'trackBg',
+      g: 'colors',
+      t: 'color',
+      autoLabel: 'Aucun fond',
+      label: 'Fond des barres (piste à 100 %)',
+      def: 'tint-grey',
+      when: (o) => o.style === 'panels',
+      why: 'Choisissez « En panneaux » (Structure) pour régler ce fond.',
+    },
+    {
+      k: 'panelRules',
+      g: 'axes',
+      t: 'bool',
+      label: 'Filets pointillés entre les lignes',
+      def: true,
+      when: (o) => o.style === 'panels',
+      why: 'Choisissez « En panneaux » (Structure) pour afficher ces filets.',
+    },
     {
       k: 'barSize',
       g: 'dims',
@@ -212,6 +248,7 @@ export default {
     },
   },
   render(o, W, env) {
+    if (o.style === 'panels') return renderPanels(o, W, env);
     const T = typeIn(env); // styles du document (menu Texte)
     const legIn = o.legendPos === 'inside' || o.legendIn; // noms des séries écrits dans les barres (legendIn : ancien réglage)
     const series = o.series || [],
@@ -477,3 +514,116 @@ export default {
     return { node: root, meta: { W, labW } };
   },
 };
+
+/** « En panneaux » : un panneau par colonne de données, côte à côte, nom de la colonne au-dessus ; libellés des lignes à gauche
+    (une seule fois) ; chaque barre sur une piste pleine largeur (`trackBg`, 100 % de l'échelle) ; valeur dans la barre si elle
+    rentre (encre lisible sur la couleur), sinon juste après ; filets pointillés entre les lignes (`panelRules`).
+    Échelle commune à tous les panneaux : `scaleMax`, sinon 100 pour des pourcentages, sinon la plus grande valeur. */
+function renderPanels(o, W, env) {
+  const T = typeIn(env),
+    series = o.series || [],
+    rows = o.rows || [],
+    k = Math.max(1, series.length);
+  const capPx = pxOf(T.caption.size),
+    numPx = pxOf(T.captionNum.size),
+    suffix = o.suffix || '',
+    square = o.corners === 'square';
+  const icW = rows.some((r) => r.icon && r.icon !== 'none') ? 24 + VIZ.iconGap : 0;
+  /* libellés à gauche : style de tous les libellés puis le sien, texte riche s'il est stylé */
+  const stOf = rows.map((r) => styleOf(o, r)),
+    richOf = (i) => needsRich(rows[i].label, stOf[i]),
+    natW = (r, i) => (richOf(i) ? styledW(r.label, stOf[i], capPx, T.caption.weight) : labelW(r.label, T.caption.weight, capPx));
+  const share = NAME_W.includes(+o.nameWidth) ? +o.nameWidth / 100 : 0;
+  const labW = share
+    ? Math.max(icW + VIZ.iconGap + 20, W * share)
+    : Math.min(W * 0.4, Math.max(0, ...rows.map(natW)) + VIZ.iconGap * 2) + icW;
+  const labLh = labelLh(capPx),
+    labMax = Math.max(10, labW - icW - VIZ.iconGap * 2),
+    labLines = rows.map((r, i) =>
+      richOf(i) ? styledLines(r.label, stOf[i], capPx, T.caption.weight, labMax) : wrapLabel(r.label, T.caption.weight, capPx, labMax),
+    ),
+    labH = labLines.map((l, i) => (richOf(i) ? l.reduce((a, x) => a + x.lh, 0) : l.length * labLh));
+  /* panneaux */
+  const pGap = VIZ.barGap * 4 * ({ tight: 0.5, loose: 2 }[o.panelGap] ?? 1),
+    x0 = labW,
+    pw = Math.max(20, (W - x0 - pGap * (k - 1)) / k),
+    px = (j) => x0 + j * (pw + pGap);
+  let max = 0;
+  rows.forEach((r) => series.forEach((_, j) => (max = Math.max(max, numVal(r, j)))));
+  if (!(+o.scaleMax > 0) && max <= 100 && /%/.test(suffix)) max = 100;
+  max = scaleTop(o, max || 1);
+  /* hauteurs : en-têtes des panneaux, puis une barre par ligne (au moins la hauteur du libellé) */
+  const headH = series.some((sr) => (sr.name || '').trim()) ? Math.round(capPx * 1.7) : 0;
+  const GF = { none: 0, tight: 0.5, normal: 1, loose: 2 },
+    rGap = VIZ.hRowGap * (GF[o.rowSpace] ?? 1) + (o.panelRules === false ? 0 : 4);
+  const natBh = Math.max(VIZ.hBar * 1.6, numPx * 1.6) * ({ thin: 0.6, thick: 1.5, xthick: 2 }[o.barSize] ?? 1);
+  let bh = natBh;
+  const slotOf = (b) => labH.map((h) => Math.max(b, h)),
+    bodyOf = (b) => slotOf(b).reduce((a, h) => a + h, 0) + Math.max(0, rows.length - 1) * rGap;
+  if (o.hmode === 'fixed' || o.hmode === 'fill' || o.hmode === 'match') {
+    const target = heightOf(o, W, env, headH + bodyOf(natBh)) - headH;
+    const f = Math.max(
+      0.5,
+      Math.min(4, (target - Math.max(0, rows.length - 1) * rGap) / Math.max(1, bodyOf(natBh) - Math.max(0, rows.length - 1) * rGap)),
+    );
+    bh = Math.max(6, natBh * f);
+  }
+  const slots = slotOf(bh),
+    rowY = [];
+  slots.reduce((y, h, i) => ((rowY[i] = y), y + h + rGap), headH);
+  const H = headH + bodyOf(bh);
+  const svg = s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { display: 'block', overflow: 'visible' } });
+  /* en-têtes des panneaux (noms des colonnes) */
+  if (headH)
+    series.forEach((sr, j) => {
+      const f = fitText(sr.name || '', T.caption.weight, SANS, capPx, pw, 0.7);
+      svg.append(s('text', { x: px(j), y: headH - capPx * 0.55, 'font-size': f.size, 'font-weight': T.caption.weight }, f.text));
+    });
+  const NUMF = { 'font-size': numPx, 'font-weight': 700, style: { fontFamily: 'var(--t-captionNum-family)' } };
+  /* piste : `trackBg` ('' = aucune), par défaut la teinte du gris (de l'EU Blue si la palette n'a plus de gris) */
+  const track = o.trackBg === '' ? null : o.trackBg || (env.pal && !env.pal.grey ? 'tint-blue' : 'tint-grey');
+  rows.forEach((r, i) => {
+    const y = rowY[i] + (slots[i] - bh) / 2,
+      mid = y + bh / 2;
+    /* filet pointillé sous la ligne (pas sous la dernière) */
+    if (o.panelRules !== false && i < rows.length - 1) {
+      const ry = rowY[i] + slots[i] + rGap / 2;
+      svg.append(
+        s('line', { x1: 0, y1: ry, x2: W, y2: ry, stroke: 'currentColor', 'stroke-width': SW, 'stroke-dasharray': '1 2', opacity: 0.45 }),
+      );
+    }
+    if (r.icon && r.icon !== 'none') svg.append(iconNode(o, r.icon, 0, mid - 12, 24, 24, 'blue', env.rc.icons));
+    if (richOf(i)) svg.append(tagText(drawStyled(labLines[i], icW, mid), env, `rows.${i}`));
+    else {
+      const g = s('g');
+      drawLabel(g, labLines[i], icW, mid, labLh, capPx, T.caption.weight);
+      svg.append(tagText(g, env, `rows.${i}`));
+    }
+    series.forEach((sr, j) => {
+      const x = px(j),
+        v = numVal(r, j),
+        w = Math.max(0, Math.min(pw, (v / max) * pw)),
+        key = elColor(r, j, sr);
+      if (track) svg.append(s('rect', { x, y, width: pw, height: bh, fill: colorRef(track) }));
+      svg.append(
+        s('path', {
+          'data-color': env.ui ? `rows.${i}.colors.${j}` : null,
+          'data-color-base': env.ui ? `series.${j}.color` : null,
+          d: square || w < 1 ? `M${x},${y}h${Math.max(w, 0.0001)}v${bh}h${-Math.max(w, 0.0001)}Z` : hPath(x, y, w, bh, VIZ.barRadius),
+          fill: colorRef(key),
+          ...lineAttrs(o),
+          'stroke-linejoin': 'round',
+        }),
+      );
+      if (!o.showValues) return;
+      const txt = fmt(v, env.locale, o.decimals) + suffix,
+        tw = mw(txt, 700, '"Source Serif 4", serif', numPx),
+        pad = VIZ.iconGap * 0.67; // 6 px
+      if (w >= tw + pad * 1.5)
+        svg.append(s('text', { ...NUMF, x: x + pad, y: mid + 0.33 * numPx, fill: inkOn(env, key) }, txt)); // dans la barre
+      else svg.append(s('text', { ...NUMF, x: Math.min(x + w + pad, x + pw - tw), y: mid + 0.33 * numPx }, txt)); // après la barre
+    });
+  });
+  rows.forEach((_, i) => svg.append(reorderHit(env, 'rows', i, 'y', 0, rowY[i] - rGap / 2, W, slots[i] + rGap)));
+  return { node: svg, meta: { W, labW } };
+}
