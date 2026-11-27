@@ -840,3 +840,7 @@ body.fs-empty .app-header > :not(.app-left):not(.app-right),body.fs-empty .app-m
 .vp-cur input{flex:1;min-width:0}
 .vp-acts{display:flex;justify-content:flex-end;gap:4px;padding:0 6px}
 @media (hover:hover){button.vp-item:hover{background:var(--ui-bg)}}
+.vt-seg{display:inline-flex;border:1px solid var(--ui-line);border-radius:var(--radius-sm);overflow:hidden}
+.vt-scope{height:30px;padding:0 8px;border:0;background:none;color:inherit;font:inherit;font-size:var(--fs-sm);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center}
+.vt-scope.on{background:var(--sel-soft);color:var(--ui-blue)}
+.ve-stage [data-text]{cursor:text}

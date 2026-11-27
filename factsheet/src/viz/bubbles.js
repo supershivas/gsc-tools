@@ -5,7 +5,7 @@ import { VIZ } from '../tokens.js';
 import { s, SW, colorRef, pxOf, fmt, mw, SANS, drawLegend, fitText, heightOf, inkOn } from './util.js';
 import { HIER_DATA, hierRows, buildHier, topOf, depthAlpha, lineAttrs, toneAlpha, LINE_FIELD, TONE_FIELD } from './hier.js';
 import { t } from '../i18n.js';
-import { allLabels, LABEL_FIELDS } from './labelstyle.js';
+import { allLabels } from './labelstyle.js';
 
 export default {
   label: 'Bulles hiérarchiques',
@@ -24,7 +24,6 @@ export default {
   }),
   heights: ['ratio', 'fixed', 'fill'],
   fields: [
-    ...LABEL_FIELDS(),
     { k: 'ratio', t: 'select', label: 'Format du graphique', options: { '1:1': '1:1 (carré)', '3:2': '3:2', '16:9': '16:9' } },
     { k: 'pad', g: 'dims', t: 'number', label: 'Espace entre les bulles (px)', min: 0, max: 24 },
     LINE_FIELD,
@@ -67,7 +66,7 @@ export default {
     const T = typeIn(env); // styles du document (menu Texte)
     const { root, tops } = buildHier(o.rows),
       capPx = pxOf(T.caption.size),
-      LS = allLabels(o, capPx, 400), // style de tous les libellés (carte Textes)
+      LS = allLabels(o, capPx, 400, env), // style de tous les libellés (carte Textes)
       numPx = pxOf(T.captionNum.size),
       LG = o.legend
         ? layoutLegend(

@@ -26,7 +26,7 @@ import {
 } from './util.js';
 import { axesFields, axisTitleFields, refFieldsXY } from './axes.js';
 import { t } from '../i18n.js';
-import { labelNode, LABEL_FIELDS, itemTexts } from './labelstyle.js';
+import { labelNode, itemTexts } from './labelstyle.js';
 
 /** Aspect d'origine de la carte « Axes et grille » (nuage d'avant la carte : lignes horizontales en pointillé, valeurs et axes affichés) */
 const ORIGIN = { grid: 'h', gridStyle: 'dotted', gridTone: 'normal', axisValues: true, baseline: true };
@@ -74,7 +74,6 @@ export default {
   heights: ['ratio', 'fixed', 'fill'],
   textItems: itemTexts('rows', 'label', 'Point'),
   fields: [
-    ...LABEL_FIELDS({ when: (o) => !!o.showLabels, why: 'Activez « Afficher le nom des points » pour les mettre en forme.' }),
     {
       k: 'ratio',
       t: 'select',

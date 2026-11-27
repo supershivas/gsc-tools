@@ -3,7 +3,7 @@ import { sankey, sankeyJustify, sankeyLeft, sankeyRight, sankeyCenter } from 'd3
 import { VIZ } from '../tokens.js';
 import { s, SW, STROKE_K, strokeAttrs, colorRef, pxOf, fmt, mw, SANS, fitText, heightOf, autoColor, inkOn, typeIn } from './util.js';
 import { t } from '../i18n.js';
-import { allLabels, LABEL_FIELDS } from './labelstyle.js';
+import { allLabels } from './labelstyle.js';
 
 const LINK_OPACITY = { light: 0.2, normal: 0.4, strong: 0.65 }; // opacité des flux (audit des options, lot 5a : `def` du champ, 0,4 d'origine)
 const ALIGN = { justify: sankeyJustify, left: sankeyLeft, right: sankeyRight, center: sankeyCenter };
@@ -33,7 +33,6 @@ export default {
   }),
   heights: ['ratio', 'fixed', 'fill'],
   fields: [
-    ...LABEL_FIELDS(),
     {
       k: 'ratio',
       t: 'select',
@@ -101,7 +100,7 @@ export default {
   render(o, W, env) {
     const T = typeIn(env); // styles du document (menu Texte)
     const capPx = pxOf(T.caption.size),
-      LS = allLabels(o, capPx, 400), // style de tous les libellés (carte Textes)
+      LS = allLabels(o, capPx, 400, env), // style de tous les libellés (carte Textes)
       numPx = pxOf(T.captionNum.size),
       suffix = o.suffix || '';
     const H = heightOf(o, W, env, null, '16:9');

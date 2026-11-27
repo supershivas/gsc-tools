@@ -36,7 +36,7 @@ import {
   stripMk,
   inkOn,
 } from './util.js';
-import { styleOf, needsRich, styledLines, styledW, drawStyled, tagText, LABEL_FIELDS } from './labelstyle.js';
+import { styleOf, needsRich, styledLines, styledW, drawStyled, tagText } from './labelstyle.js';
 import { iconNode, iconImportPanel } from './picto.js';
 import { axesFields, refFields } from './axes.js';
 import { t } from '../i18n.js';
@@ -175,7 +175,6 @@ export default {
       when: (o) => !o.labelIn,
       why: 'Désactivez « Libellés dans les barres » pour régler leur largeur.',
     },
-    ...LABEL_FIELDS({ when: (o) => !o.labelIn, why: 'Désactivez « Libellés dans les barres » pour mettre en forme les libellés.' }),
     {
       k: 'valuesIn',
       g: 'labels',

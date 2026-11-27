@@ -1,7 +1,7 @@
 /* Style des libellés d'une dataviz (noms des lignes, des catégories, des nœuds…).
    Deux niveaux, le second l'emporte :
    - tous les libellés : `opts.names` = { size (pt, 0 = style du document), bold, italic, underline, color ('' = couleur du texte) },
-     réglé dans la carte Textes de l'éditeur (`LABEL_FIELDS`) ;
+     réglé dans l'aperçu : barre de mise en forme, choix « Tous les libellés » (vizeditor.js) ;
    - un libellé : `item.st` (mêmes clés), posé par la barre de mise en forme au-dessus du libellé cliqué dans l'aperçu
      (vizeditor.js, `data-text` = chemin de l'élément). Une clé absente suit le réglage de tous les libellés.
    La clé de couleur s'appelle `color` : `remapColors` (state.js) et le copier-coller (`COLOR_PROP`, clip.js) la suivent.
@@ -72,35 +72,6 @@ export function tagText(node, env, path) {
   return node;
 }
 
-/** Réglages « Style de tous les libellés » (carte Textes) ; `cond` = { when, why } facultatif */
-export const LABEL_FIELDS = (cond = {}) => [
-  {
-    k: 'names.size',
-    g: 'texts',
-    s: 'labstyle',
-    t: 'number',
-    label: 'Taille des libellés (pt)',
-    min: 5,
-    max: 28,
-    step: 0.5,
-    def: 0,
-    ...cond,
-  },
-  { k: 'names.bold', g: 'texts', s: 'labstyle', t: 'bool', label: 'Libellés en gras', def: false, ...cond },
-  { k: 'names.italic', g: 'texts', s: 'labstyle', t: 'bool', label: 'Libellés en italique', def: false, ...cond },
-  { k: 'names.underline', g: 'texts', s: 'labstyle', t: 'bool', label: 'Libellés soulignés', def: false, ...cond },
-  {
-    k: 'names.color',
-    g: 'texts',
-    s: 'labstyle',
-    t: 'color',
-    autoLabel: 'Couleur du texte',
-    label: 'Couleur des libellés',
-    def: '',
-    ...cond,
-  },
-];
-
 /** Libellé d'une ligne ajusté à une largeur (types qui réduisent le corps pour tenir : courbes, pictogrammes…) :
     lignes de `richLines` sur une seule ligne, corps réduit jusqu'à `minK` s'il le faut */
 export function fitLines(text, st, basePx, weight, maxW, minK = 0.6) {
@@ -120,17 +91,14 @@ export function labelNode({ env, o, item, path, text, x, yMid, maxW, anchor = 's
   return path ? tagText(n, env, path) : n;
 }
 /** Libellés sans élément propre (nœuds calculés : treemap, bulles, soleil, flux, enquête) : style de tous les libellés seulement.
-    { px, weight (mesure), attrs } — `attrs` à poser sur le <text> (gras, italique, souligné, couleur) */
-export function allLabels(o, basePx, weight) {
-  const st = styleOf(o, null);
-  return {
-    st,
-    px: labelPx(st, basePx),
-    weight: st.bold ? 700 : weight,
-    attrs: Object.fromEntries(Object.entries(textAttrs(st)).filter(([, v]) => v !== undefined)),
-  };
+    { px, weight (mesure), attrs } — `attrs` à poser sur le <text> (gras, italique, souligné, couleur ; dans l'éditeur, `data-text="*"` :
+    un clic ouvre la barre de mise en forme sur « Tous les libellés ») */
+export function allLabels(o, basePx, weight, env) {
+  const st = styleOf(o, null),
+    attrs = Object.fromEntries(Object.entries(textAttrs(st)).filter(([, v]) => v !== undefined));
+  if (env && env.ui) attrs['data-text'] = '*';
+  return { st, px: labelPx(st, basePx), weight: st.bold ? 700 : weight, attrs };
 }
-
 /** `textItems` d'un type : un champ par texte de chaque élément d'une liste, montré dans la carte Textes.
     `list` = clé de la liste ; `keys` = clé du texte, ou [[clé, nom], …] pour plusieurs textes par élément (titre et texte…) */
 export const itemTexts =

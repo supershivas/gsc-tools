@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.146.1 — 2026-11-27
+- Dataviz : le style des libellés se règle uniquement dans l'aperçu ; la barre au-dessus du libellé propose « Ce libellé » ou « Tous les libellés », et la carte Textes ne garde que les textes
+
 ## 1.146.0 — 2026-11-27
 - Barres horizontales : nouvelle structure « En panneaux » (une colonne par panneau, nom au-dessus, barres sur une piste grise, valeur dans la barre ou à côté)
 

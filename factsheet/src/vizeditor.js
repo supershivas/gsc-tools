@@ -901,8 +901,28 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
   const tbar = h('div', { class: 'vt-bar', role: 'toolbar', 'aria-label': t('Mise en forme du libellé'), hidden: true }),
     tring = h('div', { class: 'vt-ring', hidden: true });
   root.append(tring, tbar);
-  const textNode = () => (textSel ? holder.querySelector(`[data-text="${textSel}"]`) : null);
-  const textItem = () => (textSel ? getPath(col.viz.opts, textSel.split('.')) : null);
+  /* `textSel` = chemin de l'élément (`rows.2`) ou `*` (libellés sans élément propre : treemap, bulles…, toujours « Tous les libellés »),
+     `textIdx` = rang du nœud cliqué parmi ceux de même chemin, `tScope` = 'one' (ce libellé) | 'all' (tous, `opts.names`) */
+  let textIdx = 0,
+    tScope = 'one';
+  const textNode = () => {
+    if (!textSel) return null;
+    const ns = holder.querySelectorAll(`[data-text="${textSel}"]`);
+    return ns[textIdx] || ns[0] || null;
+  };
+  const textItem = () => (textSel && textSel !== '*' ? getPath(col.viz.opts, textSel.split('.')) : null);
+  const scopeAll = () => textSel === '*' || tScope === 'all';
+  /** éléments qui portent un libellé dessiné (pour retirer leurs styles propres) */
+  const labelItems = () =>
+    [...new Set([...holder.querySelectorAll('[data-text]')].map((n) => n.getAttribute('data-text')))]
+      .filter((p) => p !== '*')
+      .map((p) => getPath(col.viz.opts, p.split('.')))
+      .filter((x) => x && typeof x === 'object');
+  const dropOwn = (it, k) => {
+    if (!it.st) return;
+    if (k) delete it.st[k];
+    if (!k || !Object.keys(it.st).length) delete it.st;
+  };
   const basePt = () => {
     const ty = renderCtx(doc).forType('viz').type;
     return +((ty && ty.caption && ty.caption.size) || 9);
@@ -914,6 +934,18 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
     document.querySelectorAll('.cpop').forEach((n) => n.remove());
   }
   function setSt(k, v) {
+    if (scopeAll()) {
+      /* tous les libellés : réglage commun ; les styles propres de cette clé s'effacent pour que tous suivent */
+      const o = col.viz.opts,
+        names = o.names || {};
+      if (v === undefined || v === false || v === '' || v === 0) delete names[k];
+      else names[k] = v;
+      if (Object.keys(names).length) o.names = names;
+      else delete o.names;
+      labelItems().forEach((x) => dropOwn(x, k));
+      fctx.changed();
+      return;
+    }
     const it = textItem();
     if (!it) return;
     const all = (col.viz.opts.names || {})[k],
@@ -949,9 +981,11 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
   }
   function buildTbar() {
     const it = textItem();
-    if (!it) return closeTbar();
-    const eff = styleOf(col.viz.opts, it),
-      own = it.st || {};
+    if (!it && textSel !== '*') return closeTbar();
+    const all = scopeAll(),
+      eff = styleOf(col.viz.opts, all ? null : it),
+      own = (it && it.st) || {},
+      anyStyle = !!col.viz.opts.names || labelItems().some((x) => x.st);
     const tog = (k, icon, label) =>
       h(
         'button',
@@ -1011,7 +1045,30 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
       h('i', { class: 'cs-dot' + (eff.color ? '' : ' auto'), style: eff.color ? { background: `var(--c-${eff.color})` } : {} }),
     );
     const sep = () => h('span', { class: 'vt-sep', 'aria-hidden': 'true' });
+    /* portée : ce libellé ou tous les libellés (les libellés sans élément propre n'ont que « Tous ») */
+    const scopeBtn = (k, label) =>
+      h('button', {
+        type: 'button',
+        class: 'vt-scope' + (tScope === k ? ' on' : ''),
+        'aria-pressed': String(tScope === k),
+        textContent: t(label),
+        onclick: () => {
+          tScope = k;
+          buildTbar();
+        },
+      });
+    const scope =
+      textSel === '*'
+        ? h('span', { class: 'vt-scope on', textContent: t('Tous les libellés') })
+        : h(
+            'span',
+            { class: 'vt-seg', role: 'group', 'aria-label': t('Appliquer à') },
+            scopeBtn('one', 'Ce libellé'),
+            scopeBtn('all', 'Tous les libellés'),
+          );
     tbar.replaceChildren(
+      scope,
+      sep(),
       tog('bold', 'bold', 'Gras'),
       tog('italic', 'italic', 'Italique'),
       tog('underline', 'underline', 'Souligné'),
@@ -1022,39 +1079,47 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
       sep(),
       colorBtn,
       sep(),
+      it && textBoxes.has(it)
+        ? h(
+            'button',
+            {
+              type: 'button',
+              class: 'vt-b',
+              title: t('Modifier le texte'),
+              'aria-label': t('Modifier le texte'),
+              onclick: () => {
+                const acc = (accs[col.viz.kind] ||= { cur: null, first: null });
+                acc.cur = 'dv-head';
+                shut.delete('dv-head');
+                buildForm();
+                const box = textBoxes.get(it);
+                if (box) {
+                  box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                  const f = box.querySelector('input, [contenteditable="true"], textarea');
+                  if (f) f.focus();
+                }
+              },
+            },
+            ico('pencil'),
+          )
+        : null,
       h(
         'button',
         {
           type: 'button',
           class: 'vt-b',
-          title: t('Modifier le texte'),
-          'aria-label': t('Modifier le texte'),
+          title: t(all ? 'Rétablir le style d’origine de tous les libellés' : 'Revenir au style de tous les libellés'),
+          'aria-label': t(all ? 'Rétablir le style d’origine de tous les libellés' : 'Revenir au style de tous les libellés'),
+          'aria-disabled': String(all ? !anyStyle : !Object.keys(own).length),
           onclick: () => {
-            const acc = (accs[col.viz.kind] ||= { cur: null, first: null });
-            acc.cur = 'dv-head';
-            shut.delete('dv-head');
-            buildForm();
-            const box = textBoxes.get(it);
-            if (box) {
-              box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-              const f = box.querySelector('input, [contenteditable="true"], textarea');
-              if (f) f.focus();
+            if (all) {
+              if (!anyStyle) return;
+              delete col.viz.opts.names;
+              labelItems().forEach((x) => dropOwn(x));
+            } else {
+              if (!it.st) return;
+              delete it.st;
             }
-          },
-        },
-        ico('pencil'),
-      ),
-      h(
-        'button',
-        {
-          type: 'button',
-          class: 'vt-b',
-          title: t('Style de tous les libellés (carte Textes)'),
-          'aria-label': t('Style de tous les libellés (carte Textes)'),
-          'aria-disabled': String(!Object.keys(own).length),
-          onclick: () => {
-            if (!it.st) return;
-            delete it.st;
             fctx.changed();
           },
         },
@@ -1074,6 +1139,7 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
         draw();
       }
       textSel = tn.getAttribute('data-text');
+      textIdx = [...holder.querySelectorAll(`[data-text="${textSel}"]`)].indexOf(tn);
       buildTbar();
       return;
     }

@@ -39,7 +39,7 @@ import {
   labelLh,
   drawLabel,
 } from './util.js';
-import { styleOf, needsRich, styledLines, drawStyled, tagText, LABEL_FIELDS } from './labelstyle.js';
+import { styleOf, needsRich, styledLines, drawStyled, tagText } from './labelstyle.js';
 import { axesFields, axisTitleFields, refFields } from './axes.js';
 import { t } from '../i18n.js';
 
@@ -168,7 +168,6 @@ export default {
       label: 'Valeurs dans les barres (si elles rentrent)',
     },
     { k: 'labelIn', g: 'labels', t: 'bool', label: 'Libellés dans les barres (au pied de la barre)' },
-    ...LABEL_FIELDS({ when: (o) => !o.labelIn, why: 'Désactivez « Libellés dans les barres » pour mettre en forme les libellés.' }),
     {
       k: 'decimals',
       g: 'labels',

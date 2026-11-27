@@ -29,7 +29,7 @@ import {
 } from './util.js';
 import { axesFields, axisTitleFields, refFields } from './axes.js';
 import { t } from '../i18n.js';
-import { labelNode, LABEL_FIELDS, itemTexts } from './labelstyle.js';
+import { labelNode, itemTexts } from './labelstyle.js';
 
 /** Valeurs d'origine des traits et des points (aspect d'avant les réglages : trait 0,5 pt, un point rond par valeur, segments droits) */
 const LOOK = { lineWidth: 'thin', points: 'all', pointSize: 'medium', curve: 'linear', area: false };
@@ -127,7 +127,6 @@ export default {
   heights: ['ratio', 'fixed', 'fill'],
   textItems: itemTexts(),
   fields: [
-    ...LABEL_FIELDS(),
     {
       k: 'ratio',
       t: 'select',

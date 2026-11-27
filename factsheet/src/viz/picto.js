@@ -5,7 +5,7 @@ import { reorderHit, s, el, SW, colorRef, pxOf, fmt, SANS, drawLegend, fitText, 
 import { ICONS, customList, customChoices, ctxIcons } from './icons.js';
 import { iconSelect } from '../iconselect.js';
 import { t } from '../i18n.js';
-import { labelNode, LABEL_FIELDS, itemTexts } from './labelstyle.js';
+import { labelNode, itemTexts } from './labelstyle.js';
 import { alertBox } from '../dialogs.js';
 
 /* ---------- pictogrammes pleins ---------- */
@@ -289,7 +289,6 @@ function make(variant) {
     heights: multi ? ['auto', 'fixed', 'fill'] : ['ratio', 'fixed', 'fill'],
     textItems: itemTexts(),
     fields: [
-      ...LABEL_FIELDS(),
       {
         k: 'perIcon',
         g: 'struct',

@@ -42,8 +42,32 @@ test('barre de mise en forme d’un libellé : gras, taille, couleur, Échap', a
       await expect(page.locator('.vt-size')).toHaveValue(/\d/);
     }
   }
-  await page.keyboard.press('Escape');
+  if (await page.locator('.vt-bar').isVisible()) await page.keyboard.press('Escape');
   await expect(page.locator('.vt-bar')).toBeHidden();
+  // la carte Textes ne porte plus de réglage de style
+  await expect(page.locator('.ve-form').getByText('Bold labels')).toHaveCount(0);
+  // « Tous les libellés » : un réglage pour tous, qui efface les styles propres de la même clé
+  await page.locator('.ve-typecard .pp-card-h').click();
+  await page
+    .locator('.ve-typeopt', { hasText: /^Horizontal bars/ })
+    .first()
+    .click();
+  const l0 = page.locator('.ve-stage [data-text="rows.0"]').first();
+  const b0 = await l0.boundingBox();
+  await page.mouse.click(b0.x + b0.width / 2, b0.y + b0.height / 2);
+  await page.locator('.vt-bar .vt-scope', { hasText: 'All labels' }).click();
+  const italic = page.locator('.vt-bar button[aria-label="Italic"]');
+  await italic.click();
+  await expect(italic).toHaveAttribute('aria-pressed', 'true');
+  const n = await page.locator('.ve-stage [data-text^="rows."]').count();
+  await expect(page.locator('.ve-stage [data-text^="rows."] tspan[font-style="italic"]')).toHaveCount(n);
+  // rétablir l'origine : plus aucun style
+  await page.locator('.vt-bar button[aria-label="Restore the original style of all labels"]').click();
+  await expect(page.locator('.ve-stage [data-text^="rows."] tspan[font-style="italic"]')).toHaveCount(0);
+  await expect(page.locator('.ve-stage [data-text^="rows."] tspan[font-weight="700"]')).toHaveCount(0);
+  await page.keyboard.press('Escape'); // Échap ferme d'abord la barre
+  await expect(page.locator('.vt-bar')).toBeHidden();
+  await expect(page.locator('.ve')).toHaveCount(1);
   expect(errors).toEqual([]);
 });
 /* Tous les onglets fermés : accueil sans bouton fermer, gardé au rechargement (editor/workspace.js, onglet fantôme) */
