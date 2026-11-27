@@ -27,7 +27,7 @@ export const FIELD_ORDER = [
   'grid', 'gridStyle', 'gridTone', 'panelRules', 'segments', 'axisValues', 'baseline', 'baseWidth', 'xTitle', 'yTitle', 'showRowNames', 'showColNames', 'zero', 'zeroX', 'zeroY', 'scaleMax', 'gridCount',
   'refLine', 'refValue', 'refAvg', 'refLineX', 'refX', 'refAvgX', 'refTextX', 'refLineY', 'refY', 'refAvgY', 'refTextY',
   // Étiquettes
-  'legend', 'legendPos', 'legendNote', 'legendNoteText', 'showPercent', 'segValues', 'segDecimals', 'segPrefix', 'segSuffix', 'showValues', 'showPct', 'showDelta', 'valuesIn', 'labelIn', 'showLabels', 'groupLabels', 'showDates', 'showTotal',
+  'legend', 'legendPos', 'legendNote', 'legendNoteText', 'showPercent', 'segValues', 'segDecimals', 'segPrefix', 'segSuffix', 'showValues', 'stackValues', 'showPct', 'showDelta', 'valuesIn', 'labelIn', 'showLabels', 'groupLabels', 'showDates', 'showTotal',
   'cmpLegend', 'cmpTitle1', 'cmpTitle2', 'layout', 'leading', 'totalTpl', 'refText', 'pendingText', 'decimals', 'suffix',
   // Textes (mise en forme des noms et en-têtes)
   'labelTitle', 'labelTitleSize', 'labelTitleWeight', 'labelText', 'labelTextSize', 'labelTextWeight', 'cmpTitleStyle', 'nameWidth', 'nameWrap', 'nameSize', 'nameBold', 'nameAlign', 'headWrap', 'headSize', 'headBold',

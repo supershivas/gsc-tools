@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.147.2 — 2026-11-27
+- Barres horizontales empilées : option « Valeurs des barres empilées » (carte Étiquettes) pour montrer la valeur de chaque segment au lieu du total
+
 ## 1.147.1 — 2026-11-27
 - Projets dataviz : les couleurs sont enregistrées avec le projet ; elles ne changent plus selon la factsheet ouverte, et les modifier ne touche plus la factsheet
 

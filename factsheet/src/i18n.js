@@ -606,6 +606,11 @@ const EN = {
   'Libellés en gras': 'Bold labels',
   'Libellés en italique': 'Italic labels',
   'Libellés soulignés': 'Underlined labels',
+  'Valeurs des barres empilées': 'Stacked bar values',
+  'Total au bout de la barre': 'Total at the end of the bar',
+  'Valeur de chaque segment': 'Value of each segment',
+  'Choisissez « Empilées » (Structure) et activez « Afficher les valeurs » pour choisir ce que montrent les valeurs.':
+    'Choose “Stacked” (Structure) and turn on “Show values” to choose what the values show.',
   'Sélectionner la colonne (glisser : plusieurs ; Maj : étendre ; Cmd/Ctrl : ajouter)':
     'Select the column (drag: several; Shift: extend; Cmd/Ctrl: add)',
   'Sélectionner la ligne (glisser : plusieurs ; Maj : étendre ; Cmd/Ctrl : ajouter)':

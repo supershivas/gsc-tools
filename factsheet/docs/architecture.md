@@ -222,3 +222,5 @@ La fenêtre d'export (`editor/export-ui.js`) commence par l'usage : **Impression
 - Échelle commune : `scaleMax`, sinon 100 quand l'unité contient « % » et que rien ne dépasse 100, sinon la plus grande valeur.
 - Valeur dans la barre (encre `inkOn`, blanche sur couleur sombre) si elle rentre, sinon juste après la barre.
 - Réglages propres : `panelGap` (Dimensions), `trackBg` (Couleurs : fond de piste, `''` = aucun, par défaut `tint-grey`, `tint-blue` si la palette n'a plus de gris ; nom en `…Bg` pour le copier-coller), `panelRules` (Axes et grille : filets pointillés entre les lignes). Légende, graduations et ligne de référence ne s'y appliquent pas.
+
+- **Barres horizontales empilées** : `stackValues` (carte Étiquettes, `total` par défaut | `segments`) : `segments` écrit la valeur de chaque segment au centre du segment (encre `inkOn`, seulement si elle rentre) et retire le total au bout de la barre.

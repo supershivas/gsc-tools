@@ -1,7 +1,7 @@
 {
-  "version": "1.147.1",
+  "version": "1.147.2",
   "date": "2026-11-27",
   "changes": [
-    "Projets dataviz : les couleurs sont enregistrées avec le projet ; elles ne changent plus selon la factsheet ouverte, et les modifier ne touche plus la factsheet"
+    "Barres horizontales empilées : option « Valeurs des barres empilées » (carte Étiquettes) pour montrer la valeur de chaque segment au lieu du total"
   ]
 }

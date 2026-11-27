@@ -203,6 +203,16 @@ export default {
     },
     { k: 'showValues', g: 'labels', t: 'bool', label: 'Afficher les valeurs' },
     {
+      k: 'stackValues',
+      g: 'labels',
+      t: 'select',
+      label: 'Valeurs des barres empilées',
+      options: { total: 'Total au bout de la barre', segments: 'Valeur de chaque segment' },
+      def: 'total',
+      when: (o) => o.style === 'stacked' && !!o.showValues,
+      why: 'Choisissez « Empilées » (Structure) et activez « Afficher les valeurs » pour choisir ce que montrent les valeurs.',
+    },
+    {
       k: 'decimals',
       g: 'labels',
       when: (o) => !!o.showValues || !!o.axisValues,
@@ -253,7 +263,8 @@ export default {
     const series = o.series || [],
       rows = o.rows || [],
       k = Math.max(1, series.length);
-    const stacked = o.style === 'stacked';
+    const stacked = o.style === 'stacked',
+      segVals = stacked && o.stackValues === 'segments'; // valeur de chaque segment au lieu du total
     const capPx = pxOf(T.caption.size),
       numPx = pxOf(T.captionNum.size),
       suffix = o.suffix || '';
@@ -416,6 +427,26 @@ export default {
               'stroke-linejoin': 'round',
             }),
           );
+          /* valeur de chaque segment, centrée, si elle rentre (encre lisible sur la couleur du segment) */
+          if (segVals && o.showValues) {
+            const vt = fmt(v, env.locale, o.decimals) + suffix;
+            if (w >= mw(vt, 700, '"Source Serif 4", serif', numPx) + VIZ.iconGap)
+              svg.append(
+                s(
+                  'text',
+                  {
+                    x: xa + w / 2,
+                    y: y + bh / 2 + 0.33 * numPx,
+                    'text-anchor': 'middle',
+                    'font-size': numPx,
+                    'font-weight': 700,
+                    fill: inkOn(env, elColor(r, j, sr)),
+                    style: { fontFamily: 'var(--t-captionNum-family)' },
+                  },
+                  vt,
+                ),
+              );
+          }
           if ((legIn || (o.labelIn && !r.label)) && sr.name && w > mw(sr.name, T.caption.weight, SANS, capPx) + VIZ.iconGap * 2)
             svg.append(
               s(
@@ -431,7 +462,12 @@ export default {
               ),
             );
         });
-        inside = decor(y, end - x0, o.labelIn ? stripMk(r.label) : '', o.showValues ? fmt(total(r), env.locale, o.decimals) + suffix : '');
+        inside = decor(
+          y,
+          end - x0,
+          o.labelIn ? stripMk(r.label) : '',
+          o.showValues && !segVals ? fmt(total(r), env.locale, o.decimals) + suffix : '',
+        );
       } else
         series.forEach((sr, j) => {
           const w = (numVal(r, j) / max) * span,
@@ -470,7 +506,7 @@ export default {
               ),
             );
         });
-      if (stacked && o.showValues && !inside)
+      if (stacked && o.showValues && !inside && !segVals)
         svg.append(
           s(
             'text',

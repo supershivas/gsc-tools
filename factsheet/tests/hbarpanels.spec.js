@@ -52,3 +52,40 @@ test('barres horizontales en panneaux : en-têtes, pistes, barres, valeurs, file
   expect(n).toBeGreaterThan(1000);
   expect(errors).toEqual([]);
 });
+
+/* Barres horizontales empilées : « Valeur de chaque segment » remplace le total au bout de la barre */
+test('barres empilées : valeur de chaque segment', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await page
+    .locator('#tree .col-row', { hasText: /Dataviz/ })
+    .first()
+    .click();
+  const open = page.locator('#props button.primary').first();
+  if (!(await open.count())) await page.locator('#props .pp-chev').first().click();
+  await open.click();
+  await page.locator('.ve-tab[data-tab=viz]').click();
+  await page.locator('.ve-typecard .pp-card-h').click();
+  await page
+    .locator('.ve-typeopt', { hasText: /^Horizontal bars/ })
+    .first()
+    .click();
+  const exp = page.getByRole('button', { name: 'Expand · Structure' });
+  if (await exp.count()) await exp.click();
+  await page
+    .locator('.ve-form select')
+    .filter({ has: page.locator('option[value="stacked"]') })
+    .selectOption('stacked');
+  const svg = page.locator('.ve-stage svg').first();
+  const before = await svg.locator('text', { hasText: '%' }).count();
+  const labels = page.getByRole('button', { name: /Expand · Labels/ });
+  if (await labels.count()) await labels.click();
+  await page
+    .locator('.ve-form select')
+    .filter({ has: page.locator('option[value="segments"]') })
+    .selectOption('segments');
+  // une valeur par segment (2 colonnes × 5 lignes au plus), plus aucun total « 65 % » au bout des barres
+  expect(await svg.locator('text', { hasText: '%' }).count()).toBeGreaterThan(0);
+  expect(await svg.locator('text', { hasText: '%' }).count()).not.toBe(before);
+  expect(errors).toEqual([]);
+});
