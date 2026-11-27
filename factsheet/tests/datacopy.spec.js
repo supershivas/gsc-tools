@@ -50,6 +50,38 @@ test('copier des lignes, des colonnes (avec en-têtes), un bloc, tout le tableau
   await copyBtn.click();
   expect(await copied(page)).toBe(`${await val(0, 0)}\t${await val(0, 1)}\n${await val(1, 0)}\t${await val(1, 1)}`);
 
+  // glisser d'une cellule à une autre : bloc 3 lignes × 2 colonnes, copié par Cmd/Ctrl + C
+  const center = async (loc) => {
+    const b = await loc.boundingBox();
+    return [b.x + b.width / 2, b.y + b.height / 2];
+  };
+  const [ax, ay] = await center(cell(0, 0));
+  const [bx, by] = await center(cell(2, 1));
+  await page.mouse.move(ax, ay);
+  await page.mouse.down();
+  await page.mouse.move((ax + bx) / 2, (ay + by) / 2, { steps: 4 });
+  await page.mouse.move(bx, by, { steps: 4 });
+  await page.mouse.up();
+  await expect(grid.locator('td.dg-sel')).toHaveCount(6);
+  await page.keyboard.press('ControlOrMeta+c');
+  expect((await copied(page)).split('\n')).toHaveLength(3);
+
+  // glisser sur les lettres des colonnes : A et B entières
+  await expect(grid.locator('[data-selcol="0"]')).toHaveText('A');
+  const [cx0, cy0] = await center(grid.locator('[data-selcol="0"]'));
+  const [cx1, cy1] = await center(grid.locator('[data-selcol="1"]'));
+  await page.mouse.move(cx0, cy0);
+  await page.mouse.down();
+  await page.mouse.move(cx1, cy1, { steps: 4 });
+  await page.mouse.up();
+  const rowsN = await grid.locator('tbody tr').count();
+  await expect(grid.locator('td.dg-sel')).toHaveCount(rowsN * 2);
+
+  // Suppr vide les cellules de nombre de la sélection (colonne B), annulable
+  await grid.locator('[data-selcol="1"]').click();
+  await page.keyboard.press('Delete');
+  await expect(cell(0, 1)).toHaveValue(/^0?$/); // colonne de nombres : une cellule vidée vaut 0
+
   // un clic simple retire la sélection
   await cell(0, 0).click();
   await expect(grid.locator('td.dg-sel')).toHaveCount(0);

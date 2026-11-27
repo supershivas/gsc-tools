@@ -823,10 +823,13 @@ body.fs-empty .app-header > :not(.app-left):not(.app-right),body.fs-empty .app-m
 .dg-selrow{width:100%;min-height:28px;border:0;background:none;color:inherit;font:inherit;cursor:pointer;padding:0 4px}
 .dg-selrow.on,.dg-selcol.on,.dg td.dg-sel{background:var(--sel-soft)}
 .dg td.dg-sel input,.dg td.dg-sel textarea,.dg td.dg-sel select{background:transparent}
-.dg-selcol{display:block;width:100%;height:8px;margin:-4px 0 4px;border:0;border-radius:var(--radius-xs);background:var(--ui-line);cursor:pointer;padding:0}
-.dg-selcol.on{background:var(--ui-blue)}
+.dg tr.dg-letters th{position:static;padding:0;text-align:center;border-bottom:1px solid var(--ui-line)}
+.dg-selcol{display:block;width:100%;min-height:24px;border:0;background:none;color:var(--ui-mute);font:inherit;font-size:var(--fs-sm);font-weight:600;cursor:pointer;padding:0}
+.dg-selcol.on{color:var(--ui-blue)}
+table.dg:focus{outline:none}
+table.dg.dg-dragging,table.dg.dg-dragging *{user-select:none;cursor:cell}
 .dg-selall{width:14px;height:14px;border:1px solid var(--ui-line);border-radius:var(--radius-xs);background:none;cursor:pointer;padding:0}
-@media (hover:hover){.dg-selrow:hover{background:var(--ui-bg)}.dg-selcol:hover{background:var(--ui-mute)}}
+@media (hover:hover){.dg-selrow:hover,.dg-selcol:hover{background:var(--ui-line)}}
 /* projet dataviz : colonne de gauche (nom du projet, ses dataviz) dans l'éditeur de dataviz */
 .ve-body.has-side{grid-template-columns:220px minmax(0,1fr) 320px}
 .ve-side{min-height:0;overflow:auto;border-right:1px solid var(--ui-line);background:var(--ui-panel);padding:12px}

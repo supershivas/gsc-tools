@@ -790,9 +790,15 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
     copyBtn.style.display = on ? '' : 'none';
     if (on) copyBtn.lastChild.textContent = `${t('Copier la sélection')} (${R.size} × ${C.size})`;
   }
-  const head = h(
+  /* rangée de lettres, comme un tableur : A, B, C… (clic ou glisser = colonnes) ; le coin sélectionne tout */
+  const letter = (j) => {
+    let x = '';
+    for (let n = j + 1; n > 0; n = Math.floor((n - 1) / 26)) x = String.fromCharCode(65 + ((n - 1) % 26)) + x;
+    return x;
+  };
+  const letters = h(
     'tr',
-    {},
+    { class: 'dg-letters' },
     h(
       'th',
       { class: 'dg-n' },
@@ -807,9 +813,31 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
           sel.cols = new Set(allCols());
           sel.anchor = 0;
           paintSel();
+          focusGrid();
         },
       }),
     ),
+    ...ad.cols.map((c, j) =>
+      h(
+        'th',
+        { class: c.hidden ? 'dg-off' : '' },
+        h('button', {
+          type: 'button',
+          class: 'dg-selcol',
+          dataset: { selcol: j },
+          textContent: letter(j),
+          title: t('Sélectionner la colonne (glisser : plusieurs ; Maj : étendre ; Cmd/Ctrl : ajouter)'),
+          'aria-label': `${t('Sélectionner la colonne')} ${letter(j)}`,
+          onclick: (e) => e.detail === 0 && pick('cols', j, e), // clavier (la souris passe par mousedown)
+        }),
+      ),
+    ),
+    h('th', { class: 'dg-n' }),
+  );
+  const head = h(
+    'tr',
+    {},
+    h('th', { class: 'dg-n' }),
     ...ad.cols.map((c, j) => {
       const th = h(
         'th',
@@ -896,16 +924,6 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
           : h('span', { textContent: c.name }),
       );
       if (c.hidden) th.classList.add('dg-off');
-      th.prepend(
-        h('button', {
-          type: 'button',
-          class: 'dg-selcol',
-          dataset: { selcol: j },
-          title: t('Sélectionner la colonne (Maj : étendre, Cmd/Ctrl : ajouter)'),
-          'aria-label': `${t('Sélectionner la colonne')} ${t(c.name) || j + 1}`,
-          onclick: (e) => pick('cols', j, e),
-        }),
-      );
       return th;
     }),
     h('th', { class: 'dg-n' }),
@@ -923,7 +941,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
     }
     band.append(h('th', { class: 'dg-n' }));
   }
-  table.append(h('thead', {}, band, head));
+  table.append(h('thead', {}, letters, band, head));
   const body = h('tbody');
   const rawCell = (i, j) => {
     const c = ad.cols[j],
@@ -1166,8 +1184,8 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
             class: 'dg-selrow',
             dataset: { selrow: i },
             textContent: String(i + 1),
-            title: t('Sélectionner la ligne (Maj : étendre, Cmd/Ctrl : ajouter)'),
-            onclick: (e) => pick('rows', i, e),
+            title: t('Sélectionner la ligne (glisser : plusieurs ; Maj : étendre ; Cmd/Ctrl : ajouter)'),
+            onclick: (e) => e.detail === 0 && pick('rows', i, e), // clavier (la souris passe par mousedown)
           }),
         ),
         ...ad.cols.map((_, j) => {
@@ -1288,29 +1306,109 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
       if (m) apply(m);
     },
   });
-  /* Maj + clic dans une cellule : bloc depuis la dernière cellule ; clic simple : la sélection disparaît */
+  /* Sélection à la souris, comme un tableur :
+     - glisser d'une cellule à une autre = bloc (le champ quitte l'édition dès qu'on sort de la cellule de départ) ;
+       un clic simple reste une saisie dans la cellule et retire la sélection ; Maj + clic = bloc depuis la dernière cellule ;
+     - lettre d'une colonne / numéro d'une ligne : clic = la sélectionne, glisser = plusieurs, Maj = étendre, Cmd/Ctrl = ajouter.
+     Après une sélection, le tableau prend le focus : Cmd/Ctrl + C copie, Suppr efface les cellules de texte et de nombre. */
+  table.tabIndex = -1;
+  const focusGrid = () => {
+    const a = document.activeElement;
+    if (a && a !== table && table.contains(a) && a.blur) a.blur();
+    table.focus({ preventScroll: true });
+  };
   table.addEventListener('focusin', (e) => {
     const td = e.target.closest && e.target.closest('td[data-ri]');
-    if (td && !e.target.closest('.dg-selrow')) lastCell = [+td.dataset.ri, +td.dataset.cj];
+    if (td) lastCell = [+td.dataset.ri, +td.dataset.cj];
   });
+  let drag = null; // { kind: 'cell' | 'rows' | 'cols', i, j, moved }
+  const block = (i0, j0, i1, j1) => {
+    sel.mode = 'block';
+    sel.rows = new Set(range(i0, i1));
+    sel.cols = new Set(range(j0, j1));
+    paintSel();
+  };
   table.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    const rb = e.target.closest && e.target.closest('[data-selrow]'),
+      cb = e.target.closest && e.target.closest('[data-selcol]');
+    if (rb || cb) {
+      e.preventDefault();
+      const kind = rb ? 'rows' : 'cols',
+        k = +(rb ? rb.dataset.selrow : cb.dataset.selcol);
+      pick(kind, k, e);
+      drag = { kind, k, moved: false, toggle: e.metaKey || e.ctrlKey };
+      focusGrid();
+      return;
+    }
     const td = e.target.closest && e.target.closest('td[data-ri]');
     if (!td) return;
     const i = +td.dataset.ri,
       j = +td.dataset.cj;
     if (e.shiftKey && lastCell) {
       e.preventDefault(); // pas de sélection de texte dans le champ
-      sel.mode = 'block';
-      sel.rows = new Set(range(lastCell[0], i));
-      sel.cols = new Set(range(lastCell[1], j));
-      paintSel();
-    } else clearSel();
+      block(lastCell[0], lastCell[1], i, j);
+      focusGrid();
+      return;
+    }
+    clearSel();
+    drag = { kind: 'cell', i, j, moved: false };
+  });
+  table.addEventListener('mouseover', (e) => {
+    if (!drag) return;
+    if (drag.kind === 'cell') {
+      const td = e.target.closest && e.target.closest('td[data-ri]');
+      if (!td) return;
+      const i = +td.dataset.ri,
+        j = +td.dataset.cj;
+      if (!drag.moved && i === drag.i && j === drag.j) return;
+      if (!drag.moved) {
+        drag.moved = true;
+        table.classList.add('dg-dragging');
+        focusGrid();
+      }
+      const ws = window.getSelection && window.getSelection();
+      if (ws) ws.removeAllRanges();
+      block(drag.i, drag.j, i, j);
+      return;
+    }
+    /* glisser sur les numéros de ligne ou les lettres de colonne */
+    const n = e.target.closest && e.target.closest(drag.kind === 'rows' ? '[data-selrow]' : '[data-selcol]');
+    if (!n) return;
+    const k = +(drag.kind === 'rows' ? n.dataset.selrow : n.dataset.selcol);
+    if (k === drag.k && !drag.moved) return;
+    drag.moved = true;
+    const set = drag.kind === 'rows' ? sel.rows : sel.cols;
+    if (!drag.toggle) set.clear();
+    range(drag.k, k).forEach((x) => set.add(x));
+    sel.mode = drag.kind;
+    paintSel();
+  });
+  const endDrag = () => {
+    if (!drag) return;
+    drag = null;
+    table.classList.remove('dg-dragging');
+  };
+  document.addEventListener('mouseup', endDrag);
+  /* Suppr / Retour arrière sur une sélection (le tableau a le focus) : vide les cellules de texte et de nombre, un pas d'historique */
+  table.addEventListener('keydown', (e) => {
+    if (e.target !== table || !hasSel() || (e.key !== 'Delete' && e.key !== 'Backspace')) return;
+    e.preventDefault();
+    let n = 0;
+    for (const i of selRows())
+      for (const j of selCols()) {
+        const c = ad.cols[j];
+        if (c.select || c.isColor || c.isBool || c.isIcon || c.rich) continue;
+        ad.set(i, j, '');
+        n++;
+      }
+    if (n) rebuild();
   });
   /* Cmd/Ctrl + C : la sélection du tableau, sauf si du texte est choisi dans un champ (copie habituelle) */
   table.addEventListener('copy', (e) => {
     if (!hasSel()) return;
     const a = document.activeElement;
-    if (a && /INPUT|TEXTAREA/.test(a.tagName) && a.selectionStart !== a.selectionEnd && sel.mode !== 'block') return;
+    if (a && /INPUT|TEXTAREA/.test(a.tagName) && a.selectionStart !== a.selectionEnd) return; // texte choisi dans un champ : copie habituelle
     e.preventDefault();
     e.clipboardData.setData('text/plain', selTSV());
   });

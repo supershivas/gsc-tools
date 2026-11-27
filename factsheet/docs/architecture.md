@@ -208,10 +208,11 @@ La fenêtre d'export (`editor/export-ui.js`) commence par l'usage : **Impression
 - Migration : l'ancienne dataviz seule (`factsheet-creator-dataviz-v1`) devient un projet au premier `listVizProjects` (drapeau `factsheet-creator-dataviz-migrated`) ; la clé reste en place.
 - Export des réglages : `factsheet-creator-dataviz-projects` = `{ schemaVersion, projects }`.
 
-## Copie depuis la grille de données (`gridEditor`, `src/vizdata.js`)
+## Grille de données « tableur » (`gridEditor`, `src/vizdata.js`)
 
-- Sélection : numéro de ligne (lignes entières), poignée au-dessus d'un en-tête (colonnes entières, en-têtes copiés), Maj + clic entre deux cellules (bloc), Maj pour étendre, Cmd/Ctrl pour ajouter ; la case en haut à gauche sélectionne tout. Un clic simple dans une cellule retire la sélection.
-- Copie : Cmd/Ctrl + C (événement `copy` du tableau, sauf texte choisi dans un champ) ou « Copier la sélection (lignes × colonnes) » ; « Copier le tableau » copie tout. Texte tabulé, balisage retiré des textes riches.
+- Comme un tableur : rangée de **lettres** au-dessus des en-têtes (A, B, C… ; `tr.dg-letters`, non collante) et **numéros** de ligne à gauche ; la case du coin sélectionne tout. Les tests qui comptent les cellules d'en-tête visent `thead tr:not(.dg-letters) th`.
+- Sélection à la souris : **glisser d'une cellule à une autre** = bloc (dès qu'on quitte la cellule de départ, le champ quitte l'édition et le tableau prend le focus ; un clic simple reste une saisie et retire la sélection) ; Maj + clic = bloc depuis la dernière cellule ; lettre / numéro : clic = colonne / ligne, glisser = plusieurs, Maj = étendre, Cmd/Ctrl = ajouter (au clavier, Entrée sur la lettre ou le numéro).
+- Le tableau (`tabindex=-1`) a le focus après une sélection : **Cmd/Ctrl + C** copie en texte tabulé (colonnes entières : avec leurs noms ; balisage des textes riches retiré), **Suppr / Retour arrière** vide les cellules de texte et de nombre sélectionnées (un pas d'historique ; une cellule de nombre vidée vaut 0). Boutons « Copier la sélection (lignes × colonnes) » et « Copier le tableau ».
 - La zone « Libellé » sur plusieurs lignes (`textarea.dg-ml`) n'hérite plus de la hauteur minimale des `textarea` (84 px).
 
 ## Barres horizontales « En panneaux » (`viz/hbars.js`, `renderPanels`)

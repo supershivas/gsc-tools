@@ -606,6 +606,10 @@ const EN = {
   'Libellés en gras': 'Bold labels',
   'Libellés en italique': 'Italic labels',
   'Libellés soulignés': 'Underlined labels',
+  'Sélectionner la colonne (glisser : plusieurs ; Maj : étendre ; Cmd/Ctrl : ajouter)':
+    'Select the column (drag: several; Shift: extend; Cmd/Ctrl: add)',
+  'Sélectionner la ligne (glisser : plusieurs ; Maj : étendre ; Cmd/Ctrl : ajouter)':
+    'Select the row (drag: several; Shift: extend; Cmd/Ctrl: add)',
   'Tous les libellés': 'All labels',
   'Ce libellé': 'This label',
   'Appliquer à': 'Apply to',
@@ -639,8 +643,6 @@ const EN = {
   'Tableau copié.': 'Table copied.',
   'Copier le tableau': 'Copy the table',
   'Copier la sélection': 'Copy the selection',
-  'Sélectionner la colonne (Maj : étendre, Cmd/Ctrl : ajouter)': 'Select the column (Shift: extend, Cmd/Ctrl: add)',
-  'Sélectionner la ligne (Maj : étendre, Cmd/Ctrl : ajouter)': 'Select the row (Shift: extend, Cmd/Ctrl: add)',
   'Modifier le texte': 'Edit the text',
   'Taille (pt)': 'Size (pt)',
   'Couleur du libellé': 'Label colour',

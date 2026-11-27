@@ -390,7 +390,7 @@ test('textes : réglages dans l’éditeur (carte Textes, colonnes de ligne), ex
   const grid = page.locator('table.dg').first();
   await expect(grid.locator('thead th', { hasText: 'Row type' })).toHaveCount(1);
   await grid.locator('input[data-r="0"][data-c="0"]').fill(LONG);
-  const ns = await grid.locator('thead th').count(); // n°, libellé, 4 colonnes, type, gras, taille, n°
+  const ns = await grid.locator('thead tr:not(.dg-letters) th').count(); // n°, libellé, 4 colonnes, type, gras, taille, n°
   await grid.locator(`select[data-r="0"][data-c="${ns - 5}"]`).selectOption('heading');
   await grid.locator(`select[data-r="1"][data-c="${ns - 4}"]`).selectOption('on');
   await grid.locator(`select[data-r="3"][data-c="${ns - 5}"]`).selectOption('total');
@@ -752,9 +752,9 @@ test('masquer dans l’éditeur : œil de ligne et de colonne, « Tout réaffich
   await page.locator('.ve-tab[data-tab=data]').click();
   const grid = () => page.locator('table.dg').first();
   await grid().locator('tbody tr').nth(2).locator('button.dg-eye').click();
-  await grid().locator('thead th').nth(5).locator('button.dg-eye').click(); // 4e colonne (« en attente »)
+  await grid().locator('thead tr:not(.dg-letters) th').nth(5).locator('button.dg-eye').click(); // 4e colonne (« en attente »)
   await expect(grid().locator('tbody tr.dg-off')).toHaveCount(1);
-  await expect(grid().locator('thead th.dg-off')).toHaveCount(1);
+  await expect(grid().locator('thead tr:not(.dg-letters) th.dg-off')).toHaveCount(1);
   await expect(grid().locator('tbody tr')).toHaveCount(4); // données gardées
   await expect(page.locator('.dg-wrap button', { hasText: 'Show all (1 row, 1 column)' })).toHaveCount(1);
   await page.locator('.ve-tab[data-tab=viz]').click();

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.147.0 — 2026-11-27
+- Grille de données des dataviz façon tableur : colonnes en lettres (A, B, C…) et lignes numérotées, un clic sélectionne une colonne ou une ligne
+- Sélection au glisser (cellules, plusieurs colonnes ou lignes) puis Cmd/Ctrl + C pour copier, Suppr pour vider
+
 ## 1.146.1 — 2026-11-27
 - Dataviz : le style des libellés se règle uniquement dans l'aperçu ; la barre au-dessus du libellé propose « Ce libellé » ou « Tous les libellés », et la carte Textes ne garde que les textes
 
