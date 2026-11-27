@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.147.1 — 2026-11-27
+- Projets dataviz : les couleurs sont enregistrées avec le projet ; elles ne changent plus selon la factsheet ouverte, et les modifier ne touche plus la factsheet
+
 ## 1.147.0 — 2026-11-27
 - Grille de données des dataviz façon tableur : colonnes en lettres (A, B, C…) et lignes numérotées, un clic sélectionne une colonne ou une ligne
 - Sélection au glisser (cellules, plusieurs colonnes ou lignes) puis Cmd/Ctrl + C pour copier, Suppr pour vider

@@ -78,7 +78,7 @@ export function createHome({ ctx, ws, project }) {
     queue.push(async () => {
       if (!box.isConnected) return;
       try {
-        const doc = ctx.getDoc(),
+        const doc = solo.palette ? { ...ctx.getDoc(), ...solo.palette } : ctx.getDoc(), // couleurs du projet dataviz
           r = renderVizFull(solo.viz, solo.width, {
             locale: doc.locale || 'en-GB',
             pal: paletteOf(doc.theme, doc.colors),
@@ -196,7 +196,7 @@ export function createHome({ ctx, ws, project }) {
         card({
           name: p.name,
           sub: `${p.items.length} dataviz · ${when(p.at)}`,
-          thumbEl: vizThumb({ viz: it.viz, width: it.width || 454 }),
+          thumbEl: vizThumb({ viz: it.viz, width: it.width || 454, palette: p.palette }),
           onOpen: go(() => openVizProject(ctx, p.id)),
         }),
         h(

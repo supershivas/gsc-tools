@@ -168,3 +168,51 @@ test('ancienne dataviz seule : devient un projet dataviz', async ({ page }) => {
   await expect(page.locator('.ve-wnum')).toHaveValue('300');
   expect(errors).toEqual([]);
 });
+
+test('projet dataviz : ses couleurs sont enregistrées avec lui, indépendantes de la factsheet', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await menu(page, 'New dataviz project…');
+  await page.locator('.ve-close').click();
+  await expect.poll(async () => ((await projects(page))[0] || {}).palette && 'ok').toBe('ok');
+  const [p] = await projects(page);
+  expect(p.palette.theme).toBeTruthy();
+  // couleur changée dans le projet seul (comme par « Couleurs du document » de l'éditeur)
+  await page.evaluate(
+    (id) =>
+      new Promise((res, rej) => {
+        const r = indexedDB.open('factsheet-creator');
+        r.onsuccess = () => {
+          const db = r.result,
+            st = db.transaction('vizprojects', 'readwrite').objectStore('vizprojects'),
+            g = st.get(id);
+          g.onsuccess = () => {
+            const x = g.result;
+            x.palette.colors = { ...x.palette.colors, blue: '#FF0000' };
+            const w = st.put(x);
+            w.onsuccess = () => {
+              db.close();
+              res();
+            };
+          };
+          g.onerror = () => rej(g.error);
+        };
+      }),
+    p.id,
+  );
+  const docBefore = await page.evaluate((k) => localStorage.getItem(k), DOC_KEY);
+  await menu(page, 'Reopen the last dataviz project');
+  await expect.poll(() => page.locator('.ve').evaluate((n) => n.style.getPropertyValue('--c-blue').trim().toUpperCase())).toBe('#FF0000');
+  await page.locator('.ve-close').click();
+  // la factsheet garde ses couleurs
+  expect(await page.evaluate((k) => localStorage.getItem(k), DOC_KEY)).toBe(docBefore);
+  await expect
+    .poll(() =>
+      page
+        .locator('.page:not(.ovf-clone)')
+        .first()
+        .evaluate((n) => getComputedStyle(n).getPropertyValue('--c-blue').trim().toUpperCase()),
+    )
+    .not.toBe('#FF0000');
+  expect(errors).toEqual([]);
+});

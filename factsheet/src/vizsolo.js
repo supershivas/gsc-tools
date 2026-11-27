@@ -1,6 +1,8 @@
 /* Projets dataviz : des dataviz sans factsheet, ouvertes dans l'éditeur de dataviz (option `solo` d'`openVizEditor`).
-   Un projet = { id, schemaVersion, name, at, active, items: [{ id, name, width, viz }] } : plusieurs dataviz nommées, chacune avec
-   sa largeur. Couleurs, police et densité : celles du document actif (factsheet ouverte, ou vierge).
+   Un projet = { id, schemaVersion, name, at, active, palette, items: [{ id, name, width, viz }] } : plusieurs dataviz nommées, chacune
+   avec sa largeur. `palette` = { theme, colors, colorNames, cmyk } : les couleurs du projet, enregistrées avec lui (copiées du document
+   actif à la création, ou à la première ouverture d'un projet d'avant) ; « Couleurs du document » de l'éditeur les modifie, jamais la
+   factsheet ouverte. Police, densité et réglages du texte : ceux du document actif.
    Enregistrement : chaque modification écrit le projet dans IndexedDB (magasin `vizprojects` de `factsheet-creator`, wsstore.js),
    anti-rebond `SAVE_DELAY`, et tout de suite quand la page se ferme. Sans IndexedDB : `localStorage` `factsheet-creator-dataviz-projects-v1`.
    Les projets sont dans l'export des réglages (`vizProjectsExport`, menus.js).
@@ -43,6 +45,7 @@ export function migrateProject(p) {
     name: String(p.name || '').trim() || newProjectName(),
     at: +p.at || Date.now(),
     active: items.some((x) => x.id === p.active) ? p.active : items[0].id,
+    palette: p.palette && typeof p.palette === 'object' ? palOf(p.palette) : null,
     items,
   };
 }
@@ -127,13 +130,24 @@ export async function deleteVizProject(id) {
   await rawDelete(id);
 }
 
+/* ---------- Couleurs du projet ---------- */
+const PAL_KEYS = ['theme', 'colors', 'colorNames', 'cmyk'];
+/** copie des réglages de couleur d'un document (ou d'une palette enregistrée) */
+export const palOf = (d) => ({
+  colors: {},
+  ...JSON.parse(JSON.stringify(Object.fromEntries(PAL_KEYS.filter((k) => d && d[k] !== undefined).map((k) => [k, d[k]])))),
+});
+/** document de rendu du projet : celui du document actif (police, densité, texte) avec les couleurs du projet ; ni sections ni
+    header partagés, pour qu'aucune opération sur les couleurs (`remapColors`) ne touche la factsheet ouverte */
+const projectDoc = (real, palette) => ({ ...real, sections: [], header: { ...(real.header || {}) }, colors: {}, ...palOf(palette) });
+
 /* ---------- Création ---------- */
 export function newProjectName(d = new Date()) {
   const p = (n) => String(n).padStart(2, '0');
   return String(d.getFullYear()).slice(2) + p(d.getMonth() + 1) + p(d.getDate()) + '_dataviz';
 }
-function makeProject(items) {
-  return { id: uid('p'), schemaVersion: SCHEMA, name: newProjectName(), at: Date.now(), active: items[0].id, items };
+function makeProject(items, palette = null) {
+  return { id: uid('p'), schemaVersion: SCHEMA, name: newProjectName(), at: Date.now(), active: items[0].id, palette, items };
 }
 const defaultWidth = (ctx) => colWidth('1-1', 0, densityGaps(ctx.getDoc().density).columns);
 const newItem = (n, width) => ({ id: uid('v'), name: `Dataviz ${n}`, width, viz: newViz('bars') });
@@ -179,10 +193,18 @@ export async function openVizProject(ctx, id = null, { item } = {}) {
   let p = null;
   if (id) p = (await listVizProjects()).find((x) => x.id === id) || null;
   if (!p) {
-    p = makeProject([newItem(1, defaultWidth(ctx))]);
+    p = makeProject([newItem(1, defaultWidth(ctx))], palOf(ctx.getDoc()));
     await rawPut(p);
   }
-  session = { ctx, p, ed: null, timer: 0, switching: false };
+  if (!p.palette) p.palette = palOf(ctx.getDoc()); // projet d'avant les couleurs enregistrées : il garde celles d'aujourd'hui
+  /* contexte de l'éditeur : le document du projet ; une modification des couleurs est enregistrée dans le projet */
+  const pdoc = projectDoc(ctx.getDoc(), p.palette);
+  const savePal = () => {
+    p.palette = palOf(pdoc);
+    touch();
+  };
+  const vctx = { ...ctx, getDoc: () => pdoc, changed: savePal, restructure: savePal };
+  session = { ctx, vctx, p, ed: null, timer: 0, switching: false };
   openItem(item || p.active);
 }
 /** Reprend le projet le plus récent (nouveau projet s'il n'y en a pas) */
@@ -192,7 +214,7 @@ export async function openLastVizProject(ctx) {
 }
 
 function openItem(itemId) {
-  const { ctx, p } = session;
+  const { ctx, vctx, p } = session;
   const it = p.items.find((x) => x.id === itemId) || p.items[0];
   p.active = it.id;
   if (!it.width) it.width = defaultWidth(ctx);
@@ -202,7 +224,7 @@ function openItem(itemId) {
     col,
     bg: 'none',
     width: it.width,
-    ctx,
+    ctx: vctx,
     fileStem: (x) => itemStem(it)(x),
     solo: {
       save: (viz, w) => {
