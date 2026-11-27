@@ -105,6 +105,18 @@ async function rawDelete(id) {
 /** Tous les projets, du plus récent au plus ancien (migrés) ; l'ancienne dataviz seule devient un projet au premier appel */
 export async function listVizProjects() {
   let all = await rawAll();
+  /* copie de secours laissée par un rechargement avant la fin de l'écriture */
+  try {
+    const pend = JSON.parse(localStorage.getItem(PENDING_KEY) || 'null');
+    if (pend && pend.id && Array.isArray(pend.items)) {
+      const db = all.find((x) => x.id === pend.id);
+      if (!db || (+pend.at || 0) >= (+db.at || 0)) {
+        await rawPut(pend);
+        all = [pend, ...all.filter((x) => x.id !== pend.id)];
+      }
+    }
+    localStorage.removeItem(PENDING_KEY);
+  } catch (e) {}
   let flag = null;
   try {
     flag = localStorage.getItem(MIGRATED_KEY);
@@ -178,14 +190,32 @@ function flush() {
   clearTimeout(session.timer);
   session.timer = 0;
   session.p.at = Date.now();
-  return rawPut(session.p);
+  session.dirty = false;
+  return rawPut(session.p).then(() => {
+    try {
+      localStorage.removeItem(PENDING_KEY);
+    } catch (e) {}
+  });
 }
-const touch = () => {
+const touch = (now = false) => {
   if (!session) return;
+  session.dirty = true;
+  if (now) return flush(); // couleurs : enregistrées tout de suite
   clearTimeout(session.timer);
   session.timer = setTimeout(flush, SAVE_DELAY);
 };
-window.addEventListener('pagehide', () => session && session.timer && flush());
+/* Fermeture ou rechargement de la page : une écriture IndexedDB n'a pas le temps de finir, donc copie de secours synchrone dans le
+   localStorage ; `listVizProjects` la reprend si elle est plus récente que la base (puis l'efface). */
+const PENDING_KEY = 'factsheet-creator-dataviz-pending';
+const stash = () => {
+  if (!session || !session.dirty) return;
+  try {
+    session.p.at = Date.now();
+    localStorage.setItem(PENDING_KEY, JSON.stringify(session.p));
+  } catch (e) {}
+};
+window.addEventListener('pagehide', stash);
+document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && stash());
 
 /** Ouvre un projet (`id`), ou un nouveau projet (sans `id`) ; `item` = dataviz à afficher (sinon la dernière ouverte) */
 export async function openVizProject(ctx, id = null, { item } = {}) {
@@ -201,7 +231,7 @@ export async function openVizProject(ctx, id = null, { item } = {}) {
   const pdoc = projectDoc(ctx.getDoc(), p.palette);
   const savePal = () => {
     p.palette = palOf(pdoc);
-    touch();
+    touch(true);
   };
   const vctx = { ...ctx, getDoc: () => pdoc, changed: savePal, restructure: savePal };
   session = { ctx, vctx, p, ed: null, timer: 0, switching: false };

@@ -216,3 +216,21 @@ test('projet dataviz : ses couleurs sont enregistrées avec lui, indépendantes 
     .not.toBe('#FF0000');
   expect(errors).toEqual([]);
 });
+
+test('projet dataviz : une couleur changée juste avant un rechargement est gardée', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openApp(page, 'default');
+  await menu(page, 'New dataviz project…');
+  await page.locator('.ve-tab[data-tab=viz]').click();
+  await page.getByRole('button', { name: 'Expand · Colours', exact: true }).click();
+  await page.locator('.ve-form button', { hasText: 'Document colours' }).click();
+  await page.locator('.pal2-sw').nth(2).click({ force: true });
+  const hex = page.locator('.ce-hex').first();
+  await hex.fill('#12AB34');
+  await hex.press('Enter');
+  await page.reload(); // aussitôt : pas le temps d'attendre l'enregistrement différé
+  await page.locator('.fs-tab-home').click();
+  await page.locator('.fs-home .fh-card', { hasText: /_dataviz/ }).click();
+  await expect.poll(() => page.locator('.ve').evaluate((n) => n.style.getPropertyValue('--c-sky').trim().toUpperCase())).toBe('#12AB34');
+  expect(errors).toEqual([]);
+});

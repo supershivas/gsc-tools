@@ -224,3 +224,5 @@ La fenêtre d'export (`editor/export-ui.js`) commence par l'usage : **Impression
 - Réglages propres : `panelGap` (Dimensions), `trackBg` (Couleurs : fond de piste, `''` = aucun, par défaut `tint-grey`, `tint-blue` si la palette n'a plus de gris ; nom en `…Bg` pour le copier-coller), `panelRules` (Axes et grille : filets pointillés entre les lignes). Légende, graduations et ligne de référence ne s'y appliquent pas.
 
 - **Barres horizontales empilées** : `stackValues` (carte Étiquettes, `total` par défaut | `segments`) : `segments` écrit la valeur de chaque segment au centre du segment (encre `inkOn`, seulement si elle rentre) et retire le total au bout de la barre.
+
+- **Projets dataviz — enregistrement** : les couleurs s'écrivent tout de suite (`touch(true)`), le reste avec un délai de 300 ms. À la fermeture ou au rechargement de la page, une écriture IndexedDB n'a pas le temps de finir : `pagehide` / `visibilitychange` posent une copie de secours synchrone (`localStorage` `factsheet-creator-dataviz-pending`), reprise puis effacée par `listVizProjects` si elle est plus récente que la base.

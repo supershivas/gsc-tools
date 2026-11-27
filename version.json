@@ -1,7 +1,7 @@
 {
-  "version": "1.147.2",
+  "version": "1.147.3",
   "date": "2026-11-27",
   "changes": [
-    "Barres horizontales empilées : option « Valeurs des barres empilées » (carte Étiquettes) pour montrer la valeur de chaque segment au lieu du total"
+    "Projets dataviz : les couleurs modifiées sont enregistrées tout de suite et survivent à un rechargement de la page"
   ]
 }
