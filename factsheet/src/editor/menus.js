@@ -7,7 +7,7 @@ import { initI18n, getLang, LANGS } from '../i18n.js';
 import { openTextStyles } from './textstyles-ui.js';
 import { fitText, pctLabel } from './fit.js';
 import { MAC, MOD, TAB_KEYS } from './keys.js';
-import { openSoloViz, readSolo } from '../vizsolo.js';
+import { openVizProject, openLastVizProject, vizProjectsExport } from '../vizsolo.js';
 
 /* Langue de l'interface (anglais par défaut) : sélecteur des réglages, renvoyé pour `declareMenus` */
 export function initLang(ctx) {
@@ -109,14 +109,9 @@ export function declareMenus({ ctx, history, historyUi, preview, spacing, hand, 
           { label: 'Accueil : tous les projets', icon: 'layout-grid', run: () => home && home.show() },
           '-',
           { label: 'Nouvelle factsheet vierge', icon: 'file-plus', hint: TAB_KEYS.add, run: project.newBlank },
-          /* dataviz seule (src/vizsolo.js) : l'éditeur de dataviz et son export, sans factsheet à remplir */
-          { label: 'Nouvelle dataviz…', icon: 'chart-bar', run: () => !ws.busy() && openSoloViz(ctx, { fresh: true }) },
-          {
-            label: 'Reprendre la dernière dataviz',
-            icon: 'chart-arrows',
-            run: () => !ws.busy() && openSoloViz(ctx),
-            disabled: () => !readSolo(),
-          },
+          /* projets dataviz (src/vizsolo.js) : des dataviz nommées, sans factsheet à remplir ; les autres projets sont sur l'accueil */
+          { label: 'Nouveau projet dataviz…', icon: 'chart-bar', run: () => !ws.busy() && openVizProject(ctx) },
+          { label: 'Reprendre le dernier projet dataviz', icon: 'chart-arrows', run: () => !ws.busy() && openLastVizProject(ctx) },
           { label: 'Ouvrir…', icon: 'folder-open', run: project.open },
           { heading: 'Ouvrir récent (copie locale)' },
           ...recentItems(),
@@ -205,6 +200,9 @@ export function declareMenus({ ctx, history, historyUi, preview, spacing, hand, 
     center: historyUi.centerEl,
     settings: [{ title: 'Langue', node: langSel }],
     /* export des réglages (js/shell.js) : les documents des onglets sont dans IndexedDB, pas dans le localStorage */
-    exportData: async () => ({ 'factsheet-creator-workspace': ws.exportData() }),
+    exportData: async () => ({
+      'factsheet-creator-workspace': ws.exportData(),
+      'factsheet-creator-dataviz-projects': await vizProjectsExport(),
+    }),
   };
 }

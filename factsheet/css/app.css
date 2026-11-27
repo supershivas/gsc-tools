@@ -532,7 +532,7 @@ textarea.ml{display:block;width:100%;min-height:34px;resize:none;overflow:hidden
 .ve-typeopt .ti{font-size:var(--fs-xl);color:var(--ui-mute)}
 .ve-typeopt.on{background:var(--ui-bg);color:var(--ui-ink);font-weight:600}.ve-typeopt.on .ti{color:var(--ui-ink)}
 @media (hover:hover){.ve-typeopt:hover{background:var(--ui-bg)}}
-textarea.dg-ml{display:block;width:100%;min-width:90px;border:0;border-radius:0;padding:7px 8px;font:inherit;font-size:var(--fs-md);line-height:1.35;resize:none;overflow:hidden;background:transparent}
+textarea.dg-ml{display:block;width:100%;min-width:90px;min-height:0;border:0;border-radius:0;padding:7px 8px;font:inherit;font-size:var(--fs-md);line-height:1.35;resize:none;overflow:hidden;background:transparent}
 .dg td textarea.dg-ml:focus{outline:2px solid var(--ui-blue);outline-offset:-2px;background:#fff}
 
 /* petits « ? » d'aide */
@@ -819,3 +819,24 @@ dialog.tsd::backdrop{background:transparent}
 .vt-bar[hidden],.vt-ring[hidden]{display:none}
 /* aucun document ouvert (tous les onglets fermés) : ni nom de fichier, ni historique, ni menus du document dans l'en-tête */
 body.fs-empty .app-header > :not(.app-left):not(.app-right),body.fs-empty .app-menus{visibility:hidden}
+/* grille de données : sélection de lignes / colonnes / bloc pour copier */
+.dg-selrow{width:100%;min-height:28px;border:0;background:none;color:inherit;font:inherit;cursor:pointer;padding:0 4px}
+.dg-selrow.on,.dg-selcol.on,.dg td.dg-sel{background:var(--sel-soft)}
+.dg td.dg-sel input,.dg td.dg-sel textarea,.dg td.dg-sel select{background:transparent}
+.dg-selcol{display:block;width:100%;height:8px;margin:-4px 0 4px;border:0;border-radius:var(--radius-xs);background:var(--ui-line);cursor:pointer;padding:0}
+.dg-selcol.on{background:var(--ui-blue)}
+.dg-selall{width:14px;height:14px;border:1px solid var(--ui-line);border-radius:var(--radius-xs);background:none;cursor:pointer;padding:0}
+@media (hover:hover){.dg-selrow:hover{background:var(--ui-bg)}.dg-selcol:hover{background:var(--ui-mute)}}
+/* projet dataviz : colonne de gauche (nom du projet, ses dataviz) dans l'éditeur de dataviz */
+.ve-body.has-side{grid-template-columns:220px minmax(0,1fr) 320px}
+.ve-side{min-height:0;overflow:auto;border-right:1px solid var(--ui-line);background:var(--ui-panel);padding:12px}
+.vp-side{display:grid;gap:12px;align-content:start}
+.vp-head{display:grid;gap:4px}
+.vp-name{font-weight:600}
+.vp-list{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.vp-item{display:flex;align-items:center;gap:8px;width:100%;min-height:36px;padding:0 8px;border:0;border-radius:var(--radius-md);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.vp-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vp-list li.on{background:var(--sel-soft);border-radius:var(--radius-md);padding-bottom:4px}
+.vp-cur input{flex:1;min-width:0}
+.vp-acts{display:flex;justify-content:flex-end;gap:4px;padding:0 6px}
+@media (hover:hover){button.vp-item:hover{background:var(--ui-bg)}}

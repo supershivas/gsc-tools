@@ -113,8 +113,8 @@ export default {
     refValue: 0,
     refText: '',
     series: [
-      { name: `${t('Série')} 1`, color: 'blue' },
-      { name: `${t('Série')} 2`, color: 'yellow' },
+      { name: `${t('Colonne')} 1`, color: 'blue' },
+      { name: `${t('Colonne')} 2`, color: 'yellow' },
     ],
     rows: [
       { label: '2021', v: [20, 45] },
@@ -180,7 +180,7 @@ export default {
       when: (o) => !!o.legend || o.legendPos === 'end',
       why: 'Activez « Afficher la légende » pour choisir sa position.',
       t: 'select',
-      label: 'Position de la légende (« En bout de courbe » : nom de chaque série écrit après son dernier point, sans légende séparée)',
+      label: 'Position de la légende (« En bout de courbe » : nom de chaque colonne écrit après son dernier point, sans légende séparée)',
       options: { bottom: 'En bas', top: 'En haut', end: 'En bout de courbe' },
     },
     { k: 'showValues', g: 'labels', t: 'bool', label: 'Afficher les valeurs' },

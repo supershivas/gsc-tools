@@ -311,8 +311,8 @@ const EN = {
   'Image illisible ou trop lourde.': 'Unreadable or too large image.',
   'Icônes et images importées (SVG, PNG, JPEG…) : disponibles dans chaque choix d’icône du document, par exemple comme drapeau sous une barre. Les retirer les retire partout.':
     'Imported icons and images (SVG, PNG, JPEG…): available in every icon choice of the document, for example as a flag under a bar. Removing one removes it everywhere.',
-  'Toute la série': 'Whole series',
-  'Couleur de la série': 'Series colour',
+  'Toute la colonne': 'Whole column',
+  'Couleur de la colonne': 'Column colour',
   'Médias importés…': 'Imported media…',
   'Médias importés': 'Imported media',
   'Aucun média importé.': 'No imported media.',
@@ -336,8 +336,8 @@ const EN = {
   'Y (px)': 'Y (px)',
   'Chiffre clé (petit)': 'Key figure (small)',
   'Hauteur ajustée au contenu': 'Fit height to content',
-  'Position de la légende (« Dans les barres » : noms des séries écrits dans chaque barre, sans légende séparée)':
-    'Legend position (“Inside the bars”: series names written in each bar, no separate legend)',
+  'Position de la légende (« Dans les barres » : noms des colonnes écrits dans chaque barre, sans légende séparée)':
+    'Legend position (“Inside the bars”: column names written in each bar, no separate legend)',
   'Style de paragraphe': 'Paragraph style',
   'Titre 1': 'Heading 1',
   'Titre 2': 'Heading 2',
@@ -366,8 +366,8 @@ const EN = {
   'Taille des points': 'Point size',
   Petit: 'Small',
   'Choisissez « Tous » ou « Dernier seulement » pour régler la taille des points.': 'Choose “All” or “Last only” to set the point size.',
-  'Position de la légende (« En bout de courbe » : nom de chaque série écrit après son dernier point, sans légende séparée)':
-    'Legend position (“At line end”: each series name written after its last point, no separate legend)',
+  'Position de la légende (« En bout de courbe » : nom de chaque colonne écrit après son dernier point, sans légende séparée)':
+    'Legend position (“At line end”: each column name written after its last point, no separate legend)',
   'En bout de courbe': 'At line end',
   'Trait en tirets': 'Dashed line',
   Fine: 'Thin',
@@ -380,8 +380,8 @@ const EN = {
   'Espace entre les barres d’un même groupe': 'Space between bars of the same group',
   'Valeurs dans les barres (si elles rentrent)': 'Values inside the bars (if they fit)',
   'Libellés dans les barres (au pied de la barre)': 'Labels inside the bars (at the foot of the bar)',
-  'Noms des séries dans les barres (écrits à la verticale)': 'Series names inside the bars (written vertically)',
-  'Noms des séries (légende) dans les barres': 'Series names (legend) inside the bars',
+  'Noms des colonnes dans les barres (écrits à la verticale)': 'Column names inside the bars (written vertically)',
+  'Noms des colonnes (légende) dans les barres': 'Column names (legend) inside the bars',
   'Valeurs dans les barres (si affichées ; sinon après la barre quand ça ne rentre pas)':
     'Values inside the bars (if shown; otherwise after the bar when they do not fit)',
   Exposant: 'Superscript',
@@ -588,10 +588,9 @@ const EN = {
   Souligné: 'Underline',
   'Liste à puces': 'Bullet list',
   '+ Ajouter': '+ Add',
-  '+ Série': '+ Series',
+  '+ Colonne': '+ Column',
   Libellé: 'Label',
   '+ Ligne': '+ Row',
-  Série: 'Series',
   'Coller un tableau': 'Paste a table',
   'Remplacer les données': 'Replace data',
   /* heatmap : mise en forme des textes (lot 2b) */
@@ -607,6 +606,28 @@ const EN = {
   'Libellés en gras': 'Bold labels',
   'Libellés en italique': 'Italic labels',
   'Libellés soulignés': 'Underlined labels',
+  'Ouvrir cette dataviz': 'Open this dataviz',
+  'Nom de la dataviz': 'Dataviz name',
+  'Nom de la dataviz (nom du fichier exporté)': 'Dataviz name (exported file name)',
+  'Dupliquer la dataviz': 'Duplicate the dataviz',
+  copie: 'copy',
+  'Supprimer la dataviz': 'Delete the dataviz',
+  'Supprimer la dataviz « {} » ?': 'Delete the dataviz “{}”?',
+  'Projet dataviz': 'Dataviz project',
+  'Dataviz du projet': 'Project datavizs',
+  'Supprimer ce projet dataviz': 'Delete this dataviz project',
+  'Supprimer le projet dataviz « {} » et ses dataviz ?': 'Delete the dataviz project “{}” and its datavizs?',
+  'Projets dataviz': 'Dataviz projects',
+  'Nouveau projet dataviz': 'New dataviz project',
+  'Nouveau projet dataviz…': 'New dataviz project…',
+  'Reprendre le dernier projet dataviz': 'Reopen the last dataviz project',
+  'Sélection copiée.': 'Selection copied.',
+  'Copie impossible : utilisez Cmd/Ctrl + C.': 'Copy failed: use Cmd/Ctrl + C.',
+  'Tableau copié.': 'Table copied.',
+  'Copier le tableau': 'Copy the table',
+  'Copier la sélection': 'Copy the selection',
+  'Sélectionner la colonne (Maj : étendre, Cmd/Ctrl : ajouter)': 'Select the column (Shift: extend, Cmd/Ctrl: add)',
+  'Sélectionner la ligne (Maj : étendre, Cmd/Ctrl : ajouter)': 'Select the row (Shift: extend, Cmd/Ctrl: add)',
   'Modifier le texte': 'Edit the text',
   'Taille (pt)': 'Size (pt)',
   'Couleur du libellé': 'Label colour',
@@ -677,8 +698,8 @@ const EN = {
   '{n} cellules non lues (comptées 0).': '{n} cells not read (counted as 0).',
   '{n} colonnes de données au plus : les suivantes seront ignorées.': 'At most {n} data columns: the next ones will be ignored.',
   'Aucune colonne de libellés : les lignes resteront sans nom.': 'No label column: rows will have no name.',
-  'Collez un tableau depuis Excel ou un CSV : libellé ⇥ série 1 ⇥ série 2…  (la 1re ligne peut contenir les noms de séries)':
-    'Paste a table from Excel or a CSV: label ⇥ series 1 ⇥ series 2…  (the first row may hold the series names)',
+  'Collez un tableau depuis Excel ou un CSV : libellé ⇥ colonne 1 ⇥ colonne 2…  (la 1re ligne peut contenir les noms de colonnes)':
+    'Paste a table from Excel or a CSV: label ⇥ column 1 ⇥ column 2…  (the first row may hold the column names)',
   /* éditeur de dataviz */
   'Éditeur de dataviz': 'Dataviz editor',
   'Aperçu à la largeur': 'Preview at width',
@@ -951,17 +972,17 @@ const EN = {
   'Texte facultatif au-dessus (titre) et sous (source) de la dataviz.': 'Optional text above (title) and below (source) the dataviz.',
   'Collez un tableau depuis Excel ou Sheets, importez un fichier CSV, TSV ou JSON, ou saisissez directement dans les cellules. Entrée passe à la ligne suivante.':
     'Paste a table from Excel or Sheets, import a CSV, TSV or JSON file, or type straight into the cells. Enter moves to the next row.',
-  'Comment le graphique est construit : séries, orientation, forme, grille, axes.':
-    'How the chart is built: series, orientation, shape, grid, axes.',
+  'Comment le graphique est construit : colonnes, orientation, forme, grille, axes.':
+    'How the chart is built: columns, orientation, shape, grid, axes.',
   'Épaisseurs, espaces et rayons du graphique.': 'Thicknesses, spaces and radii of the chart.',
   'Accolade d’évolution, accolade de liste et trait de liaison vers la colonne voisine.':
     'Trend bracket, list bracket and link line to the neighbouring column.',
   'Légende, valeurs affichées, décimales et unité.': 'Legend, displayed values, decimals and unit.',
-  'Couleurs du document ; les séries utilisent les clés de la palette, donc suivent le thème.':
-    'Document colours; series use palette keys, so they follow the theme.',
+  'Couleurs du document ; les colonnes utilisent les clés de la palette, donc suivent le thème.':
+    'Document colours; columns use palette keys, so they follow the theme.',
   'Proportion hauteur / largeur du graphique (en mode « Proportion »).': 'Height / width ratio of the chart (in “Proportion” mode).',
-  'Pastilles de couleur avec le nom des séries ou des groupes sous le graphique.':
-    'Colour swatches with the series or group names below the chart.',
+  'Pastilles de couleur avec le nom des colonnes ou des groupes sous le graphique.':
+    'Colour swatches with the column or group names below the chart.',
   'Nombre de décimales affichées pour les valeurs.': 'Number of decimals shown for values.',
   'Texte ajouté après chaque valeur, par exemple « % » ou « M€ ».': 'Text added after each value, e.g. “%” or “M€”.',
   'Une ligne par paragraphe. « ## » devant une ligne = titre 2, « ### » = texte courant, rien = titre 1. {total} = somme des valeurs.':
@@ -1164,8 +1185,8 @@ const EN = {
   'Choisissez une colonne de référence pour afficher les écarts.': 'Choose a reference column to show the gaps.',
   'Sans référence ou en couleur selon la valeur, seule la couleur des hausses sert.':
     'Without a reference, or when colouring by value, only the increase colour is used.',
-  'Plusieurs séries': 'Multiple series',
-  'Jumelées (2 séries qui se chevauchent)': 'Overlapping (2 series overlap)',
+  'Plusieurs colonnes': 'Multiple columns',
+  'Jumelées (2 colonnes qui se chevauchent)': 'Overlapping (2 columns overlap)',
   'Côte à côte': 'Side by side',
   Empilées: 'Stacked',
   'Format du graphique': 'Chart ratio',
@@ -1786,7 +1807,8 @@ const PATTERNS = [
   ],
   [/^Colonne (\d+)$/, (_, n) => `Column ${n}`],
   [/^Colonne actuelle \((\d+) px\)$/, (_, n) => `Current column (${n} px)`],
-  [/^Série (\d+)$/, (_, n) => `Series ${n}`],
+  [/^Série (\d+)$/, (_, n) => `Column ${n}`],
+  [/^Colonne (\d+)$/, (_, n) => `Column ${n}`],
   [/^Chiffre clé · (.+)$/, (_, x) => `Key figure · ${x}`],
   [/^Teinte · (.+)$/, (_, x) => `Tint · ${tr(x)}`],
   [/^Carte · (.+)$/, (_, x) => `Card · ${x}`],

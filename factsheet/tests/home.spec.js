@@ -135,14 +135,14 @@ test('PDF à 72 dpi plus léger qu’à 300 dpi (images)', async ({ page }) => {
   expect(b).toBeLessThan(a);
 });
 
-test('accueil : aperçu de la dernière dataviz', async ({ page }) => {
+test('accueil : projets dataviz avec aperçu', async ({ page }) => {
   const errors = watchErrors(page);
   await openApp(page, 'default');
   await page.locator('.menu-btn', { hasText: 'File' }).click();
-  await page.locator('.menu-pop:not([hidden]) .menu-item', { hasText: 'New dataviz…' }).click();
+  await page.locator('.menu-pop:not([hidden]) .menu-item', { hasText: 'New dataviz project…' }).click();
   await page.locator('.ve-close').click();
   await page.locator('.fs-tab-home').click();
-  const card = page.locator('.fs-home .fh-card', { hasText: 'Last dataviz' });
+  const card = page.locator('.fs-home .fh-card', { hasText: /_dataviz/ });
   await expect(card.locator('.fh-viz svg').first()).toBeVisible();
   await card.click();
   await expect(page.locator('.ve-bar')).toBeVisible();

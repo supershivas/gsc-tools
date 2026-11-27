@@ -65,7 +65,7 @@ function openColorPop(host, x, y, cur, options, { series, onPick, onReset }) {
             },
           },
           ico('layers-subtract'),
-          h('span', { textContent: t('Toute la série') }),
+          h('span', { textContent: t('Toute la colonne') }),
         ),
         h(
           'button',
@@ -78,7 +78,7 @@ function openColorPop(host, x, y, cur, options, { series, onPick, onReset }) {
             },
           },
           ico('arrow-back-up'),
-          h('span', { textContent: t('Couleur de la série') }),
+          h('span', { textContent: t('Couleur de la colonne') }),
         ),
       ]
     : [];
@@ -127,7 +127,8 @@ const delPath = (o, p) => {
   if (q) delete q[p[p.length - 1]];
 };
 
-/** `solo` : dataviz seule, hors de toute colonne (src/vizsolo.js) — `{ save(viz, width) }` est appelé à chaque modification ;
+/** `solo` : dataviz d'un projet dataviz, hors de toute colonne (src/vizsolo.js) — `{ save(viz, width), side(), onClose() }` :
+    `save` à chaque modification, `side` = colonne de gauche (dataviz du projet), `onClose` à la fermeture ;
     pas d'« Annuler » (tout est gardé), largeur libre, l'export devient le bouton principal. */
 export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, solo }) {
   if (current) return;
@@ -1357,6 +1358,11 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
     dataPane,
   );
   body.append(main, form);
+  /* projet dataviz : ses dataviz dans une colonne à gauche (vizsolo.js) */
+  if (solo && solo.side) {
+    body.prepend(h('aside', { class: 've-side' }, solo.side()));
+    body.classList.add('has-side');
+  }
   document.body.append(root);
   document.body.classList.add('ve-open');
   muted.forEach((n) => {
@@ -1372,4 +1378,5 @@ export function openVizEditor({ col, sub, ci, bg, width: colW, ctx, fileStem, so
   loadFonts().then(() => {
     if (current === root) draw();
   });
+  return { close };
 }

@@ -1204,7 +1204,7 @@ function tableField(f, obj, ctx, palOpts, h2) {
         h2('input', {
           type: 'text',
           value: sr.name || '',
-          placeholder: `${t('Série')} ${j + 1}`,
+          placeholder: `${t('Colonne')} ${j + 1}`,
           oninput: (e) => {
             sr.name = e.target.value;
             ctx.changed();
@@ -1233,9 +1233,9 @@ function tableField(f, obj, ctx, palOpts, h2) {
     box.append(
       h2('button', {
         type: 'button',
-        textContent: '+ Série',
+        textContent: '+ Colonne',
         onclick: () => {
-          series.push({ name: `${t('Série')} ${series.length + 1}`, color: SERIES_COLORS[series.length % SERIES_COLORS.length] });
+          series.push({ name: `${t('Colonne')} ${series.length + 1}`, color: SERIES_COLORS[series.length % SERIES_COLORS.length] });
           fix();
           ctx.restructure();
         },
@@ -1298,7 +1298,8 @@ function tableField(f, obj, ctx, palOpts, h2) {
     }),
   );
   const ta = h2('textarea', {
-    placeholder: 'Collez un tableau depuis Excel ou un CSV : libellé ⇥ série 1 ⇥ série 2…  (la 1re ligne peut contenir les noms de séries)',
+    placeholder:
+      'Collez un tableau depuis Excel ou un CSV : libellé ⇥ colonne 1 ⇥ colonne 2…  (la 1re ligne peut contenir les noms de colonnes)',
     style: { minHeight: '56px' },
   });
   box.append(
@@ -1319,7 +1320,7 @@ function tableField(f, obj, ctx, palOpts, h2) {
             const max = f.maxSeries || 4,
               n = Math.min(p.nser, max);
             const ns = Array.from({ length: n }, (_, j) => ({
-              name: (p.header && p.header[j + 1]) || (series[j] && series[j].name) || `${t('Série')} ${j + 1}`,
+              name: (p.header && p.header[j + 1]) || (series[j] && series[j].name) || `${t('Colonne')} ${j + 1}`,
               color: (series[j] && series[j].color) || SERIES_COLORS[j % SERIES_COLORS.length],
             }));
             series.splice(0, series.length, ...ns);

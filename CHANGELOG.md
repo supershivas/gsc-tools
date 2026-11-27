@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.145.0 — 2026-11-27
+- Dataviz : projets dataviz qui réunissent plusieurs dataviz nommées, enregistrés automatiquement dans le navigateur et listés sur l'accueil
+- Grille de données : sélectionner des lignes, des colonnes ou un bloc et les copier (Cmd/Ctrl + C), ou copier tout le tableau
+- Le mot « série » devient « colonne » dans l'interface des dataviz
+
 ## 1.144.0 — 2026-11-26
 - Factsheet creator : on peut fermer tous les onglets, l'accueil reste alors affiché (aussi au prochain lancement)
 - Dataviz : clic sur un libellé dans l'aperçu = barre de mise en forme (gras, italique, souligné, taille, couleur) pour ce libellé seul

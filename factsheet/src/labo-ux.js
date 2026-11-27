@@ -100,7 +100,7 @@ const VIZ_SECTIONS = [
     name: 'Couleurs',
     sum: 'Bleu',
     body: () => [
-      fld('Couleur de la série', dots('blue')),
+      fld('Couleur de la colonne', dots('blue')),
       h('button', { type: 'button', class: 'pp-btn' }, ic('palette'), 'Couleurs du document'),
     ],
   },

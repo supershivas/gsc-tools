@@ -1,10 +1,12 @@
 /* Stockage de l'espace de travail du Factsheet creator (onglets, brouillons, fichiers récents) dans IndexedDB.
    Le localStorage plafonne à ~5 Mo : des images en data URL le remplissent vite ; IndexedDB n'a pas cette limite.
 
-   Base `factsheet-creator` (version 1) :
+   Base `factsheet-creator` (version 2 ; la 2 ajoute `vizprojects`) :
    - `tabs`    (clé `id`)     : { id, schemaVersion, doc, dirty, sel, view: { zoom, spacing }, collapsed: [], savedAt }
    - `meta`    (clé externe)  : 'workspace' → { schemaVersion, order: [id], active, legacySig }
    - `recents` (clé `fileId`) : { fileId, name, at, doc } — copies locales des 10 derniers fichiers ouverts ou enregistrés.
+   - `vizprojects` (clé `id`) : projets dataviz { id, schemaVersion, name, at, active, items: [{ id, name, width, viz }] }
+     (src/vizprojects.js), enregistrés à chaque modification, compris dans l'export des réglages.
 
    La clé `factsheet-creator-v1` du localStorage reste le miroir du document de l'onglet actif (Atelier, ancienne version de l'app,
    repli sans IndexedDB). `legacySig` est l'empreinte du dernier miroir écrit : si la clé a changé hors de l'éditeur,
@@ -14,7 +16,7 @@ export const DB_NAME = 'factsheet-creator';
 export const LEGACY_KEY = 'factsheet-creator-v1';
 export const WS_SCHEMA = 1;
 export const MAX_RECENTS = 10;
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 /** Empreinte rapide d'une chaîne (longueur + FNV-1a 32 bits) : sert à savoir si le miroir a changé hors de l'éditeur */
 export function sig(s) {
@@ -56,10 +58,21 @@ export function openDb() {
       if (!db.objectStoreNames.contains('tabs')) db.createObjectStore('tabs', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
       if (!db.objectStoreNames.contains('recents')) db.createObjectStore('recents', { keyPath: 'fileId' });
+      if (!db.objectStoreNames.contains('vizprojects')) db.createObjectStore('vizprojects', { keyPath: 'id' });
     };
-    r.onsuccess = () => res(r.result);
+    let late = 0;
+    r.onsuccess = () => {
+      clearTimeout(late);
+      const db = r.result;
+      db.onversionchange = () => db.close(); // une version plus récente de l'app s'ouvre dans un autre onglet : on lui laisse la place
+      res(db);
+    };
     r.onerror = () => rej(r.error);
-    r.onblocked = () => rej(new Error('blocked'));
+    /* passage à une nouvelle version alors qu'un autre onglet (ancienne version de l'app) tient la base : on attend qu'il se
+       recharge (mise à jour automatique) ou se ferme, 4 s au plus, avant de passer en mode sans IndexedDB */
+    r.onblocked = () => {
+      late = setTimeout(() => rej(new Error('blocked')), 4000);
+    };
   });
   dbp.catch(() => {
     dbp = null;
@@ -128,6 +141,25 @@ export async function clearRecents() {
   const db = await openDb();
   const tx = db.transaction('recents', 'readwrite');
   tx.objectStore('recents').clear();
+  await done(tx);
+}
+
+/* ---------- Projets dataviz (src/vizprojects.js) ---------- */
+export async function readVizProjects() {
+  const db = await openDb();
+  const all = await req(db.transaction('vizprojects').objectStore('vizprojects').getAll());
+  return all.sort((a, b) => (b.at || 0) - (a.at || 0));
+}
+export async function putVizProject(p) {
+  const db = await openDb();
+  const tx = db.transaction('vizprojects', 'readwrite');
+  tx.objectStore('vizprojects').put(p);
+  await done(tx);
+}
+export async function deleteVizProject(id) {
+  const db = await openDb();
+  const tx = db.transaction('vizprojects', 'readwrite');
+  tx.objectStore('vizprojects').delete(id);
   await done(tx);
 }
 

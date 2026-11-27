@@ -12,6 +12,7 @@ import { num, parseMatrix, fileToMatrix, padMatrix, headerRows, autoRoles, readI
 import { numberFormat } from './numfmt.js';
 import { switchControl } from './controls.js';
 import { mkToHtml, htmlToMk, wrapInline } from './editor.js';
+import { stripMk } from './viz/util.js';
 
 export { parseMatrix, fileToMatrix, num };
 export const toCSV = (m) =>
@@ -80,7 +81,7 @@ export function tableAdapter(f, obj, palOpts, SERIES_COLORS, icons) {
     max = f.maxSeries || 4,
     blank = !!f.blank, // heatmap : une cellule vide reste vide (null = « en attente »), au lieu de 0
     cell = (x) => (blank && (x === null || x === undefined || x === '') ? null : +x || 0),
-    serName = t(f.serLabel || 'Série');
+    serName = t(f.serLabel || 'Colonne');
   const fix = () =>
     rows.forEach((r) => {
       r.v = Array.from({ length: series.length }, (_, j) => cell((r.v || [])[j]));
@@ -637,6 +638,31 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
       h('span', { textContent: t('Exporter en CSV') }),
     ),
   );
+  /* copier tout le tableau (en-têtes compris) */
+  tools.append(
+    h(
+      'button',
+      {
+        type: 'button',
+        class: 'pp-btn',
+        onclick: async () => {
+          const C = allCols(),
+            tsv = [
+              C.map((j) => String(ad.cols[j].name || ad.cols[j].label || '')).join('\t'),
+              ...allRows().map((i) => C.map((j) => cellText(i, j)).join('\t')),
+            ].join('\n');
+          try {
+            await navigator.clipboard.writeText(tsv);
+            ctx.note && ctx.note(t('Tableau copié.'));
+          } catch (e) {
+            alertBox(t('Copie impossible : utilisez Cmd/Ctrl + C.'));
+          }
+        },
+      },
+      ico('clipboard-copy'),
+      h('span', { textContent: t('Copier le tableau') }),
+    ),
+  );
 
   /* tableau */
   const table = h('table', { class: 'dg' + (ad.cols.some((c) => c.ml || c.rich) ? ' dg-top' : '') }); // cellules sur plusieurs lignes : tout aligné en haut
@@ -680,10 +706,110 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
     richBar.style.left = Math.max(8, r.left) + 'px';
     richBar.style.top = Math.max(8, r.top - (richBar.offsetHeight || 32) - 4) + 'px';
   };
+  /* ----- sélection de lignes, de colonnes ou d'un bloc, pour copier (Cmd/Ctrl + C ou « Copier la sélection ») -----
+     Clic sur un numéro de ligne / la poignée d'une colonne : la sélectionne ; Maj + clic : étend ; Cmd/Ctrl + clic : ajoute ou retire.
+     Maj + clic dans une cellule : bloc entre la cellule qui avait le focus et celle-ci. Copie en texte tabulé (Excel, Sheets) ;
+     une sélection de colonnes emporte leurs en-têtes. */
+  const allRows = () => [...Array(ad.rows()).keys()],
+    allCols = () => ad.cols.map((_, j) => j);
+  const sel = { mode: null, rows: new Set(), cols: new Set(), anchor: null }; // mode : 'rows' | 'cols' | 'block' | null
+  let lastCell = null; // [i, j] de la dernière cellule qui a eu le focus (ancre du Maj + clic)
+  const range = (a, b) => {
+    const out = [];
+    for (let k = Math.min(a, b); k <= Math.max(a, b); k++) out.push(k);
+    return out;
+  };
+  const selRows = () => (sel.mode === 'cols' ? allRows() : [...sel.rows].sort((a, b) => a - b)),
+    selCols = () => (sel.mode === 'rows' ? allCols() : [...sel.cols].sort((a, b) => a - b));
+  const hasSel = () => !!sel.mode && selRows().length > 0 && selCols().length > 0;
+  function pick(mode, k, e) {
+    const set = mode === 'rows' ? sel.rows : sel.cols;
+    if (sel.mode !== mode) {
+      sel.mode = mode;
+      sel.rows.clear();
+      sel.cols.clear();
+      sel.anchor = null;
+    }
+    if (e && e.shiftKey && sel.anchor != null) range(sel.anchor, k).forEach((x) => set.add(x));
+    else if (e && (e.metaKey || e.ctrlKey)) set.has(k) ? set.delete(k) : set.add(k);
+    else {
+      set.clear();
+      set.add(k);
+    }
+    if (!(e && e.shiftKey)) sel.anchor = k;
+    if (!set.size) sel.mode = null;
+    paintSel();
+  }
+  function clearSel() {
+    if (!sel.mode) return;
+    sel.mode = null;
+    sel.rows.clear();
+    sel.cols.clear();
+    paintSel();
+  }
+  const cellText = (i, j) => {
+    const c = ad.cols[j],
+      v = String(ad.get(i, j) ?? '');
+    return (c.rich || c.ml ? stripMk(v) : v).replace(/\r?\n|\u2028/g, ' ').replace(/\t/g, ' ');
+  };
+  const selTSV = () => {
+    const R = selRows(),
+      C = selCols(),
+      lines = R.map((i) => C.map((j) => cellText(i, j)).join('\t'));
+    if (sel.mode === 'cols') lines.unshift(C.map((j) => String(ad.cols[j].name || ad.cols[j].label || '')).join('\t'));
+    return lines.join('\n');
+  };
+  const copyBtn = h(
+    'button',
+    {
+      type: 'button',
+      class: 'pp-btn',
+      style: { display: 'none' }, // `.pp-btn` est en flex : l'attribut hidden ne suffirait pas
+      onclick: async () => {
+        if (!hasSel()) return;
+        try {
+          await navigator.clipboard.writeText(selTSV());
+          ctx.note && ctx.note(t('Sélection copiée.'));
+        } catch (e) {
+          alertBox(t('Copie impossible : utilisez Cmd/Ctrl + C.'));
+        }
+      },
+    },
+    ico('copy'),
+    h('span'),
+  );
+  function paintSel() {
+    const R = new Set(selRows()),
+      C = new Set(selCols()),
+      on = hasSel();
+    table
+      .querySelectorAll('td[data-ri]')
+      .forEach((td) => td.classList.toggle('dg-sel', on && R.has(+td.dataset.ri) && C.has(+td.dataset.cj)));
+    table.querySelectorAll('[data-selrow]').forEach((b) => b.classList.toggle('on', on && sel.mode !== 'cols' && R.has(+b.dataset.selrow)));
+    table.querySelectorAll('[data-selcol]').forEach((b) => b.classList.toggle('on', on && sel.mode !== 'rows' && C.has(+b.dataset.selcol)));
+    copyBtn.style.display = on ? '' : 'none';
+    if (on) copyBtn.lastChild.textContent = `${t('Copier la sélection')} (${R.size} × ${C.size})`;
+  }
   const head = h(
     'tr',
     {},
-    h('th', { class: 'dg-n' }),
+    h(
+      'th',
+      { class: 'dg-n' },
+      h('button', {
+        type: 'button',
+        class: 'dg-selall',
+        title: t('Tout sélectionner'),
+        'aria-label': t('Tout sélectionner'),
+        onclick: () => {
+          sel.mode = 'cols';
+          sel.rows.clear();
+          sel.cols = new Set(allCols());
+          sel.anchor = 0;
+          paintSel();
+        },
+      }),
+    ),
     ...ad.cols.map((c, j) => {
       const th = h(
         'th',
@@ -739,7 +865,7 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
               h('input', {
                 type: 'text',
                 value: c.name,
-                placeholder: `${t('Série')} ${j}`,
+                placeholder: `${t('Colonne')} ${j}`,
                 oninput: (e) => {
                   c.onRename(e.target.value);
                   ctx.changed();
@@ -770,6 +896,16 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
           : h('span', { textContent: c.name }),
       );
       if (c.hidden) th.classList.add('dg-off');
+      th.prepend(
+        h('button', {
+          type: 'button',
+          class: 'dg-selcol',
+          dataset: { selcol: j },
+          title: t('Sélectionner la colonne (Maj : étendre, Cmd/Ctrl : ajouter)'),
+          'aria-label': `${t('Sélectionner la colonne')} ${t(c.name) || j + 1}`,
+          onclick: (e) => pick('cols', j, e),
+        }),
+      );
       return th;
     }),
     h('th', { class: 'dg-n' }),
@@ -1022,10 +1158,23 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
       h(
         'tr',
         { class: ad.hide && ad.hide.get(i) ? 'dg-off' : '' },
-        h('td', { class: 'dg-n', textContent: String(i + 1) }),
+        h(
+          'td',
+          { class: 'dg-n' },
+          h('button', {
+            type: 'button',
+            class: 'dg-selrow',
+            dataset: { selrow: i },
+            textContent: String(i + 1),
+            title: t('Sélectionner la ligne (Maj : étendre, Cmd/Ctrl : ajouter)'),
+            onclick: (e) => pick('rows', i, e),
+          }),
+        ),
         ...ad.cols.map((_, j) => {
           const td = cell(i, j);
           if (ad.cols[j].hidden) td.classList.add('dg-off');
+          td.dataset.ri = i;
+          td.dataset.cj = j;
           return td;
         }),
         h(
@@ -1139,6 +1288,44 @@ export function gridEditor(ad, ctx, { downloadName = 'data', locale } = {}) {
       if (m) apply(m);
     },
   });
+  /* Maj + clic dans une cellule : bloc depuis la dernière cellule ; clic simple : la sélection disparaît */
+  table.addEventListener('focusin', (e) => {
+    const td = e.target.closest && e.target.closest('td[data-ri]');
+    if (td && !e.target.closest('.dg-selrow')) lastCell = [+td.dataset.ri, +td.dataset.cj];
+  });
+  table.addEventListener('mousedown', (e) => {
+    const td = e.target.closest && e.target.closest('td[data-ri]');
+    if (!td) return;
+    const i = +td.dataset.ri,
+      j = +td.dataset.cj;
+    if (e.shiftKey && lastCell) {
+      e.preventDefault(); // pas de sélection de texte dans le champ
+      sel.mode = 'block';
+      sel.rows = new Set(range(lastCell[0], i));
+      sel.cols = new Set(range(lastCell[1], j));
+      paintSel();
+    } else clearSel();
+  });
+  /* Cmd/Ctrl + C : la sélection du tableau, sauf si du texte est choisi dans un champ (copie habituelle) */
+  table.addEventListener('copy', (e) => {
+    if (!hasSel()) return;
+    const a = document.activeElement;
+    if (a && /INPUT|TEXTAREA/.test(a.tagName) && a.selectionStart !== a.selectionEnd && sel.mode !== 'block') return;
+    e.preventDefault();
+    e.clipboardData.setData('text/plain', selTSV());
+  });
+  tools.prepend(copyBtn);
+  /* cellules sur plusieurs lignes : leur hauteur suit le contenu à la largeur réelle (mesurée trop tôt, la colonne était plus étroite) */
+  let lastW = 0;
+  new ResizeObserver(() => {
+    const w = table.offsetWidth;
+    if (!w || w === lastW) return;
+    lastW = w;
+    table.querySelectorAll('textarea.dg-ml').forEach((ta) => {
+      ta.style.height = 'auto';
+      ta.style.height = ta.scrollHeight + 'px';
+    });
+  }).observe(table);
   return h(
     'div',
     { class: 'dg-wrap' },

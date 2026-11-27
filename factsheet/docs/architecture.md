@@ -198,3 +198,18 @@ Fichier « Enregistrer dans le navigateur » (Cmd/Ctrl + S, `ws.saveLocal`) : un
 ## Export PDF : usages
 
 La fenêtre d'export (`editor/export-ui.js`) commence par l'usage : **Impression** (PDF/X-4 FOGRA39, images 300 dpi, format de la feuille au choix), **Écran** (RVB, A4 net, images 72 dpi) ou **Personnalisé** (format, profil, résolution 72 / 150 / 300 dpi). Le menu Fichier ouvre directement l'un des trois ; Cmd/Ctrl + P garde le dernier (préférences `factsheet-creator-pdf-preset`, `-pdf-dpi`, `-pdf-profile`). La résolution passe à `FSPDF.build(doc, mode, { profile, dpi })` : elle ne touche que les images rastérisées (`SCALE = dpi / 96`, SVG non vectorisable × 4) ; le texte et les dessins restent vectoriels. Nom : `…-x4.pdf`, `…-rgb-72dpi.pdf` (le dpi n'est ajouté que s'il diffère de 300).
+
+## Projets dataviz (`src/vizsolo.js`)
+
+- Un projet réunit plusieurs dataviz nommées : `{ id, schemaVersion: 1, name, at, active, items: [{ id, name, width, viz }] }`. Créé par « Nouveau projet dataviz » (accueil, menu Fichier), nommé `AAMMJJ_dataviz` ; « Reprendre le dernier projet dataviz » ouvre le plus récent.
+- Enregistrement : chaque `solo.save` met à jour la dataviz et écrit le projet (anti-rebond 300 ms, tout de suite à `pagehide` et à la fermeture) dans IndexedDB, magasin `vizprojects` (base `factsheet-creator` passée en **version 2** ; `openDb` attend 4 s un autre onglet d'ancienne version avant de renoncer, et ferme sa connexion sur `versionchange`). Repli sans IndexedDB : `localStorage` `factsheet-creator-dataviz-projects-v1`.
+- Éditeur : la colonne de gauche (`solo.side`, `.ve-side`) montre le nom du projet et ses dataviz ; la dataviz ouverte se renomme, se duplique, se supprime (jamais la dernière). Changer de dataviz referme l'éditeur et le rouvre sur l'autre (`openVizEditor` renvoie `{ close }`) : chaque dataviz a son propre historique d'annulation.
+- Accueil : section « Projets dataviz » (vignette de la dernière dataviz ouverte, nombre de dataviz, suppression avec confirmation).
+- Migration : l'ancienne dataviz seule (`factsheet-creator-dataviz-v1`) devient un projet au premier `listVizProjects` (drapeau `factsheet-creator-dataviz-migrated`) ; la clé reste en place.
+- Export des réglages : `factsheet-creator-dataviz-projects` = `{ schemaVersion, projects }`.
+
+## Copie depuis la grille de données (`gridEditor`, `src/vizdata.js`)
+
+- Sélection : numéro de ligne (lignes entières), poignée au-dessus d'un en-tête (colonnes entières, en-têtes copiés), Maj + clic entre deux cellules (bloc), Maj pour étendre, Cmd/Ctrl pour ajouter ; la case en haut à gauche sélectionne tout. Un clic simple dans une cellule retire la sélection.
+- Copie : Cmd/Ctrl + C (événement `copy` du tableau, sauf texte choisi dans un champ) ou « Copier la sélection (lignes × colonnes) » ; « Copier le tableau » copie tout. Texte tabulé, balisage retiré des textes riches.
+- La zone « Libellé » sur plusieurs lignes (`textarea.dg-ml`) n'hérite plus de la hauteur minimale des `textarea` (84 px).

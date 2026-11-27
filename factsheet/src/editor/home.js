@@ -3,7 +3,7 @@ import { PAGE, cssVars, applyVars, paletteOf, textSetFor } from '../tokens.js';
 import { renderCtx } from '../renderctx.js';
 import { migrate } from '../state.js';
 import { readRecent } from '../wsstore.js';
-import { openSoloViz, readSolo } from '../vizsolo.js';
+import { openVizProject, listVizProjects, deleteVizProject } from '../vizsolo.js';
 import { VIZ_TYPES, renderVizFull } from '../viz/index.js';
 import { t, getLang } from '../i18n.js';
 import { confirmBox } from '../dialogs.js';
@@ -39,7 +39,8 @@ export function createHome({ ctx, ws, project }) {
   let root = null,
     muted = [],
     queue = [],
-    raf = 0;
+    raf = 0,
+    projects = []; // projets dataviz, lus à l'ouverture de l'accueil (vizsolo.js)
 
   const when = (at) =>
     new Date(at).toLocaleString(getLang() === 'fr' ? 'fr-FR' : 'en-GB', {
@@ -186,15 +187,43 @@ export function createHome({ ctx, ws, project }) {
       );
     const saved = recents.filter((r) => r.saved).map(local);
     const rec = recents.filter((r) => !r.saved).map(local);
-    const solo = readSolo();
-    const vizCard = solo
-      ? card({
-          name: t('Dernière dataviz'),
-          sub: t((VIZ_TYPES[solo.viz.kind] && VIZ_TYPES[solo.viz.kind].label) || 'Dataviz'),
-          thumbEl: vizThumb(solo),
-          onOpen: go(() => openSoloViz(ctx)),
-        })
-      : null;
+    /* projets dataviz : vignette de la dernière dataviz ouverte, nombre de dataviz ; supprimables */
+    const vizProj = (p) => {
+      const it = p.items.find((x) => x.id === p.active) || p.items[0];
+      return h(
+        'div',
+        { class: 'fh-cell' },
+        card({
+          name: p.name,
+          sub: `${p.items.length} dataviz · ${when(p.at)}`,
+          thumbEl: vizThumb({ viz: it.viz, width: it.width || 454 }),
+          onOpen: go(() => openVizProject(ctx, p.id)),
+        }),
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'fh-del',
+            title: t('Supprimer ce projet dataviz'),
+            'aria-label': t('Supprimer ce projet dataviz'),
+            onclick: async () => {
+              if (
+                !(await confirmBox(t('Supprimer le projet dataviz « {} » et ses dataviz ?').replace('{}', p.name), {
+                  ok: t('Supprimer'),
+                  danger: true,
+                }))
+              )
+                return;
+              await deleteVizProject(p.id);
+              projects = projects.filter((x) => x !== p);
+              if (root) build();
+            },
+          },
+          ico('trash'),
+        ),
+      );
+    };
+    const vizCards = projects.map(vizProj);
     const atLaunch = h('input', { type: 'checkbox', checked: homeAtLaunch(), onchange: (e) => setAtLaunch(e.target.checked) });
     root.replaceChildren(
       h(
@@ -215,9 +244,9 @@ export function createHome({ ctx, ws, project }) {
             ),
             h(
               'button',
-              { type: 'button', onclick: go(() => openSoloViz(ctx, { fresh: true })) },
+              { type: 'button', onclick: go(() => openVizProject(ctx)) },
               ico('chart-bar'),
-              h('span', { textContent: t('Nouvelle dataviz') }),
+              h('span', { textContent: t('Nouveau projet dataviz') }),
             ),
             h('button', { type: 'button', onclick: keep(project.open) }, ico('folder-open'), h('span', { textContent: t('Ouvrir…') })),
             ws.empty()
@@ -239,9 +268,8 @@ export function createHome({ ctx, ws, project }) {
           ? [h('h2', { textContent: t('Ouverts') }), h('div', { class: 'fh-grid' }, ...open)]
           : h('p', { class: 'fh-note', textContent: t('Aucun document ouvert : créez ou ouvrez un projet.') }),
         saved.length ? [h('h2', { textContent: t('Enregistrés dans ce navigateur') }), h('div', { class: 'fh-grid' }, ...saved)] : null,
-        rec.length || vizCard
-          ? [h('h2', { textContent: t('Récents (copies locales)') }), h('div', { class: 'fh-grid' }, ...(vizCard ? [vizCard] : []), ...rec)]
-          : null,
+        vizCards.length ? [h('h2', { textContent: t('Projets dataviz') }), h('div', { class: 'fh-grid' }, ...vizCards)] : null,
+        rec.length ? [h('h2', { textContent: t('Récents (copies locales)') }), h('div', { class: 'fh-grid' }, ...rec)] : null,
         h('p', {
           class: 'fh-note',
           textContent: t('Ces projets sont gardés dans ce navigateur seulement. Enregistrez un fichier (.json) pour le garder ailleurs.'),
@@ -261,7 +289,12 @@ export function createHome({ ctx, ws, project }) {
   async function show() {
     if (root || document.querySelector('.ve')) return;
     if (ws.recentsOk() && !ws.recents().length) await ws.loadRecents();
-    if (root) return;
+    try {
+      projects = await listVizProjects();
+    } catch (e) {
+      projects = [];
+    }
+    if (root || document.querySelector('.ve')) return;
     root = h('div', { class: 'fs-home', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('Accueil'), tabindex: -1 });
     muted = ['fsTabs'].map((id) => document.getElementById(id)).concat([...document.querySelectorAll('body > .app')]);
     muted = muted.filter((n) => n && !n.inert);

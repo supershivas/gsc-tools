@@ -84,7 +84,7 @@ export default {
   /** textes saisis montrés dans la carte Textes (champ simple ou texte riche), en plus du tableau de données */
   textItems: (o) => (o.rows || []).map((r, i) => ({ obj: r, k: 'label', label: `${t('Libellé')} ${i + 1}` })),
   fields: [
-    { k: 'style', g: 'struct', t: 'select', label: 'Plusieurs séries', options: { grouped: 'Côte à côte', stacked: 'Empilées' } },
+    { k: 'style', g: 'struct', t: 'select', label: 'Plusieurs colonnes', options: { grouped: 'Côte à côte', stacked: 'Empilées' } },
     {
       k: 'barSize',
       g: 'dims',
@@ -163,7 +163,7 @@ export default {
       when: (o) => !!o.legend || o.legendPos === 'inside',
       why: 'Activez « Afficher la légende » pour choisir sa position.',
       t: 'select',
-      label: 'Position de la légende (« Dans les barres » : noms des séries écrits dans chaque barre, sans légende séparée)',
+      label: 'Position de la légende (« Dans les barres » : noms des colonnes écrits dans chaque barre, sans légende séparée)',
       options: { bottom: 'En bas', top: 'En haut', inside: 'Dans les barres' },
     },
     { k: 'showValues', g: 'labels', t: 'bool', label: 'Afficher les valeurs' },
